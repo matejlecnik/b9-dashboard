@@ -101,9 +101,16 @@ class ProxyEnabledMultiScraper:
     async def initialize(self):
         """Initialize with proxy-enabled Reddit clients"""
         try:
-            # Load account configuration
-            with open('config/accounts_config.json', 'r') as f:
-                config = json.load(f)
+            # Load account configuration from environment variable or file
+            accounts_config_json = os.getenv('ACCOUNTS_CONFIG_JSON')
+            if accounts_config_json:
+                config = json.loads(accounts_config_json)
+                logger.info("📋 Loaded account configuration from environment variable")
+            else:
+                # Fallback to file for local development
+                with open('config/accounts_config.json', 'r') as f:
+                    config = json.load(f)
+                logger.info("📋 Loaded account configuration from file")
             
             enabled_accounts = [acc for acc in config['reddit_accounts'] if acc.get('enabled', True)]
             
