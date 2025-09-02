@@ -1,0 +1,225 @@
+{
+  "reddit_accounts": [
+    {
+      "id": "account_1",
+      "client_id": "ndy8lDxOROBYctMHnAUy4g",
+      "client_secret": "19sdBr4xz9Dk67gEBM9xO32QEHFXjg",
+      "username": "Fragrant_Double8280",
+      "password": "asQ1YSJI1Z1",
+              "user_agent": "OnlyFansAgencyScraper/2.0 by Fragrant_Double8280",
+      "proxy_id": "isp.decodo.com:10001:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "account_2", 
+      "client_id": "Hyzl6Of89eZ2gIPJikpQRw",
+      "client_secret": "Msz2U57izJKrmhvlvM6i4CuyiPQX4g",
+      "username": "BestBanBot",
+      "password": ".,mn!9oILaila12",
+              "user_agent": "OnlyFansAgencyScraper/2.0 by BestBanBot",
+      "proxy_id": "isp.decodo.com:10002:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "account_3",
+      "client_id": "LysBBAyvyeogxKEN0r90JA", 
+      "client_secret": "bCfCN2TJFRKXuY6fVn_nS5-G6s80ug",
+      "username": "nospamallowedBot",
+      "password": ";:ANE)!(POAaA-.,>",
+              "user_agent": "OnlyFansAgencyScraper/2.0 by nospamallowedBot",
+      "proxy_id": "isp.decodo.com:10003:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "account_4",
+      "client_id": "your_client_id_4",
+      "client_secret": "your_client_secret_4", 
+      "username": "lorge19351a",
+      "password": "Cs0kAtx8u",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_4",
+      "proxy_id": "isp.decodo.com:10004:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "account_5",
+      "client_id": "your_client_id_5",
+      "client_secret": "your_client_secret_5",
+      "username": "your_reddit_username_5", 
+      "password": "your_reddit_password_5",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_5",
+      "proxy_id": "proxy_5",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "account_6",
+      "client_id": "your_client_id_6",
+      "client_secret": "your_client_secret_6",
+      "username": "your_reddit_username_6",
+      "password": "your_reddit_password_6", 
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_6",
+      "proxy_id": "proxy_6",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "account_7",
+      "client_id": "your_client_id_7",
+      "client_secret": "your_client_secret_7",
+      "username": "your_reddit_username_7",
+      "password": "your_reddit_password_7",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_7",
+      "proxy_id": "proxy_7", 
+      "priority": 3,
+      "enabled": true
+    },
+    {
+      "id": "account_8",
+      "client_id": "your_client_id_8",
+      "client_secret": "your_client_secret_8",
+      "username": "your_reddit_username_8",
+      "password": "your_reddit_password_8",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_8",
+      "proxy_id": "proxy_8",
+      "priority": 3,
+      "enabled": true
+    },
+    {
+      "id": "account_9",
+      "client_id": "your_client_id_9",
+      "client_secret": "your_client_secret_9", 
+      "username": "your_reddit_username_9",
+      "password": "your_reddit_password_9",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_9",
+      "proxy_id": "proxy_9",
+      "priority": 3,
+      "enabled": false
+    },
+    {
+      "id": "account_10",
+      "client_id": "your_client_id_10",
+      "client_secret": "your_client_secret_10",
+      "username": "your_reddit_username_10",
+      "password": "your_reddit_password_10",
+      "user_agent": "OnlyFansAgencyScraper/2.0 by your_reddit_username_10",
+      "proxy_id": "proxy_10",
+      "priority": 3,
+      "enabled": false
+    }
+  ],
+  "proxies": [
+    {
+      "id": "isp.decodo.com:10001:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "host": "isp.decodo.com",
+      "port": 10001,
+      "username": "spk8eg2ggb",
+      "password": "57dpl2TVfhjn6Mnl=J",
+      "type": "http",
+      "location": "US",
+      "enabled": true
+    },
+    {
+      "id": "isp.decodo.com:10002:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "host": "isp.decodo.com",
+      "port": 10002,
+      "username": "spk8eg2ggb",
+      "password": "57dpl2TVfhjn6Mnl=J", 
+      "type": "http",
+      "location": "US",
+      "enabled": true
+    },
+    {
+      "id": "isp.decodo.com:10003:spk8eg2ggb:57dpl2TVfhjn6Mnl=J",
+      "host": "isp.decodo.com",
+      "port": 10003,
+      "username": "spk8eg2ggb",
+      "password": "57dpl2TVfhjn6Mnl=J",
+      "type": "http", 
+      "location": "US",
+      "enabled": true
+    },
+    {
+      "id": "proxy_4",
+      "host": "proxy4.your-provider.com",
+      "port": 8080,
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "CA", 
+      "enabled": true
+    },
+    {
+      "id": "proxy_5",
+      "host": "proxy5.your-provider.com",
+      "port": 8080,
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "UK",
+      "enabled": true
+    },
+    {
+      "id": "proxy_6",
+      "host": "proxy6.your-provider.com", 
+      "port": 8080,
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "UK",
+      "enabled": true
+    },
+    {
+      "id": "proxy_7",
+      "host": "proxy7.your-provider.com",
+      "port": 8080,
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "AU",
+      "enabled": true
+    },
+    {
+      "id": "proxy_8",
+      "host": "proxy8.your-provider.com",
+      "port": 8080, 
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "AU",
+      "enabled": true
+    },
+    {
+      "id": "proxy_9",
+      "host": "proxy9.your-provider.com",
+      "port": 8080,
+      "username": "your_proxy_username",
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "DE",
+      "enabled": true
+    },
+    {
+      "id": "proxy_10",
+      "host": "proxy10.your-provider.com",
+      "port": 8080,
+      "username": "your_proxy_username", 
+      "password": "your_proxy_password",
+      "type": "http",
+      "location": "DE",
+      "enabled": true
+    }
+  ],
+  "settings": {
+    "max_concurrent_accounts": 5,
+    "requests_per_minute_per_account": 95,
+    "proxy_rotation_interval_minutes": 30,
+    "account_cooldown_minutes": 5,
+    "health_check_interval_minutes": 10,
+    "enable_failover": true,
+    "enable_load_balancing": true
+  }
+}

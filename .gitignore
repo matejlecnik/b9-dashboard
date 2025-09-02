@@ -1,12 +1,18 @@
-node_modules
-.DS_Store
+# Environments & secrets
 .env
 .env.*
-coverage
-dist
-build
-.next
-.vercel
-.vscode
-.idea
-*.log
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+
+# OS
+.DS_Store
+
