@@ -459,10 +459,12 @@ python3 reddit_agency_scraper.py
 
 ### ✅ Railway Integration Completed
 - **✅ Railway Project:** "Reddit Scraper Dashboard" (ID: 2fa44272-5646-4ada-97da-137108a90a74)
-- **✅ Service Created:** "Reddit Scraper" (ID: f8f27608-44d2-4371-ac90-288370dd440d)
+- **✅ Service Created:** "Reddit Scraper" (ID: 70275b87-473c-4e5b-9017-56e77c8a3c6c)
 - **✅ GitHub Integration:** Connected to matejlecnik/dashboard repository
 - **✅ Start Command:** Configured to run `python src/reddit_scraper.py`
 - **✅ Auto-deployment:** Enabled from main branch
+- **✅ Domain Created:** reddit-scraper-production.up.railway.app
+- **✅ Environment Variables:** SUPABASE_URL and SUPABASE_ANON_KEY configured
 
 ### 🔧 Railway Configuration
 **Service Settings:**
@@ -472,9 +474,9 @@ python3 reddit_agency_scraper.py
 - **Environment:** Production
 
 **Required Environment Variables:**
-- `SUPABASE_URL` - Supabase project URL ⚠️ (needs configuration)
-- `SUPABASE_ANON_KEY` - Supabase anonymous key ⚠️ (needs configuration)
-- Reddit API credentials (from accounts_config.json)
+- `SUPABASE_URL` - Supabase project URL ✅ (configured)
+- `SUPABASE_ANON_KEY` - Supabase anonymous key ✅ (configured)
+- `ACCOUNTS_CONFIG_JSON` - Reddit API credentials and proxy config ✅ (configured)
 
 ### 📊 Railway Benefits
 - **24/7 Operation:** Continuous Reddit scraping without local machine dependency
@@ -488,15 +490,17 @@ python3 reddit_agency_scraper.py
 - **✅ Project Setup:** Railway project created and configured
 - **✅ Service Creation:** GitHub repository connected
 - **✅ Build Configuration:** Start command and runtime configured
-- **⚠️ Environment Variables:** Awaiting Supabase credentials
-- **⚠️ First Deployment:** Pending environment variable setup
-- **📋 Testing:** Will verify scraper functionality after deployment
+- **✅ Environment Variables:** All credentials configured (Supabase + Reddit + Proxies)
+- **✅ Domain Setup:** reddit-scraper-production.up.railway.app created
+- **⚠️ First Deployment:** Waiting for automatic trigger (may take a few minutes)
+- **📋 Testing:** Ready to verify scraper functionality once deployed
 
 ### 🎯 Next Steps
-1. **Configure Environment Variables:** Add SUPABASE_URL and SUPABASE_ANON_KEY
-2. **Deploy and Test:** Trigger first deployment and verify functionality
-3. **Monitor Performance:** Track scraping rates and system health
-4. **Optimize Configuration:** Adjust resources based on actual usage
+1. **✅ Configure Environment Variables:** All credentials configured (Supabase + Reddit)
+2. **✅ Update Scraper Code:** Modified to read from environment variables
+3. **🔄 Monitor Deployment:** Wait for automatic deployment trigger from latest push
+4. **📋 Test Functionality:** Verify scraper is running with 3 Reddit accounts + proxies
+5. **📊 Monitor Performance:** Track scraping rates and multi-account performance
 
 ## 📈 Success Metrics
 - **Accuracy:** >90% effective engagement analysis ✅
@@ -537,8 +541,8 @@ python3 reddit_agency_scraper.py
 - **Supabase Real-time** - Live data subscriptions
 
 **Deployment & Hosting:**
-- **Vercel** - Hosting platform (already used for b9-agency.com)
-- **Vercel Domains** - Subdomain setup (dashboard.b9-agency.com)
+- **PythonAnywhere** - Python scraper hosting (24/7 background tasks)
+- **Vercel** - Dashboard hosting (dashboard.b9-agency.com)
 - **Environment Variables** - Secure configuration management
 
 ### 📊 Core Dashboard Features
