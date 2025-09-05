@@ -86,9 +86,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              <ChevronRight className="h-4 w-4 text-gray-700" aria-hidden="true" />
             ) : (
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <ChevronLeft className="h-4 w-4 text-gray-700" aria-hidden="true" />
             )}
           </Button>
         </div>
@@ -96,21 +96,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2" aria-label="Primary" data-testid="sidebar-nav">
-        {/* Back to Dashboards */}
-        <div className="mb-2" data-testid="sidebar-back-to-dashboards">
-          <Link href="/dashboards" aria-label="Back to Dashboards">
-            <div className={`
-              flex items-center px-3 py-2 rounded-xl transition-colors duration-150 group cursor-pointer
-              bg-white/70 hover:bg-white/90 text-gray-700 hover:text-black ring-1 ring-inset ring-black/10
-              ${isCollapsed ? 'justify-center' : 'justify-start'}
-            `} title={isCollapsed ? 'Back to Dashboards' : undefined}>
-              <ChevronLeft className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} aria-hidden="true" />
-              {!isCollapsed && (
-                <div className="font-medium text-sm">Back to Dashboards</div>
-              )}
-            </div>
-          </Link>
-        </div>
+        {/* Links */}
         <div className="space-y-1.5">
           {navigationItems.map((item) => {
             const Icon = item.icon
@@ -143,6 +129,22 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           })}
         </div>
       </nav>
+
+      {/* Back to Dashboards at bottom */}
+      <div className="px-3 py-3 border-t border-black/10">
+        <Link href="/dashboards" aria-label="Back to Dashboards">
+          <div className={`
+            flex items-center px-3 py-2 rounded-xl transition-colors duration-150 group cursor-pointer
+            bg-white/60 hover:bg-white/80 text-gray-600 hover:text-gray-800 ring-1 ring-inset ring-black/10
+            ${isCollapsed ? 'justify-center' : 'justify-start'}
+          `} title={isCollapsed ? 'Back to Dashboards' : undefined}>
+            <ChevronLeft className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} aria-hidden="true" />
+            {!isCollapsed && (
+              <div className="font-medium text-sm">Back to Dashboards</div>
+            )}
+          </div>
+        </Link>
+      </div>
 
       {/* Footer removed */}
     </div>

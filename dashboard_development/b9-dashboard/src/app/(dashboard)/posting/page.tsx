@@ -30,7 +30,11 @@ import {
 import Link from 'next/link'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 
-interface SubredditWithPosts extends Subreddit {
+type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
+
+type BaseSubreddit = Omit<Subreddit, 'review'> & { review: Subreddit['review'] | AllowedCategory | 'User Feed' | null }
+
+interface SubredditWithPosts extends BaseSubreddit {
   recent_posts?: Post[]
   public_description?: string | null
   avg_engagement_velocity?: number | null
@@ -38,6 +42,8 @@ interface SubredditWithPosts extends Subreddit {
   min_comment_karma?: number | null
   min_post_karma?: number | null
   allow_images?: boolean | null
+  category?: AllowedCategory | null
+  review: AllowedCategory | 'User Feed' | null
 }
 
 // Helper to strip any HTML if needed for previews
@@ -61,6 +67,7 @@ export default function PostingPage() {
   const [searchQuery, setSearchQuery] = useState('')
   // Filters & sorting
   const [sfwFilter, setSfwFilter] = useState<'all' | 'sfw' | 'nsfw'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Ok' | 'No Seller' | 'Non Related'>('all')
   // Removed content-type filter control from toolbar per spec
   const [sortBy, setSortBy] = useState<'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour'>('engagement')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -237,23 +244,30 @@ export default function PostingPage() {
   const filteredByControls = filteredOkSubreddits.filter((s) => {
     if (sfwFilter === 'sfw' && s.over18) return false
     if (sfwFilter === 'nsfw' && !s.over18) return false
+    if (categoryFilter !== 'all' && (s.category || s.review) !== categoryFilter) return false
     return true
   })
 
   const sortedSubreddits = [...filteredByControls].sort((a, b) => {
     const dir = sortDir === 'asc' ? 1 : -1
+    let cmp = 0
     switch (sortBy) {
       case 'subscribers':
-        return ((a.subscribers || 0) - (b.subscribers || 0)) * dir
+        cmp = (a.subscribers || 0) - (b.subscribers || 0)
+        break
       case 'avg_upvotes':
-        return ((a.avg_upvotes_per_post || 0) - (b.avg_upvotes_per_post || 0)) * dir
+        cmp = (a.avg_upvotes_per_post || 0) - (b.avg_upvotes_per_post || 0)
+        break
       case 'best_hour':
-        return ((a.best_posting_hour || 0) - (b.best_posting_hour || 0)) * dir
+        cmp = (a.best_posting_hour || 0) - (b.best_posting_hour || 0)
+        break
       case 'engagement':
       default:
-        return ((a.subscriber_engagement_ratio || 0) - (b.subscriber_engagement_ratio || 0)) * dir
+        cmp = (a.subscriber_engagement_ratio || 0) - (b.subscriber_engagement_ratio || 0)
+        break
     }
-  }).reverse() // reverse because dir applied as multiplier; ensure correct ordering
+    return cmp * dir
+  })
 
   // Toggle expand and lazy-load top posts
   const toggleExpanded = async (subredditId: number) => {
@@ -401,11 +415,17 @@ export default function PostingPage() {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-2 gap-3" role="group" aria-label="Posting filters">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" role="group" aria-label="Posting filters">
               <select aria-label="Filter by SFW or NSFW" value={sfwFilter} onChange={(e) => setSfwFilter(e.target.value as 'all' | 'sfw' | 'nsfw')} className="py-2 px-3 rounded-lg text-sm border border-gray-200">
                 <option value="all">All (SFW/NSFW)</option>
                 <option value="sfw">SFW only</option>
                 <option value="nsfw">NSFW only</option>
+              </select>
+              <select aria-label="Filter by category" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'Ok' | 'No Seller' | 'Non Related')} className="py-2 px-3 rounded-lg text-sm border border-gray-200">
+                <option value="all">All categories</option>
+                <option value="Ok">Ok</option>
+                <option value="No Seller">No Seller</option>
+                <option value="Non Related">Non Related</option>
               </select>
               <div className="flex gap-2">
                 <select aria-label="Sort by" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour')} className="py-2 px-3 rounded-lg text-sm border border-gray-200 flex-1">
@@ -429,6 +449,17 @@ export default function PostingPage() {
                   Clear filters
                 </button>
               )}
+            </div>
+            {/* Active Accounts placeholder */}
+            <div className="lg:col-span-2">
+              <Card className="bg-white/70 backdrop-blur-md border-0">
+                <CardHeader className="py-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm text-gray-700">Active accounts</CardTitle>
+                    <Badge variant="outline" className="text-xs">coming soon</Badge>
+                  </div>
+                </CardHeader>
+              </Card>
             </div>
           </div>
         </div>
@@ -496,11 +527,7 @@ export default function PostingPage() {
                           >
                             {getSubredditInitials(subreddit.name)}
                           </div>
-                          {subreddit.over18 && (
-                            <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 py-0">
-                              18+
-                            </Badge>
-                          )}
+                          {/* Removed corner 18+ badge to avoid duplication with SFW/NSFW */}
                         </a>
 
                         <div className="flex-1">
@@ -513,11 +540,7 @@ export default function PostingPage() {
                             >
                               {subreddit.display_name_prefixed}
                             </a>
-                            <Link href={`https://reddit.com/${subreddit.display_name_prefixed}`} target="_blank">
-                              <Button variant="ghost" size="sm" className="p-1 h-auto text-gray-500 hover:text-gray-700" title="Open on Reddit">
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            </Link>
+                            {/* Removed explicit open subreddit button; name and icon are clickable */}
                             <Badge 
                               variant="outline" 
                               className={`text-xs px-1.5 py-0.5 font-semibold border ${subreddit.over18 ? 'bg-red-50 text-red-700 border-red-300' : 'bg-green-50 text-green-700 border-green-300'}`}
@@ -558,21 +581,12 @@ export default function PostingPage() {
                               )}
                             </div>
                             
-                            {/* Prominent Engagement Badge with Icon */}
-                            <div className="flex items-center space-x-1 bg-b9-pink/20 text-b9-pink px-3 py-1 rounded-full border border-b9-pink/30">
-                              <TrendingUp className="h-4 w-4" />
-                              <span className="font-bold text-sm">{(subreddit.subscriber_engagement_ratio * 100).toFixed(1)}%</span>
+                            {/* Engagement: styled consistently, placed after avg upvotes */}
+                            <div className="flex items-center space-x-1 text-sm">
+                              <TrendingUp className="h-4 w-4 text-b9-pink" />
+                              <span className="font-medium text-gray-900">{((subreddit.subscriber_engagement_ratio || 0) * 100).toFixed(1)}%</span>
                             </div>
-                            
-                            <Badge variant="outline" className="bg-white/60 backdrop-blur-sm flex items-center gap-1">
-                              {renderTypeIcon(subreddit.top_content_type)}
-                              <span className="capitalize">{subreddit.top_content_type}</span>
-                            </Badge>
-                            {subreddit.last_scraped_at && (
-                              <Badge variant="outline" className="bg-white/60 text-gray-700">
-                                updated {timeAgo(subreddit.last_scraped_at)}
-                              </Badge>
-                            )}
+                            {/* Updated moved to top-right with icon */}
                           </div>
                           
                           {/* Minimal Requirements Row */}
@@ -623,6 +637,12 @@ export default function PostingPage() {
                             <ChevronDown className="h-5 w-5" />
                           )}
                         </Button>
+                        {subreddit.last_scraped_at && (
+                          <div className="flex items-center text-xs text-gray-500" title={`updated ${timeAgo(subreddit.last_scraped_at)}`}>
+                            <Clock className="h-3.5 w-3.5 mr-1" />
+                            <span>{timeAgo(subreddit.last_scraped_at)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -650,7 +670,17 @@ export default function PostingPage() {
                                       <img src={thumb} alt="thumb" className="w-16 h-16 object-cover rounded-md border" />
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">{post.title}</div>
+                                      <div className="font-medium text-sm text-gray-900 line-clamp-2 mb-1 flex items-start justify-between gap-2">
+                                        <span className="block flex-1 min-w-0">{post.title}</span>
+                                        <button
+                                          onClick={(e) => copyTitle(e, post.title)}
+                                          className="text-gray-500 hover:text-gray-700 shrink-0"
+                                          title="Copy title"
+                                          aria-label="Copy title"
+                                        >
+                                          <Copy className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
                                       <div className="flex items-center justify-between text-xs text-gray-500">
                                         <div className="flex items-center space-x-3">
                                           <span className="flex items-center space-x-1">
@@ -663,30 +693,6 @@ export default function PostingPage() {
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                          <button
-                                            onClick={(e) => copyTitle(e, post.title)}
-                                            className="text-gray-500 hover:text-gray-700"
-                                            title="Copy title"
-                                            aria-label="Copy title"
-                                          >
-                                            <Copy className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={(e) => copyLink(e, postUrl)}
-                                            className="text-gray-500 hover:text-gray-700"
-                                            title="Copy link"
-                                            aria-label="Copy link"
-                                          >
-                                            <Link2 className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={(e) => copyMarkdown(e, post.title, postUrl)}
-                                            className="text-gray-500 hover:text-gray-700"
-                                            title="Copy markdown link"
-                                            aria-label="Copy markdown link"
-                                          >
-                                            <FileText className="h-3.5 w-3.5" />
-                                          </button>
                                           <span>{timeAgo(post.created_utc)}</span>
                                         </div>
                                       </div>

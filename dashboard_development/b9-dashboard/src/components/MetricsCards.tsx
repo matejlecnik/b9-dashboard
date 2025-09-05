@@ -41,11 +41,11 @@ const MetricsCards = memo(function MetricsCards({
       hasActivity: newTodayCount > 0
     },
     {
-      title: 'Uncategorized',
+      title: 'Unreviewed',
       value: loading ? '...' : uncategorizedCount.toLocaleString(),
       subtitle: uncategorizedCount > 0 ? 'Need Review' : 'All Done!',
       icon: Tags,
-      iconColor: uncategorizedCount > 0 ? 'text-b9-pink' : 'text-green-600',
+      iconColor: uncategorizedCount > 0 ? 'text-[#FF8395]' : 'text-green-600',
       isHighlight: uncategorizedCount > 0
     },
     {

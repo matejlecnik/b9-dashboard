@@ -12,8 +12,8 @@ interface SubredditTableProps {
   subreddits: Subreddit[]
   selectedSubreddits: Set<number>
   setSelectedSubreddits: (selected: Set<number>) => void
-  onUpdateCategory: (id: number, categoryId: number) => void
-  onBulkUpdateCategory: (categoryId: number) => void
+  onUpdateCategory: (id: number, categoryText: string) => void
+  onBulkUpdateCategory: (categoryText: string) => void
   loading: boolean
   mode?: 'review' | 'category' // Add mode to distinguish between review and category pages
 }
@@ -202,7 +202,7 @@ const SubredditTable = memo(function SubredditTable({
               <th className="text-left py-2 px-3 w-16 font-medium text-gray-900 text-sm bg-white" scope="col">
                 Logo
               </th>
-              <th className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white" scope="col">
+              <th className="text-left py-2 px-2 font-medium text-gray-900 text-sm bg-white w-[220px]" scope="col">
                 <button
                   onClick={() => handleSort('name')}
                   className="flex items-center space-x-1 hover:text-b9-pink transition-colors group"
@@ -395,20 +395,20 @@ const SubredditTable = memo(function SubredditTable({
                   {formatNumber(subreddit.avg_upvotes_per_post ? Math.round(subreddit.avg_upvotes_per_post) : null)}
                 </td>
                 <td className="py-2 px-3">
-                  <div className="flex items-center gap-1">
-                    {mode === 'review' ? (
-                      <>
-                        <Button size="sm" variant={subreddit.review === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 1)} className="px-2 py-1 text-xs">Ok</Button>
-                        <Button size="sm" variant={subreddit.review === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 2)} className="px-2 py-1 text-xs">No Seller</Button>
-                        <Button size="sm" variant={subreddit.review === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 3)} className="px-2 py-1 text-xs">Non Related</Button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Category mode buttons - will be implemented when categories are defined */}
-                        <span className="text-xs text-muted-foreground">Category options coming soon</span>
-                      </>
-                    )}
-                  </div>
+                  {mode === 'review' ? (
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant={subreddit.review === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'Ok')} className="px-2 py-1 text-xs">Ok</Button>
+                      <Button size="sm" variant={subreddit.review === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'No Seller')} className="px-2 py-1 text-xs">No Seller</Button>
+                      <Button size="sm" variant={subreddit.review === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'Non Related')} className="px-2 py-1 text-xs">Non Related</Button>
+                    </div>
+                  ) : (
+                    <CategorySelector
+                      subredditId={subreddit.id}
+                      currentCategory={subreddit.category_text || null}
+                      onUpdateCategory={onUpdateCategory}
+                      compact={true}
+                    />
+                  )}
                 </td>
               </tr>
             ))}

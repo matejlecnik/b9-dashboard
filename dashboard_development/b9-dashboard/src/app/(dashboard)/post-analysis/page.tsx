@@ -78,9 +78,9 @@ export default function PostAnalysisPage() {
             content_type,
             posting_hour,
             subreddit_name,
-            subreddits!inner(category)
+            subreddits!inner(review)
           `)
-          .eq('subreddits.category', 'Ok')
+          .eq('subreddits.review', 'Ok')
         
         if (!fallbackError && fallbackData) {
           const totalPosts = fallbackData.length
@@ -151,12 +151,12 @@ export default function PostAnalysisPage() {
           engagement_velocity,
           posting_hour,
           subreddits!inner(
-            category,
+            review,
             subscribers,
             avg_upvotes_per_post
           )
         `)
-        .eq('subreddits.category', 'Ok')
+        .eq('subreddits.review', 'Ok')
         .not('title', 'is', null)
 
       // Apply time filter
@@ -407,18 +407,18 @@ export default function PostAnalysisPage() {
           </div>
         </Card>
 
-        {/* Posts List */}
-        <div className="space-y-4">
+        {/* Posts Grid */}
+        <div>
           {loading && posts.length === 0 ? (
-            <div className="grid gap-4">
-              {[...Array(5)].map((_, i) => (
-                <Card key={i} className="p-4 animate-pulse">
-                  <div className="flex space-x-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded"></div>
-                    <div className="flex-1 space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="aspect-square animate-pulse">
+                  <div className="p-4 h-full flex flex-col">
+                    <div className="flex-1 bg-gray-200 rounded-lg mb-3"></div>
+                    <div className="space-y-2">
                       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                     </div>
                   </div>
                 </Card>
@@ -426,98 +426,119 @@ export default function PostAnalysisPage() {
             </div>
           ) : (
             <>
-              {posts.map((post) => (
-                <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
-                  <div className="flex space-x-4">
-                    {/* Thumbnail */}
-                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-                      {post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' ? (
-                        <img 
-                          src={post.thumbnail} 
-                          alt="Post thumbnail"
-                          className="w-full h-full object-cover rounded"
-                        />
-                      ) : (
-                        getContentTypeIcon(post.content_type)
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-black truncate mb-1">
-                            {post.title}
-                          </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {posts.map((post) => (
+                  <Card key={post.id} className="aspect-square hover:shadow-lg transition-shadow group cursor-pointer">
+                    <a 
+                      href={`https://reddit.com/r/${post.subreddit_name}/comments/${post.reddit_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block h-full"
+                    >
+                      <div className="p-4 h-full flex flex-col">
+                        {/* Image Section */}
+                        <div className="flex-1 relative mb-3 bg-gray-100 rounded-lg overflow-hidden">
+                          {post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' ? (
+                            <img 
+                              src={post.thumbnail} 
+                              alt="Post thumbnail"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              {getContentTypeIcon(post.content_type)}
+                            </div>
+                          )}
                           
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                            <span className="flex items-center space-x-1">
-                              <span>r/{post.subreddit_name}</span>
-                            </span>
-                            <span>by u/{post.author_username}</span>
-                            <span>{formatTimeAgo(post.created_utc)}</span>
-                          </div>
-
-                          <div className="flex items-center space-x-6 text-sm">
-                            <div className="flex items-center space-x-1">
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                              <span className="font-medium">{post.score.toLocaleString()}</span>
-                              <span className="text-gray-500">
-                                ({Math.round((post.upvote_ratio || 0) * 100)}% upvoted)
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center space-x-1">
-                              <MessageCircle className="h-4 w-4 text-blue-600" />
-                              <span>{post.num_comments}</span>
-                            </div>
-
-                            <Badge variant="outline" className="capitalize">
+                          {/* Content Type Badge */}
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="secondary" className="text-xs capitalize bg-white/90 backdrop-blur-sm">
                               {getContentTypeIcon(post.content_type)}
                               <span className="ml-1">{post.content_type}</span>
                             </Badge>
+                          </div>
 
-                            {post.engagement_velocity && (
-                              <div className="flex items-center space-x-1 text-purple-600">
-                                <Clock className="h-4 w-4" />
-                                <span>{Math.round(post.engagement_velocity)} votes/hr</span>
-                              </div>
-                            )}
+                          {/* External Link Icon */}
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1">
+                              <ExternalLink className="h-4 w-4 text-gray-600" />
+                            </div>
                           </div>
                         </div>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="ml-2 flex-shrink-0"
-                        >
-                          <a 
-                            href={`https://reddit.com/r/${post.subreddit_name}/comments/${post.reddit_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
+                        {/* Content Section */}
+                        <div className="space-y-2">
+                          {/* Title */}
+                          <h3 className="font-semibold text-black line-clamp-2 text-sm leading-tight">
+                            {post.title}
+                          </h3>
+                          
+                          {/* Subreddit and Author */}
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <div className="flex items-center space-x-1">
+                              <span className="font-medium text-b9-pink">r/{post.subreddit_name}</span>
+                              <span>•</span>
+                              <span>{post.subscribers?.toLocaleString()} members</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span>by u/{post.author_username}</span>
+                              <span>•</span>
+                              <span>{formatTimeAgo(post.created_utc)}</span>
+                            </div>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex items-center space-x-1 text-green-600">
+                                <TrendingUp className="h-3 w-3" />
+                                <span className="font-medium">{post.score.toLocaleString()}</span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-1 text-blue-600">
+                                <MessageCircle className="h-3 w-3" />
+                                <span>{post.num_comments}</span>
+                              </div>
+                            </div>
+
+                            <div className="text-gray-500">
+                              {Math.round((post.upvote_ratio || 0) * 100)}% ↑
+                            </div>
+                          </div>
+
+                          {/* Engagement Velocity if available */}
+                          {post.engagement_velocity && (
+                            <div className="flex items-center space-x-1 text-purple-600 text-xs">
+                              <Clock className="h-3 w-3" />
+                              <span>{Math.round(post.engagement_velocity)} votes/hr</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                    </a>
+                  </Card>
+                ))}
+              </div>
 
               {/* Load More Button */}
               {hasMorePosts && !loading && (
-                <div className="flex justify-center pt-4">
-                  <Button onClick={loadMorePosts} variant="outline">
+                <div className="flex justify-center pt-8">
+                  <Button onClick={loadMorePosts} variant="outline" size="lg">
                     Load More Posts
                   </Button>
                 </div>
               )}
 
               {!hasMorePosts && posts.length > 0 && (
-                <div className="text-center py-4 text-gray-500">
+                <div className="text-center py-8 text-gray-500">
                   Showing all {posts.length} posts
+                </div>
+              )}
+
+              {posts.length === 0 && !loading && (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 text-lg mb-2">No posts found</div>
+                  <div className="text-gray-400 text-sm">Try adjusting your filters or search terms</div>
                 </div>
               )}
             </>

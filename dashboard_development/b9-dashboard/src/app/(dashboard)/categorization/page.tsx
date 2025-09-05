@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase, type Subreddit, type Category } from '@/lib/supabase'
+import { supabase, type Subreddit } from '@/lib/supabase'
 import { MetricsCards } from '@/components/MetricsCards'
 import { SubredditTable } from '@/components/SubredditTable'
 import { DashboardLayout } from '@/components/DashboardLayout'
@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast'
 import { useErrorHandler } from '@/lib/errorUtils'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 
-type FilterType = 'uncategorized' | 'all' | string // category ID as string
+type FilterType = 'uncategorized' | 'categorized'
 
 const PAGE_SIZE = 50 // Load 50 records at a time
 
@@ -18,7 +18,6 @@ export default function CategorizationPage() {
   const { addToast } = useToast()
   const { handleAsyncOperation } = useErrorHandler()
   const [subreddits, setSubreddits] = useState<Subreddit[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -26,9 +25,9 @@ export default function CategorizationPage() {
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [totalSubreddits, setTotalSubreddits] = useState(0)
   const [currentFilter, setCurrentFilter] = useState<FilterType>('uncategorized')
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
-    all: 0,
-    uncategorized: 0
+  const [categoryCounts, setCategoryCounts] = useState({
+    uncategorized: 0,
+    categorized: 0
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -52,68 +51,34 @@ export default function CategorizationPage() {
 
   const handleSearchChange = (query: string) => setSearchQuery(query)
 
-  // Fetch categories
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/categories')
-      const data = await response.json()
-      
-      if (data.success) {
-        setCategories(data.categories)
-      } else {
-        console.error('Failed to fetch categories:', data.error)
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-    }
-  }
-
-  // Fetch counts only (fast query)
+  // Fetch counts only (fast query) - only count OK-reviewed subreddits
   const fetchCounts = async () => {
     const today = new Date().toISOString().split('T')[0]
     
-    // Build count queries dynamically based on available categories
-    const countQueries = [
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('category_id', null),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).gte('created_at', today)
-    ]
+    // Only count subreddits with review = 'Ok'
+    const countQueries = await Promise.all([
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').is('category_text', null),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').not('category_text', 'is', null),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').gte('created_at', today),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok')
+    ])
 
-    // Add count queries for each category
-    categories.forEach(category => {
-      countQueries.push(
-        supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('category_id', category.id)
-      )
-    })
+    countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
 
-    const results = await Promise.all(countQueries)
-    results.forEach((result) => { if (result.error) throw new Error(result.error.message) })
-
-    const totalCount = results[0].count || 0
-    const uncategorizedCount = results[1].count || 0
-    const newTodayCount = results[2].count || 0
-
-    const newCategoryCounts: Record<string, number> = {
-      all: totalCount,
-      uncategorized: uncategorizedCount
-    }
-
-    // Add counts for each category
-    categories.forEach((category, index) => {
-      newCategoryCounts[category.id.toString()] = results[3 + index].count || 0
-    })
+    const uncategorizedCount = countQueries[0].count || 0
+    const categorizedCount = countQueries[1].count || 0
+    const newTodayCount = countQueries[2].count || 0
+    const totalCount = countQueries[3].count || 0
 
     setTotalSubreddits(totalCount)
     setNewTodayCount(newTodayCount)
-    setCategoryCounts(newCategoryCounts)
+    setCategoryCounts({
+      uncategorized: uncategorizedCount,
+      categorized: categorizedCount
+    })
   }
 
-  // Load categories on mount
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  // Fetch paginated subreddits
+  // Fetch paginated subreddits - only OK-reviewed subreddits
   const fetchSubreddits = async (page = 0, append = false) => {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
@@ -121,23 +86,14 @@ export default function CategorizationPage() {
     await handleAsyncOperation(async () => {
       let query = supabase
         .from('subreddits')
-        .select(`
-          *, 
-          rules_data,
-          category:categories(id, name, description, color)
-        `)
+        .select('*, rules_data')
+        .eq('review', 'Ok') // Only show OK-reviewed subreddits
 
       // Apply filters based on current selection
       if (currentFilter === 'uncategorized') {
-        query = query.is('category_id', null)
-      } else if (currentFilter === 'all') {
-        // No filter - show all subreddits
-      } else if (currentFilter !== 'all') {
-        // Filter by specific category ID
-        const categoryId = parseInt(currentFilter, 10)
-        if (!isNaN(categoryId)) {
-          query = query.eq('category_id', categoryId)
-        }
+        query = query.is('category_text', null)
+      } else if (currentFilter === 'categorized') {
+        query = query.not('category_text', 'is', null)
       }
 
       query = query
@@ -158,8 +114,8 @@ export default function CategorizationPage() {
         setCurrentPage(0)
       }
 
-      // Only fetch counts on initial load
-      if (page === 0 && categories.length > 0) {
+      // Fetch counts on initial load
+      if (page === 0) {
         await fetchCounts()
       }
     })
@@ -176,32 +132,31 @@ export default function CategorizationPage() {
     await fetchSubreddits(nextPage, true)
   }, [currentPage, loadingMore, hasMore, currentFilter])
 
-  const updateCategory = async (id: number, categoryId: number) => {
+  const updateCategory = async (id: number, categoryText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
-    const category = categories.find(cat => cat.id === categoryId)
     
     await handleAsyncOperation(async () => {
       const { error } = await supabase
         .from('subreddits')
-        .update({ category_id: categoryId })
+        .update({ category_text: categoryText })
         .eq('id', id)
       if (error) throw new Error(`Failed to update category: ${error.message}`)
-      return { subreddit, category }
+      return { subreddit, categoryText }
     }, {
       context: 'category_update',
       showToast: false,
-      onSuccess: ({ subreddit, category }) => {
-        // Update the subreddit in place instead of removing it
+      onSuccess: ({ subreddit, categoryText }) => {
+        // Update the subreddit in place
         setSubreddits(prev => prev.map(sub => 
           sub.id === id 
-            ? { ...sub, category_id: categoryId, category }
+            ? { ...sub, category_text: categoryText }
             : sub
         ))
         setSelectedSubreddits(prev => { const s = new Set(prev); s.delete(id); return s })
         addToast({ 
           type: 'success', 
           title: 'Category Updated', 
-          description: `${subreddit?.display_name_prefixed} assigned to ${category?.name}`, 
+          description: `${subreddit?.display_name_prefixed} assigned to ${categoryText}`, 
           duration: 3000 
         })
       },
@@ -209,14 +164,13 @@ export default function CategorizationPage() {
     })
   }
 
-  const bulkUpdateCategory = async (categoryId: number) => {
+  const bulkUpdateCategory = async (categoryText: string) => {
     if (selectedSubreddits.size === 0) return
     const ids = Array.from(selectedSubreddits)
-    const category = categories.find(cat => cat.id === categoryId)
     
     const { error } = await supabase
       .from('subreddits')
-      .update({ category_id: categoryId })
+      .update({ category_text: categoryText })
       .in('id', ids)
     
     if (error) {
@@ -233,14 +187,14 @@ export default function CategorizationPage() {
     // Update the subreddits in place
     setSubreddits(prev => prev.map(sub => 
       ids.includes(sub.id)
-        ? { ...sub, category_id: categoryId, category }
+        ? { ...sub, category_text: categoryText }
         : sub
     ))
     setSelectedSubreddits(new Set())
     addToast({ 
       type: 'success', 
       title: 'Bulk Update Complete', 
-      description: `${ids.length} subreddit${ids.length > 1 ? 's' : ''} assigned to ${category?.name}`, 
+      description: `${ids.length} subreddit${ids.length > 1 ? 's' : ''} assigned to ${categoryText}`, 
       duration: 3000 
     })
   }
@@ -267,14 +221,17 @@ export default function CategorizationPage() {
     }
   }, [loadMore, hasMore, loadingMore])
 
-  // Fetch subreddits when categories are loaded or filter changes
+  // Fetch subreddits when filter changes or on mount
   useEffect(() => { 
-    if (categories.length > 0) {
-      setCurrentPage(0)
-      setHasMore(true)
-      fetchSubreddits(0, false) 
-    }
-  }, [currentFilter, categories])
+    setCurrentPage(0)
+    setHasMore(true)
+    fetchSubreddits(0, false) 
+  }, [currentFilter])
+  
+  // Initial load
+  useEffect(() => {
+    fetchSubreddits(0, false)
+  }, [])
 
   return (
     <DashboardLayout title="" showSearch={false}>
@@ -291,7 +248,6 @@ export default function CategorizationPage() {
         currentFilter={currentFilter}
         onFilterChange={setCurrentFilter}
         categoryCounts={categoryCounts}
-        categories={categories}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         loading={loading}

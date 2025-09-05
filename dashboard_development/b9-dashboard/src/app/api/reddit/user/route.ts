@@ -248,6 +248,16 @@ export async function POST(request: NextRequest) {
       .sort(([,a], [,b]) => b - a)[0]?.[0] || null
 
     // Prepare user data for database
+    // Extract bio and first URL + banner image from user subreddit if available
+    const bio: string | undefined = userData.subreddit?.public_description || undefined
+    let bioUrl: string | undefined
+    if (bio) {
+      const match = bio.match(/https?:\/\/\S+/)
+      if (match) bioUrl = match[0]
+    }
+
+    const bannerImg: string | undefined = userData.subreddit?.banner_img || undefined
+
     const userPayload = {
       username: userData.name,
       reddit_id: userData.id,
@@ -269,6 +279,9 @@ export async function POST(request: NextRequest) {
       subreddit_title: userData.subreddit?.title,
       subreddit_subscribers: userData.subreddit?.subscribers || 0,
       subreddit_over_18: userData.subreddit?.over_18 || false,
+      subreddit_banner_img: bannerImg,
+      bio: bio,
+      bio_url: bioUrl,
       username_quality_score: qualityScores.username_score,
       age_quality_score: qualityScores.age_score,
       karma_quality_score: qualityScores.karma_score,

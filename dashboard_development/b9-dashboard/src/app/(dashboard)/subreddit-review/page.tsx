@@ -435,7 +435,7 @@ export default function SubredditReviewPage() {
                   fontWeight: 600,
                 }}
               >
-                {currentFilter === 'uncategorized' && 'Uncategorized Subreddits'}
+                {currentFilter === 'uncategorized' && 'Unreviewed Subreddits'}
                 {currentFilter === 'ok' && 'Ok Subreddits'}
                 {currentFilter === 'no-seller' && 'No Seller Subreddits'}
               </h2>

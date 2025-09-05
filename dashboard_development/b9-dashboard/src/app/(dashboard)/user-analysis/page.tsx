@@ -28,6 +28,7 @@ import {
   User,
   Crown,
   Shield,
+  MailCheck,
   Mail,
   Image,
   ArrowLeft,
@@ -60,9 +61,13 @@ interface User {
   subreddit_subscribers?: number
   is_suspended: boolean
   verified: boolean
+  has_verified_email?: boolean
   is_gold: boolean
   is_mod: boolean
   created_utc?: string
+  bio?: string
+  bio_url?: string
+  subreddit_banner_img?: string
 }
 
 interface Post {
@@ -209,8 +214,9 @@ export default function UserAnalysisPage() {
             link_karma, comment_karma, avg_post_score, preferred_content_type, 
             most_active_posting_hour, cross_subreddit_activity, total_posts_analyzed, 
             last_scraped_at, primary_subreddits, karma_per_day, engagement_consistency_score,
-            our_creator, icon_img, subreddit_display_name, subreddit_title, 
-            subreddit_subscribers, is_suspended, verified, is_gold, is_mod, created_utc
+            our_creator, icon_img, subreddit_display_name, subreddit_title, subreddit_banner_img,
+            subreddit_subscribers, is_suspended, verified, has_verified_email, is_gold, is_mod, created_utc,
+            bio, bio_url
           `)
           .order('overall_user_score', { ascending: false })
           .limit(1000) // Load first 1000 users for search
@@ -232,8 +238,9 @@ export default function UserAnalysisPage() {
             link_karma, comment_karma, avg_post_score, preferred_content_type, 
             most_active_posting_hour, cross_subreddit_activity, total_posts_analyzed, 
             last_scraped_at, primary_subreddits, karma_per_day, engagement_consistency_score,
-            our_creator, icon_img, subreddit_display_name, subreddit_title, 
-            subreddit_subscribers, is_suspended, verified, is_gold, is_mod, created_utc
+            our_creator, icon_img, subreddit_display_name, subreddit_title, subreddit_banner_img,
+            subreddit_subscribers, is_suspended, verified, has_verified_email, is_gold, is_mod, created_utc,
+            bio, bio_url
           `)
           .order('overall_user_score', { ascending: false })
           .range(from, to)
@@ -458,10 +465,10 @@ export default function UserAnalysisPage() {
                     {user.our_creator && (
                       <Badge className="bg-b9-pink text-white">Our Creator</Badge>
                     )}
-                    {user.verified && (
+                    {user.has_verified_email && (
                       <Badge className="bg-blue-100 text-blue-800">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Verified
+                        <MailCheck className="h-3 w-3 mr-1" />
+                        Email Verified
                       </Badge>
                     )}
                     {user.is_gold && (
@@ -556,17 +563,36 @@ export default function UserAnalysisPage() {
               </div>
 
               {/* User Subreddit Info */}
-              {user.subreddit_display_name && (
+              {(user.subreddit_display_name || user.subreddit_banner_img || user.bio) && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-black mb-3">User Subreddit</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-b9-pink/10 rounded-full flex items-center justify-center">
+                  {user.subreddit_banner_img && (
+                    <div className="mb-4">
+                      <img src={user.subreddit_banner_img} alt="Banner" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-b9-pink/10 rounded-full flex items-center justify-center mt-1">
                       <User className="h-6 w-6 text-b9-pink" />
                     </div>
-                    <div>
-                      <div className="font-medium text-black">u/{user.subreddit_display_name}</div>
-                      <div className="text-sm text-gray-600">{user.subreddit_title}</div>
-                      <div className="text-xs text-gray-500">{formatNumber(user.subreddit_subscribers ?? null)} subscribers</div>
+                    <div className="flex-1">
+                      {user.subreddit_display_name && (
+                        <div className="font-medium text-black">u/{user.subreddit_display_name}</div>
+                      )}
+                      {user.subreddit_title && (
+                        <div className="text-sm text-gray-600">{user.subreddit_title}</div>
+                      )}
+                      {user.subreddit_subscribers !== undefined && (
+                        <div className="text-xs text-gray-500">{formatNumber(user.subreddit_subscribers)} subscribers</div>
+                      )}
+                      {user.bio && (
+                        <div className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{user.bio}</div>
+                      )}
+                      {user.bio_url && (
+                        <a href={user.bio_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-b9-pink hover:underline">
+                          {user.bio_url}
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -900,9 +926,9 @@ export default function UserAnalysisPage() {
                                     Our Creator
                                   </Badge>
                                 )}
-                                {user.verified && (
+                                {user.has_verified_email && (
                                   <Badge className="bg-blue-100 text-blue-800 text-xs">
-                                    <Shield className="h-3 w-3" />
+                                    <MailCheck className="h-3 w-3" />
                                   </Badge>
                                 )}
                                 {user.is_suspended && (

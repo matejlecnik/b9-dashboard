@@ -11,15 +11,15 @@ import {
   Grid3X3,
   Plus
 } from 'lucide-react'
-import { type Category } from '../lib/supabase'
-
-type FilterType = 'uncategorized' | 'all' | string // category ID as string
+type FilterType = 'uncategorized' | 'categorized'
 
 interface UnifiedFiltersProps {
   currentFilter: FilterType
   onFilterChange: (filter: FilterType) => void
-  categoryCounts: Record<string, number>
-  categories: Category[]
+  categoryCounts: {
+    uncategorized: number
+    categorized: number
+  }
   searchQuery: string
   onSearchChange: (query: string) => void
   loading: boolean
@@ -29,43 +29,28 @@ const UnifiedFilters = memo(function UnifiedFilters({
   currentFilter,
   onFilterChange,
   categoryCounts,
-  categories,
   searchQuery,
   onSearchChange,
   loading
 }: UnifiedFiltersProps) {
   
-  // Build dynamic filters from categories
-  const baseFilters = [
-    { 
-      id: 'all' as FilterType, 
-      label: 'All', 
-      count: categoryCounts.all || 0,
-      icon: Grid3X3,
-      color: '#6B7280',
-      activeBg: 'linear-gradient(135deg, #6B7280, #4B5563)'
-    },
+  // Simple filters for categorized vs uncategorized (for OK-reviewed subreddits only)
+  const allFilters = [
     { 
       id: 'uncategorized' as FilterType, 
       label: 'Uncategorized', 
       count: categoryCounts.uncategorized || 0,
       icon: Sparkles,
-      color: '#EC4899',
       activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
+    },
+    { 
+      id: 'categorized' as FilterType, 
+      label: 'Categorized', 
+      count: categoryCounts.categorized || 0,
+      icon: Tag,
+      activeBg: 'linear-gradient(135deg, #10B981, #059669)'
     }
   ]
-
-  const categoryFilters = categories.map(category => ({
-    id: category.id.toString() as FilterType,
-    label: category.name,
-    count: categoryCounts[category.id.toString()] || 0,
-    icon: Tag,
-    color: category.color,
-    activeBg: `linear-gradient(135deg, ${category.color}, ${category.color}DD)`,
-    description: category.description
-  }))
-
-  const allFilters = [...baseFilters, ...categoryFilters]
 
   return (
     <div className="mb-8" data-testid="unified-filters" aria-label="Subreddit filters">
@@ -251,7 +236,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                 <span className="font-semibold text-b9-pink">
                   {categoryCounts[currentFilter]?.toLocaleString() || '0'}
                 </span>{' '}
-                {allFilters.find((f) => f.id === currentFilter)?.label?.toLowerCase() || 'filtered'} subreddits
+                {currentFilter} OK-reviewed subreddits
                 {searchQuery && (
                   <>
                     {' '}matching &quot;<span className="font-medium">{searchQuery}</span>&quot;

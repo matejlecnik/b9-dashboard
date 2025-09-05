@@ -6,24 +6,14 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // Types for our database
-export interface Category {
-  id: number
-  name: string
-  description?: string
-  color: string
-  created_at: string
-  updated_at: string
-}
-
 export interface Subreddit {
   id: number
   name: string
   display_name_prefixed: string
   title: string
   subscribers: number
-  category_id: number | null
-  category?: Category | null // Joined category data
-  review?: 'Ok' | 'No Seller' | 'Non Related' | null
+  review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
+  category_text: string | null // Simple category as text field
   subscriber_engagement_ratio: number
   avg_upvotes_per_post: number
   best_posting_day: string
