@@ -209,7 +209,6 @@ export default function SubredditReviewPage() {
       // Only fetch counts on initial load
       if (page === 0) {
         await fetchCounts()
-        setLastUpdated(new Date())
       }
     }, {
       context: 'subreddit_fetch',
@@ -258,7 +257,7 @@ export default function SubredditReviewPage() {
           duration: 3000
         })
       },
-      onError: (_error) => {
+      onError: () => {
         addToast({
           type: 'error',
           title: 'Update Failed',

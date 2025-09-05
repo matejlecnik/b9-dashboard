@@ -52,7 +52,7 @@ export default function PostingPage() {
   const [expandedSubreddits, setExpandedSubreddits] = useState<Set<number>>(new Set())
   const [topPostsBySubreddit, setTopPostsBySubreddit] = useState<Record<number, Post[]>>({})
   const [loadingTopPosts, setLoadingTopPosts] = useState<Set<number>>(new Set())
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [, setLastUpdated] = useState<Date>(new Date())
   const [searchQuery, setSearchQuery] = useState('')
   // Filters & sorting
   const [sfwFilter, setSfwFilter] = useState<'all' | 'sfw' | 'nsfw'>('all')
