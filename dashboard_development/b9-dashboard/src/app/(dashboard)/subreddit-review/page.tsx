@@ -285,6 +285,19 @@ export default function SubredditReviewPage() {
     }
   }
 
+  // Wrapper function for bulk update to convert numeric category ID to string
+  const bulkUpdateCategoryById = (categoryId: number) => {
+    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
+      1: 'Ok',
+      2: 'No Seller',
+      3: 'Non Related'
+    }
+    const category = categoryMap[categoryId]
+    if (category) {
+      bulkUpdateCategory(category)
+    }
+  }
+
   // Bulk update categories
   const bulkUpdateCategory = async (category: 'Ok' | 'No Seller' | 'Non Related') => {
     if (selectedSubreddits.size === 0) return
@@ -453,7 +466,7 @@ export default function SubredditReviewPage() {
                   selectedSubreddits={selectedSubreddits}
                   setSelectedSubreddits={setSelectedSubreddits}
                   onUpdateCategory={updateCategoryById}
-                  onBulkUpdateCategory={bulkUpdateCategory}
+                  onBulkUpdateCategory={bulkUpdateCategoryById}
                   loading={loading}
                 />
               </ComponentErrorBoundary>
