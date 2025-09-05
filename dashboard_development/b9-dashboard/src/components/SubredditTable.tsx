@@ -15,6 +15,7 @@ interface SubredditTableProps {
   onUpdateCategory: (id: number, categoryId: number) => void
   onBulkUpdateCategory: (categoryId: number) => void
   loading: boolean
+  mode?: 'review' | 'category' // Add mode to distinguish between review and category pages
 }
 
 const SubredditTable = memo(function SubredditTable({
@@ -23,7 +24,8 @@ const SubredditTable = memo(function SubredditTable({
   setSelectedSubreddits,
   onUpdateCategory,
   onBulkUpdateCategory,
-  loading
+  loading,
+  mode = 'category'
 }: SubredditTableProps) {
   const [sortField, setSortField] = useState<keyof Subreddit>('avg_upvotes_per_post')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -394,9 +396,18 @@ const SubredditTable = memo(function SubredditTable({
                 </td>
                 <td className="py-2 px-3">
                   <div className="flex items-center gap-1">
-                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 1)} className="px-2 py-1 text-xs">Ok</Button>
-                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 2)} className="px-2 py-1 text-xs">No Seller</Button>
-                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 3)} className="px-2 py-1 text-xs">Non Related</Button>
+                    {mode === 'review' ? (
+                      <>
+                        <Button size="sm" variant={subreddit.review === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 1)} className="px-2 py-1 text-xs">Ok</Button>
+                        <Button size="sm" variant={subreddit.review === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 2)} className="px-2 py-1 text-xs">No Seller</Button>
+                        <Button size="sm" variant={subreddit.review === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 3)} className="px-2 py-1 text-xs">Non Related</Button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Category mode buttons - will be implemented when categories are defined */}
+                        <span className="text-xs text-muted-foreground">Category options coming soon</span>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

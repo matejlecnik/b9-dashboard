@@ -272,29 +272,29 @@ export default function SubredditReviewPage() {
     })
   }
 
-  // Wrapper function to convert numeric category IDs to strings for SubredditTable compatibility
-  const updateCategoryById = (id: number, categoryId: number) => {
-    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
+  // Wrapper function to convert numeric review IDs to review strings for SubredditTable compatibility
+  const updateCategoryById = (id: number, reviewId: number) => {
+    const reviewMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
       1: 'Ok',
       2: 'No Seller',
       3: 'Non Related'
     }
-    const category = categoryMap[categoryId]
-    if (category) {
-      updateCategory(id, category)
+    const review = reviewMap[reviewId]
+    if (review) {
+      updateCategory(id, review)
     }
   }
 
-  // Wrapper function for bulk update to convert numeric category ID to string
-  const bulkUpdateCategoryById = (categoryId: number) => {
-    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
+  // Wrapper function for bulk update to convert numeric review ID to review string
+  const bulkUpdateCategoryById = (reviewId: number) => {
+    const reviewMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
       1: 'Ok',
       2: 'No Seller',
       3: 'Non Related'
     }
-    const category = categoryMap[categoryId]
-    if (category) {
-      bulkUpdateCategory(category)
+    const review = reviewMap[reviewId]
+    if (review) {
+      bulkUpdateCategory(review)
     }
   }
 
@@ -468,6 +468,7 @@ export default function SubredditReviewPage() {
                   onUpdateCategory={updateCategoryById}
                   onBulkUpdateCategory={bulkUpdateCategoryById}
                   loading={loading}
+                  mode="review"
                 />
               </ComponentErrorBoundary>
               
