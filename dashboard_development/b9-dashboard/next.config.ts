@@ -4,10 +4,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
   },
-  // Configuration for deployment - no basePath for separate Vercel project
-  trailingSlash: true,
-  // Ensure static exports work properly
-  output: 'standalone',
+  // Configuration for deployment
+  trailingSlash: false, // Changed from true - can cause issues with Vercel
+  // Remove output: 'standalone' for Vercel deployment
   // Enable image optimization
   images: {
     unoptimized: false,

@@ -3,12 +3,7 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-console.log('Supabase client initialization:', { 
-  hasUrl: !!supabaseUrl, 
-  hasKey: !!supabaseAnonKey,
-  urlLength: supabaseUrl?.length,
-  keyLength: supabaseAnonKey?.length 
-})
+// Supabase client initialization - credentials loaded successfully
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
