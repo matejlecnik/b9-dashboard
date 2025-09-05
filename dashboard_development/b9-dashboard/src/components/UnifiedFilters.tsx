@@ -11,23 +11,21 @@ import {
 } from 'lucide-react'
 type ReviewFilterType = 'unreviewed' | 'ok'
 type CategorizationFilterType = 'uncategorized' | 'categorized'
-type FilterType = ReviewFilterType | CategorizationFilterType
+
+type FilterId = ReviewFilterType | CategorizationFilterType | 'all'
+
+interface Counts {
+  unreviewed?: number
+  ok?: number
+  uncategorized?: number
+  categorized?: number
+}
 
 interface UnifiedFiltersProps {
   currentFilter: string
-  onFilterChange: (filter: any) => void
-  categoryCounts?: {
-    unreviewed?: number
-    ok?: number
-    uncategorized?: number
-    categorized?: number
-  }
-  counts?: {
-    unreviewed?: number
-    ok?: number
-    uncategorized?: number
-    categorized?: number
-  }
+  onFilterChange: (filter: string) => void
+  categoryCounts?: Counts
+  counts?: Counts
   searchQuery: string
   onSearchChange: (query: string) => void
   loading: boolean
@@ -43,46 +41,70 @@ const UnifiedFilters = memo(function UnifiedFilters({
   loading
 }: UnifiedFiltersProps) {
   
-  const effectiveCounts = counts || categoryCounts || {}
+  const effectiveCounts: Counts = counts || categoryCounts || {}
+
+  const countFor = (key: string): number => {
+    switch (key as FilterId) {
+      case 'unreviewed':
+        return effectiveCounts.unreviewed ?? 0
+      case 'ok':
+        return effectiveCounts.ok ?? 0
+      case 'uncategorized':
+        return effectiveCounts.uncategorized ?? 0
+      case 'categorized':
+        return effectiveCounts.categorized ?? 0
+      case 'all':
+      default:
+        return (effectiveCounts.uncategorized ?? 0) + (effectiveCounts.categorized ?? 0)
+    }
+  }
   
   // Determine which filters to show based on current filter context
   const isCategorizationContext = !(currentFilter === 'unreviewed' || currentFilter === 'ok')
-  const allFilters = (currentFilter === 'unreviewed' || currentFilter === 'ok') ? [
+  interface FilterDef {
+    id: FilterId
+    label: string
+    count: number
+    icon: React.ComponentType<{ className?: string }>
+    activeBg: string
+  }
+
+  const allFilters: FilterDef[] = (currentFilter === 'unreviewed' || currentFilter === 'ok') ? [
     // Subreddit Review Page Filters - ONLY these two
     { 
-      id: 'unreviewed', 
-      label: 'Unreviewed', 
-      count: (effectiveCounts as any).unreviewed || 0,
+      id: 'unreviewed',
+      label: 'Unreviewed',
+      count: countFor('unreviewed'),
       icon: Sparkles,
       activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
     },
     { 
-      id: 'ok', 
-      label: 'Ok', 
-      count: (effectiveCounts as any).ok || 0,
+      id: 'ok',
+      label: 'Ok',
+      count: countFor('ok'),
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #10B981, #059669)'
     }
   ] : [
     // Categorization Page Filters
     { 
-      id: 'all', 
-      label: 'All', 
-      count: ((effectiveCounts as any).uncategorized || 0) + ((effectiveCounts as any).categorized || 0),
+      id: 'all',
+      label: 'All',
+      count: countFor('all'),
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #6366F1, #4F46E5)'
     },
     { 
-      id: 'uncategorized', 
-      label: 'Uncategorized', 
-      count: (effectiveCounts as any).uncategorized || 0,
+      id: 'uncategorized',
+      label: 'Uncategorized',
+      count: countFor('uncategorized'),
       icon: Sparkles,
       activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
     },
     { 
-      id: 'categorized', 
-      label: 'Categorized', 
-      count: (effectiveCounts as any).categorized || 0,
+      id: 'categorized',
+      label: 'Categorized',
+      count: countFor('categorized'),
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #10B981, #059669)'
     }
@@ -270,7 +292,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
               <>
                 Showing{' '}
                 <span className="font-semibold text-b9-pink">
-                  {((effectiveCounts as any)[currentFilter])?.toLocaleString() || '0'}
+                  {countFor(currentFilter).toLocaleString()}
                 </span>{' '}
                 {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter} subreddits
                 {searchQuery && (

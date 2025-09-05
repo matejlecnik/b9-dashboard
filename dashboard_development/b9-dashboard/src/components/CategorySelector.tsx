@@ -1,17 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tag, AlertCircle } from 'lucide-react'
 
 // Module-level single-flight cache to dedupe concurrent fetches across many mounts
-let __categoriesCacheNames: string[] | null = (globalThis as any).__b9_categories_cache_names || null
-let __categoriesFetchPromise: Promise<string[]> | null = (globalThis as any).__b9_categories_cache_promise || null
+declare global {
+  // Using global vars allows cache to survive HMR/route transitions without `any`
+  // eslint-disable-next-line no-var
+  var __b9_categories_cache_names: string[] | null | undefined
+  // eslint-disable-next-line no-var
+  var __b9_categories_cache_promise: Promise<string[]> | null | undefined
+}
 
-// Persist on globalThis to survive HMR/route transitions
-;(globalThis as any).__b9_categories_cache_names = __categoriesCacheNames
-;(globalThis as any).__b9_categories_cache_promise = __categoriesFetchPromise
+const __categoriesCacheNames: string[] | null = globalThis.__b9_categories_cache_names ?? null
+const __categoriesFetchPromise: Promise<string[]> | null = globalThis.__b9_categories_cache_promise ?? null
+
+globalThis.__b9_categories_cache_names = __categoriesCacheNames
+globalThis.__b9_categories_cache_promise = __categoriesFetchPromise
 
 interface CategorySelectorProps {
   subredditId: number
@@ -20,8 +27,7 @@ interface CategorySelectorProps {
   compact?: boolean
 }
 
-// Fallback predefined categories if API is unavailable
-const FALLBACK_CATEGORIES = ['Ass', 'Selfie']
+// (Optional) Could add fallback categories if API is unavailable
 
 export function CategorySelector({ 
   subredditId, 
