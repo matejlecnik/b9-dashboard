@@ -2,6 +2,7 @@
 
 ## 🎯 Status: DEPLOYED ✅
 **Live Dashboard:** https://b9-dashboard-b9-agencys-projects.vercel.app
+**GitHub Repo:** https://github.com/matejlecnik/b9-dashboard
 
 ## ✅ Recent Updates
 - ✅ Removed Analytics page from dashboard (consolidated into feature pages)
