@@ -6,6 +6,7 @@
 ## ✅ Recent Updates
 - ✅ Removed Analytics page from dashboard (consolidated into feature pages)
 - ✅ Removed Settings page from dashboard (streamlined navigation)
+- ✅ Scraper page upgraded: real-time stats, time-range filters, skeletons, toasts
 
 ## 🎯 Purpose
 Reddit intelligence system for OnlyFans marketing - automated subreddit discovery, categorization, and performance analysis.
@@ -14,7 +15,7 @@ Reddit intelligence system for OnlyFans marketing - automated subreddit discover
 - **4,239 subreddits** discovered
 - **175,050 posts** analyzed  
 - **425 "Ok" subreddits** ready for marketing
-- **Real-time updates** every 30 seconds
+- **Real-time updates** every 30 seconds + live subscriptions
 
 ## 🔧 System Components
 
@@ -23,7 +24,16 @@ Reddit intelligence system for OnlyFans marketing - automated subreddit discover
 - **Posting Page:** Find optimal subreddits for marketing
 - **User Analysis:** Profile scoring and behavior tracking
 - **Post Analysis:** Content performance insights
-- **Scraper Status:** System health monitoring
+- **Scraper Status:** System health monitoring with time-range filtering, account status, and recent activity
+
+## 🔄 Improvements (Scraper Page)
+- ✅ Added robust loading skeletons and error/empty states
+- ✅ Added toast notifications for refresh success/failure
+- ✅ Time-range filter (24h/7d/30d) drives queries and metrics
+- ✅ Top Subreddits list computed from recent posts with pagination
+- ✅ Account status surfaced from `config/accounts_config.json` via API route
+- ✅ Throughput metric (approx posts/min) shown
+- 🔄 Next: add subreddit filter chip and server-side pagination
 
 ### Scraper (PythonAnywhere)
 - **Multi-account:** 3 Reddit accounts + proxies

@@ -123,15 +123,14 @@ export default function SubredditReviewPage() {
   const fetchCounts = async () => {
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([
-      // Exclude profile feeds: user feeds (u_*) and titles containing "Profile Feed"
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).not('review', 'is', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      // Exclude profile feeds: user feeds (u_*)
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).not('review', 'is', null).not('name', 'ilike', 'u_%'),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today)
         .not('name', 'ilike', 'u_%')
-        .not('title', 'ilike', '%profile%feed%')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -171,8 +170,8 @@ export default function SubredditReviewPage() {
           break
       }
 
-      // Exclude profile feeds (user profiles like u_*) and titles that contain "Profile Feed" from listing
-      query = query.not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%')
+      // Exclude profile feeds (user profiles like u_*) from listing
+      query = query.not('name', 'ilike', 'u_%')
 
       query = query
         .order('avg_upvotes_per_post', { ascending: false })

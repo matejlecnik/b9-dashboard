@@ -24,6 +24,8 @@ import {
   Globe
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
+import { useToast } from '@/components/ui/toast'
 
 interface ScraperStats {
   totalSubreddits: number
@@ -58,21 +60,56 @@ export default function ScraperPage() {
   const [stats, setStats] = useState<ScraperStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h')
+  const [topSubredditsVisible, setTopSubredditsVisible] = useState<number>(5)
+  const [accountsStatus, setAccountsStatus] = useState<{
+    total: number
+    active: number
+    details: Array<{ username: string; status: string }>
+  } | null>(null)
   const supabase = useMemo(() => createClient(), [])
+  const { addToast } = useToast()
 
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
+      setErrorMessage(null)
+      const now = new Date()
+      const startBoundary = new Date(now)
+      if (timeRange === '24h') startBoundary.setDate(now.getDate() - 1)
+      if (timeRange === '7d') startBoundary.setDate(now.getDate() - 7)
+      if (timeRange === '30d') startBoundary.setDate(now.getDate() - 30)
       
-      // Fetch subreddit stats
+      // Fetch posts in the selected range first
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('id, created_utc, score, num_comments, subreddit_name')
+        .gte('created_utc', startBoundary.toISOString())
+        .order('created_utc', { ascending: false })
+        .limit(500)
+
+      if (postsError) {
+        console.error('Error fetching posts:', postsError)
+      }
+
+      // Derive distinct subreddits from posts to limit the subreddits query
+      const distinctSubredditNames = Array.from(new Set((posts || []).map(p => p.subreddit_name).filter(Boolean)))
+
+      // Fetch only related subreddits for the current time window
       const { data: subreddits, error: subredditsError } = await supabase
         .from('subreddits')
         .select('name, subscribers, total_posts_last_30, subscriber_engagement_ratio, last_scraped_at')
-        .order('subscribers', { ascending: false })
+        .in('name', distinctSubredditNames.length ? distinctSubredditNames : [''])
 
       if (subredditsError) {
         console.error('Error fetching subreddits:', subredditsError)
       }
+
+      // Fetch total counts separately (head request)
+      const { count: totalSubredditsCount } = await supabase
+        .from('subreddits')
+        .select('name', { count: 'exact', head: true })
 
       // Fetch user stats
       const { data: users, error: usersError } = await supabase
@@ -81,16 +118,6 @@ export default function ScraperPage() {
 
       if (usersError) {
         console.error('Error fetching users:', usersError)
-      }
-
-      // Fetch post stats
-      const { data: posts, error: postsError } = await supabase
-        .from('posts')
-        .select('id, created_utc, score, num_comments, subreddit_name')
-        .order('created_utc', { ascending: false })
-
-      if (postsError) {
-        console.error('Error fetching posts:', postsError)
       }
 
       // Calculate today's posts
@@ -109,20 +136,45 @@ export default function ScraperPage() {
         ? allScrapeTimes.sort().reverse()[0] 
         : null
 
-      // Calculate top subreddits
-      const topSubreddits = subreddits?.slice(0, 5).map(sub => ({
-        name: sub.name,
-        subscribers: sub.subscribers || 0,
-        posts: sub.total_posts_last_30 || 0,
-        engagement: sub.subscriber_engagement_ratio || 0
-      })) || []
+      // Calculate top subreddits from posts in selected range
+      const postCountsBySubreddit: Record<string, number> = {}
+      posts?.forEach((p) => {
+        postCountsBySubreddit[p.subreddit_name] = (postCountsBySubreddit[p.subreddit_name] || 0) + 1
+      })
+      const topSubreddits = Object.entries(postCountsBySubreddit)
+        .map(([name, postsCount]) => {
+          const subMeta = subreddits?.find(s => s.name === name)
+          return {
+            name,
+            subscribers: subMeta?.subscribers || 0,
+            posts: postsCount,
+            engagement: subMeta?.subscriber_engagement_ratio || 0,
+          }
+        })
+        .sort((a, b) => b.posts - a.posts)
+        .slice(0, 50)
 
-      // Generate recent activity (simulated for now)
+      // Compose recent activity from latest posts/users/subreddits
       const recentActivity = [
-        { type: 'subreddit' as const, name: 'SFWAmIHot', timestamp: new Date().toISOString(), status: 'success' as const },
-        { type: 'user' as const, name: 'example_user', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'success' as const },
-        { type: 'post' as const, name: 'New post scraped', timestamp: new Date(Date.now() - 600000).toISOString(), status: 'success' as const }
-      ]
+        ...(posts?.slice(0, 10).map(p => ({
+          type: 'post' as const,
+          name: `New post in r/${p.subreddit_name}`,
+          timestamp: p.created_utc,
+          status: 'success' as const
+        })) || []),
+        ...(users?.slice(0, 5).map(u => ({
+          type: 'user' as const,
+          name: `User updated: ${u.username}`,
+          timestamp: u.last_scraped_at || new Date().toISOString(),
+          status: 'success' as const
+        })) || []),
+        ...(subreddits?.slice(0, 5).map(s => ({
+          type: 'subreddit' as const,
+          name: `Subreddit updated: r/${s.name}`,
+          timestamp: s.last_scraped_at || new Date().toISOString(),
+          status: 'success' as const
+        })) || [])
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10)
 
       // Calculate average engagement
       const avgEngagementRate = subreddits?.length 
@@ -130,7 +182,7 @@ export default function ScraperPage() {
         : 0
 
       setStats({
-        totalSubreddits: subreddits?.length || 0,
+        totalSubreddits: totalSubredditsCount ?? (subreddits?.length || 0),
         totalUsers: users?.length || 0,
         totalPosts: posts?.length || 0,
         lastScrapedAt,
@@ -149,12 +201,16 @@ export default function ScraperPage() {
       })
       
       setLastRefresh(new Date())
+      // Toast success
+      try { addToast({ title: 'Refreshed', description: 'Scraper stats updated', type: 'success', duration: 2000 }) } catch {}
     } catch (error) {
       console.error('Error fetching scraper stats:', error)
+      setErrorMessage('Failed to fetch scraper stats')
+      try { addToast({ title: 'Fetch failed', description: 'Unable to load scraper stats. Try again.', type: 'error' }) } catch {}
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, timeRange, addToast])
 
   useEffect(() => {
     fetchStats()
@@ -184,6 +240,21 @@ export default function ScraperPage() {
       clearInterval(interval)
     }
   }, [fetchStats, supabase])
+
+  // Load scraper account statuses from API route (non-blocking)
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const res = await fetch('/api/scraper/accounts')
+        if (!res.ok) return
+        const data = await res.json()
+        setAccountsStatus({ total: data.total, active: data.active, details: data.details || [] })
+      } catch {
+        // ignore
+      }
+    }
+    loadAccounts()
+  }, [])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -224,7 +295,27 @@ export default function ScraperPage() {
       showSearch={false}
     >
       <div className="space-y-6">
+        {/* Controls */}
+        <div className="flex items-center justify-between">
+          <div></div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Time Range</label>
+            <select
+              className="text-sm rounded-lg border px-2 py-1 bg-white"
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as '24h' | '7d' | '30d')}
+            >
+              <option value="24h">Last 24h</option>
+              <option value="7d">Last 7d</option>
+              <option value="30d">Last 30d</option>
+            </select>
+          </div>
+        </div>
+
         {/* Header Stats */}
+        {loading ? (
+          <MetricsCardsSkeleton />
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-l-4 border-l-b9-pink">
             <CardHeader className="pb-3">
@@ -294,6 +385,7 @@ export default function ScraperPage() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* System Health */}
         <Card>
@@ -380,10 +472,8 @@ export default function ScraperPage() {
                   <span className="text-sm">Active Accounts</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{stats?.activeAccounts || 0}/{stats?.totalAccounts || 0}</div>
-                  <div className="text-xs text-gray-500">
-                    {stats?.totalAccounts ? Math.round((stats.activeAccounts / stats.totalAccounts) * 100) : 0}% active
-                  </div>
+                  <div className="font-semibold">{accountsStatus?.active ?? stats?.activeAccounts ?? 0}/{accountsStatus?.total ?? stats?.totalAccounts ?? 0}</div>
+                  <div className="text-xs text-gray-500">{(() => { const active = accountsStatus?.active ?? stats?.activeAccounts ?? 0; const total = accountsStatus?.total ?? stats?.totalAccounts ?? 0; return total ? Math.round((active / total) * 100) : 0 })()}% active</div>
                 </div>
               </div>
               
@@ -401,21 +491,22 @@ export default function ScraperPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Timer className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm">Throughput</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{(() => { if (!stats?.todaysPosts) return '0/min'; if (timeRange === '24h') return `${Math.max(1, Math.round(stats.todaysPosts / 1440))}/min`; if (timeRange === '7d') return `${Math.max(1, Math.round(stats.todaysPosts / (7 * 1440)) )}/min`; return `${Math.max(1, Math.round(stats.todaysPosts / (30 * 1440)) )}/min` })()}</div>
+                  <div className="text-xs text-gray-500">Approx. posts ingested</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Timer className="h-4 w-4 text-purple-500" />
                   <span className="text-sm">Last Scraped</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">
-                    {stats?.lastScrapedAt 
-                      ? new Date(stats.lastScrapedAt).toLocaleTimeString()
-                      : 'Never'
-                    }
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {stats?.lastScrapedAt 
-                      ? new Date(stats.lastScrapedAt).toLocaleDateString()
-                      : 'No data'
-                    }
-                  </div>
+                  <div className="font-semibold">{stats?.lastScrapedAt ? new Date(stats.lastScrapedAt).toLocaleTimeString() : 'Never'}</div>
+                  <div className="text-xs text-gray-500">{stats?.lastScrapedAt ? new Date(stats.lastScrapedAt).toLocaleDateString() : 'No data'}</div>
                 </div>
               </div>
             </CardContent>
@@ -456,6 +547,11 @@ export default function ScraperPage() {
                 ) : (
                   <div className="text-center py-4 text-gray-500">No data available</div>
                 )}
+                {!loading && stats?.topSubreddits && stats.topSubreddits.length > topSubredditsVisible && (
+                  <div className="pt-2">
+                    <Button variant="outline" size="sm" onClick={() => setTopSubredditsVisible(v => v + 5)}>Show more</Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -479,6 +575,11 @@ export default function ScraperPage() {
             <div className="space-y-3">
               {loading ? (
                 <div className="text-center py-4 text-gray-500">Loading recent activity...</div>
+              ) : errorMessage ? (
+                <div className="text-center py-6">
+                  <div className="text-sm text-red-600 mb-2">{errorMessage}</div>
+                  <Button variant="outline" size="sm" onClick={fetchStats}>Retry</Button>
+                </div>
               ) : stats?.recentActivity.length ? (
                 stats.recentActivity.map((activity, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

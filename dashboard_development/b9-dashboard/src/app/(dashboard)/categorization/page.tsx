@@ -57,10 +57,28 @@ export default function CategorizationPage() {
     
     // Only count subreddits with review = 'Ok'
     const countQueries = await Promise.all([
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').is('category_text', null),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').not('category_text', 'is', null),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').gte('created_at', today),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok')
+      // Uncategorized = category_text IS NULL OR category_text = ''
+      supabase
+        .from('subreddits')
+        .select('*', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+        .or('category_text.is.null,category_text.eq.'),
+      // Categorized = category_text IS NOT NULL AND category_text != ''
+      supabase
+        .from('subreddits')
+        .select('*', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+        .not('category_text', 'is', null)
+        .neq('category_text', ''),
+      supabase
+        .from('subreddits')
+        .select('*', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+        .gte('created_at', today),
+      supabase
+        .from('subreddits')
+        .select('*', { count: 'exact', head: true })
+        .eq('review', 'Ok')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -91,9 +109,11 @@ export default function CategorizationPage() {
 
       // Apply filters based on current selection
       if (currentFilter === 'uncategorized') {
-        query = query.is('category_text', null)
+        // Uncategorized = NULL or empty string
+        query = query.or('category_text.is.null,category_text.eq.')
       } else if (currentFilter === 'categorized') {
-        query = query.not('category_text', 'is', null)
+        // Categorized = NOT NULL and not empty
+        query = query.not('category_text', 'is', null).neq('category_text', '')
       }
 
       query = query

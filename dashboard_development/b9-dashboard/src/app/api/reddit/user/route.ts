@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { ProxyAgent } from 'undici'
 
 interface RedditUserData {
   id: string
@@ -85,40 +86,45 @@ function generateUserAgent(): string {
   return userAgents[Math.floor(Math.random() * userAgents.length)]
 }
 
-async function fetchWithProxy(url: string, maxRetries = 3): Promise<unknown> {
-  const proxy = getRandomProxy()
+async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
   const userAgent = generateUserAgent()
-  
-  console.log(`🌐 Fetching ${url} via ${proxy.display_name}`)
-  console.log(`📋 User-Agent: ${userAgent}`)
-  
+  const proxyPool = [...PROXY_CONFIGS]
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const proxy = proxyPool[(attempt - 1) % proxyPool.length]
     try {
+      const dispatcher = new ProxyAgent(`http://${proxy.proxy}`)
       const response = await fetch(url, {
         headers: {
           'User-Agent': userAgent,
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Connection': 'keep-alive',
+          'Referer': 'https://www.reddit.com/',
         },
-        // Note: Vercel Edge Functions don't support proxy configuration
-        // In production, you'd need to use a proxy service or external API
-      })
+        // Use undici ProxyAgent to route requests via proxy
+        dispatcher,
+      } as RequestInit)
 
       if (!response.ok) {
+        // Retry different proxies on 403/429/5xx
+        if ([403, 429, 500, 502, 503, 504].includes(response.status)) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          continue
+        }
         if (response.status === 404) {
           throw new Error('User not found')
-        }
-        if (response.status === 403) {
-          throw new Error('User is suspended or private')
         }
         throw new Error(`Reddit API returned ${response.status}`)
       }
 
       return await response.json()
     } catch (error) {
-      console.error(`❌ Attempt ${attempt}/${maxRetries} failed:`, error)
       if (attempt === maxRetries) {
         throw error
       }
-      // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
     }
   }

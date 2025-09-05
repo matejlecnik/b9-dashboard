@@ -363,10 +363,13 @@ export default function UserAnalysisPage() {
 
   const toggleOurCreator = async (userId: number, currentStatus: boolean) => {
     try {
-      await supabase
-        .from('users')
-        .update({ our_creator: !currentStatus })
-        .eq('id', userId)
+      const res = await fetch('/api/users/toggle-creator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, our_creator: !currentStatus })
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to update')
 
       // Update local state
       setAllUsers(prev => prev.map(user => 
@@ -374,6 +377,7 @@ export default function UserAnalysisPage() {
       ))
     } catch (error) {
       console.error('Error updating creator status:', error)
+      alert('Failed to update creator flag')
     }
   }
 

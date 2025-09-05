@@ -61,37 +61,16 @@ export default function PostingPage() {
   const [sortBy, setSortBy] = useState<'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour'>('engagement')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  // Fetch subreddits marked as "Ok" with their recent posts
+  // Fetch subreddits (all categories) with a few recent posts
   const fetchOkSubreddits = async () => {
     setLoading(true)
     try {
-      // Try new column first (category). If it errors (e.g., column missing in env), fallback to legacy 'review'
-      let subreddits: Subreddit[] | null = null
-      let queryError: unknown = null
-      try {
-        const { data, error } = await supabase
-          .from('subreddits')
-          .select('*')
-          .eq('category', 'Ok')
-          .not('name', 'ilike', 'u_%')
-          .order('avg_upvotes_per_post', { ascending: false })
-        if (error) throw error
-        subreddits = data
-      } catch (err) {
-        queryError = err
-      }
-
-      if (!subreddits) {
-        // Fallback to legacy column 'review'
-        const { data, error } = await supabase
-          .from('subreddits')
-          .select('*')
-          .eq('review', 'Ok')
-          .not('name', 'ilike', 'u_%')
-          .order('avg_upvotes_per_post', { ascending: false })
-        if (error) throw (queryError || error)
-        subreddits = data
-      }
+      const { data: subreddits, error } = await supabase
+        .from('subreddits')
+        .select('*')
+        .not('name', 'ilike', 'u_%')
+        .order('avg_upvotes_per_post', { ascending: false })
+      if (error) throw error
 
       const subredditsWithPosts = await Promise.all(
         (subreddits || []).map(async (subreddit) => {
@@ -463,12 +442,7 @@ export default function PostingPage() {
                               width={56}
                               height={56}
                               className="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow"
-                              onError={(e) => {
-                                const img = e.currentTarget as HTMLImageElement
-                                img.style.display = 'none'
-                                const placeholder = (img.nextElementSibling as HTMLElement)
-                                if (placeholder) placeholder.style.display = 'flex'
-                              }}
+                              unoptimized
                             />
                           ) : null}
                           <div 
@@ -628,44 +602,46 @@ export default function PostingPage() {
                           )}
                         </div>
                         {topPostsBySubreddit[subreddit.id] && topPostsBySubreddit[subreddit.id].length > 0 ? (
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[70vh] overflow-y-auto">
                             {topPostsBySubreddit[subreddit.id].map((post) => {
                               const postUrl = `https://www.reddit.com/comments/${post.reddit_id}`
                               const thumb = (post as unknown as { thumbnail?: string }).thumbnail
                               const hasThumb = !!thumb && /^https?:\/\//.test(thumb) && !/(self|default)$/i.test(thumb)
                               return (
-                                <a key={post.id} href={postUrl} target="_blank" rel="noopener noreferrer" className="block p-3 bg-white/60 rounded-lg hover:bg-white">
-                                  <div className="flex items-start gap-3">
-                                    {hasThumb && (
-                                      <Image src={thumb} alt="thumb" width={64} height={64} className="w-16 h-16 object-cover rounded-md border" />
+                                <a key={post.id} href={postUrl} target="_blank" rel="noopener noreferrer" className="group block bg-white/70 rounded-xl border border-gray-200 hover:shadow transition overflow-hidden">
+                                  {/* Media */}
+                                  <div className="relative aspect-square bg-gray-100">
+                                    {hasThumb ? (
+                                      <Image src={thumb} alt="thumb" fill sizes="(max-width:768px) 50vw, (max-width:1200px) 25vw, 20vw" className="object-cover" unoptimized />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-gray-400">No preview</div>
                                     )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm text-gray-900 line-clamp-2 mb-1 flex items-start justify-between gap-2">
-                                        <span className="block flex-1 min-w-0">{post.title}</span>
-                                        <button
-                                          onClick={(e) => copyTitle(e, post.title)}
-                                          className="text-gray-500 hover:text-gray-700 shrink-0"
-                                          title="Copy title"
-                                          aria-label="Copy title"
-                                        >
-                                          <Copy className="h-3.5 w-3.5" />
-                                        </button>
+                                    <div className="absolute top-1 right-1">
+                                      <button
+                                        onClick={(e) => copyTitle(e, post.title)}
+                                        className="p-1.5 rounded-md bg-white/80 text-gray-700 hover:bg-white shadow"
+                                        title="Copy title"
+                                        aria-label="Copy title"
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {/* Meta */}
+                                  <div className="p-2">
+                                    <div className="text-xs font-medium text-gray-900 line-clamp-2 min-h-[2.25rem]">{post.title}</div>
+                                    <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="flex items-center space-x-1">
+                                          <ArrowUpCircle className="h-3 w-3" />
+                                          <span>{post.score}</span>
+                                        </span>
+                                        <span className="flex items-center space-x-1">
+                                          <MessageCircle className="h-3 w-3" />
+                                          <span>{post.num_comments}</span>
+                                        </span>
                                       </div>
-                                      <div className="flex items-center justify-between text-xs text-gray-500">
-                                        <div className="flex items-center space-x-3">
-                                          <span className="flex items-center space-x-1">
-                                            <ArrowUpCircle className="h-3 w-3" />
-                                            <span>{post.score}</span>
-                                          </span>
-                                          <span className="flex items-center space-x-1">
-                                            <MessageCircle className="h-3 w-3" />
-                                            <span>{post.num_comments}</span>
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                          <span>{timeAgo(post.created_utc)}</span>
-                                        </div>
-                                      </div>
+                                      <span>{timeAgo(post.created_utc)}</span>
                                     </div>
                                   </div>
                                 </a>

@@ -408,119 +408,137 @@ export default function PostAnalysisPage() {
           </div>
         </Card>
 
-        {/* Posts List */}
-        <div className="space-y-4">
+        {/* Posts Gallery */}
+        <div>
           {loading && posts.length === 0 ? (
-            <div className="grid gap-4">
-              {[...Array(5)].map((_, i) => (
-                <Card key={i} className="p-4 animate-pulse">
-                  <div className="flex space-x-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                    </div>
-                  </div>
-                </Card>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
               ))}
             </div>
           ) : (
             <>
-              {posts.map((post) => (
-                <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
-                  <div className="flex space-x-4">
-                    {/* Thumbnail */}
-                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                      {post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' ? (
-                        <NextImage 
-                          src={post.thumbnail} 
-                          alt={`Thumbnail for "${post.title}"`}
-                          fill
-                          className="object-cover rounded"
-                          sizes="64px"
-                        />
-                      ) : (
-                        getContentTypeIcon(post.content_type)
-                      )}
-                    </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="aspect-square relative group cursor-pointer overflow-hidden rounded-lg bg-gray-100 hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(`https://reddit.com/r/${post.subreddit_name}/comments/${post.reddit_id}`, '_blank')}
+                  >
+                    {/* Main Image */}
+                    {post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' ? (
+                      <NextImage 
+                        src={post.thumbnail} 
+                        alt={`${post.title}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">
+                        {getContentTypeIcon(post.content_type)}
+                      </div>
+                    )}
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-black truncate mb-1">
-                            {post.title}
-                          </h3>
-                          
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                            <span className="flex items-center space-x-1">
-                              <span>r/{post.subreddit_name}</span>
-                            </span>
-                            <span>by u/{post.author_username}</span>
-                            <span>{formatTimeAgo(post.created_utc)}</span>
-                          </div>
-
-                          <div className="flex items-center space-x-6 text-sm">
-                            <div className="flex items-center space-x-1">
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                              <span className="font-medium">{post.score.toLocaleString()}</span>
-                              <span className="text-gray-500">
-                                ({Math.round((post.upvote_ratio || 0) * 100)}% upvoted)
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center space-x-1">
-                              <MessageCircle className="h-4 w-4 text-blue-600" />
-                              <span>{post.num_comments}</span>
-                            </div>
-
-                            <Badge variant="outline" className="capitalize">
-                              {getContentTypeIcon(post.content_type)}
-                              <span className="ml-1">{post.content_type}</span>
-                            </Badge>
-
-                            {post.engagement_velocity && (
-                              <div className="flex items-center space-x-1 text-purple-600">
-                                <Clock className="h-4 w-4" />
-                                <span>{Math.round(post.engagement_velocity)} votes/hr</span>
-                              </div>
-                            )}
-                          </div>
+                    {/* Content Type Badge */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-black/70 backdrop-blur-sm rounded-full p-1.5">
+                        <div className="text-white text-xs">
+                          {getContentTypeIcon(post.content_type)}
                         </div>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="ml-2 flex-shrink-0"
-                        >
-                          <a 
-                            href={`https://reddit.com/r/${post.subreddit_name}/comments/${post.reddit_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
                       </div>
                     </div>
+
+                    {/* Stats Overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="text-white text-center px-3">
+                        <div className="flex items-center justify-center space-x-4 mb-2">
+                          <div className="flex items-center space-x-1">
+                            <TrendingUp className="h-4 w-4" />
+                            <span className="font-medium">{post.score.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MessageCircle className="h-4 w-4" />
+                            <span>{post.num_comments}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-90 mb-1">
+                          r/{post.subreddit_name}
+                        </div>
+                        <div className="text-xs opacity-75 line-clamp-2">
+                          {post.title}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Multiple Images Indicator (for gallery posts) */}
+                    {post.content_type === 'link' && post.url.includes('/gallery/') && (
+                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-black/70 backdrop-blur-sm rounded-full px-2 py-1">
+                          <div className="flex items-center space-x-1 text-white text-xs">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                            <div className="w-2 h-2 bg-white/60 rounded-full"></div>
+                            <div className="w-2 h-2 bg-white/30 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video Indicator */}
+                    {post.content_type === 'video' && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black/70 backdrop-blur-sm rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Video className="h-6 w-6 text-white" aria-label="Play video" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* High Engagement Indicator */}
+                    {post.score > 10000 && (
+                      <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-b9-pink/90 backdrop-blur-sm rounded-full px-2 py-1">
+                          <span className="text-white text-xs font-medium">🔥 Hot</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Engagement Percentage */}
+                    {post.upvote_ratio && post.upvote_ratio > 0.95 && (
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-green-500/90 backdrop-blur-sm rounded-full px-2 py-1">
+                          <span className="text-white text-xs font-medium">
+                            {Math.round(post.upvote_ratio * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </Card>
-              ))}
+                ))}
+              </div>
 
               {/* Load More Button */}
               {hasMorePosts && !loading && (
-                <div className="flex justify-center pt-4">
-                  <Button onClick={loadMorePosts} variant="outline">
+                <div className="flex justify-center pt-8">
+                  <Button onClick={loadMorePosts} variant="outline" size="lg" className="px-8">
                     Load More Posts
                   </Button>
                 </div>
               )}
 
+              {/* End Message */}
               {!hasMorePosts && posts.length > 0 && (
-                <div className="text-center py-4 text-gray-500">
-                  Showing all {posts.length} posts
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-lg font-medium mb-2">You've reached the end!</div>
+                  <div className="text-sm">Showing all {posts.length} posts from OK subreddits</div>
+                </div>
+              )}
+
+              {/* No Results */}
+              {posts.length === 0 && !loading && (
+                <div className="text-center py-16">
+                  <div className="text-gray-400 text-6xl mb-4">📱</div>
+                  <div className="text-gray-500 text-xl mb-2">No posts found</div>
+                  <div className="text-gray-400 text-sm">Try adjusting your filters or search terms</div>
                 </div>
               )}
             </>
