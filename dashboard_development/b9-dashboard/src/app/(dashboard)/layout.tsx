@@ -6,6 +6,12 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
+  // TEMPORARY: Bypass authentication for development/testing
+  // TODO: Re-enable authentication once testing is complete
+  console.log('Dashboard layout: Authentication bypassed for development')
+  return <>{children}</>
+  
+  /* ORIGINAL AUTH CODE - COMMENTED OUT FOR TESTING
   try {
     const supabase = await createClient()
 
@@ -30,4 +36,5 @@ export default async function ProtectedLayout({
     console.error('Dashboard layout error:', error)
     redirect('/login')
   }
+  */
 }

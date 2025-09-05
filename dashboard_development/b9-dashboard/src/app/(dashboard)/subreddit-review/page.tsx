@@ -329,6 +329,7 @@ export default function SubredditReviewPage() {
 
   // Set up real-time subscriptions and refresh timer
   useEffect(() => {
+    console.log('Subreddit Review: Initial load starting...')
     setCurrentPage(0)
     setHasMore(true)
     fetchSubreddits(0, false)
