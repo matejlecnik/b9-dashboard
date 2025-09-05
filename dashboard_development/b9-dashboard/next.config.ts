@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
-  },
+  // Temporarily disable experimental features for Vercel build
+  // experimental: {
+  //   optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
+  // },
   // Configuration for deployment
   trailingSlash: false, // Changed from true - can cause issues with Vercel
   // Remove output: 'standalone' for Vercel deployment
