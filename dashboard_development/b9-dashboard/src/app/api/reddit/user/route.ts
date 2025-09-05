@@ -71,9 +71,6 @@ const PROXY_CONFIGS = [
   }
 ]
 
-function getRandomProxy() {
-  return PROXY_CONFIGS[Math.floor(Math.random() * PROXY_CONFIGS.length)]
-}
 
 function generateUserAgent(): string {
   const userAgents = [

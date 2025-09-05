@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/utils/supabase/client'
@@ -17,7 +16,6 @@ import {
   FileText, 
   Link,
   ArrowUpDown,
-  ExternalLink,
   Filter,
   Search
 } from 'lucide-react'
@@ -263,22 +261,6 @@ export default function PostAnalysisPage() {
     }
   }
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInMs = now.getTime() - date.getTime()
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
-    const diffInDays = Math.floor(diffInHours / 24)
-    
-    if (diffInDays > 0) {
-      return `${diffInDays}d ago`
-    } else if (diffInHours > 0) {
-      return `${diffInHours}h ago`
-    } else {
-      const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
-      return `${diffInMinutes}m ago`
-    }
-  }
 
   return (
     <DashboardLayout
@@ -528,7 +510,7 @@ export default function PostAnalysisPage() {
               {/* End Message */}
               {!hasMorePosts && posts.length > 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <div className="text-lg font-medium mb-2">You've reached the end!</div>
+                  <div className="text-lg font-medium mb-2">You&apos;ve reached the end!</div>
                   <div className="text-sm">Showing all {posts.length} posts from OK subreddits</div>
                 </div>
               )}

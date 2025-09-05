@@ -15,7 +15,7 @@ export async function GET() {
       status: a.enabled ? 'active' : 'disabled'
     }))
     return NextResponse.json({ total, active, details })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ total: 0, active: 0, details: [] })
   }
 }
