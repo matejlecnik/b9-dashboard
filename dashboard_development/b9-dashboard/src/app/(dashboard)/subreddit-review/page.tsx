@@ -5,10 +5,9 @@ import { supabase, type Subreddit } from '../../../lib/supabase'
 import { MetricsCards } from '@/components/MetricsCards'
 import { SubredditTable } from '@/components/SubredditTable'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { MetricsCardsSkeleton, TableSkeleton } from '@/components/SkeletonLoaders'
-import { useErrorHandler, networkUtils } from '@/lib/errorUtils'
+import { useErrorHandler } from '@/lib/errorUtils'
 import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
@@ -19,13 +18,12 @@ const PAGE_SIZE = 50 // Load 50 records at a time
 
 export default function SubredditReviewPage() {
   const { addToast } = useToast()
-  const { handleAsyncOperation, handleError } = useErrorHandler()
+  const { handleAsyncOperation } = useErrorHandler()
   const [subreddits, setSubreddits] = useState<Subreddit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [totalSubreddits, setTotalSubreddits] = useState(0)
   const [currentFilter, setCurrentFilter] = useState<FilterType>('uncategorized')
@@ -330,6 +328,7 @@ export default function SubredditReviewPage() {
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
+    const target = observerRef.current
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
@@ -339,14 +338,15 @@ export default function SubredditReviewPage() {
       { threshold: 0.1 }
     )
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current)
+    if (target) {
+      observer.observe(target)
     }
 
     return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current)
+      if (target) {
+        observer.unobserve(target)
       }
+      observer.disconnect()
     }
   }, [loadMore, hasMore, loadingMore])
 
@@ -379,7 +379,7 @@ export default function SubredditReviewPage() {
       supabase.removeChannel(channel)
       clearInterval(refreshInterval)
     }
-  }, [currentFilter])
+  }, [currentFilter, fetchSubreddits])
 
   return (
     <DashboardLayout title="" showSearch={false}>

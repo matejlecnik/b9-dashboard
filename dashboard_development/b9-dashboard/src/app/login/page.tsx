@@ -1,6 +1,7 @@
 'use client'
 
 import { login } from './actions'
+import Image from 'next/image'
 
 export default function LoginPage() {
   return (
@@ -16,22 +17,14 @@ export default function LoginPage() {
         {/* B9 Agency Logo/Brand */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <img 
+            <Image 
               src="/logo/logo.png" 
               alt="B9 Dashboard Logo" 
+              width={160}
+              height={80}
               className="h-20 w-auto object-contain drop-shadow-2xl"
-              onError={(e) => {
-                // Fallback to text if logo fails to load
-                e.currentTarget.style.display = 'none';
-                const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                if (nextElement) {
-                  nextElement.style.display = 'block';
-                }
-              }}
+              priority
             />
-            <div className="hidden">
-              <h1 className="text-4xl font-bold text-b9-pink mb-2">B9 Dashboard</h1>
-            </div>
           </div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">B9 Dashboard</h2>
           <p className="text-lg text-gray-600 font-medium">Business Intelligence Platform</p>

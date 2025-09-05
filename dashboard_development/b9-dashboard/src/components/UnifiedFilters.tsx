@@ -1,15 +1,13 @@
 'use client'
 
-import React, { memo, useState } from 'react'
+import React, { memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   Search,
   X,
   Sparkles,
-  Tag,
-  Grid3X3,
-  Plus
+  Tag
 } from 'lucide-react'
 type FilterType = 'uncategorized' | 'categorized'
 

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, memo } from 'react'
+import Image from 'next/image'
 import { type Subreddit } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { CategorySelector } from '@/components/CategorySelector'
-import { ChevronUp, ChevronDown, ChevronsUpDown, Image as ImageIcon, BookOpen, X } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, X } from 'lucide-react'
 
 interface SubredditTableProps {
   subreddits: Subreddit[]
@@ -23,7 +24,6 @@ const SubredditTable = memo(function SubredditTable({
   selectedSubreddits,
   setSelectedSubreddits,
   onUpdateCategory,
-  onBulkUpdateCategory,
   loading,
   mode = 'category'
 }: SubredditTableProps) {
@@ -33,6 +33,7 @@ const SubredditTable = memo(function SubredditTable({
     isOpen: false,
     subreddit: null
   })
+  const [brokenIcons, setBrokenIcons] = useState<Set<number>>(new Set())
 
   const parseRulesDataSafely = (rulesData?: unknown): Array<{ short_name?: string; description?: string; description_html?: string }> => {
     if (!rulesData) return []
@@ -202,12 +203,15 @@ const SubredditTable = memo(function SubredditTable({
               <th className="text-left py-2 px-3 w-16 font-medium text-gray-900 text-sm bg-white" scope="col">
                 Logo
               </th>
-              <th className="text-left py-2 px-2 font-medium text-gray-900 text-sm bg-white w-[220px]" scope="col">
+              <th
+                className="text-left py-2 px-2 font-medium text-gray-900 text-sm bg-white w-[220px]"
+                scope="col"
+                aria-sort={sortField === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   onClick={() => handleSort('name')}
                   className="flex items-center space-x-1 hover:text-b9-pink transition-colors group"
                   aria-label="Sort by subreddit name"
-                  aria-sort={sortField === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   <span>Subreddit</span>
                   <div className="w-4 h-4 flex items-center justify-center">
@@ -223,12 +227,15 @@ const SubredditTable = memo(function SubredditTable({
                   </div>
                 </button>
               </th>
-              <th className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white" scope="col">
+              <th
+                className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white"
+                scope="col"
+                aria-sort={sortField === 'subscribers' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   onClick={() => handleSort('subscribers')}
                   className="flex items-center space-x-1 hover:text-b9-pink transition-colors group"
                   aria-label="Sort by subscribers"
-                  aria-sort={sortField === 'subscribers' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   <span>Subscribers</span>
                   <div className="w-4 h-4 flex items-center justify-center">
@@ -244,12 +251,15 @@ const SubredditTable = memo(function SubredditTable({
                   </div>
                 </button>
               </th>
-              <th className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white" scope="col">
+              <th
+                className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white"
+                scope="col"
+                aria-sort={sortField === 'subscriber_engagement_ratio' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   onClick={() => handleSort('subscriber_engagement_ratio')}
                   className="flex items-center space-x-1 hover:text-b9-pink transition-colors group"
                   aria-label="Sort by engagement"
-                  aria-sort={sortField === 'subscriber_engagement_ratio' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   <span>Engagement</span>
                   <div className="w-4 h-4 flex items-center justify-center">
@@ -265,12 +275,15 @@ const SubredditTable = memo(function SubredditTable({
                   </div>
                 </button>
               </th>
-              <th className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white" scope="col">
+              <th
+                className="text-left py-2 px-3 font-medium text-gray-900 text-sm bg-white"
+                scope="col"
+                aria-sort={sortField === 'avg_upvotes_per_post' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   onClick={() => handleSort('avg_upvotes_per_post')}
                   className="flex items-center space-x-1 hover:text-b9-pink transition-colors group"
                   aria-label="Sort by average upvotes"
-                  aria-sort={sortField === 'avg_upvotes_per_post' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   <span>Avg Upvotes</span>
                   <div className="w-4 h-4 flex items-center justify-center">
@@ -317,26 +330,28 @@ const SubredditTable = memo(function SubredditTable({
                       className="hover:opacity-80 transition-opacity"
                       title={`Open ${subreddit.display_name_prefixed} in new tab`}
                     >
-                      {subreddit.icon_img || subreddit.community_icon ? (
-                        <img
-                          src={subreddit.icon_img || subreddit.community_icon || ''}
+                      {(subreddit.icon_img || subreddit.community_icon) && !brokenIcons.has(subreddit.id) ? (
+                        <Image
+                          src={(subreddit.icon_img || subreddit.community_icon) as string}
                           alt={`${subreddit.name} icon`}
+                          width={24}
+                          height={24}
                           className="w-6 h-6 rounded-full object-cover border border-gray-200"
-                          onError={(e) => {
-                            // Fallback to placeholder if image fails to load
-                            e.currentTarget.style.display = 'none'
-                            const placeholder = e.currentTarget.nextElementSibling as HTMLElement
-                            if (placeholder) placeholder.style.display = 'flex'
+                          onError={() => {
+                            setBrokenIcons((prev) => {
+                              const next = new Set(prev)
+                              next.add(subreddit.id)
+                              return next
+                            })
                           }}
                         />
                       ) : null}
                       <div 
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border border-gray-200 ${
-                          subreddit.icon_img || subreddit.community_icon ? 'hidden' : 'flex'
+                          (subreddit.icon_img || subreddit.community_icon) && !brokenIcons.has(subreddit.id) ? 'hidden' : 'flex'
                         }`}
                         style={{ 
-                          backgroundColor: getSubredditColor(subreddit.name),
-                          display: subreddit.icon_img || subreddit.community_icon ? 'none' : 'flex'
+                          backgroundColor: getSubredditColor(subreddit.name)
                         }}
                       >
                         {getSubredditInitials(subreddit.name)}

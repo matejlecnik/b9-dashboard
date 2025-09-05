@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { 
   Activity, 
   Database, 
-  Server, 
   Users, 
   MessageSquare, 
   TrendingUp,
@@ -22,7 +21,6 @@ import {
   BarChart3,
   Calendar,
   Timer,
-  Zap,
   Globe
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
@@ -60,9 +58,9 @@ export default function ScraperPage() {
   const [stats, setStats] = useState<ScraperStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -156,7 +154,7 @@ export default function ScraperPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     fetchStats()
@@ -185,7 +183,7 @@ export default function ScraperPage() {
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [])
+  }, [fetchStats, supabase])
 
   const getStatusIcon = (status: string) => {
     switch (status) {

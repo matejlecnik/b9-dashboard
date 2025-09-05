@@ -12,7 +12,6 @@ import {
   Settings,
   Crown,
   Mail,
-  Calendar,
   Activity,
   UserCheck,
   Key

@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type React from 'react'
 import { supabase, type Subreddit, type Post } from '../../../lib/supabase'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { 
-  ExternalLink, 
   Users, 
   Clock, 
   MessageCircle,
@@ -21,13 +21,10 @@ import {
   Zap,
   Calendar,
   Shield,
-  Image as ImageIcon,
-  Video,
-  FileText,
-  Link2,
   Copy
 } from 'lucide-react'
-import Link from 'next/link'
+import { BookOpen } from 'lucide-react'
+import Image from 'next/image'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
@@ -46,15 +43,7 @@ interface SubredditWithPosts extends BaseSubreddit {
   review: AllowedCategory | 'User Feed' | null
 }
 
-// Helper to strip any HTML if needed for previews
-const stripHtml = (html?: string): string => {
-  if (!html) return ''
-  try {
-    return String(html).replace(/<[^>]*>/g, '').trim()
-  } catch {
-    return String(html)
-  }
-}
+// (no helpers currently)
 
 export default function PostingPage() {
   const { addToast } = useToast()
@@ -238,6 +227,7 @@ export default function PostingPage() {
       fetchOkSubreddits()
     }, 120000)
     return () => clearInterval(refreshInterval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Client filters & sorting
@@ -296,14 +286,7 @@ export default function PostingPage() {
     }
   }
 
-  const renderTypeIcon = (type?: string) => {
-    const t = (type || '').toLowerCase()
-    if (t === 'image') return <ImageIcon className="h-4 w-4 text-pink-600" />
-    if (t === 'video') return <Video className="h-4 w-4 text-purple-600" />
-    if (t === 'text') return <FileText className="h-4 w-4 text-gray-600" />
-    if (t === 'link') return <Link2 className="h-4 w-4 text-blue-600" />
-    return <FileText className="h-4 w-4 text-gray-400" />
-  }
+  // (removed content-type icon rendering)
 
   const copyTitle = async (e: React.MouseEvent, title: string) => {
     e?.preventDefault?.()
@@ -316,27 +299,7 @@ export default function PostingPage() {
     }
   }
 
-  const copyLink = async (e: React.MouseEvent, url: string) => {
-    e?.preventDefault?.()
-    e?.stopPropagation?.()
-    try {
-      await navigator.clipboard.writeText(url)
-      addToast({ type: 'success', title: 'Copied', description: 'Link copied to clipboard', duration: 1500 })
-    } catch (err) {
-      addToast({ type: 'error', title: 'Copy failed', description: 'Could not copy link', duration: 2000 })
-    }
-  }
-
-  const copyMarkdown = async (e: React.MouseEvent, title: string, url: string) => {
-    e?.preventDefault?.()
-    e?.stopPropagation?.()
-    try {
-      await navigator.clipboard.writeText(`[${title}](${url})`)
-      addToast({ type: 'success', title: 'Copied', description: 'Markdown link copied', duration: 1500 })
-    } catch (err) {
-      addToast({ type: 'error', title: 'Copy failed', description: 'Could not copy markdown', duration: 2000 })
-    }
-  }
+  // removed copyLink / copyMarkdown per new UX
 
   // Compact summary for filtered set
   const showingCount = sortedSubreddits.length
@@ -347,15 +310,7 @@ export default function PostingPage() {
     : 0
 
   // Safe formatters to avoid runtime crashes on null/undefined values
-  const formatNumber = (num?: number | null) => {
-    if (num === null || num === undefined) return 'N/A'
-    try { return num.toLocaleString() } catch { return String(num) }
-  }
-
-  const formatInteger = (num?: number | null) => {
-    if (num === null || num === undefined) return '—'
-    return String(Math.round(num))
-  }
+  // (removed unused format helpers)
 
   return (
     <DashboardLayout
@@ -505,13 +460,16 @@ export default function PostingPage() {
                           title={`Open ${subreddit.display_name_prefixed} on Reddit`}
                         >
                           {getIconUrl(subreddit) ? (
-                            <img
+                            <Image
                               src={getIconUrl(subreddit) || ''}
                               alt={`${subreddit.name} icon`}
+                              width={56}
+                              height={56}
                               className="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow"
                               onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                                const placeholder = e.currentTarget.nextElementSibling as HTMLElement
+                                const img = e.currentTarget as HTMLImageElement
+                                img.style.display = 'none'
+                                const placeholder = (img.nextElementSibling as HTMLElement)
                                 if (placeholder) placeholder.style.display = 'flex'
                               }}
                             />
@@ -540,7 +498,12 @@ export default function PostingPage() {
                             >
                               {subreddit.display_name_prefixed}
                             </a>
-                            {/* Removed explicit open subreddit button; name and icon are clickable */}
+                            {/* Category badge */}
+                            {((subreddit.category ?? subreddit.review) !== null) && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0.5 font-semibold border bg-white/60">
+                                {subreddit.category ?? subreddit.review}
+                              </Badge>
+                            )}
                             <Badge 
                               variant="outline" 
                               className={`text-xs px-1.5 py-0.5 font-semibold border ${subreddit.over18 ? 'bg-red-50 text-red-700 border-red-300' : 'bg-green-50 text-green-700 border-green-300'}`}
@@ -623,6 +586,16 @@ export default function PostingPage() {
                       </div>
 
                       <div className="flex items-center space-x-2">
+                        <a
+                          href={`https://www.reddit.com/${subreddit.display_name_prefixed.replace(/^\//, '')}/about/rules`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 hover:text-gray-700"
+                          title="Subreddit rules"
+                          aria-label="Open subreddit rules"
+                        >
+                          <BookOpen className="h-5 w-5" />
+                        </a>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -667,7 +640,7 @@ export default function PostingPage() {
                                 <a key={post.id} href={postUrl} target="_blank" rel="noopener noreferrer" className="block p-3 bg-white/60 rounded-lg hover:bg-white">
                                   <div className="flex items-start gap-3">
                                     {hasThumb && (
-                                      <img src={thumb} alt="thumb" className="w-16 h-16 object-cover rounded-md border" />
+                                      <Image src={thumb} alt="thumb" width={64} height={64} className="w-16 h-16 object-cover rounded-md border" />
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <div className="font-medium text-sm text-gray-900 line-clamp-2 mb-1 flex items-start justify-between gap-2">

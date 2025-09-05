@@ -3,15 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
+import Image from 'next/image'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
   title: string
   subtitle?: string
   showSearch?: boolean
-  lastUpdated?: Date
-  onRefresh?: () => void
-  isRefreshing?: boolean
   onSearchChange?: (query: string) => void
   searchPlaceholder?: string
 }
@@ -21,9 +19,6 @@ export function DashboardLayout({
   title, 
   subtitle,
   showSearch = true,
-  lastUpdated,
-  onRefresh,
-  isRefreshing = false,
   onSearchChange,
   searchPlaceholder
 }: DashboardLayoutProps) {
@@ -81,7 +76,7 @@ export function DashboardLayout({
           {/* Bottom-right small B9 logo */}
           <div className="fixed bottom-4 right-4 z-40 select-none pointer-events-auto">
             <a href="/dashboards" title="Back to Dashboards" aria-label="Back to Dashboards" className="block p-2 bg-white/80 backdrop-blur-md rounded-xl ring-1 ring-inset ring-black/10 hover:bg-white/90 transition-colors">
-              <img src="/logo/logo.png" alt="B9 Agency" className="w-6 h-6 opacity-90 hover:opacity-100 transition-opacity object-contain" />
+              <Image src="/logo/logo.png" alt="B9 Agency" width={24} height={24} className="w-6 h-6 opacity-90 hover:opacity-100 transition-opacity object-contain" />
             </a>
           </div>
         </main>

@@ -15,9 +15,6 @@ interface HeaderProps {
   title: string
   subtitle?: string
   showSearch?: boolean
-  lastUpdated?: Date
-  onRefresh?: () => void
-  isRefreshing?: boolean
   onSearchChange?: (query: string) => void
   searchPlaceholder?: string
 }
@@ -26,9 +23,6 @@ export function Header({
   title, 
   subtitle, 
   showSearch = true, 
-  lastUpdated,
-  onRefresh,
-  isRefreshing = false,
   onSearchChange,
   searchPlaceholder = "Search subreddits, users..."
 }: HeaderProps) {

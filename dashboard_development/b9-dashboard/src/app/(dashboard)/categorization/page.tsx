@@ -79,7 +79,7 @@ export default function CategorizationPage() {
   }
 
   // Fetch paginated subreddits - only OK-reviewed subreddits
-  const fetchSubreddits = async (page = 0, append = false) => {
+  const fetchSubreddits = useCallback(async (page = 0, append = false) => {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
 
@@ -122,7 +122,7 @@ export default function CategorizationPage() {
     
     if (page === 0) setLoading(false)
     else setLoadingMore(false)
-  }
+  }, [currentFilter, handleAsyncOperation, fetchCounts])
 
   // Load more data for infinite scroll
   const loadMore = useCallback(async () => {
@@ -130,7 +130,7 @@ export default function CategorizationPage() {
     const nextPage = currentPage + 1
     setCurrentPage(nextPage)
     await fetchSubreddits(nextPage, true)
-  }, [currentPage, loadingMore, hasMore, currentFilter])
+  }, [currentPage, loadingMore, hasMore, currentFilter, fetchSubreddits])
 
   const updateCategory = async (id: number, categoryText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
@@ -210,28 +210,29 @@ export default function CategorizationPage() {
       { threshold: 0.1 }
     )
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current)
+    const currentElement = observerRef.current
+    if (currentElement) {
+      observer.observe(currentElement)
     }
 
     return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current)
+      if (currentElement) {
+        observer.unobserve(currentElement)
       }
     }
   }, [loadMore, hasMore, loadingMore])
 
-  // Fetch subreddits when filter changes or on mount
+  // Fetch subreddits when filter changes
   useEffect(() => { 
     setCurrentPage(0)
     setHasMore(true)
     fetchSubreddits(0, false) 
-  }, [currentFilter])
+  }, [currentFilter, fetchSubreddits])
   
   // Initial load
   useEffect(() => {
     fetchSubreddits(0, false)
-  }, [])
+  }, [fetchSubreddits])
 
   return (
     <DashboardLayout title="" showSearch={false}>

@@ -8,32 +8,26 @@ import { Button } from '@/components/ui/button'
 import { 
   Users, 
   BarChart3, 
-  Target, 
   Activity, 
   TrendingUp, 
   Clock, 
   MessageCircle,
   Star,
   Calendar,
-  ChevronRight,
-  Filter,
   Search,
   ExternalLink,
-  Award,
   UserCheck,
   Plus,
   X,
   Loader2,
-  Eye,
   User,
   Crown,
   Shield,
   MailCheck,
-  Mail,
-  Image,
   ArrowLeft,
   Bookmark
 } from 'lucide-react'
+import NextImage from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 
 interface User {
@@ -114,7 +108,6 @@ interface HourlyActivityStats {
 }
 
 export default function UserAnalysisPage() {
-  const [users, setUsers] = useState<User[]>([])
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [stats, setStats] = useState<UserStats | null>(null)
   const [contentTypeStats, setContentTypeStats] = useState<ContentTypeStats[]>([])
@@ -132,11 +125,69 @@ export default function UserAnalysisPage() {
   const [hasMore, setHasMore] = useState(true)
   const itemsPerPage = 50
 
+  // Server-side search state
+  const [searchResults, setSearchResults] = useState<User[]>([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchHasMore, setSearchHasMore] = useState(false)
+
   const supabase = createClient()
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
+
+  // Server-side search with debounce
+  const searchUsers = useCallback(async (page = 1, append = false) => {
+    try {
+      if (!append) setLoading(true)
+
+      const from = (page - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+
+      const { data } = await supabase
+        .from('users')
+        .select(`
+          id, username, reddit_id, overall_user_score, account_age_days, total_karma,
+          link_karma, comment_karma, avg_post_score, preferred_content_type, 
+          most_active_posting_hour, cross_subreddit_activity, total_posts_analyzed, 
+          last_scraped_at, primary_subreddits, karma_per_day, engagement_consistency_score,
+          our_creator, icon_img, subreddit_display_name, subreddit_title, subreddit_banner_img,
+          subreddit_subscribers, is_suspended, verified, has_verified_email, is_gold, is_mod, created_utc,
+          bio, bio_url
+        `)
+        .ilike('username', `%${searchTerm}%`)
+        .order('overall_user_score', { ascending: false })
+        .range(from, to)
+
+      if (data) {
+        if (append) {
+          setSearchResults(prev => [...prev, ...data])
+        } else {
+          setSearchResults(data)
+        }
+        setSearchHasMore(data.length === itemsPerPage)
+      }
+    } catch (error) {
+      console.error('Error searching users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase, itemsPerPage, searchTerm])
+
+  useEffect(() => {
+    const term = searchTerm.trim()
+    const handler = setTimeout(() => {
+      if (term) {
+        setSearchPage(1)
+        searchUsers(1, false)
+      } else {
+        setSearchResults([])
+        setSearchHasMore(false)
+        setSearchPage(1)
+      }
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchTerm, searchUsers])
 
   const loadData = useCallback(async (page = 1, append = false) => {
     try {
@@ -223,7 +274,6 @@ export default function UserAnalysisPage() {
 
         if (allUsersData) {
           setAllUsers(allUsersData)
-          setUsers(allUsersData.slice(0, itemsPerPage))
           setHasMore(allUsersData.length === 1000) // More available if we hit the limit
         }
       } else if (append) {
@@ -246,7 +296,6 @@ export default function UserAnalysisPage() {
           .range(from, to)
 
         if (moreUsersData) {
-          setUsers(prev => [...prev, ...moreUsersData])
           setAllUsers(prev => [...prev, ...moreUsersData])
           setHasMore(moreUsersData.length === itemsPerPage)
         }
@@ -259,10 +308,17 @@ export default function UserAnalysisPage() {
   }, [supabase, itemsPerPage])
 
   const loadMoreUsers = useCallback(async () => {
-    const nextPage = currentPage + 1
-    setCurrentPage(nextPage)
-    await loadData(nextPage, true)
-  }, [currentPage, loadData])
+    const term = searchTerm.trim()
+    if (term) {
+      const next = searchPage + 1
+      setSearchPage(next)
+      await searchUsers(next, true)
+    } else {
+      const nextPage = currentPage + 1
+      setCurrentPage(nextPage)
+      await loadData(nextPage, true)
+    }
+  }, [currentPage, loadData, searchPage, searchTerm, searchUsers])
 
   const addNewUser = async () => {
     if (!newUsername.trim()) return
@@ -376,7 +432,8 @@ export default function UserAnalysisPage() {
   }
 
   // Filter and search through all users
-  const filteredUsers = allUsers.filter(user => {
+  const baseUsers = searchTerm.trim() ? searchResults : allUsers
+  const filteredUsers = baseUsers.filter(user => {
     const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesQuality = qualityFilter === 'all' || 
       (qualityFilter === 'high' && user.overall_user_score >= 7) ||
@@ -436,14 +493,16 @@ export default function UserAnalysisPage() {
                 {/* Profile Picture */}
                 <div className="flex-shrink-0">
                   {user.icon_img ? (
-                    <img
+                    <NextImage
                       src={user.icon_img}
                       alt={`${user.username} profile`}
+                      width={80}
+                      height={80}
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement
+                        const target = e.target as unknown as HTMLImageElement
                         target.style.display = 'none'
-                        const fallback = target.nextElementSibling as HTMLElement
+                        const fallback = (target.nextElementSibling as HTMLElement)
                         if (fallback) fallback.style.display = 'flex'
                       }}
                     />
@@ -568,7 +627,7 @@ export default function UserAnalysisPage() {
                   <h3 className="text-lg font-semibold text-black mb-3">User Subreddit</h3>
                   {user.subreddit_banner_img && (
                     <div className="mb-4">
-                      <img src={user.subreddit_banner_img} alt="Banner" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
+                      <NextImage src={user.subreddit_banner_img} alt="User subreddit banner" width={1200} height={128} className="w-full h-32 object-cover rounded-lg border border-gray-200" />
                     </div>
                   )}
                   <div className="flex items-start space-x-4">
@@ -623,9 +682,11 @@ export default function UserAnalysisPage() {
                     <div key={post.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-start space-x-3">
                         {post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' && (
-                          <img
+                          <NextImage
                             src={post.thumbnail}
                             alt="Post thumbnail"
+                            width={64}
+                            height={64}
                             className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                           />
                         )}
@@ -885,14 +946,16 @@ export default function UserAnalysisPage() {
                               disabled={loadingProfile}
                             >
                               {user.icon_img ? (
-                                <img
+                                <NextImage
                                   src={user.icon_img}
                                   alt={`${user.username} profile`}
+                                  width={48}
+                                  height={48}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                                   onError={(e) => {
-                                    const target = e.target as HTMLImageElement
+                                    const target = e.target as unknown as HTMLImageElement
                                     target.style.display = 'none'
-                                    const fallback = target.nextElementSibling as HTMLElement
+                                    const fallback = (target.nextElementSibling as HTMLElement)
                                     if (fallback) fallback.style.display = 'flex'
                                   }}
                                 />

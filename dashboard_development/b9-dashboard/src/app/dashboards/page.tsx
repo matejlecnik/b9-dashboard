@@ -1,22 +1,18 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { 
-  ChevronRight, 
   Users, 
   TrendingUp,
-  Database,
-  Clock,
-  Sparkles,
-  Zap,
   Target,
   Activity,
   Globe,
   ArrowUpRight
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -161,10 +157,13 @@ export default function DashboardsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-8 border-b border-gray-200">
           <div className="flex items-center space-x-4">
-            <img 
+            <Image 
               src="/logo/logo.png" 
               alt="B9 Dashboard" 
+              width={120}
+              height={40}
               className="h-10 w-auto object-contain"
+              priority
             />
             <div>
               <h1 
