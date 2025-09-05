@@ -377,7 +377,7 @@ export default function SubredditReviewPage() {
       {/* Unified Filter System */}
       <UnifiedFilters
         currentFilter={currentFilter}
-        onFilterChange={setCurrentFilter}
+        onFilterChange={(value) => setCurrentFilter(value as FilterType)}
         counts={reviewCounts}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
