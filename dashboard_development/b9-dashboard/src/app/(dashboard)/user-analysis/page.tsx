@@ -132,63 +132,6 @@ export default function UserAnalysisPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  // Server-side search with debounce
-  const searchUsers = useCallback(async (page = 1, append = false) => {
-    try {
-      if (!append) setLoading(true)
-
-      const from = (page - 1) * itemsPerPage
-      const to = from + itemsPerPage - 1
-
-      const { data } = await supabase
-        .from('users')
-        .select(`
-          id, username, reddit_id, overall_user_score, account_age_days, total_karma,
-          link_karma, comment_karma, avg_post_score, preferred_content_type, 
-          most_active_posting_hour, cross_subreddit_activity, total_posts_analyzed, 
-          last_scraped_at, primary_subreddits, karma_per_day, engagement_consistency_score,
-          our_creator, icon_img, subreddit_display_name, subreddit_title, subreddit_banner_img,
-          subreddit_subscribers, is_suspended, verified, has_verified_email, is_gold, is_mod, created_utc,
-          bio, bio_url
-        `)
-        .ilike('username', `%${searchTerm}%`)
-        .order('overall_user_score', { ascending: false })
-        .range(from, to)
-
-      if (data) {
-        if (append) {
-          setSearchResults(prev => [...prev, ...data])
-        } else {
-          setSearchResults(data)
-        }
-        setSearchHasMore(data.length === itemsPerPage)
-      }
-    } catch (error) {
-      console.error('Error searching users:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [supabase, itemsPerPage, searchTerm])
-
-  useEffect(() => {
-    const term = searchTerm.trim()
-    const handler = setTimeout(() => {
-      if (term) {
-        setSearchPage(1)
-        searchUsers(1, false)
-      } else {
-        setSearchResults([])
-        setSearchHasMore(false)
-        setSearchPage(1)
-      }
-    }, 300)
-    return () => clearTimeout(handler)
-  }, [searchTerm, searchUsers])
-
   const loadData = useCallback(async (page = 1, append = false) => {
     try {
       if (!append) setLoading(true)
@@ -307,6 +250,65 @@ export default function UserAnalysisPage() {
     }
   }, [supabase, itemsPerPage])
 
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Server-side search with debounce
+  const searchUsers = useCallback(async (page = 1, append = false) => {
+    try {
+      if (!append) setLoading(true)
+
+      const from = (page - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+
+      const { data } = await supabase
+        .from('users')
+        .select(`
+          id, username, reddit_id, overall_user_score, account_age_days, total_karma,
+          link_karma, comment_karma, avg_post_score, preferred_content_type, 
+          most_active_posting_hour, cross_subreddit_activity, total_posts_analyzed, 
+          last_scraped_at, primary_subreddits, karma_per_day, engagement_consistency_score,
+          our_creator, icon_img, subreddit_display_name, subreddit_title, subreddit_banner_img,
+          subreddit_subscribers, is_suspended, verified, has_verified_email, is_gold, is_mod, created_utc,
+          bio, bio_url
+        `)
+        .ilike('username', `%${searchTerm}%`)
+        .order('overall_user_score', { ascending: false })
+        .range(from, to)
+
+      if (data) {
+        if (append) {
+          setSearchResults(prev => [...prev, ...data])
+        } else {
+          setSearchResults(data)
+        }
+        setSearchHasMore(data.length === itemsPerPage)
+      }
+    } catch (error) {
+      console.error('Error searching users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase, itemsPerPage, searchTerm])
+
+  useEffect(() => {
+    const term = searchTerm.trim()
+    const handler = setTimeout(() => {
+      if (term) {
+        setSearchPage(1)
+        searchUsers(1, false)
+      } else {
+        setSearchResults([])
+        setSearchHasMore(false)
+        setSearchPage(1)
+      }
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchTerm, searchUsers])
+
+  
+
   const loadMoreUsers = useCallback(async () => {
     const term = searchTerm.trim()
     if (term) {
@@ -367,9 +369,6 @@ export default function UserAnalysisPage() {
         .eq('id', userId)
 
       // Update local state
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, our_creator: !currentStatus } : user
-      ))
       setAllUsers(prev => prev.map(user => 
         user.id === userId ? { ...user, our_creator: !currentStatus } : user
       ))
