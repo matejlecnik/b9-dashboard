@@ -385,9 +385,8 @@ export default function SubredditReviewPage() {
       {/* Unified Filter System */}
       <UnifiedFilters
         currentFilter={currentFilter}
-        onFilterChange={setCurrentFilter as (filter: string) => void}
+        onFilterChange={setCurrentFilter}
         categoryCounts={categoryCounts}
-        categories={[]}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         loading={loading}
