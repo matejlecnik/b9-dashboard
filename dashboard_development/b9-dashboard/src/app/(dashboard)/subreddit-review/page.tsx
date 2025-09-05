@@ -255,30 +255,15 @@ export default function SubredditReviewPage() {
     })
   }
 
-  // Wrapper function to convert numeric review IDs to review strings for SubredditTable compatibility
-  const updateCategoryById = (id: number, reviewId: number) => {
-    const reviewMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
-      1: 'Ok',
-      2: 'No Seller',
-      3: 'Non Related'
-    }
-    const review = reviewMap[reviewId]
-    if (review) {
-      updateCategory(id, review)
-    }
+  // Wrappers for SubredditTable (accept string review labels)
+  const updateCategoryByText = (id: number, categoryText: string) => {
+    const review = categoryText as 'Ok' | 'No Seller' | 'Non Related'
+    updateCategory(id, review)
   }
 
-  // Wrapper function for bulk update to convert numeric review ID to review string
-  const bulkUpdateCategoryById = (reviewId: number) => {
-    const reviewMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
-      1: 'Ok',
-      2: 'No Seller',
-      3: 'Non Related'
-    }
-    const review = reviewMap[reviewId]
-    if (review) {
-      bulkUpdateCategory(review)
-    }
+  const bulkUpdateCategoryByText = (categoryText: string) => {
+    const review = categoryText as 'Ok' | 'No Seller' | 'Non Related'
+    bulkUpdateCategory(review)
   }
 
   // Bulk update categories
@@ -420,8 +405,7 @@ export default function SubredditReviewPage() {
                 }}
               >
                 {currentFilter === 'uncategorized' && 'Unreviewed Subreddits'}
-                {currentFilter === 'ok' && 'Ok Subreddits'}
-                {currentFilter === 'no-seller' && 'No Seller Subreddits'}
+                {currentFilter === 'categorized' && 'Reviewed Subreddits'}
               </h2>
               <p 
                 className="text-sm sm:text-base text-gray-600"
@@ -449,8 +433,8 @@ export default function SubredditReviewPage() {
                   subreddits={displayedSubreddits}
                   selectedSubreddits={selectedSubreddits}
                   setSelectedSubreddits={setSelectedSubreddits}
-                  onUpdateCategory={updateCategoryById}
-                  onBulkUpdateCategory={bulkUpdateCategoryById}
+                  onUpdateCategory={updateCategoryByText}
+                  onBulkUpdateCategory={bulkUpdateCategoryByText}
                   loading={loading}
                   mode="review"
                 />

@@ -300,7 +300,7 @@ const SubredditTable = memo(function SubredditTable({
                 </button>
               </th>
               <th className="text-left py-2 px-3 font-medium text-gray-900 text-sm w-64 bg-white">
-                Category
+                Review
               </th>
             </tr>
           </thead>

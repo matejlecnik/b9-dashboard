@@ -36,14 +36,14 @@ const UnifiedFilters = memo(function UnifiedFilters({
   const allFilters = [
     { 
       id: 'uncategorized' as FilterType, 
-      label: 'Uncategorized', 
+      label: 'Unreviewed', 
       count: categoryCounts.uncategorized || 0,
       icon: Sparkles,
       activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
     },
     { 
       id: 'categorized' as FilterType, 
-      label: 'Categorized', 
+      label: 'Reviewed', 
       count: categoryCounts.categorized || 0,
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #10B981, #059669)'
@@ -234,7 +234,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                 <span className="font-semibold text-b9-pink">
                   {categoryCounts[currentFilter]?.toLocaleString() || '0'}
                 </span>{' '}
-                {currentFilter} OK-reviewed subreddits
+                {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter} subreddits
                 {searchQuery && (
                   <>
                     {' '}matching &quot;<span className="font-medium">{searchQuery}</span>&quot;
