@@ -465,7 +465,7 @@ const SubredditTable = memo(function SubredditTable({
                     <CategorySelector
                       subredditId={subreddit.id}
                       currentCategory={subreddit.category_text || null}
-                      onUpdateCategory={onUpdateCategory}
+                      onUpdateCategory={(id, categoryText) => handleUpdate(id, categoryText)}
                       compact={true}
                     />
                   )}

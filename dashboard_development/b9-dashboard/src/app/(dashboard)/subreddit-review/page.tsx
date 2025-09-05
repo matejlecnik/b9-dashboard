@@ -355,7 +355,7 @@ export default function SubredditReviewPage() {
       supabase.removeChannel(channel)
       clearInterval(refreshInterval)
     }
-  }, [currentFilter])
+  }, [currentFilter, fetchSubreddits])
 
   return (
     <DashboardLayout title="" showSearch={false}>
