@@ -272,6 +272,19 @@ export default function SubredditReviewPage() {
     })
   }
 
+  // Wrapper function to convert numeric category IDs to strings for SubredditTable compatibility
+  const updateCategoryById = (id: number, categoryId: number) => {
+    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
+      1: 'Ok',
+      2: 'No Seller',
+      3: 'Non Related'
+    }
+    const category = categoryMap[categoryId]
+    if (category) {
+      updateCategory(id, category)
+    }
+  }
+
   // Bulk update categories
   const bulkUpdateCategory = async (category: 'Ok' | 'No Seller' | 'Non Related') => {
     if (selectedSubreddits.size === 0) return
@@ -439,7 +452,7 @@ export default function SubredditReviewPage() {
                   subreddits={displayedSubreddits}
                   selectedSubreddits={selectedSubreddits}
                   setSelectedSubreddits={setSelectedSubreddits}
-                  onUpdateCategory={updateCategory}
+                  onUpdateCategory={updateCategoryById}
                   onBulkUpdateCategory={bulkUpdateCategory}
                   loading={loading}
                 />
