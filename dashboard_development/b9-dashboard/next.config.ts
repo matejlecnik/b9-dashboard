@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'styles.redditmedia.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };

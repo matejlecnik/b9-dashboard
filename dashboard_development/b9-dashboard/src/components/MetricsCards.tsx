@@ -10,7 +10,11 @@ import {
 
 interface MetricsCardsProps {
   totalSubreddits: number
-  uncategorizedCount: number
+  // Backward-compatible prop name used by categorization page
+  uncategorizedCount?: number
+  // Generic props preferred by review page to avoid category wording
+  statusCount?: number
+  statusTitle?: string
   newTodayCount: number
   loading: boolean
   error?: string | null
@@ -19,12 +23,16 @@ interface MetricsCardsProps {
 const MetricsCards = memo(function MetricsCards({ 
   totalSubreddits, 
   uncategorizedCount, 
+  statusCount,
+  statusTitle,
   newTodayCount,
   loading,
   error 
 }: MetricsCardsProps) {
-  const categorizedCount = totalSubreddits - uncategorizedCount
-  const completionPercentage = totalSubreddits > 0 ? Math.round((categorizedCount / totalSubreddits) * 100) : 0
+  const effectiveStatusCount = typeof statusCount === 'number' ? statusCount : (uncategorizedCount || 0)
+  const effectiveTitle = statusTitle || 'Unreviewed'
+  const completedCount = totalSubreddits - effectiveStatusCount
+  const completionPercentage = totalSubreddits > 0 ? Math.round((completedCount / totalSubreddits) * 100) : 0
 
   const metrics = [
     {
@@ -43,16 +51,16 @@ const MetricsCards = memo(function MetricsCards({
       hasActivity: newTodayCount > 0
     },
     {
-      title: 'Unreviewed',
-      value: loading ? '...' : uncategorizedCount.toLocaleString(),
-      subtitle: uncategorizedCount > 0 ? 'Need Review' : 'All Done!',
+      title: effectiveTitle,
+      value: loading ? '...' : effectiveStatusCount.toLocaleString(),
+      subtitle: effectiveStatusCount > 0 ? 'Need Review' : 'All Done!',
       icon: Tags,
-      iconColor: uncategorizedCount > 0 ? 'text-[#FF8395]' : 'text-green-600',
-      isHighlight: uncategorizedCount > 0
+      iconColor: effectiveStatusCount > 0 ? 'text-[#FF8395]' : 'text-green-600',
+      isHighlight: effectiveStatusCount > 0
     },
     {
       title: `${completionPercentage}%`,
-      value: loading ? '...' : `${categorizedCount}/${totalSubreddits}`,
+      value: loading ? '...' : `${completedCount}/${totalSubreddits}`,
       subtitle: 'Complete',
       icon: BarChart3,
       iconColor: 'text-gray-700',

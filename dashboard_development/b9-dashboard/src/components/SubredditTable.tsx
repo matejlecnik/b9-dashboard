@@ -13,8 +13,12 @@ interface SubredditTableProps {
   subreddits: Subreddit[]
   selectedSubreddits: Set<number>
   setSelectedSubreddits: (selected: Set<number>) => void
-  onUpdateCategory: (id: number, categoryText: string) => void
-  onBulkUpdateCategory: (categoryText: string) => void
+  // Backward-compatible props for categorization page
+  onUpdateCategory?: (id: number, categoryText: string) => void
+  onBulkUpdateCategory?: (categoryText: string) => void
+  // New props for review page to avoid using the word "category" there
+  onUpdateReview?: (id: number, reviewText: string) => void
+  onBulkUpdateReview?: (reviewText: string) => void
   loading: boolean
   mode?: 'review' | 'category' // Add mode to distinguish between review and category pages
 }
@@ -25,9 +29,22 @@ const SubredditTable = memo(function SubredditTable({
   setSelectedSubreddits,
   onUpdateCategory,
   onBulkUpdateCategory,
+  onUpdateReview,
+  onBulkUpdateReview,
   loading,
   mode = 'category'
 }: SubredditTableProps) {
+  // Resolve handlers based on provided props (review-first, then category for backward compatibility)
+  const handleUpdate = (id: number, value: string) => {
+    if (onUpdateReview) return onUpdateReview(id, value)
+    if (onUpdateCategory) return onUpdateCategory(id, value)
+  }
+
+  const handleBulkUpdate = (value: string) => {
+    if (onBulkUpdateReview) return onBulkUpdateReview(value)
+    if (onBulkUpdateCategory) return onBulkUpdateCategory(value)
+  }
+
   const [sortField, setSortField] = useState<keyof Subreddit>('avg_upvotes_per_post')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({
@@ -115,6 +132,17 @@ const SubredditTable = memo(function SubredditTable({
     return `${(ratio * 100).toFixed(2)}%`
   }
 
+  // Sanitize subreddit icon URL coming from DB fields
+  const getIconUrl = (subreddit: Subreddit): string | null => {
+    let url = (subreddit.icon_img && String(subreddit.icon_img).trim()) 
+      || (subreddit.community_icon && String(subreddit.community_icon).trim()) 
+      || ''
+    if (!url) return null
+    url = url.replace(/&amp;/g, '&')
+    if (url.startsWith('//')) url = `https:${url}`
+    return url
+  }
+
   // Generate a color based on subreddit name for consistent placeholder avatars
   const getSubredditColor = (name: string) => {
     const colors = [
@@ -180,13 +208,13 @@ const SubredditTable = memo(function SubredditTable({
               </Badge>
               {mode === 'review' ? (
                 <div className="flex items-center space-x-2">
-                  <Button size="sm" onClick={() => onBulkUpdateCategory('Ok')} className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button size="sm" onClick={() => handleBulkUpdate('Ok')} className="bg-green-600 hover:bg-green-700 text-white">
                     Mark as Ok
                   </Button>
-                  <Button size="sm" onClick={() => onBulkUpdateCategory('No Seller')} className="bg-red-600 hover:bg-red-700 text-white">
+                  <Button size="sm" onClick={() => handleBulkUpdate('No Seller')} className="bg-red-600 hover:bg-red-700 text-white">
                     No Seller
                   </Button>
-                  <Button size="sm" onClick={() => onBulkUpdateCategory('Non Related')} className="bg-gray-600 hover:bg-gray-700 text-white">
+                  <Button size="sm" onClick={() => handleBulkUpdate('Non Related')} className="bg-gray-600 hover:bg-gray-700 text-white">
                     Non Related
                   </Button>
                 </div>
@@ -194,7 +222,7 @@ const SubredditTable = memo(function SubredditTable({
                 <CategorySelector
                   subredditId={0}
                   currentCategory={null}
-                  onUpdateCategory={(_, categoryText) => onBulkUpdateCategory(categoryText)}
+                  onUpdateCategory={(_, categoryText) => onBulkUpdateCategory && onBulkUpdateCategory(categoryText)}
                   compact={true}
                 />
               )}
@@ -350,7 +378,7 @@ const SubredditTable = memo(function SubredditTable({
                     >
                       {(subreddit.icon_img || subreddit.community_icon) && !brokenIcons.has(subreddit.id) ? (
                         <Image
-                          src={(subreddit.icon_img || subreddit.community_icon) as string}
+                          src={getIconUrl(subreddit) || ''}
                           alt={`${subreddit.name} icon`}
                           width={24}
                           height={24}
@@ -429,9 +457,9 @@ const SubredditTable = memo(function SubredditTable({
                 <td className="py-2 px-3">
                   {mode === 'review' ? (
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant={subreddit.review === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'Ok')} className="px-2 py-1 text-xs">Ok</Button>
-                      <Button size="sm" variant={subreddit.review === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'No Seller')} className="px-2 py-1 text-xs">No Seller</Button>
-                      <Button size="sm" variant={subreddit.review === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 'Non Related')} className="px-2 py-1 text-xs">Non Related</Button>
+                      <Button size="sm" variant={subreddit.review === 'Ok' ? 'default' : 'outline'} onClick={() => handleUpdate(subreddit.id, 'Ok')} className="px-2 py-1 text-xs">Ok</Button>
+                      <Button size="sm" variant={subreddit.review === 'No Seller' ? 'default' : 'outline'} onClick={() => handleUpdate(subreddit.id, 'No Seller')} className="px-2 py-1 text-xs">No Seller</Button>
+                      <Button size="sm" variant={subreddit.review === 'Non Related' ? 'default' : 'outline'} onClick={() => handleUpdate(subreddit.id, 'Non Related')} className="px-2 py-1 text-xs">Non Related</Button>
                     </div>
                   ) : (
                     <CategorySelector

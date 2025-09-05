@@ -12,13 +12,15 @@ import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 
-type FilterType = 'uncategorized' | 'categorized'
+type FilterType = 'unreviewed' | 'ok'
 
 const PAGE_SIZE = 50 // Load 50 records at a time
 
 export default function SubredditReviewPage() {
   const { addToast } = useToast()
   const { handleAsyncOperation } = useErrorHandler()
+  const handleAsyncOperationRef = useRef(handleAsyncOperation)
+  useEffect(() => { handleAsyncOperationRef.current = handleAsyncOperation }, [handleAsyncOperation])
   const [subreddits, setSubreddits] = useState<Subreddit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -26,10 +28,10 @@ export default function SubredditReviewPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [totalSubreddits, setTotalSubreddits] = useState(0)
-  const [currentFilter, setCurrentFilter] = useState<FilterType>('uncategorized')
-  const [categoryCounts, setCategoryCounts] = useState({
-    uncategorized: 0,
-    categorized: 0
+  const [currentFilter, setCurrentFilter] = useState<FilterType>('unreviewed')
+  const [reviewCounts, setReviewCounts] = useState({
+    unreviewed: 0,
+    ok: 0
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -94,6 +96,7 @@ export default function SubredditReviewPage() {
         searchInput?.focus()
       },
       description: 'Quick Search',
+      
       category: 'Search'
     },
     // Bulk Actions
@@ -123,9 +126,9 @@ export default function SubredditReviewPage() {
   const fetchCounts = async () => {
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([
-      // Exclude profile feeds: user feeds (u_*) - use consistent field names
-      supabase.from('subreddits').select('id', { count: 'exact', head: true }).or('review.is.null,review.eq.').not('name', 'ilike', 'u_%'),
-      supabase.from('subreddits').select('id', { count: 'exact', head: true }).not('review', 'is', null).neq('review', '').not('name', 'ilike', 'u_%'),
+      // Count unreviewed (review is null) and Ok reviewed
+      supabase.from('subreddits').select('id', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%'),
+      supabase.from('subreddits').select('id', { count: 'exact', head: true }).eq('review', 'Ok').not('name', 'ilike', 'u_%'),
       supabase
         .from('subreddits')
         .select('id', { count: 'exact', head: true })
@@ -136,18 +139,18 @@ export default function SubredditReviewPage() {
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
 
     const [
-      { count: uncategorizedCount },
-      { count: categorizedCount },
+      { count: unreviewedCount },
+      { count: okCount },
       { count: newTodayCount }
     ] = countQueries
 
-    const totalCount = (uncategorizedCount || 0) + (categorizedCount || 0)
+    const totalCount = (unreviewedCount || 0) + (okCount || 0)
 
     setTotalSubreddits(totalCount || 0)
     setNewTodayCount(newTodayCount || 0)
-    setCategoryCounts({
-      uncategorized: uncategorizedCount || 0,
-      categorized: categorizedCount || 0
+    setReviewCounts({
+      unreviewed: unreviewedCount || 0,
+      ok: okCount || 0
     })
   }
 
@@ -156,21 +159,19 @@ export default function SubredditReviewPage() {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
 
-    console.log('fetchSubreddits called with:', { page, append, currentFilter })
-
-    await handleAsyncOperation(async () => {
+    await handleAsyncOperationRef.current(async () => {
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
 
       switch (currentFilter) {
-        case 'uncategorized':
-          // Show subreddits that haven't been reviewed yet
-          query = query.or('review.is.null,review.eq.')
+        case 'unreviewed':
+          // Show subreddits where review field is empty/null
+          query = query.is('review', null)
           break
-        case 'categorized':
-          // Show subreddits that have been reviewed (any review status)
-          query = query.not('review', 'is', null).neq('review', '')
+        case 'ok':
+          // Show subreddits that have been reviewed as 'Ok'
+          query = query.eq('review', 'Ok')
           break
       }
 
@@ -182,9 +183,7 @@ export default function SubredditReviewPage() {
         .order('subscribers', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-      console.log('Executing query for filter:', currentFilter)
       const { data: subredditData, error: subredditError } = await query
-      console.log('Query result:', { data: subredditData?.length, error: subredditError })
       
       if (subredditError) throw new Error(`Failed to fetch subreddits: ${subredditError.message}`)
 
@@ -213,7 +212,7 @@ export default function SubredditReviewPage() {
     
     if (page === 0) setLoading(false)
     else setLoadingMore(false)
-  }, [currentFilter, handleAsyncOperation])
+  }, [currentFilter])
 
   // Load more data for infinite scroll
   const loadMore = useCallback(async () => {
@@ -223,20 +222,20 @@ export default function SubredditReviewPage() {
     await fetchSubreddits(nextPage, true)
   }, [currentPage, loadingMore, hasMore, fetchSubreddits])
 
-  // Update category for single subreddit
-  const updateCategory = async (id: number, category: 'Ok' | 'No Seller' | 'Non Related') => {
+  // Update review for single subreddit
+  const updateReview = async (id: number, review: 'Ok' | 'No Seller' | 'Non Related') => {
     const subreddit = subreddits.find(sub => sub.id === id)
     await handleAsyncOperation(async () => {
       const { error } = await supabase
         .from('subreddits')
-        .update({ review: category })
+        .update({ review })
         .eq('id', id)
-      if (error) throw new Error(`Failed to update category: ${error.message}`)
-      return { subreddit, category }
+      if (error) throw new Error(`Failed to update review: ${error.message}`)
+      return { subreddit, review }
     }, {
-      context: 'category_update',
+      context: 'review_update',
       showToast: false,
-      onSuccess: ({ subreddit, category }) => {
+      onSuccess: ({ subreddit, review }) => {
         setSubreddits(prev => prev.filter(sub => sub.id !== id))
         setSelectedSubreddits(prev => {
           const newSet = new Set(prev)
@@ -245,8 +244,8 @@ export default function SubredditReviewPage() {
         })
         addToast({
           type: 'success',
-          title: 'Category Updated',
-          description: `${subreddit?.display_name_prefixed} marked as ${category}`,
+          title: 'Review Updated',
+          description: `${subreddit?.display_name_prefixed} marked as ${review}`,
           duration: 3000
         })
       },
@@ -263,40 +262,40 @@ export default function SubredditReviewPage() {
   }
 
   // Wrappers for SubredditTable (accept string review labels)
-  const updateCategoryByText = (id: number, categoryText: string) => {
-    const review = categoryText as 'Ok' | 'No Seller' | 'Non Related'
-    updateCategory(id, review)
+  const updateReviewByText = (id: number, reviewText: string) => {
+    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related'
+    updateReview(id, review)
   }
 
-  const bulkUpdateCategoryByText = (categoryText: string) => {
-    const review = categoryText as 'Ok' | 'No Seller' | 'Non Related'
-    bulkUpdateCategory(review)
+  const bulkUpdateReviewByText = (reviewText: string) => {
+    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related'
+    bulkUpdateReview(review)
   }
 
-  // Bulk update categories
-  const bulkUpdateCategory = async (category: 'Ok' | 'No Seller' | 'Non Related') => {
+  // Bulk update review statuses
+  const bulkUpdateReview = async (review: 'Ok' | 'No Seller' | 'Non Related') => {
     if (selectedSubreddits.size === 0) return
     try {
       const ids = Array.from(selectedSubreddits)
       const { error } = await supabase
         .from('subreddits')
-        .update({ review: category })
+        .update({ review })
         .in('id', ids)
       if (error) throw error
       setSubreddits(prev => prev.filter(sub => !selectedSubreddits.has(sub.id)))
       setSelectedSubreddits(new Set())
       addToast({
         type: 'success',
-        title: 'Bulk Update Complete',
-        description: `${ids.length} subreddit${ids.length > 1 ? 's' : ''} marked as ${category}`,
+        title: 'Bulk Review Update Complete',
+        description: `${ids.length} subreddit${ids.length > 1 ? 's' : ''} marked as ${review}`,
         duration: 3000
       })
     } catch (error) {
-      console.error('Error bulk updating categories:', error)
+      console.error('Error bulk updating review status:', error)
       addToast({
         type: 'error',
         title: 'Bulk Update Failed',
-        description: 'Failed to update categories. Please try again.',
+        description: 'Failed to update review statuses. Please try again.',
         duration: 5000
       })
       fetchSubreddits()
@@ -329,7 +328,6 @@ export default function SubredditReviewPage() {
 
   // Set up real-time subscriptions and refresh timer
   useEffect(() => {
-    console.log('Subreddit Review: Initial load starting...')
     setCurrentPage(0)
     setHasMore(true)
     fetchSubreddits(0, false)
@@ -357,7 +355,7 @@ export default function SubredditReviewPage() {
       supabase.removeChannel(channel)
       clearInterval(refreshInterval)
     }
-  }, [currentFilter, fetchSubreddits])
+  }, [currentFilter])
 
   return (
     <DashboardLayout title="" showSearch={false}>
@@ -368,7 +366,8 @@ export default function SubredditReviewPage() {
         ) : (
           <MetricsCards 
             totalSubreddits={totalSubreddits}
-            uncategorizedCount={categoryCounts.uncategorized}
+            statusCount={reviewCounts.unreviewed}
+            statusTitle="Unreviewed"
             newTodayCount={newTodayCount}
             loading={loading}
           />
@@ -379,7 +378,7 @@ export default function SubredditReviewPage() {
       <UnifiedFilters
         currentFilter={currentFilter}
         onFilterChange={setCurrentFilter}
-        categoryCounts={categoryCounts}
+        counts={reviewCounts}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         loading={loading}
@@ -412,8 +411,8 @@ export default function SubredditReviewPage() {
                   fontWeight: 600,
                 }}
               >
-                {currentFilter === 'uncategorized' && 'Unreviewed Subreddits'}
-                {currentFilter === 'categorized' && 'Reviewed Subreddits'}
+                {currentFilter === 'unreviewed' && 'Unreviewed Subreddits'}
+                {currentFilter === 'ok' && 'Ok Subreddits'}
               </h2>
               <p 
                 className="text-sm sm:text-base text-gray-600"
@@ -423,9 +422,9 @@ export default function SubredditReviewPage() {
                   fontWeight: 400,
                 }}
               >
-                {currentFilter === 'uncategorized' 
-                  ? 'Review and categorize Reddit communities discovered by the scraper'
-                  : 'View and manage categorized Reddit communities'
+                {currentFilter === 'unreviewed' 
+                  ? 'Review Reddit communities discovered by the scraper'
+                  : 'View and manage subreddits that have been marked as Ok'
                 }
               </p>
             </div>
@@ -441,8 +440,8 @@ export default function SubredditReviewPage() {
                   subreddits={displayedSubreddits}
                   selectedSubreddits={selectedSubreddits}
                   setSelectedSubreddits={setSelectedSubreddits}
-                  onUpdateCategory={updateCategoryByText}
-                  onBulkUpdateCategory={bulkUpdateCategoryByText}
+                  onUpdateReview={updateReviewByText}
+                  onBulkUpdateReview={bulkUpdateReviewByText}
                   loading={loading}
                   mode="review"
                 />

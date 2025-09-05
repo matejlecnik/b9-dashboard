@@ -10,13 +10,15 @@ import { useToast } from '@/components/ui/toast'
 import { useErrorHandler } from '@/lib/errorUtils'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 
-type FilterType = 'uncategorized' | 'categorized'
+type FilterType = 'all' | 'uncategorized' | 'categorized'
 
 const PAGE_SIZE = 50 // Load 50 records at a time
 
 export default function CategorizationPage() {
   const { addToast } = useToast()
   const { handleAsyncOperation } = useErrorHandler()
+  const handleAsyncOperationRef = useRef(handleAsyncOperation)
+  useEffect(() => { handleAsyncOperationRef.current = handleAsyncOperation }, [handleAsyncOperation])
   const [subreddits, setSubreddits] = useState<Subreddit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -24,7 +26,7 @@ export default function CategorizationPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [totalSubreddits, setTotalSubreddits] = useState(0)
-  const [currentFilter, setCurrentFilter] = useState<FilterType>('uncategorized')
+  const [currentFilter, setCurrentFilter] = useState<FilterType>('all')
   const [categoryCounts, setCategoryCounts] = useState({
     uncategorized: 0,
     categorized: 0
@@ -62,23 +64,27 @@ export default function CategorizationPage() {
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .eq('review', 'Ok')
+        .not('name', 'ilike', 'u_%')
         .or('category_text.is.null,category_text.eq.'),
       // Categorized = category_text IS NOT NULL AND category_text != ''
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .eq('review', 'Ok')
+        .not('name', 'ilike', 'u_%')
         .not('category_text', 'is', null)
         .neq('category_text', ''),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .eq('review', 'Ok')
+        .not('name', 'ilike', 'u_%')
         .gte('created_at', today),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .eq('review', 'Ok')
+        .not('name', 'ilike', 'u_%')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -101,13 +107,12 @@ export default function CategorizationPage() {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
 
-    console.log('Categorization fetchSubreddits called with:', { page, append, currentFilter })
-
-    await handleAsyncOperation(async () => {
+    await handleAsyncOperationRef.current(async () => {
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
         .eq('review', 'Ok') // Only show OK-reviewed subreddits for categorization
+        .not('name', 'ilike', 'u_%') // Exclude user feeds
 
       // Apply filters based on current selection
       if (currentFilter === 'uncategorized') {
@@ -116,6 +121,8 @@ export default function CategorizationPage() {
       } else if (currentFilter === 'categorized') {
         // Categorized = NOT NULL and not empty
         query = query.not('category_text', 'is', null).neq('category_text', '')
+      } else {
+        // 'all' -> no extra category_text filtering (still limited to review = 'Ok')
       }
 
       query = query
@@ -123,9 +130,7 @@ export default function CategorizationPage() {
         .order('subscribers', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-      console.log('Categorization executing query for filter:', currentFilter)
       const { data: subredditData, error: subredditError } = await query
-      console.log('Categorization query result:', { data: subredditData?.length, error: subredditError })
       
       if (subredditError) throw new Error(`Failed to fetch subreddits: ${subredditError.message}`)
 
@@ -140,14 +145,12 @@ export default function CategorizationPage() {
       }
 
       // Fetch counts on initial load
-      if (page === 0) {
-        await fetchCounts()
-      }
+      if (page === 0) await fetchCounts()
     })
     
     if (page === 0) setLoading(false)
     else setLoadingMore(false)
-  }, [currentFilter, handleAsyncOperation, fetchCounts])
+  }, [currentFilter, fetchCounts])
 
   // Load more data for infinite scroll
   const loadMore = useCallback(async () => {

@@ -1,9 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tag, AlertCircle } from 'lucide-react'
+
+// Module-level single-flight cache to dedupe concurrent fetches across many mounts
+let __categoriesCacheNames: string[] | null = (globalThis as any).__b9_categories_cache_names || null
+let __categoriesFetchPromise: Promise<string[]> | null = (globalThis as any).__b9_categories_cache_promise || null
+
+// Persist on globalThis to survive HMR/route transitions
+;(globalThis as any).__b9_categories_cache_names = __categoriesCacheNames
+;(globalThis as any).__b9_categories_cache_promise = __categoriesFetchPromise
 
 interface CategorySelectorProps {
   subredditId: number
@@ -12,8 +20,8 @@ interface CategorySelectorProps {
   compact?: boolean
 }
 
-// Predefined categories starting with Ass and Selfie
-const PREDEFINED_CATEGORIES = ['Ass', 'Selfie']
+// Fallback predefined categories if API is unavailable
+const FALLBACK_CATEGORIES = ['Ass', 'Selfie']
 
 export function CategorySelector({ 
   subredditId, 
@@ -22,12 +30,15 @@ export function CategorySelector({
   compact = false
 }: CategorySelectorProps) {
   const [isUpdating, setIsUpdating] = useState(false)
-  const [customCategories, setCustomCategories] = useState<string[]>([])
+  const [options, setOptions] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  // Combine predefined and custom categories
-  const allCategories = [...PREDEFINED_CATEGORIES, ...customCategories]
+  // Special token used to represent clearing the selection (cannot use empty string in SelectItem)
+  const CLEAR_VALUE = '__UNCATEGORIZED__'
+  const selectedValue = currentCategory && currentCategory.length > 0 ? currentCategory : CLEAR_VALUE
+
+  // Using module-level single-flight cache above
 
   const handleCategorySelect = async (value: string) => {
     if (value === 'create-new') {
@@ -35,11 +46,12 @@ export function CategorySelector({
       return
     }
 
-    if (value === currentCategory) return
+    const nextCategoryText = value === CLEAR_VALUE ? '' : value
+    if (nextCategoryText === (currentCategory || '')) return
 
     setIsUpdating(true)
     try {
-      await onUpdateCategory(subredditId, value)
+      await onUpdateCategory(subredditId, nextCategoryText)
     } catch (error) {
       console.error('Error updating category:', error)
       // Show error feedback to user
@@ -54,15 +66,15 @@ export function CategorySelector({
     if (!trimmedName) return
 
     // Check if category already exists
-    if (allCategories.includes(trimmedName)) {
+    if ((options || []).includes(trimmedName)) {
       alert('Category already exists!')
       return
     }
 
-    // Add to custom categories
-    setCustomCategories(prev => [...prev, trimmedName])
+    // Optimistically add to options
+    setOptions(prev => Array.from(new Set([...(prev || []), trimmedName])))
     
-    // Automatically assign to current subreddit
+    // Automatically assign to current subreddit (will persist via subreddits.category_text)
     onUpdateCategory(subredditId, trimmedName)
     
     // Reset form
@@ -123,14 +135,18 @@ export function CategorySelector({
           </div>
         ) : (
           <Select
-            value={currentCategory || ''}
+            value={selectedValue}
             onValueChange={handleCategorySelect}
           >
             <SelectTrigger className="w-[120px] h-8">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              {allCategories.map((category) => (
+              {/* Allow clearing category */}
+              <SelectItem value={CLEAR_VALUE}>
+                Uncategorized
+              </SelectItem>
+              {options.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
                 </SelectItem>
@@ -201,14 +217,21 @@ export function CategorySelector({
       ) : (
         <div className="space-y-2">
           <Select
-            value={currentCategory || ''}
+            value={selectedValue}
             onValueChange={handleCategorySelect}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              {allCategories.map((category) => (
+              {/* Allow clearing category */}
+              <SelectItem value={CLEAR_VALUE}>
+                <div className="flex items-center space-x-2">
+                  <Tag className="w-3 h-3" />
+                  <span>Uncategorized</span>
+                </div>
+              </SelectItem>
+              {options.map((category) => (
                 <SelectItem key={category} value={category}>
                   <div className="flex items-center space-x-2">
                     <Tag className="w-3 h-3" />

@@ -3,15 +3,7 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Debug: Check environment variables
-if (typeof window !== 'undefined') {
-  console.log('Supabase Environment Check:', {
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey,
-    urlPreview: supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING',
-    keyPreview: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'MISSING'
-  })
-}
+// Supabase client configured successfully
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 

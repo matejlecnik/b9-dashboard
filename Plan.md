@@ -7,6 +7,8 @@
 - ✅ Removed Analytics page from dashboard (consolidated into feature pages)
 - ✅ Removed Settings page from dashboard (streamlined navigation)
 - ✅ Scraper page upgraded: real-time stats, time-range filters, skeletons, toasts
+- ✅ Categorization: now loads only `review = 'Ok'` subreddits; added All/Uncategorized/Categorized filters
+- ✅ Category editing: `category_text` is a single-select fed by `/api/categories`, with clear and add-new options
 
 ## 🎯 Purpose
 Reddit intelligence system for OnlyFans marketing - automated subreddit discovery, categorization, and performance analysis.
@@ -20,7 +22,8 @@ Reddit intelligence system for OnlyFans marketing - automated subreddit discover
 ## 🔧 System Components
 
 ### Dashboard (Vercel - LIVE)
-- **Review Page:** Categorize subreddits (Ok/No Seller/Non Related)
+- **Subreddit Review Page:** Review-only workflow to set `review` status on discovered subreddits. This page is not related to the `category` field and does not display or manage categories. Allowed statuses: `Ok`, `No Seller`, `Non Related`. Excludes user profile feeds (`name ilike 'u_%'`). Infinite scroll, search, live updates.
+- **Categorization Page:** Shows only `review = 'Ok'` subreddits and lets you set `category_text` via a single-select populated from existing categories (fallback to defaults). Filters: All, Uncategorized, Categorized. Infinite scroll, search.
 - **Posting Page:** Find optimal subreddits for marketing
 - **User Analysis:** Profile scoring and behavior tracking
 - **Post Analysis:** Content performance insights
@@ -45,6 +48,7 @@ Reddit intelligence system for OnlyFans marketing - automated subreddit discover
 - **4 linked tables:** subreddits, users, posts, analytics
 - **Real-time subscriptions** for live dashboard updates
 - **Performance optimized** with infinite scroll
+- **Fields of interest:** `review` (enum-like: Ok | No Seller | Non Related | User Feed), `category_text` (varchar; used by categorization). No `category` column.
 
 ## 🎨 Design
 - **Colors:** Pink (#FF8395), Black, White, Grey

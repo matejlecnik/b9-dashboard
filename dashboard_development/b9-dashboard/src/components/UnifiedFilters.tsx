@@ -9,14 +9,24 @@ import {
   Sparkles,
   Tag
 } from 'lucide-react'
-type FilterType = 'uncategorized' | 'categorized'
+type ReviewFilterType = 'unreviewed' | 'ok'
+type CategorizationFilterType = 'uncategorized' | 'categorized'
+type FilterType = ReviewFilterType | CategorizationFilterType
 
 interface UnifiedFiltersProps {
-  currentFilter: FilterType
-  onFilterChange: (filter: FilterType) => void
-  categoryCounts: {
-    uncategorized: number
-    categorized: number
+  currentFilter: string
+  onFilterChange: (filter: any) => void
+  categoryCounts?: {
+    unreviewed?: number
+    ok?: number
+    uncategorized?: number
+    categorized?: number
+  }
+  counts?: {
+    unreviewed?: number
+    ok?: number
+    uncategorized?: number
+    categorized?: number
   }
   searchQuery: string
   onSearchChange: (query: string) => void
@@ -27,24 +37,52 @@ const UnifiedFilters = memo(function UnifiedFilters({
   currentFilter,
   onFilterChange,
   categoryCounts,
+  counts,
   searchQuery,
   onSearchChange,
   loading
 }: UnifiedFiltersProps) {
   
-  // Simple filters for categorized vs uncategorized (for OK-reviewed subreddits only)
-  const allFilters = [
+  const effectiveCounts = counts || categoryCounts || {}
+  
+  // Determine which filters to show based on current filter context
+  const isCategorizationContext = !(currentFilter === 'unreviewed' || currentFilter === 'ok')
+  const allFilters = (currentFilter === 'unreviewed' || currentFilter === 'ok') ? [
+    // Subreddit Review Page Filters - ONLY these two
     { 
-      id: 'uncategorized' as FilterType, 
+      id: 'unreviewed', 
       label: 'Unreviewed', 
-      count: categoryCounts.uncategorized || 0,
+      count: (effectiveCounts as any).unreviewed || 0,
       icon: Sparkles,
       activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
     },
     { 
-      id: 'categorized' as FilterType, 
-      label: 'Reviewed', 
-      count: categoryCounts.categorized || 0,
+      id: 'ok', 
+      label: 'Ok', 
+      count: (effectiveCounts as any).ok || 0,
+      icon: Tag,
+      activeBg: 'linear-gradient(135deg, #10B981, #059669)'
+    }
+  ] : [
+    // Categorization Page Filters
+    { 
+      id: 'all', 
+      label: 'All', 
+      count: ((effectiveCounts as any).uncategorized || 0) + ((effectiveCounts as any).categorized || 0),
+      icon: Tag,
+      activeBg: 'linear-gradient(135deg, #6366F1, #4F46E5)'
+    },
+    { 
+      id: 'uncategorized', 
+      label: 'Uncategorized', 
+      count: (effectiveCounts as any).uncategorized || 0,
+      icon: Sparkles,
+      activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
+    },
+    { 
+      id: 'categorized', 
+      label: 'Categorized', 
+      count: (effectiveCounts as any).categorized || 0,
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #10B981, #059669)'
     }
@@ -100,7 +138,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
             )}
           </div>
 
-          {/* Dynamic Category Filters */}
+          {/* Dynamic Status Filters (Review context) */}
           <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Category filters" data-testid="category-filters">
             {allFilters.map((filter) => {
               const IconComponent = filter.icon
@@ -162,7 +200,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
         {/* Secondary filters removed (only three primary views remain) */}
 
         {/* Active Filters Indicator */}
-        {(searchQuery || currentFilter !== 'uncategorized') && (
+        {(searchQuery || currentFilter === 'ok' || currentFilter === 'unreviewed') && (
           <div 
             className="mt-4 pt-4"
             style={{
@@ -176,7 +214,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                   fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
                 }}
               >
-                Active filters:
+                Active status:
               </span>
               {searchQuery && (
                 <Badge 
@@ -192,7 +230,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                   Search: &quot;{searchQuery}&quot;
                 </Badge>
               )}
-              {currentFilter !== 'uncategorized' && (
+              {(currentFilter === 'ok' || currentFilter === 'unreviewed') && (
                 <Badge 
                   variant="outline" 
                   className="border-0 text-xs"
@@ -203,7 +241,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
                   }}
                 >
-                  Category: {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter}
+                  Status: {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter}
                 </Badge>
               )}
               <Button
@@ -211,7 +249,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
                 size="sm"
                 onClick={() => {
                   onSearchChange('')
-                  onFilterChange('uncategorized')
+                  onFilterChange(isCategorizationContext ? 'all' : 'unreviewed')
                 }}
                 className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 h-auto"
               >
@@ -223,7 +261,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
       </div>
 
       {/* Results Summary */}
-      {(searchQuery || currentFilter !== 'uncategorized') && (
+      {(searchQuery || currentFilter === 'ok' || currentFilter === 'unreviewed') && (
         <div className="mt-3 text-center">
           <p className="text-sm text-gray-600">
             {loading ? (
@@ -232,7 +270,7 @@ const UnifiedFilters = memo(function UnifiedFilters({
               <>
                 Showing{' '}
                 <span className="font-semibold text-b9-pink">
-                  {categoryCounts[currentFilter]?.toLocaleString() || '0'}
+                  {((effectiveCounts as any)[currentFilter])?.toLocaleString() || '0'}
                 </span>{' '}
                 {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter} subreddits
                 {searchQuery && (
