@@ -394,9 +394,9 @@ const SubredditTable = memo(function SubredditTable({
                 </td>
                 <td className="py-2 px-3">
                   <div className="flex items-center gap-1">
-                    <Button size="sm" variant={((subreddit as any).review ?? subreddit.category) === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 1)} className="px-2 py-1 text-xs">Ok</Button>
-                    <Button size="sm" variant={((subreddit as any).review ?? subreddit.category) === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 2)} className="px-2 py-1 text-xs">No Seller</Button>
-                    <Button size="sm" variant={((subreddit as any).review ?? subreddit.category) === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 3)} className="px-2 py-1 text-xs">Non Related</Button>
+                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'Ok' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 1)} className="px-2 py-1 text-xs">Ok</Button>
+                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'No Seller' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 2)} className="px-2 py-1 text-xs">No Seller</Button>
+                    <Button size="sm" variant={(subreddit.review ?? subreddit.category) === 'Non Related' ? 'default' : 'outline'} onClick={() => onUpdateCategory(subreddit.id, 3)} className="px-2 py-1 text-xs">Non Related</Button>
                   </div>
                 </td>
               </tr>
