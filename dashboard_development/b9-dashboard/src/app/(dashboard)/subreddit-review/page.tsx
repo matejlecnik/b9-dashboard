@@ -214,7 +214,7 @@ export default function SubredditReviewPage() {
     }, {
       context: 'subreddit_fetch',
       retries: 2,
-      onError: (error) => {
+      onError: () => {
         // Keep existing data on error to avoid blank screen
       }
     })
@@ -258,7 +258,7 @@ export default function SubredditReviewPage() {
           duration: 3000
         })
       },
-      onError: (error) => {
+      onError: (_error) => {
         addToast({
           type: 'error',
           title: 'Update Failed',

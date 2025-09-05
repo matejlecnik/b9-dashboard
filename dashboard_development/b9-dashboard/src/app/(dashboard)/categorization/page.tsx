@@ -52,7 +52,7 @@ export default function CategorizationPage() {
   const handleSearchChange = (query: string) => setSearchQuery(query)
 
   // Fetch counts only (fast query) - only count OK-reviewed subreddits
-  const fetchCounts = async () => {
+  const fetchCounts = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0]
     
     // Only count subreddits with review = 'Ok'
@@ -76,7 +76,7 @@ export default function CategorizationPage() {
       uncategorized: uncategorizedCount,
       categorized: categorizedCount
     })
-  }
+  }, [])
 
   // Fetch paginated subreddits - only OK-reviewed subreddits
   const fetchSubreddits = useCallback(async (page = 0, append = false) => {
@@ -130,7 +130,7 @@ export default function CategorizationPage() {
     const nextPage = currentPage + 1
     setCurrentPage(nextPage)
     await fetchSubreddits(nextPage, true)
-  }, [currentPage, loadingMore, hasMore, currentFilter, fetchSubreddits])
+  }, [currentPage, loadingMore, hasMore, fetchSubreddits])
 
   const updateCategory = async (id: number, categoryText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)

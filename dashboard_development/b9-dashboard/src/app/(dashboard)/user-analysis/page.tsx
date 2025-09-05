@@ -128,7 +128,7 @@ export default function UserAnalysisPage() {
   // Server-side search state
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [searchPage, setSearchPage] = useState(1)
-  const [searchHasMore, setSearchHasMore] = useState(false)
+  const [, setSearchHasMore] = useState(false)
 
   const supabase = createClient()
 

@@ -294,7 +294,7 @@ export default function PostingPage() {
     try {
       await navigator.clipboard.writeText(title)
       addToast({ type: 'success', title: 'Copied', description: 'Title copied to clipboard', duration: 1500 })
-    } catch (err) {
+    } catch {
       addToast({ type: 'error', title: 'Copy failed', description: 'Could not copy title', duration: 2000 })
     }
   }
@@ -317,9 +317,6 @@ export default function PostingPage() {
       title=""
       subtitle={undefined}
       showSearch={false}
-      lastUpdated={lastUpdated}
-      onRefresh={fetchOkSubreddits}
-      isRefreshing={loading}
     >
       <div className="space-y-6">
         {/* Search & Filters Toolbar */}
