@@ -1,0 +1,6 @@
+# Ignore files that might cause build issues
+.next/server/app/(dashboard)/page_client-reference-manifest.js
+*.log
+node_modules
+.env*
+!.env.example
