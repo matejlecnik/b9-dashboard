@@ -1,0 +1,31 @@
+---
+description: Project planning and guidance rule that references Plan.md for overall project direction
+globs:
+alwaysApply: true
+---
+
+## Project Planning Guidelines
+
+The file `Plan.md` serves as the central guidance document for this project and should be treated as the primary reference for:
+
+- **Project objectives and key features** - All development should align with the goals outlined in Plan.md
+- **Architecture decisions** - Follow the single script architecture and other structural guidelines specified
+- **Performance targets** - Adhere to the scraping projections and API limits documented
+- **Task management** - Plan.md should be continuously updated with:
+  - ✅ Completed tasks (marked with checkmarks)
+  - 🔄 In-progress work (with status indicators)
+  - 📋 New todos and upcoming tasks
+  - 📊 Performance metrics and results
+  - 🎯 Updated projections based on actual results
+
+## Agent Instructions
+
+When working on this project:
+1. **Always reference Plan.md** before starting any major development work
+2. **Update Plan.md** after completing significant milestones or discovering new requirements
+3. **Maintain todos** in Plan.md using clear status indicators (✅, 🔄, 📋, etc.)
+4. **Track progress** by updating completion status and performance metrics
+5. **Document learnings** by updating projections and estimates based on actual results
+6. **Keep it current** - Plan.md should reflect the most up-to-date project status
+
+The Plan.md file is the living document that guides all project decisions and should be actively maintained throughout development.

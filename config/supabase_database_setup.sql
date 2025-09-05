@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS subreddits (
     title TEXT,
     public_description TEXT,
     description TEXT,
+    rules TEXT, -- Subreddit rules and posting guidelines
     subscribers INTEGER,
     accounts_active INTEGER,
     created_utc TIMESTAMP,
@@ -22,6 +23,11 @@ CREATE TABLE IF NOT EXISTS subreddits (
     allow_videos BOOLEAN DEFAULT TRUE,
     allow_polls BOOLEAN DEFAULT TRUE,
     subreddit_type VARCHAR(50),
+    
+    -- Dashboard management & icons
+    category TEXT,
+    icon_img TEXT,
+    community_icon TEXT,
     
     -- Engagement Metrics
     total_upvotes_last_30 INTEGER DEFAULT 0,
@@ -51,6 +57,12 @@ CREATE TABLE IF NOT EXISTS subreddits (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- =====================================================
+-- MIGRATION: Add rules field to existing tables
+-- =====================================================
+-- If you already have the subreddits table, run this to add the rules field:
+-- ALTER TABLE subreddits ADD COLUMN IF NOT EXISTS rules TEXT;
 
 -- =====================================================
 -- 2. USERS TABLE  
@@ -156,34 +168,6 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- =====================================================
--- 4. SUBREDDIT DISCOVERY TABLE
--- =====================================================
-CREATE TABLE IF NOT EXISTS subreddit_discovery (
-    id SERIAL PRIMARY KEY,
-    subreddit_name VARCHAR(255) NOT NULL,
-    discovered_from_user VARCHAR(255),
-    discovery_method VARCHAR(100), -- 'user_analysis', 'crosspost', 'related', 'manual'
-    priority_score DECIMAL(8,2) DEFAULT 0, -- calculated priority for analysis
-    
-    -- Discovery Context
-    discovery_context JSONB, -- additional context data
-    estimated_relevance DECIMAL(5,2) DEFAULT 0, -- 0-10 relevance score
-    
-    -- Processing Status
-    processed BOOLEAN DEFAULT FALSE,
-    analysis_completed BOOLEAN DEFAULT FALSE,
-    added_to_targets BOOLEAN DEFAULT FALSE,
-    
-    -- Discovery Metrics
-    discovery_confidence DECIMAL(5,2) DEFAULT 0,
-    user_overlap_count INTEGER DEFAULT 0, -- how many users overlap with known subreddits
-    
-    -- Timestamps
-    discovered_at TIMESTAMP DEFAULT NOW(),
-    processed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW()
-);
 
 -- =====================================================
 -- 5. ENGAGEMENT ANALYTICS TABLE (for trend tracking)
@@ -228,6 +212,7 @@ CREATE TABLE IF NOT EXISTS engagement_analytics (
 CREATE INDEX IF NOT EXISTS idx_subreddits_name ON subreddits(name);
 CREATE INDEX IF NOT EXISTS idx_subreddits_last_scraped ON subreddits(last_scraped_at);
 CREATE INDEX IF NOT EXISTS idx_subreddits_engagement_ratio ON subreddits(subscriber_engagement_ratio);
+CREATE INDEX IF NOT EXISTS idx_subreddits_category ON subreddits(category);
 
 -- Users indexes
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -244,10 +229,6 @@ CREATE INDEX IF NOT EXISTS idx_posts_score ON posts(score);
 CREATE INDEX IF NOT EXISTS idx_posts_content_type ON posts(content_type);
 CREATE INDEX IF NOT EXISTS idx_posts_posting_hour ON posts(posting_hour);
 
--- Discovery indexes
-CREATE INDEX IF NOT EXISTS idx_discovery_processed ON subreddit_discovery(processed);
-CREATE INDEX IF NOT EXISTS idx_discovery_priority ON subreddit_discovery(priority_score);
-CREATE INDEX IF NOT EXISTS idx_discovery_method ON subreddit_discovery(discovery_method);
 
 -- Analytics indexes
 CREATE INDEX IF NOT EXISTS idx_analytics_subreddit_date ON engagement_analytics(subreddit_name, analysis_date);
@@ -317,18 +298,6 @@ WHERE overall_user_score > 7.0
   AND account_age_days BETWEEN 365 AND 1095
 ORDER BY overall_user_score DESC;
 
--- View for discovery pipeline
-CREATE OR REPLACE VIEW pending_discoveries AS
-SELECT 
-    subreddit_name,
-    discovery_method,
-    priority_score,
-    estimated_relevance,
-    user_overlap_count,
-    discovered_at
-FROM subreddit_discovery 
-WHERE processed = FALSE 
-ORDER BY priority_score DESC, discovered_at ASC;
 
 -- =====================================================
 -- SETUP COMPLETE!
@@ -337,7 +306,6 @@ ORDER BY priority_score DESC, discovered_at ASC;
 -- ✅ subreddits - Main subreddit data and engagement metrics
 -- ✅ users - User profiles and quality scoring
 -- ✅ posts - Individual post analysis and performance
--- ✅ subreddit_discovery - New subreddit discovery pipeline
 -- ✅ engagement_analytics - Daily trend tracking
 -- ✅ Indexes for performance optimization
 -- ✅ Seed data with SFWAmIHot subreddit

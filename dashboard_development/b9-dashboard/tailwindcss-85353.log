@@ -1,0 +1,152 @@
+2025-09-03T11:31:45.310126Z  INFO tailwindcss_oxide::scanner: Provided sources:
+2025-09-03T11:31:45.310210Z  INFO tailwindcss_oxide::scanner: Source: PublicSourceEntry { base: "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard", pattern: "**/*", negated: false }
+2025-09-03T11:31:45.310521Z  INFO tailwindcss_oxide::scanner: Optimized sources:
+2025-09-03T11:31:45.310528Z  INFO tailwindcss_oxide::scanner: Source: Auto { base: "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard" }
+2025-09-03T11:31:45.312426Z  INFO scan_sources: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.313425Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/vercel.json"
+2025-09-03T11:31:45.313461Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/postcss.config.mjs"
+2025-09-03T11:31:45.313564Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/README.md"
+2025-09-03T11:31:45.313589Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public"
+2025-09-03T11:31:45.313621Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/file.svg"
+2025-09-03T11:31:45.313636Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/vercel.svg"
+2025-09-03T11:31:45.313651Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/next.svg"
+2025-09-03T11:31:45.313665Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/globe.svg"
+2025-09-03T11:31:45.313679Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/window.svg"
+2025-09-03T11:31:45.313709Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/package.json"
+2025-09-03T11:31:45.313756Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/lib"
+2025-09-03T11:31:45.313785Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/lib/supabase.ts"
+2025-09-03T11:31:45.313802Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/components.json"
+2025-09-03T11:31:45.313816Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/tsconfig.json"
+2025-09-03T11:31:45.313831Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/eslint.config.mjs"
+2025-09-03T11:31:45.313845Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/env.example"
+2025-09-03T11:31:45.313860Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/next.config.ts"
+2025-09-03T11:31:45.313882Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src"
+2025-09-03T11:31:45.313925Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app"
+2025-09-03T11:31:45.313955Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/categorization"
+2025-09-03T11:31:45.313984Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/categorization/page.tsx"
+2025-09-03T11:31:45.314004Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/settings"
+2025-09-03T11:31:45.314028Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/settings/page.tsx"
+2025-09-03T11:31:45.314048Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/layout.tsx"
+2025-09-03T11:31:45.314067Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/users"
+2025-09-03T11:31:45.314089Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/users/page.tsx"
+2025-09-03T11:31:45.314105Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/page.tsx"
+2025-09-03T11:31:45.314116Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/globals.css"
+2025-09-03T11:31:45.314135Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/analytics"
+2025-09-03T11:31:45.314155Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/analytics/page.tsx"
+2025-09-03T11:31:45.314176Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components"
+2025-09-03T11:31:45.314210Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui"
+2025-09-03T11:31:45.314230Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/card.tsx"
+2025-09-03T11:31:45.314242Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/badge.tsx"
+2025-09-03T11:31:45.314255Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/button.tsx"
+2025-09-03T11:31:45.314268Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/toast.tsx"
+2025-09-03T11:31:45.314280Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/checkbox.tsx"
+2025-09-03T11:31:45.314291Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/select.tsx"
+2025-09-03T11:31:45.314313Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/TablePagination.tsx"
+2025-09-03T11:31:45.314328Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/UnifiedFilters.tsx"
+2025-09-03T11:31:45.314341Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/CategorySelector.tsx"
+2025-09-03T11:31:45.314355Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/SubredditTable.tsx"
+2025-09-03T11:31:45.314369Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/SkeletonLoaders.tsx"
+2025-09-03T11:31:45.314382Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/KeyboardShortcutsHelp.tsx"
+2025-09-03T11:31:45.314397Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/DashboardLayout.tsx"
+2025-09-03T11:31:45.314411Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/Header.tsx"
+2025-09-03T11:31:45.314425Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/Sidebar.tsx"
+2025-09-03T11:31:45.314437Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/AdvancedFilters.tsx"
+2025-09-03T11:31:45.314450Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ErrorBoundary.tsx"
+2025-09-03T11:31:45.314464Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/MetricsCards.tsx"
+2025-09-03T11:31:45.314487Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/hooks"
+2025-09-03T11:31:45.314512Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/hooks/useKeyboardShortcuts.ts"
+2025-09-03T11:31:45.314532Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib"
+2025-09-03T11:31:45.314558Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib/errorUtils.ts"
+2025-09-03T11:31:45.314571Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib/utils.ts"
+2025-09-03T11:31:45.314645Z  INFO scan_sources: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.314653Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.314660Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.314665Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 42 file(s)
+2025-09-03T11:31:45.314840Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/card.tsx"
+2025-09-03T11:31:45.314894Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/badge.tsx"
+2025-09-03T11:31:45.314922Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/components.json"
+2025-09-03T11:31:45.314924Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/vercel.json"
+2025-09-03T11:31:45.314925Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/button.tsx"
+2025-09-03T11:31:45.314948Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/tsconfig.json"
+2025-09-03T11:31:45.314956Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/postcss.config.mjs"
+2025-09-03T11:31:45.314986Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/toast.tsx"
+2025-09-03T11:31:45.315010Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/select.tsx"
+2025-09-03T11:31:45.315051Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/SkeletonLoaders.tsx"
+2025-09-03T11:31:45.315064Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/AdvancedFilters.tsx"
+2025-09-03T11:31:45.315092Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ErrorBoundary.tsx"
+2025-09-03T11:31:45.315095Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/categorization/page.tsx"
+2025-09-03T11:31:45.315102Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/hooks/useKeyboardShortcuts.ts"
+2025-09-03T11:31:45.315120Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/eslint.config.mjs"
+2025-09-03T11:31:45.315166Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui/checkbox.tsx"
+2025-09-03T11:31:45.315122Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/README.md"
+2025-09-03T11:31:45.315135Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/TablePagination.tsx"
+2025-09-03T11:31:45.315194Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/KeyboardShortcutsHelp.tsx"
+2025-09-03T11:31:45.315241Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/MetricsCards.tsx"
+2025-09-03T11:31:45.315253Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/settings/page.tsx"
+2025-09-03T11:31:45.315260Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib/utils.ts"
+2025-09-03T11:31:45.315272Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/layout.tsx"
+2025-09-03T11:31:45.315320Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/file.svg"
+2025-09-03T11:31:45.315327Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib/errorUtils.ts"
+2025-09-03T11:31:45.315321Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/env.example"
+2025-09-03T11:31:45.315316Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/UnifiedFilters.tsx"
+2025-09-03T11:31:45.315366Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/next.config.ts"
+2025-09-03T11:31:45.315379Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/DashboardLayout.tsx"
+2025-09-03T11:31:45.315443Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/Header.tsx"
+2025-09-03T11:31:45.315454Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/vercel.svg"
+2025-09-03T11:31:45.315479Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/next.svg"
+2025-09-03T11:31:45.315515Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/users/page.tsx"
+2025-09-03T11:31:45.315551Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/Sidebar.tsx"
+2025-09-03T11:31:45.315578Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/analytics/page.tsx"
+2025-09-03T11:31:45.315560Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/package.json"
+2025-09-03T11:31:45.315595Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/CategorySelector.tsx"
+2025-09-03T11:31:45.315583Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/SubredditTable.tsx"
+2025-09-03T11:31:45.315639Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/page.tsx"
+2025-09-03T11:31:45.315640Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/globe.svg"
+2025-09-03T11:31:45.315678Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public/window.svg"
+2025-09-03T11:31:45.315751Z  INFO tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/lib/supabase.ts"
+2025-09-03T11:31:45.315878Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.315885Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.315888Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.317289Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.317304Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.317314Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.317317Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2025-09-03T11:31:45.317344Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/globals.css"
+2025-09-03T11:31:45.317350Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.317353Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.317356Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.317494Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.317500Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.317946Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.318444Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.318449Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.319037Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public"
+2025-09-03T11:31:45.319150Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/lib"
+2025-09-03T11:31:45.319231Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src"
+2025-09-03T11:31:45.319262Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app"
+2025-09-03T11:31:45.319290Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/categorization"
+2025-09-03T11:31:45.319329Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/settings"
+2025-09-03T11:31:45.319375Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/users"
+2025-09-03T11:31:45.319422Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/analytics"
+2025-09-03T11:31:45.319486Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components"
+2025-09-03T11:31:45.319548Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui"
+2025-09-03T11:31:45.319780Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/hooks"
+2025-09-03T11:31:45.319833Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib"
+2025-09-03T11:31:45.319910Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.320124Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.320211Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.320215Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: enter
+2025-09-03T11:31:45.320752Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/public"
+2025-09-03T11:31:45.320830Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/lib"
+2025-09-03T11:31:45.320897Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src"
+2025-09-03T11:31:45.320922Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app"
+2025-09-03T11:31:45.320954Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/categorization"
+2025-09-03T11:31:45.320987Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/settings"
+2025-09-03T11:31:45.321029Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/users"
+2025-09-03T11:31:45.321072Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/app/analytics"
+2025-09-03T11:31:45.321111Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components"
+2025-09-03T11:31:45.321154Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/components/ui"
+2025-09-03T11:31:45.321298Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/hooks"
+2025-09-03T11:31:45.321329Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "/Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard/dashboard_development/b9-dashboard/src/lib"
+2025-09-03T11:31:45.321390Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: exit
+2025-09-03T11:31:45.322608Z  INFO get_globs: tailwindcss_oxide::scanner: exit

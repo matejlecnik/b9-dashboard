@@ -1,0 +1,269 @@
+'use client'
+
+import React, { memo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Search,
+  X,
+  Sparkles,
+  Tag,
+  Grid3X3,
+  Plus
+} from 'lucide-react'
+import { type Category } from '../lib/supabase'
+
+type FilterType = 'uncategorized' | 'all' | string // category ID as string
+
+interface UnifiedFiltersProps {
+  currentFilter: FilterType
+  onFilterChange: (filter: FilterType) => void
+  categoryCounts: Record<string, number>
+  categories: Category[]
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  loading: boolean
+}
+
+const UnifiedFilters = memo(function UnifiedFilters({
+  currentFilter,
+  onFilterChange,
+  categoryCounts,
+  categories,
+  searchQuery,
+  onSearchChange,
+  loading
+}: UnifiedFiltersProps) {
+  
+  // Build dynamic filters from categories
+  const baseFilters = [
+    { 
+      id: 'all' as FilterType, 
+      label: 'All', 
+      count: categoryCounts.all || 0,
+      icon: Grid3X3,
+      color: '#6B7280',
+      activeBg: 'linear-gradient(135deg, #6B7280, #4B5563)'
+    },
+    { 
+      id: 'uncategorized' as FilterType, 
+      label: 'Uncategorized', 
+      count: categoryCounts.uncategorized || 0,
+      icon: Sparkles,
+      color: '#EC4899',
+      activeBg: 'linear-gradient(135deg, #EC4899, #DB2777)'
+    }
+  ]
+
+  const categoryFilters = categories.map(category => ({
+    id: category.id.toString() as FilterType,
+    label: category.name,
+    count: categoryCounts[category.id.toString()] || 0,
+    icon: Tag,
+    color: category.color,
+    activeBg: `linear-gradient(135deg, ${category.color}, ${category.color}DD)`,
+    description: category.description
+  }))
+
+  const allFilters = [...baseFilters, ...categoryFilters]
+
+  return (
+    <div className="mb-8" data-testid="unified-filters" aria-label="Subreddit filters">
+      {/* Main Filter Bar */}
+      <div 
+        className="rounded-2xl border-0 p-4"
+        style={{
+          background: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          boxShadow: `
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.05)
+          `,
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+        }}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          
+          {/* Search */}
+          <div className="relative flex-1" role="search">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search subreddits..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="block w-full pl-10 pr-4 py-3 border-0 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-b9-pink transition-all duration-200"
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+              }}
+              disabled={loading}
+              aria-label="Search subreddits"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              </button>
+            )}
+          </div>
+
+          {/* Dynamic Category Filters */}
+          <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Category filters" data-testid="category-filters">
+            {allFilters.map((filter) => {
+              const IconComponent = filter.icon
+              const isActive = currentFilter === filter.id
+              
+              return (
+                <Button
+                  key={filter.id}
+                  variant="ghost"
+                  onClick={() => onFilterChange(filter.id)}
+                  disabled={loading}
+                  className="px-4 py-3 h-auto rounded-xl font-medium transition-all duration-200 border-0 focus:outline-none focus:ring-2 focus:ring-b9-pink"
+                  style={{
+                    background: isActive 
+                      ? filter.activeBg
+                      : '#ffffff',
+                    color: isActive ? '#ffffff' : '#374151',
+                    border: isActive ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e5e7eb',
+                    boxShadow: isActive 
+                      ? '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                      : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  }}
+                  aria-pressed={isActive}
+                  data-testid={`filter-btn-${filter.id}`}
+                  title={`Filter: ${filter.label}`}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = '#f9fafb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = '#ffffff';
+                    }
+                  }}
+                >
+                  {IconComponent && <IconComponent className="h-4 w-4 mr-2" />}
+                  {filter.label}
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-2 border-0 text-xs font-medium"
+                    style={{
+                      background: isActive 
+                        ? 'rgba(255, 255, 255, 0.2)' 
+                        : 'rgba(0, 0, 0, 0.06)',
+                      color: isActive ? 'white' : 'rgba(0, 0, 0, 0.75)',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                    }}
+                  >
+                    {loading ? '...' : filter.count.toLocaleString()}
+                  </Badge>
+                </Button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Secondary filters removed (only three primary views remain) */}
+
+        {/* Active Filters Indicator */}
+        {(searchQuery || currentFilter !== 'uncategorized') && (
+          <div 
+            className="mt-4 pt-4"
+            style={{
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              <span 
+                style={{
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                }}
+              >
+                Active filters:
+              </span>
+              {searchQuery && (
+                <Badge 
+                  variant="outline" 
+                  className="border-0 text-xs"
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    color: 'rgba(59, 130, 246, 0.9)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  }}
+                >
+                  Search: &quot;{searchQuery}&quot;
+                </Badge>
+              )}
+              {currentFilter !== 'uncategorized' && (
+                <Badge 
+                  variant="outline" 
+                  className="border-0 text-xs"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  }}
+                >
+                  Category: {allFilters.find((f) => f.id === currentFilter)?.label || currentFilter}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onSearchChange('')
+                  onFilterChange('uncategorized')
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 h-auto"
+              >
+                Clear all
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Results Summary */}
+      {(searchQuery || currentFilter !== 'uncategorized') && (
+        <div className="mt-3 text-center">
+          <p className="text-sm text-gray-600">
+            {loading ? (
+              'Loading results...'
+            ) : (
+              <>
+                Showing{' '}
+                <span className="font-semibold text-b9-pink">
+                  {categoryCounts[currentFilter]?.toLocaleString() || '0'}
+                </span>{' '}
+                {allFilters.find((f) => f.id === currentFilter)?.label?.toLowerCase() || 'filtered'} subreddits
+                {searchQuery && (
+                  <>
+                    {' '}matching &quot;<span className="font-medium">{searchQuery}</span>&quot;
+                  </>
+                )}
+              </>
+            )}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+})
+
+export { UnifiedFilters }
