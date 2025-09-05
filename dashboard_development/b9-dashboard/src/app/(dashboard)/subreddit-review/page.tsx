@@ -12,7 +12,7 @@ import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 
-type FilterType = 'uncategorized' | 'ok' | 'no-seller'
+type FilterType = 'uncategorized' | 'categorized'
 
 const PAGE_SIZE = 50 // Load 50 records at a time
 
@@ -28,11 +28,8 @@ export default function SubredditReviewPage() {
   const [totalSubreddits, setTotalSubreddits] = useState(0)
   const [currentFilter, setCurrentFilter] = useState<FilterType>('uncategorized')
   const [categoryCounts, setCategoryCounts] = useState({
-    all: 0,
     uncategorized: 0,
-    ok: 0,
-    noSeller: 0,
-    nonRelated: 0
+    categorized: 0
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -128,38 +125,30 @@ export default function SubredditReviewPage() {
     const countQueries = await Promise.all([
       // Exclude profile feeds: user feeds (u_*) and titles containing "Profile Feed"
       supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'No Seller').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Non Related').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).not('review', 'is', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today)
         .not('name', 'ilike', 'u_%')
         .not('title', 'ilike', '%profile%feed%')
-        .or('review.is.null,review.eq.Ok,review.eq.No%20Seller,review.eq.Non%20Related')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
 
     const [
       { count: uncategorizedCount },
-      { count: okCount },
-      { count: noSellerCount },
-      { count: nonRelatedCount },
+      { count: categorizedCount },
       { count: newTodayCount }
     ] = countQueries
 
-    const totalCount = (uncategorizedCount || 0) + (okCount || 0) + (noSellerCount || 0) + (nonRelatedCount || 0)
+    const totalCount = (uncategorizedCount || 0) + (categorizedCount || 0)
 
     setTotalSubreddits(totalCount || 0)
     setNewTodayCount(newTodayCount || 0)
     setCategoryCounts({
-      all: totalCount || 0,
       uncategorized: uncategorizedCount || 0,
-      ok: okCount || 0,
-      noSeller: noSellerCount || 0,
-      nonRelated: nonRelatedCount || 0
+      categorized: categorizedCount || 0
     })
   }
 
@@ -177,11 +166,8 @@ export default function SubredditReviewPage() {
         case 'uncategorized':
           query = query.is('review', null)
           break
-        case 'ok':
-          query = query.eq('review', 'Ok')
-          break
-        case 'no-seller':
-          query = query.eq('review', 'No Seller')
+        case 'categorized':
+          query = query.not('review', 'is', null)
           break
       }
 
