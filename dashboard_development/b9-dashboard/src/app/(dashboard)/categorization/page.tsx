@@ -270,7 +270,7 @@ export default function CategorizationPage() {
 
       <UnifiedFilters
         currentFilter={currentFilter}
-        onFilterChange={setCurrentFilter}
+        onFilterChange={(value) => setCurrentFilter(value as FilterType)}
         categoryCounts={categoryCounts}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
