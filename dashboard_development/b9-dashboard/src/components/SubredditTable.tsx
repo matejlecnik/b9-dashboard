@@ -24,6 +24,7 @@ const SubredditTable = memo(function SubredditTable({
   selectedSubreddits,
   setSelectedSubreddits,
   onUpdateCategory,
+  onBulkUpdateCategory,
   loading,
   mode = 'category'
 }: SubredditTableProps) {
