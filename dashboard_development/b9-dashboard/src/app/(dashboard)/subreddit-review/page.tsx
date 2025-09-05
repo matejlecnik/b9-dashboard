@@ -119,7 +119,7 @@ export default function SubredditReviewPage() {
   // Enable keyboard shortcuts
   useKeyboardShortcuts(shortcuts, !loading)
 
-  // Fetch counts only (fast query)
+  // Fetch counts only (fast query) - using 'review' field only
   const fetchCounts = async () => {
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([

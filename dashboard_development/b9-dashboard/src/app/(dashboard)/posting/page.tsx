@@ -56,21 +56,40 @@ export default function PostingPage() {
   const [searchQuery, setSearchQuery] = useState('')
   // Filters & sorting
   const [sfwFilter, setSfwFilter] = useState<'all' | 'sfw' | 'nsfw'>('all')
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Ok' | 'No Seller' | 'Non Related'>('all')
   // Removed content-type filter control from toolbar per spec
   const [sortBy, setSortBy] = useState<'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour'>('engagement')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  // Fetch subreddits (all categories) with a few recent posts
+  // Fetch subreddits (Ok category only) with a few recent posts
   const fetchOkSubreddits = async () => {
     setLoading(true)
     try {
-      const { data: subreddits, error } = await supabase
-        .from('subreddits')
-        .select('*')
-        .not('name', 'ilike', 'u_%')
-        .order('avg_upvotes_per_post', { ascending: false })
-      if (error) throw error
+      // Prefer 'category' column; fallback to legacy 'review' if needed
+      let subreddits: Subreddit[] | null = null
+      let primaryError: unknown = null
+      try {
+        const { data, error } = await supabase
+          .from('subreddits')
+          .select('*')
+          .eq('category', 'Ok')
+          .not('name', 'ilike', 'u_%')
+          .order('avg_upvotes_per_post', { ascending: false })
+        if (error) throw error
+        subreddits = data
+      } catch (e) {
+        primaryError = e
+      }
+
+      if (!subreddits) {
+        const { data, error } = await supabase
+          .from('subreddits')
+          .select('*')
+          .eq('review', 'Ok')
+          .not('name', 'ilike', 'u_%')
+          .order('avg_upvotes_per_post', { ascending: false })
+        if (error) throw (primaryError || error)
+        subreddits = data
+      }
 
       const subredditsWithPosts = await Promise.all(
         (subreddits || []).map(async (subreddit) => {
@@ -213,7 +232,6 @@ export default function PostingPage() {
   const filteredByControls = filteredOkSubreddits.filter((s) => {
     if (sfwFilter === 'sfw' && s.over18) return false
     if (sfwFilter === 'nsfw' && !s.over18) return false
-    if (categoryFilter !== 'all' && (s.category || s.review) !== categoryFilter) return false
     return true
   })
 
@@ -346,17 +364,11 @@ export default function PostingPage() {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" role="group" aria-label="Posting filters">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3" role="group" aria-label="Posting filters">
               <select aria-label="Filter by SFW or NSFW" value={sfwFilter} onChange={(e) => setSfwFilter(e.target.value as 'all' | 'sfw' | 'nsfw')} className="py-2 px-3 rounded-lg text-sm border border-gray-200">
                 <option value="all">All (SFW/NSFW)</option>
                 <option value="sfw">SFW only</option>
                 <option value="nsfw">NSFW only</option>
-              </select>
-              <select aria-label="Filter by category" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'Ok' | 'No Seller' | 'Non Related')} className="py-2 px-3 rounded-lg text-sm border border-gray-200">
-                <option value="all">All categories</option>
-                <option value="Ok">Ok</option>
-                <option value="No Seller">No Seller</option>
-                <option value="Non Related">Non Related</option>
               </select>
               <div className="flex gap-2">
                 <select aria-label="Sort by" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour')} className="py-2 px-3 rounded-lg text-sm border border-gray-200 flex-1">

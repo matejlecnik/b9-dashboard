@@ -61,24 +61,24 @@ export default function CategorizationPage() {
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .eq('review', 'Ok')
+        .in('review', ['Ok', 'OK'])
         .or('category_text.is.null,category_text.eq.'),
       // Categorized = category_text IS NOT NULL AND category_text != ''
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .eq('review', 'Ok')
+        .in('review', ['Ok', 'OK'])
         .not('category_text', 'is', null)
         .neq('category_text', ''),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .eq('review', 'Ok')
+        .in('review', ['Ok', 'OK'])
         .gte('created_at', today),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .eq('review', 'Ok')
+        .in('review', ['Ok', 'OK'])
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -105,7 +105,7 @@ export default function CategorizationPage() {
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
-        .eq('review', 'Ok') // Only show OK-reviewed subreddits
+        .in('review', ['Ok', 'OK']) // Only show OK-reviewed subreddits (case-insensitive)
 
       // Apply filters based on current selection
       if (currentFilter === 'uncategorized') {
