@@ -129,17 +129,17 @@ export default function SubredditReviewPage() {
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([
       // Exclude profile feeds: user feeds (u_*) and titles containing "Profile Feed"
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('category', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('category', 'Ok').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('category', 'No Seller').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('category', 'Non Related').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Ok').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'No Seller').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
+      supabase.from('subreddits').select('*', { count: 'exact', head: true }).eq('review', 'Non Related').not('name', 'ilike', 'u_%').not('title', 'ilike', '%profile%feed%'),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today)
         .not('name', 'ilike', 'u_%')
         .not('title', 'ilike', '%profile%feed%')
-        .or('category.is.null,category.eq.Ok,category.eq.No%20Seller,category.eq.Non%20Related')
+        .or('review.is.null,review.eq.Ok,review.eq.No%20Seller,review.eq.Non%20Related')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -177,13 +177,13 @@ export default function SubredditReviewPage() {
 
       switch (currentFilter) {
         case 'uncategorized':
-          query = query.is('category', null)
+          query = query.is('review', null)
           break
         case 'ok':
-          query = query.eq('category', 'Ok')
+          query = query.eq('review', 'Ok')
           break
         case 'no-seller':
-          query = query.eq('category', 'No Seller')
+          query = query.eq('review', 'No Seller')
           break
       }
 
@@ -239,7 +239,7 @@ export default function SubredditReviewPage() {
     await handleAsyncOperation(async () => {
       const { error } = await supabase
         .from('subreddits')
-        .update({ category })
+        .update({ review: category })
         .eq('id', id)
       if (error) throw new Error(`Failed to update category: ${error.message}`)
       return { subreddit, category }
@@ -279,7 +279,7 @@ export default function SubredditReviewPage() {
       const ids = Array.from(selectedSubreddits)
       const { error } = await supabase
         .from('subreddits')
-        .update({ category })
+        .update({ review: category })
         .in('id', ids)
       if (error) throw error
       setSubreddits(prev => prev.filter(sub => !selectedSubreddits.has(sub.id)))
@@ -374,7 +374,7 @@ export default function SubredditReviewPage() {
       {/* Unified Filter System */}
       <UnifiedFilters
         currentFilter={currentFilter}
-        onFilterChange={(filter: string) => setCurrentFilter(filter as FilterType)}
+        onFilterChange={setCurrentFilter as any}
         categoryCounts={categoryCounts}
         categories={[]}
         searchQuery={searchQuery}
@@ -439,30 +439,8 @@ export default function SubredditReviewPage() {
                   subreddits={displayedSubreddits}
                   selectedSubreddits={selectedSubreddits}
                   setSelectedSubreddits={setSelectedSubreddits}
-                  onUpdateCategory={(id: number, categoryId: number) => {
-                    // Map categoryId to string category
-                    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
-                      1: 'Ok',
-                      2: 'No Seller', 
-                      3: 'Non Related'
-                    }
-                    const category = categoryMap[categoryId]
-                    if (category) {
-                      updateCategory(id, category)
-                    }
-                  }}
-                  onBulkUpdateCategory={(categoryId: number) => {
-                    // Map categoryId to string category
-                    const categoryMap: Record<number, 'Ok' | 'No Seller' | 'Non Related'> = {
-                      1: 'Ok',
-                      2: 'No Seller', 
-                      3: 'Non Related'
-                    }
-                    const category = categoryMap[categoryId]
-                    if (category) {
-                      bulkUpdateCategory(category)
-                    }
-                  }}
+                  onUpdateCategory={updateCategory}
+                  onBulkUpdateCategory={bulkUpdateCategory}
                   loading={loading}
                 />
               </ComponentErrorBoundary>

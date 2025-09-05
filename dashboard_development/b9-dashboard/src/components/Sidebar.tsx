@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Activity,
-  FileText
+  FileText,
+  FolderTree
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -24,6 +25,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   const navigationItems = [
     { title: 'Subreddit Review', href: '/subreddit-review', icon: Tags },
+    { title: 'Categorization', href: '/categorization', icon: FolderTree },
     { title: 'Posting', href: '/posting', icon: PenTool },
     { title: 'User Analysis', href: '/user-analysis', icon: Users },
     { title: 'Post Analysis', href: '/post-analysis', icon: FileText },

@@ -36,6 +36,7 @@ interface Dashboard {
   status: 'active' | 'coming-soon' | 'beta'
   color: string
   gradient: string
+  accent: string
   metrics?: {
     label: string
     value: string
@@ -61,6 +62,7 @@ export default function DashboardsPage() {
       status: 'active',
       color: 'border-orange-200 hover:border-orange-300',
       gradient: 'from-orange-500/10 via-red-500/5 to-pink-500/10',
+      accent: 'bg-b9-pink text-white',
       metrics: [
         { label: 'Subreddits', value: '1,200+' },
         { label: 'Categories', value: '3' },
@@ -76,6 +78,7 @@ export default function DashboardsPage() {
       status: 'coming-soon',
       color: 'border-purple-200 hover:border-purple-300',
       gradient: 'from-purple-500/10 via-pink-500/5 to-red-500/10',
+      accent: 'bg-gray-200 text-gray-700',
       metrics: [
         { label: 'Accounts', value: 'TBA' },
         { label: 'Metrics', value: 'Advanced' },
@@ -91,6 +94,7 @@ export default function DashboardsPage() {
       status: 'coming-soon',
       color: 'border-green-200 hover:border-green-300',
       gradient: 'from-green-500/10 via-teal-500/5 to-blue-500/10',
+      accent: 'bg-gray-200 text-gray-700',
       metrics: [
         { label: 'Trends', value: 'Real-time' },
         { label: 'Content', value: 'Video AI' },
@@ -106,6 +110,7 @@ export default function DashboardsPage() {
       status: 'beta',
       color: 'border-blue-200 hover:border-blue-300',
       gradient: 'from-blue-500/10 via-indigo-500/5 to-purple-500/10',
+      accent: 'bg-gray-200 text-gray-700',
       metrics: [
         { label: 'Revenue', value: 'Live' },
         { label: 'Subscribers', value: 'Growth' },
@@ -121,6 +126,7 @@ export default function DashboardsPage() {
       status: 'coming-soon',
       color: 'border-gray-200 hover:border-gray-300',
       gradient: 'from-gray-500/10 via-slate-500/5 to-gray-500/10',
+      accent: 'bg-gray-200 text-gray-700',
       metrics: [
         { label: 'Engagement', value: 'Real-time' },
         { label: 'Audience', value: 'Analysis' },
@@ -136,6 +142,7 @@ export default function DashboardsPage() {
       status: 'coming-soon',
       color: 'border-b9-pink/30 hover:border-b9-pink/50',
       gradient: 'from-b9-pink/10 via-purple-500/5 to-blue-500/10',
+      accent: 'bg-gray-200 text-gray-700',
       metrics: [
         { label: 'Platforms', value: 'All' },
         { label: 'Insights', value: 'AI-Powered' },
@@ -209,33 +216,16 @@ export default function DashboardsPage() {
               return (
                 <Link key={dashboard.id} href={dashboard.href}>
                   <Card 
-                    className="group border border-gray-500 hover:border-gray-400 transition-all duration-200 flex items-center p-3 relative rounded-lg"
-                    style={{
-                      background: 'linear-gradient(135deg, #4B5563, #374151, #4B5563)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #5B6570, #475569, #5B6570)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #4B5563, #374151, #4B5563)';
-                    }}
+                    className="group glass-card shadow-apple border border-gray-200 hover:border-gray-300 hover:shadow-apple-strong hover-lift transition-all duration-200 flex items-center p-3 relative rounded-lg"
                   >
-                    {/* Icon on the left */}
-                    <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
-                      <IconComponent className="h-4 w-4 text-white" />
+                    {/* Icon + Name layout (Airtable-like) */}
+                    <div className={`p-2 rounded-md flex-shrink-0 ${dashboard.accent}`}>
+                      <IconComponent className="h-4 w-4" />
                     </div>
-                    
-                    {/* Text next to icon */}
-                    <CardTitle className="text-xs font-medium text-white ml-3 flex-1 truncate">
+                    <CardTitle className="text-sm font-medium text-gray-900 ml-3 flex-1 truncate">
                       {dashboard.name}
                     </CardTitle>
-                    
-                    {/* Animated green dot status on far right */}
-                    <div className="ml-2 relative flex-shrink-0">
-                      <div className="w-2 h-2 bg-green-500 rounded-full relative z-10"></div>
-                      <div className="absolute inset-0 w-2 h-2 rounded-full animate-pulse-glow bg-green-400"></div>
-                      <div className="absolute inset-0 w-2 h-2 rounded-full animate-pulse-glow-delayed bg-green-300"></div>
-                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                   </Card>
                 </Link>
               )
@@ -265,33 +255,17 @@ export default function DashboardsPage() {
               return (
                 <Card 
                   key={dashboard.id} 
-                  className="border border-gray-400 opacity-60 hover:opacity-80 transition-all duration-200 flex items-center p-3 relative rounded-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, #6B7280, #5B6373, #6B7280)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #78828D, #6B7580, #78828D)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #6B7280, #5B6373, #6B7280)';
-                  }}
+                  className="glass-card shadow-apple border border-gray-200 hover:border-gray-300 transition-all duration-200 flex items-center p-3 relative rounded-lg opacity-80 hover:opacity-100"
                 >
-                  {/* Icon on the left */}
-                  <div className="p-2 bg-gray-400 rounded-lg flex-shrink-0">
-                    <IconComponent className="h-4 w-4 text-white" />
+                  <div className={`p-2 rounded-md flex-shrink-0 ${dashboard.accent}`}>
+                    <IconComponent className="h-4 w-4" />
                   </div>
-                  
-                  {/* Text next to icon */}
-                  <CardTitle className="text-xs font-medium text-gray-200 ml-3 flex-1 truncate">
+                  <CardTitle className="text-sm font-medium text-gray-800 ml-3 flex-1 truncate">
                     {dashboard.name}
                   </CardTitle>
-                  
-                  {/* Beta status indicator on far right */}
-                  {dashboard.status === 'beta' && (
-                    <div className="ml-2 flex-shrink-0">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    </div>
-                  )}
+                  <div className="ml-2 text-xs text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                    {dashboard.status === 'beta' ? 'Beta' : 'Coming soon'}
+                  </div>
                 </Card>
               )
             })}

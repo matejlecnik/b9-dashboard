@@ -23,6 +23,7 @@ export interface Subreddit {
   subscribers: number
   category_id: number | null
   category?: Category | null // Joined category data
+  review?: 'Ok' | 'No Seller' | 'Non Related' | null
   subscriber_engagement_ratio: number
   avg_upvotes_per_post: number
   best_posting_day: string

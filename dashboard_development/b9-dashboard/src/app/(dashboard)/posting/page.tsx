@@ -69,13 +69,33 @@ export default function PostingPage() {
   const fetchOkSubreddits = async () => {
     setLoading(true)
     try {
-      const { data: subreddits, error: subredditsError } = await supabase
-        .from('subreddits')
-        .select('*')
-        .eq('category', 'Ok')
-        .order('avg_upvotes_per_post', { ascending: false })
+      // Try new column first (category). If it errors (e.g., column missing in env), fallback to legacy 'review'
+      let subreddits: Subreddit[] | null = null
+      let queryError: unknown = null
+      try {
+        const { data, error } = await supabase
+          .from('subreddits')
+          .select('*')
+          .eq('category', 'Ok')
+          .not('name', 'ilike', 'u_%')
+          .order('avg_upvotes_per_post', { ascending: false })
+        if (error) throw error
+        subreddits = data
+      } catch (err) {
+        queryError = err
+      }
 
-      if (subredditsError) throw subredditsError
+      if (!subreddits) {
+        // Fallback to legacy column 'review'
+        const { data, error } = await supabase
+          .from('subreddits')
+          .select('*')
+          .eq('review', 'Ok')
+          .not('name', 'ilike', 'u_%')
+          .order('avg_upvotes_per_post', { ascending: false })
+        if (error) throw (queryError || error)
+        subreddits = data
+      }
 
       const subredditsWithPosts = await Promise.all(
         (subreddits || []).map(async (subreddit) => {
@@ -85,7 +105,6 @@ export default function PostingPage() {
             .eq('subreddit_name', subreddit.name)
             .order('created_utc', { ascending: false })
             .limit(5)
-
           return {
             ...subreddit,
             recent_posts: posts || []
@@ -312,6 +331,17 @@ export default function PostingPage() {
   const avgEngagementFiltered = showingCount > 0 
     ? ((sortedSubreddits.reduce((sum, s) => sum + (s.subscriber_engagement_ratio || 0), 0) / showingCount) * 100) 
     : 0
+
+  // Safe formatters to avoid runtime crashes on null/undefined values
+  const formatNumber = (num?: number | null) => {
+    if (num === null || num === undefined) return 'N/A'
+    try { return num.toLocaleString() } catch { return String(num) }
+  }
+
+  const formatInteger = (num?: number | null) => {
+    if (num === null || num === undefined) return '—'
+    return String(Math.round(num))
+  }
 
   return (
     <DashboardLayout
