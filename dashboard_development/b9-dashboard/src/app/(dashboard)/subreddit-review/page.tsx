@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase, type Subreddit } from '../../../lib/supabase'
+import { supabase, type Subreddit } from '@/lib/supabase'
 import { MetricsCards } from '@/components/MetricsCards'
 import { SubredditTable } from '@/components/SubredditTable'
 import { DashboardLayout } from '@/components/DashboardLayout'
@@ -123,12 +123,12 @@ export default function SubredditReviewPage() {
   const fetchCounts = async () => {
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([
-      // Exclude profile feeds: user feeds (u_*)
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).is('review', null).not('name', 'ilike', 'u_%'),
-      supabase.from('subreddits').select('*', { count: 'exact', head: true }).not('review', 'is', null).not('name', 'ilike', 'u_%'),
+      // Exclude profile feeds: user feeds (u_*) - use consistent field names
+      supabase.from('subreddits').select('id', { count: 'exact', head: true }).or('review.is.null,review.eq.').not('name', 'ilike', 'u_%'),
+      supabase.from('subreddits').select('id', { count: 'exact', head: true }).not('review', 'is', null).neq('review', '').not('name', 'ilike', 'u_%'),
       supabase
         .from('subreddits')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', today)
         .not('name', 'ilike', 'u_%')
     ])
@@ -156,6 +156,8 @@ export default function SubredditReviewPage() {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
 
+    console.log('fetchSubreddits called with:', { page, append, currentFilter })
+
     await handleAsyncOperation(async () => {
       let query = supabase
         .from('subreddits')
@@ -163,10 +165,12 @@ export default function SubredditReviewPage() {
 
       switch (currentFilter) {
         case 'uncategorized':
-          query = query.is('review', null)
+          // Show subreddits that haven't been reviewed yet
+          query = query.or('review.is.null,review.eq.')
           break
         case 'categorized':
-          query = query.not('review', 'is', null)
+          // Show subreddits that have been reviewed (any review status)
+          query = query.not('review', 'is', null).neq('review', '')
           break
       }
 
@@ -178,7 +182,10 @@ export default function SubredditReviewPage() {
         .order('subscribers', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
+      console.log('Executing query for filter:', currentFilter)
       const { data: subredditData, error: subredditError } = await query
+      console.log('Query result:', { data: subredditData?.length, error: subredditError })
+      
       if (subredditError) throw new Error(`Failed to fetch subreddits: ${subredditError.message}`)
 
       const newData = subredditData || []
@@ -198,7 +205,8 @@ export default function SubredditReviewPage() {
     }, {
       context: 'subreddit_fetch',
       retries: 2,
-      onError: () => {
+      onError: (error) => {
+        console.error('Failed to fetch subreddits:', error)
         // Keep existing data on error to avoid blank screen
       }
     })

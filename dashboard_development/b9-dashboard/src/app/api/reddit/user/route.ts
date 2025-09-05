@@ -52,24 +52,24 @@ interface RedditPostData {
   content_type?: string
 }
 
-// Proxy configurations (same as scraper)
+// Proxy configurations loaded from environment variables
 const PROXY_CONFIGS = [
   {
     service: 'beyondproxy',
-    proxy: '9b1a4c15700a:654fa0b97850@proxy.beyondproxy.io:12321',
+    proxy: process.env.BEYONDPROXY_CREDENTIALS || '',
     display_name: 'BeyondProxy'
   },
   {
-    service: 'nyronproxy',
-    proxy: 'uxJNWsLXw3XnJE-zone-resi:cjB3tG2ij@residential-ww.nyronproxies.com:16666',
+    service: 'nyronproxy', 
+    proxy: process.env.NYRONPROXY_CREDENTIALS || '',
     display_name: 'NyronProxy'
   },
   {
     service: 'rapidproxy',
-    proxy: 'admin123-residential-GLOBAL:admin123@us.rapidproxy.io:5001',
+    proxy: process.env.RAPIDPROXY_CREDENTIALS || '',
     display_name: 'RapidProxy'
   }
-]
+].filter(config => config.proxy) // Only include configs with valid credentials
 
 
 function generateUserAgent(): string {

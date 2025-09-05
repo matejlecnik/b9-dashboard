@@ -61,24 +61,24 @@ export default function CategorizationPage() {
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .in('review', ['Ok', 'OK'])
+        .eq('review', 'Ok')
         .or('category_text.is.null,category_text.eq.'),
       // Categorized = category_text IS NOT NULL AND category_text != ''
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .in('review', ['Ok', 'OK'])
+        .eq('review', 'Ok')
         .not('category_text', 'is', null)
         .neq('category_text', ''),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .in('review', ['Ok', 'OK'])
+        .eq('review', 'Ok')
         .gte('created_at', today),
       supabase
         .from('subreddits')
         .select('*', { count: 'exact', head: true })
-        .in('review', ['Ok', 'OK'])
+        .eq('review', 'Ok')
     ])
 
     countQueries.forEach((result) => { if (result.error) throw new Error(result.error.message) })
@@ -101,11 +101,13 @@ export default function CategorizationPage() {
     if (page === 0) setLoading(true)
     else setLoadingMore(true)
 
+    console.log('Categorization fetchSubreddits called with:', { page, append, currentFilter })
+
     await handleAsyncOperation(async () => {
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
-        .in('review', ['Ok', 'OK']) // Only show OK-reviewed subreddits (case-insensitive)
+        .eq('review', 'Ok') // Only show OK-reviewed subreddits for categorization
 
       // Apply filters based on current selection
       if (currentFilter === 'uncategorized') {
@@ -121,7 +123,10 @@ export default function CategorizationPage() {
         .order('subscribers', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
+      console.log('Categorization executing query for filter:', currentFilter)
       const { data: subredditData, error: subredditError } = await query
+      console.log('Categorization query result:', { data: subredditData?.length, error: subredditError })
+      
       if (subredditError) throw new Error(`Failed to fetch subreddits: ${subredditError.message}`)
 
       const newData = subredditData || []
@@ -242,17 +247,12 @@ export default function CategorizationPage() {
     }
   }, [loadMore, hasMore, loadingMore])
 
-  // Fetch subreddits when filter changes
+  // Fetch subreddits when filter changes or on initial load
   useEffect(() => { 
     setCurrentPage(0)
     setHasMore(true)
     fetchSubreddits(0, false) 
   }, [currentFilter, fetchSubreddits])
-  
-  // Initial load
-  useEffect(() => {
-    fetchSubreddits(0, false)
-  }, [fetchSubreddits])
 
   return (
     <DashboardLayout title="" showSearch={false}>

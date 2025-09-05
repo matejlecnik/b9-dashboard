@@ -13,13 +13,15 @@ interface MetricsCardsProps {
   uncategorizedCount: number
   newTodayCount: number
   loading: boolean
+  error?: string | null
 }
 
 const MetricsCards = memo(function MetricsCards({ 
   totalSubreddits, 
   uncategorizedCount, 
   newTodayCount,
-  loading 
+  loading,
+  error 
 }: MetricsCardsProps) {
   const categorizedCount = totalSubreddits - uncategorizedCount
   const completionPercentage = totalSubreddits > 0 ? Math.round((categorizedCount / totalSubreddits) * 100) : 0
@@ -27,10 +29,10 @@ const MetricsCards = memo(function MetricsCards({
   const metrics = [
     {
       title: 'Total Subreddits',
-      value: loading ? '...' : totalSubreddits.toLocaleString(),
-      subtitle: 'In Database',
+      value: loading ? '...' : error ? 'Error' : totalSubreddits.toLocaleString(),
+      subtitle: error ? 'Failed to load' : 'In Database',
       icon: Database,
-      iconColor: 'text-gray-700'
+      iconColor: error ? 'text-red-500' : 'text-gray-700'
     },
     {
       title: 'Added Today',

@@ -169,7 +169,7 @@ const SubredditTable = memo(function SubredditTable({
 
   return (
     <div className="space-y-4">
-      {/* Bulk Action Controls - TODO: Implement dynamic bulk categorization */}
+      {/* Bulk Action Controls */}
       {selectedSubreddits.size > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
@@ -177,9 +177,26 @@ const SubredditTable = memo(function SubredditTable({
               <Badge variant="secondary" className="bg-b9-pink text-white">
                 {selectedSubreddits.size} selected
               </Badge>
-              <span className="text-sm text-muted-foreground">
-                Bulk categorization coming soon
-              </span>
+              {mode === 'review' ? (
+                <div className="flex items-center space-x-2">
+                  <Button size="sm" onClick={() => onBulkUpdateCategory('Ok')} className="bg-green-600 hover:bg-green-700 text-white">
+                    Mark as Ok
+                  </Button>
+                  <Button size="sm" onClick={() => onBulkUpdateCategory('No Seller')} className="bg-red-600 hover:bg-red-700 text-white">
+                    No Seller
+                  </Button>
+                  <Button size="sm" onClick={() => onBulkUpdateCategory('Non Related')} className="bg-gray-600 hover:bg-gray-700 text-white">
+                    Non Related
+                  </Button>
+                </div>
+              ) : (
+                <CategorySelector
+                  subredditId={0}
+                  currentCategory={null}
+                  onUpdateCategory={(_, categoryText) => onBulkUpdateCategory(categoryText)}
+                  compact={true}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -345,17 +362,16 @@ const SubredditTable = memo(function SubredditTable({
                             })
                           }}
                         />
-                      ) : null}
-                      <div 
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border border-gray-200 ${
-                          (subreddit.icon_img || subreddit.community_icon) && !brokenIcons.has(subreddit.id) ? 'hidden' : 'flex'
-                        }`}
-                        style={{ 
-                          backgroundColor: getSubredditColor(subreddit.name)
-                        }}
-                      >
-                        {getSubredditInitials(subreddit.name)}
-                      </div>
+                      ) : (
+                        <div 
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border border-gray-200"
+                          style={{ 
+                            backgroundColor: getSubredditColor(subreddit.name)
+                          }}
+                        >
+                          {getSubredditInitials(subreddit.name)}
+                        </div>
+                      )}
                     </a>
                   </div>
                 </td>

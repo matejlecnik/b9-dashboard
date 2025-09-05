@@ -42,6 +42,8 @@ export function CategorySelector({
       await onUpdateCategory(subredditId, value)
     } catch (error) {
       console.error('Error updating category:', error)
+      // Show error feedback to user
+      alert('Failed to update category. Please try again.')
     } finally {
       setIsUpdating(false)
     }

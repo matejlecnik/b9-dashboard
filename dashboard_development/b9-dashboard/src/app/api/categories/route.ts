@@ -1,25 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
-export interface Category {
-  id: number
-  name: string
-  description?: string
-  color: string
-  created_at: string
-  updated_at: string
-}
-
-// GET - Fetch all categories
+// GET /api/categories - Get all categories
 export async function GET() {
   try {
     const supabase = await createClient()
     
-    const { data: categories, error } = await supabase
+    // Check if we have a categories table, if not fall back to category_text approach
+    const { data: categories, error: categoriesError } = await supabase
       .from('categories')
       .select('*')
-      .order('name', { ascending: true })
-
+      .order('name')
+    
+    if (!categoriesError && categories) {
+      // We have a categories table, use it
+      return NextResponse.json({ 
+        success: true, 
+        categories 
+      })
+    }
+    
+    // Fall back to extracting categories from category_text field
+    const { data, error } = await supabase
+      .from('subreddits')
+      .select('category_text')
+      .not('category_text', 'is', null)
+      .neq('category_text', '')
+      .eq('review', 'Ok')
+    
     if (error) {
       console.error('Database error:', error)
       return NextResponse.json({ 
@@ -28,9 +36,27 @@ export async function GET() {
       }, { status: 500 })
     }
 
+    // Extract unique categories and count their usage
+    const categoryMap = new Map<string, number>()
+    data.forEach(item => {
+      if (item.category_text) {
+        categoryMap.set(item.category_text, (categoryMap.get(item.category_text) || 0) + 1)
+      }
+    })
+
+    const categoryList = Array.from(categoryMap.entries()).map(([name, count]) => ({
+      id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      name,
+      description: null,
+      color: '#EC4899', // Default B9 pink
+      usage_count: count,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })).sort((a, b) => b.usage_count - a.usage_count)
+
     return NextResponse.json({ 
       success: true, 
-      categories: categories || [] 
+      categories: categoryList 
     })
 
   } catch (error) {
@@ -42,12 +68,11 @@ export async function GET() {
   }
 }
 
-// POST - Create a new category
-export async function POST(request: NextRequest) {
+// POST /api/categories - Create a new category
+export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { name, description, color } = body
-
+    const { name, description, color } = await request.json()
+    
     if (!name || typeof name !== 'string') {
       return NextResponse.json({ 
         success: false, 
@@ -69,15 +94,17 @@ export async function POST(request: NextRequest) {
     const categoryData = {
       name: name.trim(),
       description: description?.trim() || null,
-      color: color || '#EC4899' // Default to pink
+      color: color || '#EC4899', // Default B9 pink
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
 
     const { data: category, error } = await supabase
       .from('categories')
-      .insert([categoryData])
+      .insert(categoryData)
       .select()
       .single()
-
+    
     if (error) {
       if (error.code === '23505') { // Unique constraint violation
         return NextResponse.json({ 
@@ -96,7 +123,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       category 
-    }, { status: 201 })
+    })
 
   } catch (error) {
     console.error('Error creating category:', error)
