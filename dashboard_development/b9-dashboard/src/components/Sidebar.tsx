@@ -106,7 +106,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 group cursor-pointer transform hover:scale-105 active:scale-95
                   ${active 
                     ? 'bg-b9-pink/15 text-b9-pink ring-1 ring-inset ring-b9-pink/25 shadow-apple' 
-                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-apple-strong'
+                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-2xl'
                   }
                   ${isCollapsed ? 'justify-center' : 'justify-start'}
                 `} title={isCollapsed ? item.title : undefined}>
@@ -133,7 +133,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         <Link href="/dashboards" aria-label="Back to Dashboards">
           <div className={`
             flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 group cursor-pointer transform hover:scale-105 active:scale-95
-            bg-white/70 hover:bg-white/90 text-gray-600 hover:text-gray-800 ring-1 ring-inset ring-white/30 hover:shadow-apple-strong
+            bg-white/70 hover:bg-white/90 text-gray-600 hover:text-gray-800 ring-1 ring-inset ring-white/30 hover:shadow-2xl
             ${isCollapsed ? 'justify-center' : 'justify-start'}
           `} title={isCollapsed ? 'Back to Dashboards' : undefined}>
             <ChevronLeft className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} aria-hidden="true" />

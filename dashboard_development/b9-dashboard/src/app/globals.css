@@ -226,7 +226,7 @@
   }
   
   .apple-card-hover {
-    @apply hover:-translate-y-1 hover:shadow-apple-strong transition-all duration-300;
+    @apply hover:-translate-y-1 hover:shadow-2xl transition-all duration-300;
   }
   
   .apple-focus {

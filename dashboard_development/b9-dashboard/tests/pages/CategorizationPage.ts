@@ -27,6 +27,10 @@ export class CategorizationPage extends BasePage {
     return this.page.locator('[data-testid="category-option"]');
   }
 
+  get successToast() {
+    return this.page.locator('[data-testid="success-toast"], .toast-success, [role="alert"]:has-text("success"), .sonner-toast[data-type="success"]');
+  }
+
   // Filter controls specific to categorization
   get okOnlyFilter() {
     return this.page.locator('button:has-text("Ok Only"), [data-testid="ok-filter"]');

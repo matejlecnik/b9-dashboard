@@ -28,6 +28,10 @@ export class UserAnalysisPage extends BasePage {
     return this.page.locator('[data-testid="activity-filter"]');
   }
 
+  get successToast() {
+    return this.page.locator('[data-testid="success-toast"], .toast-success, [role="alert"]:has-text("success"), .sonner-toast[data-type="success"]');
+  }
+
   // User table elements
   get userTable() {
     return this.page.locator('table');

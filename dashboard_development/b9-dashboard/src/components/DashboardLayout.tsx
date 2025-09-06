@@ -90,7 +90,7 @@ export function DashboardLayout({
               href="/dashboards" 
               title="Back to Dashboards" 
               aria-label="Back to Dashboards" 
-              className="glass-button apple-interactive block p-3 rounded-xl ring-1 ring-inset ring-white/20 shadow-apple hover:shadow-apple-strong"
+              className="glass-button apple-interactive block p-3 rounded-xl ring-1 ring-inset ring-white/20 shadow-apple hover:shadow-2xl"
             >
               <Image 
                 src="/logo/logo.png" 

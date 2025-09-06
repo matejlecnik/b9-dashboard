@@ -215,7 +215,7 @@ export default function DashboardsPage() {
               return (
                 <Link key={dashboard.id} href={dashboard.href}>
                   <Card 
-                    className="group glass-card shadow-apple border border-gray-200 hover:border-gray-300 hover:shadow-apple-strong hover-lift transition-all duration-200 flex items-center p-3 relative rounded-lg"
+                    className="group glass-card shadow-apple border border-gray-200 hover:border-gray-300 hover:shadow-2xl hover-lift transition-all duration-200 flex items-center p-3 relative rounded-lg"
                   >
                     {/* Icon + Name layout (Airtable-like) */}
                     <div className={`p-2 rounded-md flex-shrink-0 ${dashboard.accent}`}>
