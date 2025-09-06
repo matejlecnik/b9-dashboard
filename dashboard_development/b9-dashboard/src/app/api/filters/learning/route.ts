@@ -90,8 +90,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
+interface FilterPattern {
+  predicted_filter: boolean
+  actual_user_decision: string
+}
+
 // Helper function to calculate accuracy statistics
-function calculateAccuracyStats(patterns: any[]) {
+function calculateAccuracyStats(patterns: FilterPattern[]) {
   if (!patterns || patterns.length === 0) {
     return {
       total_predictions: 0,

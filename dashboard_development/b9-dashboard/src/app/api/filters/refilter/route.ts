@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createClient, Subreddit } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Basic filtering logic implemented in TypeScript
-async function applyBasicFiltering(subreddit: any) {
+async function applyBasicFiltering(subreddit: Subreddit) {
   const name = subreddit.name?.toLowerCase() || ''
   const title = subreddit.title?.toLowerCase() || ''
   const description = subreddit.description?.toLowerCase() || ''
@@ -119,7 +119,7 @@ async function applyBasicFiltering(subreddit: any) {
   }
   
   const analysis = {
-    matched_keywords: {} as any,
+    matched_keywords: {} as Record<string, string[]>,
     total_matches: 0,
     seller_ban_detected: false,
     verification_required_detected: false,

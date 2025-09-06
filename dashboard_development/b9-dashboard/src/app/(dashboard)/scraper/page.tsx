@@ -91,7 +91,7 @@ interface ScraperStatus {
   error_feed: Array<{
     timestamp: string
     message: string
-    context: any
+    context: Record<string, unknown> | null
     level: string
   }>
   last_updated: string

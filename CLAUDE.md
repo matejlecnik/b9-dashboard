@@ -203,20 +203,26 @@ The project has configured MCP (Model Context Protocol) servers for enhanced cap
 ### Active MCP Servers
 
 - **Filesystem** - Enhanced file operations with security controls
-  - `npx @modelcontextprotocol/server-filesystem`
-  - Provides secure file access to project directory
+  - `npx @modelcontextprotocol/server-filesystem /Users/matejlecnik/Desktop/B9 Agencija d.o.o./Dashboard`
+  - Provides secure file access to project directory with explicit root path
 
 - **Sequential Thinking** - Advanced reasoning capabilities
   - `npx @modelcontextprotocol/server-sequential-thinking`
-  - Enables structured problem-solving workflows
+  - Enables structured problem-solving workflows and complex analysis
 
 - **Supabase** - Direct database access and management
-  - `npx @supabase/mcp-server-supabase@latest --project-ref=cetrhongdrjztsrsffuh`
+  - `npx -y @supabase/mcp-server-supabase@latest --project-ref=cetrhongdrjztsrsffuh`
   - Direct access to Reddit analytics database with service role permissions
+  - Environment: `SUPABASE_ACCESS_TOKEN` configured
 
 - **Playwright** - Browser automation and testing
   - `npx @playwright/mcp@latest`
-  - Web scraping and automated testing capabilities
+  - Web scraping and automated testing capabilities for dashboard QA
+
+- **GitHub** - Repository and CI/CD management
+  - `npx @modelcontextprotocol/server-github`
+  - Issue tracking, PR management, and automated workflow setup
+  - Environment: `GITHUB_TOKEN` configured for API access
 
 - **Vercel** - Deployment and hosting integration
   - SSE server at `https://mcp.vercel.com`
@@ -226,6 +232,11 @@ The project has configured MCP (Model Context Protocol) servers for enhanced cap
   - Initialized via `npx shadcn@latest mcp init --client claude`
   - Configuration saved to `.mcp.json`
   - Provides enhanced component management and development tools
+
+### Additional Development Tools Installed
+
+- **Brave Search MCP** - Web search capabilities (deprecated but functional)
+- **PostgreSQL MCP** - Direct database operations (deprecated but functional)
 
 ### MCP Server Status
 

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
 
+interface FilterStatusStat {
+  filter_status: string | null
+  count: string | number
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()
@@ -47,22 +52,22 @@ export async function GET(request: NextRequest) {
     }
     
     // Calculate totals and percentages
-    const totalSubreddits = statusStats?.reduce((sum: number, stat: any) => sum + parseInt(stat.count), 0) || 0
+    const totalSubreddits = statusStats?.reduce((sum: number, stat: FilterStatusStat) => sum + parseInt(stat.count.toString()), 0) || 0
     
     const stats = {
       total_subreddits: totalSubreddits,
-      by_status: statusStats?.reduce((acc: any, stat: any) => {
-        acc[stat.filter_status || 'unprocessed'] = parseInt(stat.count)
+      by_status: statusStats?.reduce((acc: Record<string, number>, stat: FilterStatusStat) => {
+        acc[stat.filter_status || 'unprocessed'] = parseInt(stat.count.toString())
         return acc
       }, {}) || {},
       whitelist_count: whitelistCount || 0,
       seller_bans_detected: sellerBansCount || 0,
       verification_required: verificationCount || 0,
       filter_efficiency: {
-        total_processed: totalSubreddits - (statusStats?.find((s: any) => s.filter_status === 'unprocessed')?.count || 0),
-        filtered_out: statusStats?.find((s: any) => s.filter_status === 'filtered')?.count || 0,
-        passed_for_review: statusStats?.find((s: any) => s.filter_status === 'passed')?.count || 0,
-        whitelisted: statusStats?.find((s: any) => s.filter_status === 'whitelist')?.count || 0
+        total_processed: totalSubreddits - parseInt((statusStats?.find((s: FilterStatusStat) => s.filter_status === 'unprocessed')?.count || 0).toString()),
+        filtered_out: parseInt((statusStats?.find((s: FilterStatusStat) => s.filter_status === 'filtered')?.count || 0).toString()),
+        passed_for_review: parseInt((statusStats?.find((s: FilterStatusStat) => s.filter_status === 'passed')?.count || 0).toString()),
+        whitelisted: parseInt((statusStats?.find((s: FilterStatusStat) => s.filter_status === 'whitelist')?.count || 0).toString())
       }
     }
     

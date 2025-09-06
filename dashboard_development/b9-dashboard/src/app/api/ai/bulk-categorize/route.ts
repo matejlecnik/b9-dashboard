@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase'
 import { bulkCategorizeSubreddits } from '@/lib/openai'
 
 // POST /api/ai/bulk-categorize - Start bulk categorization
@@ -88,7 +88,20 @@ export async function POST(request: Request) {
   }
 }
 
-async function processSubredditsInBackground(subreddits: any[], sessionId: number) {
+interface SubredditData {
+  id: number
+  name: string
+  display_name_prefixed: string
+  title: string
+  public_description: string | null
+  over18: boolean | null
+  subscribers: number
+  top_content_type: string | null
+  avg_upvotes_per_post: number | null
+  category_text: string | null
+}
+
+async function processSubredditsInBackground(subreddits: SubredditData[], sessionId: number) {
   const supabase = await createClient()
   
   try {

@@ -1,5 +1,24 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase'
+
+interface ScraperLog {
+  timestamp: string
+  message: string
+  level: string
+  context?: Record<string, unknown> | null
+}
+
+interface SubredditQualityData {
+  name: string
+  description: string | null
+  subscriber_engagement_ratio: number | null
+  total_posts_last_30: number | null
+}
+
+interface NewSubredditData {
+  name: string
+  created_at: string
+}
 
 export async function GET() {
   try {
@@ -25,7 +44,7 @@ export async function GET() {
 
     // Calculate data quality metrics
     const totalRecords = allSubreddits?.length || 0
-    const completeRecords = allSubreddits?.filter((s: any) => 
+    const completeRecords = allSubreddits?.filter((s: SubredditQualityData) => 
       s.description && 
       s.subscriber_engagement_ratio !== null && 
       s.total_posts_last_30 !== null
@@ -53,13 +72,13 @@ export async function GET() {
 
     // Get recent errors and activity
     const recentActivity = [
-      ...scraperLogs.filter((log: any) => log.level !== 'error').slice(0, 5).map((log: any) => ({
+      ...scraperLogs.filter((log: ScraperLog) => log.level !== 'error').slice(0, 5).map((log: ScraperLog) => ({
         type: 'system',
         message: log.message,
         timestamp: log.timestamp,
         status: log.level === 'warn' ? 'warning' : 'success'
       })),
-      ...(newSubreddits || []).slice(0, 5).map((sub: any) => ({
+      ...(newSubreddits || []).slice(0, 5).map((sub: NewSubredditData) => ({
         type: 'discovery',
         message: `New subreddit discovered: r/${sub.name}`,
         timestamp: sub.created_at,
@@ -68,8 +87,8 @@ export async function GET() {
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10)
 
     const errorFeed = scraperLogs
-      .filter((log: any) => log.level === 'error')
-      .map((log: any) => ({
+      .filter((log: ScraperLog) => log.level === 'error')
+      .map((log: ScraperLog) => ({
         timestamp: log.timestamp,
         message: log.message,
         context: log.context || {},

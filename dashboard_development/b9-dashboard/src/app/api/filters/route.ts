@@ -77,7 +77,13 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    const updateData: any = {
+    const updateData: {
+      updated_at: string
+      category?: string
+      keywords?: string[]
+      is_active?: boolean
+      weight?: number
+    } = {
       updated_at: new Date().toISOString()
     }
     

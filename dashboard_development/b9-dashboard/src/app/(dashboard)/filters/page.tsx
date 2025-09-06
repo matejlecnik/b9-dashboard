@@ -307,11 +307,11 @@ export default function FiltersPage() {
                   <XCircle className="h-5 w-5 text-red-500" />
                   Seller Bans Detected
                 </CardTitle>
-                <CardDescription>Subreddits with "no sellers" or "no OnlyFans" rules</CardDescription>
+                <CardDescription>Subreddits with &quot;no sellers&quot; or &quot;no OnlyFans&quot; rules</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{stats?.seller_bans_detected || 0}</div>
-                <p className="text-sm text-muted-foreground">Automatically marked as "No Seller"</p>
+                <p className="text-sm text-muted-foreground">Automatically marked as &quot;No Seller&quot;</p>
               </CardContent>
             </Card>
 
