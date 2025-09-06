@@ -302,29 +302,7 @@ export default function SubredditReviewPage() {
     }
   }
 
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const target = observerRef.current
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMore()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (target) {
-      observer.observe(target)
-    }
-
-    return () => {
-      if (target) {
-        observer.unobserve(target)
-      }
-      observer.disconnect()
-    }
-  }, [loadMore, hasMore, loadingMore])
+  // Page-level observer removed; handled inside SubredditTable
 
   // Set up real-time subscriptions and refresh timer
   useEffect(() => {
@@ -444,31 +422,12 @@ export default function SubredditReviewPage() {
                   onBulkUpdateReview={bulkUpdateReviewByText}
                   loading={loading}
                   mode="review"
+                  onReachEnd={loadMore}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
                 />
               </ComponentErrorBoundary>
-              
-              {/* Infinite scroll loader */}
-              {hasMore && (
-                <div ref={observerRef} className="flex items-center justify-center py-8">
-                  {loadingMore ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-b9-pink"></div>
-                      <span className="text-sm text-gray-600">Loading more subreddits...</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400">Scroll to load more</div>
-                  )}
-                </div>
-              )}
-              
-              {/* End of results */}
-              {!hasMore && subreddits.length > 0 && (
-                <div className="text-center py-8">
-                  <div className="text-sm text-gray-500">
-                    Showing all {subreddits.length} results
-                  </div>
-                </div>
-              )}
+
             </>
           )}
         </div>

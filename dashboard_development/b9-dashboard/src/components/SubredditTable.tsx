@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, memo } from 'react'
+import { useState, memo, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { type Subreddit } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,10 @@ interface SubredditTableProps {
   onBulkUpdateReview?: (reviewText: string) => void
   loading: boolean
   mode?: 'review' | 'category' // Add mode to distinguish between review and category pages
+  // Infinite scroll
+  onReachEnd?: () => void
+  hasMore?: boolean
+  loadingMore?: boolean
 }
 
 const SubredditTable = memo(function SubredditTable({
@@ -32,7 +36,10 @@ const SubredditTable = memo(function SubredditTable({
   onUpdateReview,
   onBulkUpdateReview,
   loading,
-  mode = 'category'
+  mode = 'category',
+  onReachEnd,
+  hasMore = false,
+  loadingMore = false
 }: SubredditTableProps) {
   // Resolve handlers based on provided props (review-first, then category for backward compatibility)
   const handleUpdate = (id: number, value: string) => {
@@ -52,6 +59,28 @@ const SubredditTable = memo(function SubredditTable({
     subreddit: null
   })
   const [brokenIcons, setBrokenIcons] = useState<Set<number>>(new Set())
+
+  // Refs for internal infinite scroll
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Observe the sentinel within the table's own scroll container
+  useEffect(() => {
+    if (!onReachEnd || !hasMore) return
+    const rootEl = wrapperRef.current
+    const target = sentinelRef.current
+    if (!rootEl || !target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onReachEnd()
+        }
+      },
+      { root: rootEl, rootMargin: '200px 0px', threshold: 0.01 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [onReachEnd, hasMore, loadingMore])
 
   const parseRulesDataSafely = (rulesData?: unknown): Array<{ short_name?: string; description?: string; description_html?: string }> => {
     if (!rulesData) return []
@@ -232,7 +261,7 @@ const SubredditTable = memo(function SubredditTable({
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto max-h-[calc(100vh-400px)] -mx-6 sm:mx-0">
+      <div ref={wrapperRef} className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-400px)] -mx-6 sm:mx-0">
         <div className="min-w-full px-6 sm:px-0">
           <table className="w-full min-w-[700px] border-collapse bg-white" role="table" aria-label="Subreddits table">
           <thead className="sticky top-0 z-10">
@@ -475,6 +504,23 @@ const SubredditTable = memo(function SubredditTable({
           </tbody>
         </table>
         </div>
+
+        {/* Internal infinite-scroll sentinel and indicators */}
+        <div ref={sentinelRef} className="h-8" />
+        {hasMore && !loading && !loadingMore && (
+          <div className="py-4 text-center text-sm text-gray-400">Scroll to load more</div>
+        )}
+        {loadingMore && (
+          <div className="py-4 text-center text-sm text-gray-600">
+            <span className="inline-flex items-center space-x-2">
+              <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-b9-pink" />
+              <span>Loading more...</span>
+            </span>
+          </div>
+        )}
+        {!hasMore && onReachEnd && (
+          <div className="py-6 text-center text-sm text-gray-500">End of results</div>
+        )}
       </div>
 
       {/* Rules Modal */}
