@@ -107,7 +107,20 @@ async function processSubredditsInBackground(subreddits: SubredditData[], sessio
   try {
     console.log(`Starting bulk categorization for ${subreddits.length} subreddits`)
     
-    const result = await bulkCategorizeSubreddits(subreddits)
+    // Transform subreddits data to match OpenAI function signature (convert null to undefined)
+    const transformedSubreddits = subreddits.map(sub => ({
+      id: sub.id,
+      name: sub.name,
+      display_name_prefixed: sub.display_name_prefixed,
+      title: sub.title || undefined,
+      public_description: sub.public_description || undefined,
+      over18: sub.over18 || false,
+      subscribers: sub.subscribers || undefined,
+      top_content_type: sub.top_content_type || undefined,
+      avg_upvotes_per_post: sub.avg_upvotes_per_post || 0
+    }))
+    
+    const result = await bulkCategorizeSubreddits(transformedSubreddits)
     
     // Save all suggestions to database
     const suggestions = result.results.map(r => ({

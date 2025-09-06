@@ -8,7 +8,7 @@ interface FilterStatusStat {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get filter status statistics
     const { data: statusStats, error: statusError } = await supabase
@@ -73,12 +73,15 @@ export async function GET(request: NextRequest) {
     
     // Calculate percentages
     if (stats.filter_efficiency.total_processed > 0) {
-      stats.filter_efficiency = {
-        ...stats.filter_efficiency,
-        filtered_percentage: ((stats.filter_efficiency.filtered_out / stats.filter_efficiency.total_processed) * 100).toFixed(1),
-        passed_percentage: ((stats.filter_efficiency.passed_for_review / stats.filter_efficiency.total_processed) * 100).toFixed(1),
-        whitelist_percentage: ((stats.filter_efficiency.whitelisted / stats.filter_efficiency.total_processed) * 100).toFixed(1)
-      }
+      const efficiencyWithPercentages = stats.filter_efficiency as typeof stats.filter_efficiency & {
+        filtered_percentage: string;
+        passed_percentage: string;
+        whitelist_percentage: string;
+      };
+      efficiencyWithPercentages.filtered_percentage = ((stats.filter_efficiency.filtered_out / stats.filter_efficiency.total_processed) * 100).toFixed(1);
+      efficiencyWithPercentages.passed_percentage = ((stats.filter_efficiency.passed_for_review / stats.filter_efficiency.total_processed) * 100).toFixed(1);
+      efficiencyWithPercentages.whitelist_percentage = ((stats.filter_efficiency.whitelisted / stats.filter_efficiency.total_processed) * 100).toFixed(1);
+      stats.filter_efficiency = efficiencyWithPercentages;
     }
     
     return NextResponse.json({ stats })

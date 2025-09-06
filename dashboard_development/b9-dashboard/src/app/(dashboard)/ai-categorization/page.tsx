@@ -88,7 +88,7 @@ export default function AICategorization() {
   const [isStartingBulk, setIsStartingBulk] = useState(false)
   const [bulkLimit, setBulkLimit] = useState(50)
   const [loading, setLoading] = useState(true)
-  const pollIntervalRef = useRef<NodeJS.Timeout>()
+  const pollIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -205,8 +205,7 @@ export default function AICategorization() {
       URL.revokeObjectURL(url)
     }, {
       context: 'export_results',
-      showToast: true,
-      successMessage: 'Results exported successfully'
+      showToast: true
     })
   }
 

@@ -36,23 +36,25 @@ export interface Subreddit {
   id: number
   name: string
   display_name_prefixed: string
-  title: string
-  subscribers: number
+  title?: string | null
+  description?: string | null
+  public_description?: string | null
+  subscribers?: number | null
   review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null // Review status for subreddit-review page
   category_text: string | null // Category text for categorization page
-  subscriber_engagement_ratio: number
+  subscriber_engagement_ratio?: number | null
   avg_upvotes_per_post: number
-  best_posting_day: string
-  best_posting_hour: number
-  top_content_type: string
+  best_posting_day?: string | null
+  best_posting_hour?: number | null
+  top_content_type?: string | null
   last_scraped_at: string | null
   created_at: string
   icon_img?: string | null // Subreddit icon URL
   community_icon?: string | null // Alternative icon field
   over18: boolean | null // NSFW flag
   rules_data?: string | null // JSON string of subreddit rules
-  total_upvotes_hot_30?: number
-  total_posts_hot_30?: number
+  total_upvotes_hot_30?: number | null
+  total_posts_hot_30?: number | null
 }
 
 export interface User {

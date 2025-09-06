@@ -59,7 +59,6 @@ export default defineConfig({
     timeout: 5000,
     // Custom screenshot comparison options for visual regression
     toHaveScreenshot: {
-      mode: 'css',
       animations: 'disabled'
     }
   },

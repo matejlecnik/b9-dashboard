@@ -500,7 +500,7 @@ export default function PostingPage() {
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
                             <div className="flex items-center space-x-1 text-sm">
                               <Users className="h-4 w-4 text-blue-600" />
-                              <span className="font-medium text-gray-900">{subreddit.subscribers.toLocaleString()}</span>
+                              <span className="font-medium text-gray-900">{(subreddit.subscribers || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center space-x-1 text-sm">
                               <ArrowUpCircle className="h-4 w-4 text-green-600" />

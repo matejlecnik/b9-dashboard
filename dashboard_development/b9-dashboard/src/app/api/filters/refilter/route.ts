@@ -3,7 +3,7 @@ import { createClient, Subreddit } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { subreddit_names, limit = 100 } = await request.json()
     
     let query = supabase
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         .limit(limit)
     }
     
-    const { data: subreddits, error } = await query.execute()
+    const { data: subreddits, error } = await query
     
     if (error) {
       console.error('Error fetching subreddits for re-filtering:', error)

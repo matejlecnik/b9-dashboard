@@ -479,11 +479,11 @@ const SubredditTable = memo(function SubredditTable({
                   </div>
                 </td>
                 <td className="py-2 px-3 text-foreground font-medium text-sm">
-                  {formatNumber(subreddit.subscribers)}
+                  {formatNumber(subreddit.subscribers || null)}
                 </td>
                 <td className="py-2 px-3">
                   <Badge variant="outline" className="font-mono text-xs">
-                    {formatPercentage(subreddit.subscriber_engagement_ratio)}
+                    {formatPercentage(subreddit.subscriber_engagement_ratio || null)}
                   </Badge>
                 </td>
                 <td className="py-2 px-3 text-foreground text-sm">
