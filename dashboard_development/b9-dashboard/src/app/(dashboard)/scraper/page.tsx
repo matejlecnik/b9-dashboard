@@ -25,9 +25,7 @@ import {
   Wifi,
   Shield,
   AlertCircle,
-  Zap,
-  Target,
-  TrendingDown
+  Target
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { MetricsCardsSkeleton } from '@/components/SkeletonLoaders'

@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AppleSpinner, AppleSpinnerOverlay, AppleSpinnerFullScreen } from '@/components/AppleSpinner'
 import { 
   InlineError, 
-  Toast, 
   ToastContainer, 
   ErrorModal, 
   useToast,
@@ -28,7 +27,6 @@ import {
   Info,
   X,
   Play,
-  Pause,
   Settings,
   Eye
 } from 'lucide-react'

@@ -36,7 +36,7 @@ export default function CategorizationPage() {
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAISuggestions, setShowAISuggestions] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<Map<number, Record<string, unknown>>>(new Map())
+  // const [aiSuggestions, setAiSuggestions] = useState<Map<number, Record<string, unknown>>>(new Map())
   const observerRef = useRef<HTMLDivElement>(null)
 
   const filteredSubreddits = subreddits.filter(subreddit => {
@@ -231,19 +231,19 @@ export default function CategorizationPage() {
     })
   }
 
-  const handleAIFeedback = (subredditId: number, feedback: string, actualCategory?: string) => {
-    // Update AI suggestions map to track feedback
-    setAiSuggestions(prev => {
-      const newMap = new Map(prev)
-      const existing = newMap.get(subredditId) || {}
-      newMap.set(subredditId, {
-        ...existing,
-        userFeedback: feedback,
-        actualCategory
-      })
-      return newMap
-    })
-  }
+  // const handleAIFeedback = (subredditId: number, feedback: string, actualCategory?: string) => {
+  //   // Update AI suggestions map to track feedback
+  //   setAiSuggestions(prev => {
+  //     const newMap = new Map(prev)
+  //     const existing = newMap.get(subredditId) || {}
+  //     newMap.set(subredditId, {
+  //       ...existing,
+  //       userFeedback: feedback,
+  //       actualCategory
+  //     })
+  //     return newMap
+  //   })
+  // }
 
   const bulkGetAISuggestions = async () => {
     const uncategorized = subreddits.filter(sub => !sub.category_text || sub.category_text.trim() === '')
@@ -399,7 +399,7 @@ export default function CategorizationPage() {
                 onBulkUpdateCategory={bulkUpdateCategory}
                 loading={loading}
                 showAISuggestions={showAISuggestions}
-                onAIFeedback={handleAIFeedback}
+                // onAIFeedback={handleAIFeedback}
               />
               
               {/* Infinite scroll loader */}

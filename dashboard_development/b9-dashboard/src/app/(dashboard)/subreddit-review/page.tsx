@@ -35,7 +35,7 @@ export default function SubredditReviewPage() {
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const observerRef = useRef<HTMLDivElement>(null)
+  // const observerRef = useRef<HTMLDivElement>(null)
   
   // Filter subreddits based on search query
   const filteredSubreddits = subreddits.filter(subreddit => {

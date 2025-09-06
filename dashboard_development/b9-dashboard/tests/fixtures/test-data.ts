@@ -53,7 +53,7 @@ export class TestDataFixtures {
       subscribers: 10500000,
       avg_upvotes_per_post: 2500,
       review: null,
-      category_text: null,
+      category_text: undefined,
       created_at: new Date().toISOString(),
       top_content_type: 'link'
     },
@@ -89,7 +89,7 @@ export class TestDataFixtures {
       subscribers: 100,
       avg_upvotes_per_post: 5,
       review: null,
-      category_text: null,
+      category_text: undefined,
       created_at: new Date().toISOString(),
       top_content_type: 'self'
     }

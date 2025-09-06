@@ -18,14 +18,11 @@ import {
   Cell
 } from 'recharts'
 import { 
-  Filter,
-  Settings,
   Shield,
   TrendingDown,
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Users,
   BarChart3,
   RefreshCw,
   Plus
@@ -267,7 +264,7 @@ export default function FiltersPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {chartData.map((entry, index) => (
+                  {chartData.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-1">
                       <div 
                         className="w-3 h-3 rounded-full" 
