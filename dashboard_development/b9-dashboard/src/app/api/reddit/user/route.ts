@@ -302,6 +302,14 @@ export async function POST(request: NextRequest) {
 
     // Save to database
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { error } = await supabase
       .from('users')
       .upsert(userPayload, { onConflict: 'username' })

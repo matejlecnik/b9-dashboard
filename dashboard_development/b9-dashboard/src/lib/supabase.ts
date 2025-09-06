@@ -1,13 +1,25 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Get environment variables with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Browser client for client-side usage
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+// Only create if we have valid environment variables
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // Server client factory for API routes and server components
-export async function createClient() {
+// Returns null if environment variables are missing
+export async function createClient(): Promise<ReturnType<typeof createServerClient> | null> {
+  // Return null during build time when env vars aren't available
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // During build time or when env vars are missing, return null
+    // This prevents build failures while still indicating unavailability
+    return null
+  }
+  
   const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
   

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { categorizeSubreddit, MARKETING_CATEGORIES } from '@/lib/openai'
+import { categorizeSubreddit } from '@/lib/openai'
 
 // POST /api/ai/categorize - Categorize a single subreddit
 export async function POST(request: Request) {
@@ -22,6 +22,13 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
     
     // Get subreddit data
     const { data: subreddit, error: fetchError } = await supabase
@@ -121,6 +128,13 @@ export async function GET(request: Request) {
 
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { data: suggestion, error } = await supabase
       .from('ai_categorization_suggestions')
       .select('*')
@@ -176,6 +190,13 @@ export async function PUT(request: Request) {
     }
 
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
     
     // Update the suggestion with user feedback
     const { error: updateError } = await supabase

@@ -16,6 +16,13 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     // Build query for subreddits to categorize
     let query = supabase
       .from('subreddits')
@@ -104,6 +111,11 @@ interface SubredditData {
 async function processSubredditsInBackground(subreddits: SubredditData[], sessionId: number) {
   const supabase = await createClient()
   
+  if (!supabase) {
+    console.error('Database connection not available for background processing')
+    return
+  }
+  
   try {
     console.log(`Starting bulk categorization for ${subreddits.length} subreddits`)
     
@@ -189,6 +201,13 @@ export async function GET(request: Request) {
 
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { data: session, error } = await supabase
       .from('ai_categorization_sessions')
       .select('*')
@@ -203,7 +222,7 @@ export async function GET(request: Request) {
     }
 
     // Get suggestions for this session (approximate by time range)
-    const { data: suggestions, error: suggestionsError } = await supabase
+    const { data: suggestions } = await supabase
       .from('ai_categorization_suggestions')
       .select('*')
       .gte('created_at', session.created_at)

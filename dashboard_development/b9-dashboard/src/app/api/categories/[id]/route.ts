@@ -41,6 +41,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const updateData = {
       name: name.trim(),
       description: description?.trim() || null,
@@ -105,6 +112,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
     
     // First check if any subreddits are using this category
     const { data: subredditsUsingCategory, error: checkError } = await supabase
@@ -171,6 +185,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
     
     const { data: category, error } = await supabase
       .from('categories')

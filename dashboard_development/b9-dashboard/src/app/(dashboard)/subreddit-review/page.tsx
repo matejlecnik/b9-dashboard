@@ -124,6 +124,11 @@ export default function SubredditReviewPage() {
 
   // Fetch counts only (fast query) - using 'review' field only
   const fetchCounts = async () => {
+    if (!supabase) {
+      console.warn('Supabase client not initialized')
+      return
+    }
+    
     const today = new Date().toISOString().split('T')[0]
     const countQueries = await Promise.all([
       // Count unreviewed (review is null) and Ok reviewed
@@ -160,6 +165,10 @@ export default function SubredditReviewPage() {
     else setLoadingMore(true)
 
     await handleAsyncOperationRef.current(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+      
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
@@ -226,6 +235,10 @@ export default function SubredditReviewPage() {
   const updateReview = async (id: number, review: 'Ok' | 'No Seller' | 'Non Related') => {
     const subreddit = subreddits.find(sub => sub.id === id)
     await handleAsyncOperation(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+      
       const { error } = await supabase
         .from('subreddits')
         .update({ review })
@@ -275,6 +288,16 @@ export default function SubredditReviewPage() {
   // Bulk update review statuses
   const bulkUpdateReview = async (review: 'Ok' | 'No Seller' | 'Non Related') => {
     if (selectedSubreddits.size === 0) return
+    if (!supabase) {
+      addToast({ 
+        type: 'error', 
+        title: 'Database Error', 
+        description: 'Database connection not available', 
+        duration: 5000 
+      })
+      return
+    }
+    
     try {
       const ids = Array.from(selectedSubreddits)
       const { error } = await supabase
@@ -310,18 +333,21 @@ export default function SubredditReviewPage() {
     setHasMore(true)
     fetchSubreddits(0, false)
     
-    const channel = supabase
-      .channel('subreddit-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'subreddits' },
-        () => { 
-          setCurrentPage(0)
-          setHasMore(true)
-          fetchSubreddits(0, false) 
-        }
-      )
-      .subscribe()
+    let channel: any = null
+    if (supabase) {
+      channel = supabase
+        .channel('subreddit-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'subreddits' },
+          () => { 
+            setCurrentPage(0)
+            setHasMore(true)
+            fetchSubreddits(0, false) 
+          }
+        )
+        .subscribe()
+    }
 
     const refreshInterval = setInterval(() => { 
       setCurrentPage(0)
@@ -330,7 +356,9 @@ export default function SubredditReviewPage() {
     }, 300000)
     
     return () => {
-      supabase.removeChannel(channel)
+      if (supabase && channel) {
+        supabase.removeChannel(channel)
+      }
       clearInterval(refreshInterval)
     }
   }, [currentFilter, fetchSubreddits])

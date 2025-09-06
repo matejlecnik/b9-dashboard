@@ -10,6 +10,13 @@ export async function GET(request: Request) {
     
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
 
@@ -46,9 +53,9 @@ export async function GET(request: Request) {
     }
 
     // Calculate accuracy metrics
-    const withFeedback = overallMetrics.filter(s => s.user_feedback)
-    const accepted = withFeedback.filter(s => s.user_feedback === 'accepted')
-    const accurateGuesses = withFeedback.filter(s => 
+    const withFeedback = overallMetrics.filter((s: any) => s.user_feedback)
+    const accepted = withFeedback.filter((s: any) => s.user_feedback === 'accepted')
+    const accurateGuesses = withFeedback.filter((s: any) => 
       s.user_feedback === 'accepted' || 
       (s.user_feedback === 'modified' && s.actual_category === s.suggested_category)
     )
@@ -57,14 +64,14 @@ export async function GET(request: Request) {
       (accurateGuesses.length / withFeedback.length) * 100 : 0
 
     // High confidence vs low confidence accuracy
-    const highConfidenceSuggestions = withFeedback.filter(s => s.confidence_score >= confidenceThreshold)
-    const lowConfidenceSuggestions = withFeedback.filter(s => s.confidence_score < confidenceThreshold)
+    const highConfidenceSuggestions = withFeedback.filter((s: any) => s.confidence_score >= confidenceThreshold)
+    const lowConfidenceSuggestions = withFeedback.filter((s: any) => s.confidence_score < confidenceThreshold)
     
-    const highConfidenceAccurate = highConfidenceSuggestions.filter(s => 
+    const highConfidenceAccurate = highConfidenceSuggestions.filter((s: any) => 
       s.user_feedback === 'accepted' || 
       (s.user_feedback === 'modified' && s.actual_category === s.suggested_category)
     )
-    const lowConfidenceAccurate = lowConfidenceSuggestions.filter(s => 
+    const lowConfidenceAccurate = lowConfidenceSuggestions.filter((s: any) => 
       s.user_feedback === 'accepted' || 
       (s.user_feedback === 'modified' && s.actual_category === s.suggested_category)
     )
@@ -76,7 +83,7 @@ export async function GET(request: Request) {
 
     // Category breakdown
     const categoryStats = new Map()
-    withFeedback.forEach(s => {
+    withFeedback.forEach((s: any) => {
       if (!categoryStats.has(s.suggested_category)) {
         categoryStats.set(s.suggested_category, { total: 0, accurate: 0 })
       }
@@ -102,9 +109,9 @@ export async function GET(request: Request) {
     for (let i = 0; i < confidenceBuckets.length; i++) {
       const min = confidenceBuckets[i]
       const max = confidenceBuckets[i + 1] || 100
-      const inRange = overallMetrics.filter(s => s.confidence_score >= min && s.confidence_score < max)
-      const withFeedbackInRange = inRange.filter(s => s.user_feedback)
-      const accurateInRange = withFeedbackInRange.filter(s => 
+      const inRange = overallMetrics.filter((s: any) => s.confidence_score >= min && s.confidence_score < max)
+      const withFeedbackInRange = inRange.filter((s: any) => s.user_feedback)
+      const accurateInRange = withFeedbackInRange.filter((s: any) => 
         s.user_feedback === 'accepted' || 
         (s.user_feedback === 'modified' && s.actual_category === s.suggested_category)
       )
@@ -126,12 +133,12 @@ export async function GET(request: Request) {
       const startOfDay = new Date(date.setHours(0, 0, 0, 0)).toISOString()
       const endOfDay = new Date(date.setHours(23, 59, 59, 999)).toISOString()
       
-      const dayMetrics = overallMetrics.filter(s => 
+      const dayMetrics = overallMetrics.filter((s: any) => 
         s.created_at >= startOfDay && s.created_at <= endOfDay
       )
       
-      const dayWithFeedback = dayMetrics.filter(s => s.user_feedback)
-      const dayAccurate = dayWithFeedback.filter(s => 
+      const dayWithFeedback = dayMetrics.filter((s: any) => s.user_feedback)
+      const dayAccurate = dayWithFeedback.filter((s: any) => 
         s.user_feedback === 'accepted' || 
         (s.user_feedback === 'modified' && s.actual_category === s.suggested_category)
       )
@@ -143,13 +150,13 @@ export async function GET(request: Request) {
         accuracy: dayWithFeedback.length > 0 ? 
           (dayAccurate.length / dayWithFeedback.length) * 100 : 0,
         avgConfidence: dayMetrics.length > 0 ?
-          dayMetrics.reduce((sum, s) => sum + s.confidence_score, 0) / dayMetrics.length : 0,
-        cost: dayMetrics.reduce((sum, s) => sum + (s.cost_usd || 0), 0)
+          dayMetrics.reduce((sum: number, s: any) => sum + s.confidence_score, 0) / dayMetrics.length : 0,
+        cost: dayMetrics.reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0)
       })
     }
 
     // Get session metrics
-    const { data: sessions, error: sessionsError } = await supabase
+    const { data: sessions } = await supabase
       .from('ai_categorization_sessions')
       .select('*')
       .gte('created_at', cutoffDate.toISOString())
@@ -159,9 +166,9 @@ export async function GET(request: Request) {
       totalSuggestions: overallMetrics.length,
       totalWithFeedback: withFeedback.length,
       accuracyRate: Math.round(accuracyRate * 100) / 100,
-      avgConfidence: Math.round((overallMetrics.reduce((sum, s) => sum + s.confidence_score, 0) / overallMetrics.length) * 100) / 100,
-      totalCost: overallMetrics.reduce((sum, s) => sum + (s.cost_usd || 0), 0),
-      totalTokens: overallMetrics.reduce((sum, s) => sum + (s.tokens_used || 0), 0),
+      avgConfidence: Math.round((overallMetrics.reduce((sum: number, s: any) => sum + s.confidence_score, 0) / overallMetrics.length) * 100) / 100,
+      totalCost: overallMetrics.reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0),
+      totalTokens: overallMetrics.reduce((sum: number, s: any) => sum + (s.tokens_used || 0), 0),
       highConfidenceAccuracy: Math.round(highConfidenceAccuracy * 100) / 100,
       lowConfidenceAccuracy: Math.round(lowConfidenceAccuracy * 100) / 100,
       categoryBreakdown,
@@ -170,8 +177,8 @@ export async function GET(request: Request) {
       sessions: sessions || [],
       feedbackStats: {
         accepted: accepted.length,
-        rejected: withFeedback.filter(s => s.user_feedback === 'rejected').length,
-        modified: withFeedback.filter(s => s.user_feedback === 'modified').length
+        rejected: withFeedback.filter((s: any) => s.user_feedback === 'rejected').length,
+        modified: withFeedback.filter((s: any) => s.user_feedback === 'modified').length
       }
     }
 

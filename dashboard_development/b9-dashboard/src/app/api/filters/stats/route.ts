@@ -10,6 +10,12 @@ export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     // Get filter status statistics
     const { data: statusStats, error: statusError } = await supabase
       .rpc('get_filter_status_stats')

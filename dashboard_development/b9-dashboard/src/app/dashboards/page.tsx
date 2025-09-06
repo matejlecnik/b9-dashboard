@@ -44,8 +44,19 @@ export default function DashboardsPage() {
   const supabase = createClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
+    if (!supabase) {
+      console.error('Supabase client not available')
+      router.push('/login')
+      return
+    }
+    
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      router.push('/login')
+    }
   }
 
   const dashboards: Dashboard[] = [

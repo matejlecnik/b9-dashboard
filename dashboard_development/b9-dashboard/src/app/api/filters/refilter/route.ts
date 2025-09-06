@@ -4,6 +4,13 @@ import { createClient, Subreddit } from '@/lib/supabase'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { subreddit_names, limit = 100 } = await request.json()
     
     let query = supabase

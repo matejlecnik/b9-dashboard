@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast'
 import { useErrorHandler } from '@/lib/errorUtils'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 import { Button } from '@/components/ui/button'
-import { Brain, Zap, TrendingUp } from 'lucide-react'
+import { Brain, TrendingUp } from 'lucide-react'
 
 type FilterType = 'all' | 'uncategorized' | 'categorized'
 
@@ -35,7 +35,6 @@ export default function CategorizationPage() {
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showAISuggestions, setShowAISuggestions] = useState(false)
   // const [aiSuggestions, setAiSuggestions] = useState<Map<number, Record<string, unknown>>>(new Map())
   const observerRef = useRef<HTMLDivElement>(null)
 
@@ -59,6 +58,11 @@ export default function CategorizationPage() {
 
   // Fetch counts only (fast query) - only count OK-reviewed subreddits
   const fetchCounts = useCallback(async () => {
+    if (!supabase) {
+      console.warn('Supabase client not initialized')
+      return
+    }
+    
     const today = new Date().toISOString().split('T')[0]
     
     // Only count subreddits with review = 'Ok'
@@ -112,6 +116,10 @@ export default function CategorizationPage() {
     else setLoadingMore(true)
 
     await handleAsyncOperationRef.current(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+      
       let query = supabase
         .from('subreddits')
         .select('*, rules_data')
@@ -168,6 +176,10 @@ export default function CategorizationPage() {
     const subreddit = subreddits.find(sub => sub.id === id)
     
     await handleAsyncOperation(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+      
       const { error } = await supabase
         .from('subreddits')
         .update({ category_text: categoryText })
@@ -198,6 +210,16 @@ export default function CategorizationPage() {
 
   const bulkUpdateCategory = async (categoryText: string) => {
     if (selectedSubreddits.size === 0) return
+    if (!supabase) {
+      addToast({ 
+        type: 'error', 
+        title: 'Database Error', 
+        description: 'Database connection not available', 
+        duration: 5000 
+      })
+      return
+    }
+    
     const ids = Array.from(selectedSubreddits)
     
     const { error } = await supabase
@@ -269,7 +291,6 @@ export default function CategorizationPage() {
 
     const data = await response.json()
     if (data.success) {
-      setShowAISuggestions(true)
       addToast({
         type: 'success',
         title: 'AI Suggestions Started',
@@ -347,15 +368,6 @@ export default function CategorizationPage() {
         </div>
         <div className="flex items-center gap-3">
           <Button
-            onClick={() => setShowAISuggestions(!showAISuggestions)}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Zap className="h-4 w-4" />
-            {showAISuggestions ? 'Hide AI' : 'Show AI'}
-          </Button>
-          <Button
             onClick={bulkGetAISuggestions}
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
             size="sm"
@@ -398,8 +410,6 @@ export default function CategorizationPage() {
                 onUpdateCategory={updateCategory}
                 onBulkUpdateCategory={bulkUpdateCategory}
                 loading={loading}
-                showAISuggestions={showAISuggestions}
-                // onAIFeedback={handleAIFeedback}
               />
               
               {/* Infinite scroll loader */}

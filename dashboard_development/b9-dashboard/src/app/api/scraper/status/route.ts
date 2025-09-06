@@ -24,12 +24,23 @@ export async function GET() {
   try {
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({
+        discovery: { subreddits_found_24h: 0, new_subreddits: [], processing_speed: 0 },
+        data_quality: { total_records: 0, complete_records: 0, missing_fields: 0, quality_score: 0, error_rate: 0 },
+        system_health: { database: 'error', scraper: 'error', reddit_api: 'error', storage: 'error' },
+        recent_activity: [],
+        error_feed: [],
+        last_updated: new Date().toISOString()
+      }, { status: 503 })
+    }
+    
     // Get last 24h activity stats
     const now = new Date()
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     
     // Get recent subreddits discovered (last 24h)
-    const { data: newSubreddits, error: subredditsError } = await supabase
+    const { data: newSubreddits } = await supabase
       .from('subreddits')
       .select('name, created_at')
       .gte('created_at', yesterday.toISOString())

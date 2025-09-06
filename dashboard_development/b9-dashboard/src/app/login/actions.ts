@@ -8,6 +8,10 @@ import { createClient } from '../../utils/supabase/server'
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
+  if (!supabase) {
+    redirect('/error')
+  }
+
   // type-casting here for convenience
   // in practice, you should validate your inputs
   const data = {

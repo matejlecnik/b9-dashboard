@@ -8,9 +8,7 @@ import { Tag, AlertCircle } from 'lucide-react'
 // Module-level single-flight cache to dedupe concurrent fetches across many mounts
 declare global {
   // Using global vars allows cache to survive HMR/route transitions without `any`
-  // eslint-disable-next-line no-var
   var __b9_categories_cache_names: string[] | null | undefined
-  // eslint-disable-next-line no-var
   var __b9_categories_cache_promise: Promise<string[]> | null | undefined
 }
 

@@ -5,6 +5,12 @@ export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { data: filterSettings, error } = await supabase
       .from('filter_settings')
       .select('*')
@@ -28,6 +34,13 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { category, keywords, is_active = true, weight = 1.0 } = await request.json()
     
     if (!category || !keywords || !Array.isArray(keywords)) {
@@ -68,6 +81,13 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { id, category, keywords, is_active, weight } = await request.json()
     
     if (!id) {
@@ -117,6 +137,13 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     

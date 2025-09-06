@@ -64,6 +64,10 @@ export default function PostingPage() {
   const fetchOkSubreddits = async () => {
     setLoading(true)
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+      
       // Prefer 'category' column; fallback to legacy 'review' if needed
       let subreddits: Subreddit[] | null = null
       let primaryError: unknown = null
@@ -93,12 +97,12 @@ export default function PostingPage() {
 
       const subredditsWithPosts = await Promise.all(
         (subreddits || []).map(async (subreddit) => {
-          const { data: posts } = await supabase
+          const { data: posts } = supabase ? await supabase
             .from('posts')
             .select('*')
             .eq('subreddit_name', subreddit.name)
             .order('created_utc', { ascending: false })
-            .limit(5)
+            .limit(5) : null
           return {
             ...subreddit,
             recent_posts: posts || []
@@ -268,7 +272,7 @@ export default function PostingPage() {
       setLoadingTopPosts(prev => new Set(prev).add(subredditId))
       try {
         const sr = okSubreddits.find(s => s.id === subredditId)
-        if (sr) {
+        if (sr && supabase) {
           const { data: posts } = await supabase
             .from('posts')
             .select('*')

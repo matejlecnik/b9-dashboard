@@ -17,6 +17,13 @@ export async function GET() {
 
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Database connection not available'
+      }, { status: 503 })
+    }
+    
     // Test database connection by trying to fetch subreddits count
     const { data, error } = await supabase
       .from('subreddits')

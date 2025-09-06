@@ -1,19 +1,20 @@
-// import { createClient } from '@/utils/supabase/server'
-// import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
 export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // TEMPORARY: Bypass authentication for development/testing
-  // TODO: Re-enable authentication once testing is complete
-  console.log('Dashboard layout: Authentication bypassed for development')
-  return <>{children}</>
-  
-  /* ORIGINAL AUTH CODE - COMMENTED OUT FOR TESTING
   try {
     const supabase = await createClient()
+
+    // Check if Supabase client is available
+    if (!supabase) {
+      console.error('Supabase client not available in dashboard layout')
+      redirect('/login')
+      return <>{children}</>
+    }
 
     const {
       data: { user },
@@ -23,18 +24,18 @@ export default async function ProtectedLayout({
     if (error) {
       console.error('Dashboard auth error:', error)
       redirect('/login')
-      return
+      return <>{children}</>
     }
 
     if (!user) {
       redirect('/login')
-      return
+      return <>{children}</>
     }
 
     return <>{children}</>
   } catch (error) {
     console.error('Dashboard layout error:', error)
     redirect('/login')
+    return <>{children}</>
   }
-  */
 }

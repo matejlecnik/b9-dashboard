@@ -12,6 +12,13 @@ export async function GET(request: Request) {
     
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
 
@@ -69,7 +76,7 @@ export async function GET(request: Request) {
         'Created At'
       ]
 
-      const rows = suggestions.map(s => [
+      const rows = suggestions.map((s: any) => [
         s.subreddits.name || '',
         s.subreddits.display_name_prefixed || '',
         s.subreddits.title || '',
@@ -88,7 +95,7 @@ export async function GET(request: Request) {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.join(','))
+        ...rows.map((row: any) => row.join(','))
       ].join('\n')
 
       return new Response(csvContent, {
@@ -144,7 +151,7 @@ export async function GET(request: Request) {
         'Created At'
       ]
 
-      const rows = subreddits.map(s => [
+      const rows = subreddits.map((s: any) => [
         s.name || '',
         s.display_name_prefixed || '',
         `"${(s.title || '').replace(/"/g, '""')}"`,
@@ -160,7 +167,7 @@ export async function GET(request: Request) {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.join(','))
+        ...rows.map((row: any) => row.join(','))
       ].join('\n')
 
       return new Response(csvContent, {
@@ -186,11 +193,17 @@ export async function POST(request: Request) {
     const { 
       subredditIds, 
       sessionId, 
-      format = 'csv',
-      includeMetrics = true 
+      format = 'csv'
     } = await request.json()
     
     const supabase = await createClient()
+
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
 
     if (sessionId) {
       // Export specific session data
@@ -260,7 +273,7 @@ export async function POST(request: Request) {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.join(','))
+        ...rows.map((row: any) => row.join(','))
       ].join('\n')
 
       return new Response(csvContent, {
@@ -325,7 +338,7 @@ export async function POST(request: Request) {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.join(','))
+        ...rows.map((row: any) => row.join(','))
       ].join('\n')
 
       return new Response(csvContent, {

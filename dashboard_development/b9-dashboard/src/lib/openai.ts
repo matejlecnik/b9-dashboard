@@ -1,8 +1,12 @@
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Create OpenAI client only if API key is available
+// This prevents build failures when env vars aren't present
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  : null
 
 export interface CategorizationSuggestion {
   category: string
@@ -55,6 +59,37 @@ export async function categorizeSubreddit(subreddit: {
   top_content_type?: string
   avg_upvotes_per_post: number
 }): Promise<CategorizationResult> {
+  // Check if OpenAI client is available
+  if (!openai) {
+    // Return fallback categorization when OpenAI is not available
+    let fallbackCategory = 'Entertainment'
+    let confidence = 30
+    let reasoning = 'AI categorization unavailable - using rule-based fallback'
+    
+    if (subreddit.over18) {
+      fallbackCategory = 'Adult Content/NSFW'
+      confidence = 70
+      reasoning = 'NSFW subreddit automatically categorized as Adult Content'
+    } else if (subreddit.name.toLowerCase().includes('game') || subreddit.title?.toLowerCase().includes('game')) {
+      fallbackCategory = 'Gaming'
+      confidence = 50
+      reasoning = 'Detected gaming-related keywords in name/title'
+    } else if (subreddit.name.toLowerCase().includes('tech') || subreddit.title?.toLowerCase().includes('tech')) {
+      fallbackCategory = 'Technology'
+      confidence = 50
+      reasoning = 'Detected technology-related keywords in name/title'
+    }
+
+    return {
+      suggestions: [{
+        category: fallbackCategory,
+        confidence: confidence,
+        reasoning: reasoning
+      }],
+      cost: 0,
+      tokens_used: 0
+    }
+  }
   
   const prompt = `You are an expert Reddit subreddit categorization system for marketing purposes. Analyze this subreddit and suggest the best marketing category.
 
@@ -197,8 +232,8 @@ export async function bulkCategorizeSubreddits(subreddits: Array<{
   let totalCost = 0
   let totalTokens = 0
 
-  // Process in batches to avoid rate limits
-  const batchSize = 5
+  // Process in batches to avoid rate limits (only if OpenAI is available)
+  const batchSize = openai ? 5 : subreddits.length // Process all at once if using fallback
   for (let i = 0; i < subreddits.length; i += batchSize) {
     const batch = subreddits.slice(i, i + batchSize)
     const batchPromises = batch.map(async (subreddit) => {
@@ -224,8 +259,8 @@ export async function bulkCategorizeSubreddits(subreddits: Array<{
       totalTokens += result.tokens
     }
 
-    // Small delay between batches to respect rate limits
-    if (i + batchSize < subreddits.length) {
+    // Small delay between batches to respect rate limits (only if using OpenAI)
+    if (openai && i + batchSize < subreddits.length) {
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
   }

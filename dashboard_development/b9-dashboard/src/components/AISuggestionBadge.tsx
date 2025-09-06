@@ -14,7 +14,6 @@ interface AISuggestion {
 
 interface AISuggestionBadgeProps {
   subredditId: number
-  subredditName: string
   currentCategory?: string | null
   onApplySuggestion: (category: string, subredditId: number) => void
   onFeedback: (subredditId: number, feedback: 'accepted' | 'rejected' | 'modified', actualCategory?: string) => void
@@ -23,7 +22,6 @@ interface AISuggestionBadgeProps {
 
 export function AISuggestionBadge({ 
   subredditId, 
-  subredditName,
   currentCategory,
   onApplySuggestion, 
   onFeedback,

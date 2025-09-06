@@ -5,6 +5,12 @@ export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { data: whitelist, error } = await supabase
       .from('subreddit_whitelist')
       .select(`
@@ -37,6 +43,13 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { subreddit_name, reason = 'Manually added', added_by = 'user' } = await request.json()
     
     if (!subreddit_name) {
@@ -111,6 +124,13 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     const { searchParams } = new URL(request.url)
     const subreddit_name = searchParams.get('subreddit_name')
     

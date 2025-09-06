@@ -6,6 +6,13 @@ export async function GET() {
   try {
     const supabase = await createClient()
     
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
+    
     // Check if we have a categories table, if not fall back to category_text approach
     const { data: categories, error: categoriesError } = await supabase
       .from('categories')
@@ -90,6 +97,13 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection not available' 
+      }, { status: 503 })
+    }
     
     const categoryData = {
       name: name.trim(),
