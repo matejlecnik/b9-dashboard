@@ -10,6 +10,7 @@
 - ✅ Scraper page upgraded: real-time stats, time-range filters, skeletons, toasts
 - ✅ Categorization: now loads only `review = 'Ok'` subreddits; added All/Uncategorized/Categorized filters
 - ✅ Category editing: `category_text` is a single-select fed by `/api/categories`, with clear and add-new options
+- ✅ Routing cleanup: removed duplicate top-level routes `/categorization` and `/users` in favor of `(dashboard)/categorization` and `(dashboard)/users` to fix Next.js path conflicts
 
 ## 🎯 Purpose
 Reddit intelligence system for OnlyFans marketing - automated subreddit discovery, categorization, and performance analysis.
