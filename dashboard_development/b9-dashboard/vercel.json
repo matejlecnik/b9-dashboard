@@ -37,7 +37,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2))",
+      "source": "/:path*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -46,9 +46,6 @@
       ]
     }
   ],
-  "functions": {
-    "nodeVersion": 20
-  },
   "regions": ["iad1"],
   "github": {
     "enabled": true,

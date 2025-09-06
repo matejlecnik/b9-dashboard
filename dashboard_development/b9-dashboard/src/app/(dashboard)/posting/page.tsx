@@ -67,12 +67,13 @@ export default function PostingPage() {
       if (!supabase) {
         throw new Error('Supabase client not initialized')
       }
+      const sb = supabase as NonNullable<typeof supabase>
       
       // Prefer 'category' column; fallback to legacy 'review' if needed
       let subreddits: Subreddit[] | null = null
       let primaryError: unknown = null
       try {
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from('subreddits')
           .select('*')
           .eq('category', 'Ok')
@@ -85,7 +86,7 @@ export default function PostingPage() {
       }
 
       if (!subreddits) {
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from('subreddits')
           .select('*')
           .eq('review', 'Ok')
@@ -97,15 +98,16 @@ export default function PostingPage() {
 
       const subredditsWithPosts = await Promise.all(
         (subreddits || []).map(async (subreddit) => {
-          const { data: posts } = supabase ? await supabase
+          const postsResult = await sb
             .from('posts')
             .select('*')
             .eq('subreddit_name', subreddit.name)
             .order('created_utc', { ascending: false })
-            .limit(5) : null
+            .limit(5)
+          const posts = postsResult.data ?? []
           return {
             ...subreddit,
-            recent_posts: posts || []
+            recent_posts: posts
           }
         })
       )
