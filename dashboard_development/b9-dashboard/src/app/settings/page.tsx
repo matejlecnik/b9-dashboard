@@ -13,7 +13,6 @@ import {
   Palette,
   Zap,
   Clock,
-  Mail,
   Cog,
   Key,
   Globe,

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { CategorySelector } from '@/components/CategorySelector'
+import { AISuggestionBadge } from '@/components/AISuggestionBadge'
 import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, X } from 'lucide-react'
 
 interface SubredditTableProps {
@@ -25,6 +26,9 @@ interface SubredditTableProps {
   onReachEnd?: () => void
   hasMore?: boolean
   loadingMore?: boolean
+  // AI suggestions
+  showAISuggestions?: boolean
+  onAIFeedback?: (subredditId: number, feedback: string, actualCategory?: string) => void
 }
 
 const SubredditTable = memo(function SubredditTable({
@@ -39,7 +43,9 @@ const SubredditTable = memo(function SubredditTable({
   mode = 'category',
   onReachEnd,
   hasMore = false,
-  loadingMore = false
+  loadingMore = false,
+  showAISuggestions = false,
+  onAIFeedback
 }: SubredditTableProps) {
   // Resolve handlers based on provided props (review-first, then category for backward compatibility)
   const handleUpdate = (id: number, value: string) => {

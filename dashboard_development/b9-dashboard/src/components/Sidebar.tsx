@@ -39,16 +39,16 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   return (
     <div 
-      className={`glass-sidebar sticky top-3 my-3 ml-3 transition-all duration-300 flex flex-col overflow-hidden rounded-2xl z-30 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
+      className={`glass-sidebar sticky top-3 my-3 ml-3 transition-all duration-500 ease-in-out flex flex-col overflow-hidden rounded-2xl z-30 ${
+        isCollapsed ? 'w-16 lg:w-20' : 'w-64 lg:w-72'
+      } md:block ${isCollapsed ? 'hidden sm:flex' : ''}`}
       style={{
         height: 'calc(100vh - 1.5rem)',
-        background: 'linear-gradient(180deg, rgba(248,249,251,0.65) 0%, rgba(232,234,238,0.55) 100%)',
-        backdropFilter: 'blur(22px) saturate(175%)',
-        WebkitBackdropFilter: 'blur(22px) saturate(175%)',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.03)',
-        border: '1px solid rgba(190, 195, 200, 0.45)'
+        background: 'linear-gradient(180deg, rgba(248,249,251,0.75) 0%, rgba(232,234,238,0.65) 100%)',
+        backdropFilter: 'blur(28px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.04)',
+        border: '1px solid rgba(190, 195, 200, 0.5)'
       }}
     >
       {/* Local Reddit SVG Icon (same as /dashboards) */}
@@ -103,10 +103,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             return (
               <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} aria-label={item.title}>
                 <div className={`
-                  relative flex items-center px-3 py-2 rounded-xl transition-colors duration-150 group cursor-pointer
+                  relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 group cursor-pointer transform hover:scale-105 active:scale-95
                   ${active 
-                    ? 'bg-b9-pink/10 text-b9-pink ring-1 ring-inset ring-b9-pink/20' 
-                    : 'text-gray-700 hover:bg-black/5'
+                    ? 'bg-b9-pink/15 text-b9-pink ring-1 ring-inset ring-b9-pink/25 shadow-apple' 
+                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-apple-strong'
                   }
                   ${isCollapsed ? 'justify-center' : 'justify-start'}
                 `} title={isCollapsed ? item.title : undefined}>
@@ -132,8 +132,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       <div className="px-3 py-3 border-t border-black/10">
         <Link href="/dashboards" aria-label="Back to Dashboards">
           <div className={`
-            flex items-center px-3 py-2 rounded-xl transition-colors duration-150 group cursor-pointer
-            bg-white/60 hover:bg-white/80 text-gray-600 hover:text-gray-800 ring-1 ring-inset ring-black/10
+            flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 group cursor-pointer transform hover:scale-105 active:scale-95
+            bg-white/70 hover:bg-white/90 text-gray-600 hover:text-gray-800 ring-1 ring-inset ring-white/30 hover:shadow-apple-strong
             ${isCollapsed ? 'justify-center' : 'justify-start'}
           `} title={isCollapsed ? 'Back to Dashboards' : undefined}>
             <ChevronLeft className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} aria-hidden="true" />

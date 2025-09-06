@@ -1,0 +1,138 @@
+name: 🚀 Deployment Issue
+description: Report issues related to deployment, CI/CD, or production environment
+title: "[DEPLOYMENT] "
+labels: ["deployment", "bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a deployment issue! Please provide as much detail as possible to help us resolve it quickly.
+
+  - type: dropdown
+    id: deployment-type
+    attributes:
+      label: Deployment Type
+      description: What type of deployment issue is this?
+      options:
+        - Production Deployment
+        - Preview Deployment
+        - CI/CD Pipeline
+        - Environment Variables
+        - Build Process
+        - Health Check Failure
+        - Rollback Issue
+        - Security Alert
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this issue?
+      options:
+        - Low (Minor issue, workaround available)
+        - Medium (Impacts functionality, no workaround)
+        - High (Major functionality broken)
+        - Critical (Production down, immediate attention needed)
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: Issue Description
+      description: Provide a clear and detailed description of the issue
+      placeholder: Describe what happened, what you expected to happen, and any error messages
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. See error...
+    validations:
+      required: false
+
+  - type: input
+    id: deployment-url
+    attributes:
+      label: Deployment URL
+      description: The URL where the issue occurred (if applicable)
+      placeholder: https://your-deployment-url.vercel.app
+
+  - type: input
+    id: commit-hash
+    attributes:
+      label: Commit Hash
+      description: The commit hash related to this deployment
+      placeholder: abc123def456
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error Logs
+      description: Include any relevant error logs from GitHub Actions, Vercel, or the application
+      render: shell
+
+  - type: textarea
+    id: environment-info
+    attributes:
+      label: Environment Information
+      description: Include relevant environment details
+      value: |
+        - Node.js version:
+        - npm version:
+        - Browser (if applicable):
+        - Operating System:
+        - Deployment Date/Time:
+
+  - type: dropdown
+    id: workflow-status
+    attributes:
+      label: GitHub Actions Workflow Status
+      description: What's the status of the related GitHub Actions workflow?
+      options:
+        - Success
+        - Failed
+        - Cancelled
+        - Skipped
+        - In Progress
+        - Not applicable
+
+  - type: checkboxes
+    id: troubleshooting-steps
+    attributes:
+      label: Troubleshooting Steps Taken
+      description: What steps have you already tried?
+      options:
+        - label: Checked GitHub Actions logs
+        - label: Verified Vercel deployment logs
+        - label: Confirmed environment variables are set
+        - label: Tested locally
+        - label: Checked for recent changes
+        - label: Reviewed documentation
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or information that might be helpful
+
+  - type: checkboxes
+    id: urgency
+    attributes:
+      label: Urgency
+      description: Check if this requires immediate attention
+      options:
+        - label: This is blocking production
+        - label: This is blocking development
+        - label: This affects user experience
+        - label: This is a security concern

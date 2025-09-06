@@ -21,7 +21,13 @@ import {
   BarChart3,
   Calendar,
   Timer,
-  Globe
+  Globe,
+  Wifi,
+  Shield,
+  AlertCircle,
+  Zap,
+  Target,
+  TrendingDown
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
@@ -43,8 +49,9 @@ interface ScraperStats {
     engagement: number
   }>
   recentActivity: Array<{
-    type: 'subreddit' | 'user' | 'post'
-    name: string
+    type: 'subreddit' | 'user' | 'post' | 'system' | 'discovery'
+    name?: string
+    message?: string
     timestamp: string
     status: 'success' | 'error' | 'warning'
   }>
@@ -56,6 +63,53 @@ interface ScraperStats {
   }
 }
 
+interface ScraperStatus {
+  discovery: {
+    subreddits_found_24h: number
+    new_subreddits: Array<{ name: string; created_at: string }>
+    processing_speed: number
+  }
+  data_quality: {
+    total_records: number
+    complete_records: number
+    missing_fields: number
+    quality_score: number
+    error_rate: number
+  }
+  system_health: {
+    database: string
+    scraper: string
+    reddit_api: string
+    storage: string
+  }
+  recent_activity: Array<{
+    type: string
+    message: string
+    timestamp: string
+    status: string
+  }>
+  error_feed: Array<{
+    timestamp: string
+    message: string
+    context: any
+    level: string
+  }>
+  last_updated: string
+}
+
+interface AccountStatus {
+  accounts: {
+    total: number
+    active: number
+    details: Array<{ username: string; status: string }>
+  }
+  proxies: {
+    total: number
+    active: number
+    details: Array<{ host: string; port: number; status: string }>
+  }
+}
+
 export default function ScraperPage() {
   const [stats, setStats] = useState<ScraperStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,11 +117,9 @@ export default function ScraperPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h')
   const [topSubredditsVisible, setTopSubredditsVisible] = useState<number>(5)
-  const [accountsStatus, setAccountsStatus] = useState<{
-    total: number
-    active: number
-    details: Array<{ username: string; status: string }>
-  } | null>(null)
+  const [accountsStatus, setAccountsStatus] = useState<AccountStatus | null>(null)
+  const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null)
+  const [statusLoading, setStatusLoading] = useState(true)
   const supabase = useMemo(() => createClient(), [])
   const { addToast } = useToast()
 
@@ -241,20 +293,41 @@ export default function ScraperPage() {
     }
   }, [fetchStats, supabase])
 
-  // Load scraper account statuses from API route (non-blocking)
-  useEffect(() => {
-    const loadAccounts = async () => {
-      try {
-        const res = await fetch('/api/scraper/accounts')
-        if (!res.ok) return
-        const data = await res.json()
-        setAccountsStatus({ total: data.total, active: data.active, details: data.details || [] })
-      } catch {
-        // ignore
+  // Fetch enhanced scraper status including accounts, proxies, and monitoring data
+  const fetchScraperStatus = useCallback(async () => {
+    try {
+      setStatusLoading(true)
+      
+      // Fetch accounts and proxies
+      const accountsRes = await fetch('/api/scraper/accounts')
+      if (accountsRes.ok) {
+        const accountsData = await accountsRes.json()
+        setAccountsStatus(accountsData)
       }
+      
+      // Fetch scraper status (discovery, quality, errors)
+      const statusRes = await fetch('/api/scraper/status')
+      if (statusRes.ok) {
+        const statusData = await statusRes.json()
+        setScraperStatus(statusData)
+      }
+    } catch (error) {
+      console.error('Error fetching scraper status:', error)
+      addToast({ title: 'Status fetch failed', description: 'Unable to load scraper status', type: 'error' })
+    } finally {
+      setStatusLoading(false)
     }
-    loadAccounts()
-  }, [])
+  }, [addToast])
+
+  // Load scraper status on mount and set up refresh
+  useEffect(() => {
+    fetchScraperStatus()
+    
+    // Auto-refresh scraper status every 30 seconds
+    const interval = setInterval(fetchScraperStatus, 30000)
+    
+    return () => clearInterval(interval)
+  }, [fetchScraperStatus])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -312,16 +385,99 @@ export default function ScraperPage() {
           </div>
         </div>
 
-        {/* Header Stats */}
+        {/* Enhanced Header Stats */}
+        {statusLoading ? (
+          <MetricsCardsSkeleton />
+        ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-l-4 border-l-b9-pink bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-300 hover:shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Reddit Accounts</CardTitle>
+                <div className="p-2 bg-b9-pink/10 rounded-lg">
+                  <UserCheck className="h-4 w-4 text-b9-pink" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">
+                {accountsStatus?.accounts.active || 0}/{accountsStatus?.accounts.total || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Active accounts
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-300 hover:shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Proxy Status</CardTitle>
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Wifi className="h-4 w-4 text-blue-500" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">
+                {accountsStatus?.proxies.active || 0}/{accountsStatus?.proxies.total || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Active proxies
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-green-500 bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-300 hover:shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Found Today</CardTitle>
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <Target className="h-4 w-4 text-green-500" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">
+                {scraperStatus?.discovery.subreddits_found_24h || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                New subreddits
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-500 bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-300 hover:shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Data Quality</CardTitle>
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <Shield className="h-4 w-4 text-purple-500" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">
+                {scraperStatus?.data_quality.quality_score || 0}%
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Complete records
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        )}
+
+        {/* Traditional Stats */}
         {loading ? (
           <MetricsCardsSkeleton />
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-l-4 border-l-b9-pink">
+          <Card className="border-l-4 border-l-gray-400">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-gray-600">Total Subreddits</CardTitle>
-                <Database className="h-4 w-4 text-b9-pink" />
+                <Database className="h-4 w-4 text-gray-400" />
               </div>
             </CardHeader>
             <CardContent>
@@ -388,12 +544,14 @@ export default function ScraperPage() {
         )}
 
         {/* System Health */}
-        <Card>
+        <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-b9-pink" />
+                  <div className="p-2 bg-b9-pink/10 rounded-lg">
+                    <Activity className="h-5 w-5 text-b9-pink" />
+                  </div>
                   System Health
                 </CardTitle>
                 <CardDescription>Real-time status of all scraper components</CardDescription>
@@ -401,11 +559,14 @@ export default function ScraperPage() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={fetchStats}
-                disabled={loading}
-                className="flex items-center gap-2"
+                onClick={() => {
+                  fetchStats()
+                  fetchScraperStatus()
+                }}
+                disabled={loading || statusLoading}
+                className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border-b9-pink/20 hover:bg-b9-pink/10 hover:border-b9-pink/40 transition-all duration-300"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loading || statusLoading ? 'animate-spin' : ''} text-b9-pink`} />
                 Refresh
               </Button>
             </div>
@@ -455,12 +616,71 @@ export default function ScraperPage() {
           </CardContent>
         </Card>
 
+        {/* Data Quality Metrics */}
+        <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 bg-b9-pink/10 rounded-lg">
+                <Shield className="h-5 w-5 text-b9-pink" />
+              </div>
+              Data Quality Metrics
+            </CardTitle>
+            <CardDescription>Comprehensive data validation and completeness scores</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {scraperStatus?.data_quality.quality_score || 0}%
+                </div>
+                <div className="text-xs text-gray-500">Quality Score</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {scraperStatus?.data_quality.complete_records?.toLocaleString() || 0}
+                </div>
+                <div className="text-xs text-gray-500">Complete Records</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {scraperStatus?.data_quality.missing_fields?.toLocaleString() || 0}
+                </div>
+                <div className="text-xs text-gray-500">Missing Fields</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {scraperStatus?.data_quality.error_rate || 0}
+                </div>
+                <div className="text-xs text-gray-500">Error Rate</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Data Completeness</span>
+                <span>{scraperStatus?.data_quality.quality_score || 0}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-b9-pink h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${scraperStatus?.data_quality.quality_score || 0}%` }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-b9-pink" />
+                <div className="p-2 bg-b9-pink/10 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-b9-pink" />
+                </div>
                 Performance Metrics
               </CardTitle>
               <CardDescription>Key scraping performance indicators</CardDescription>
@@ -472,8 +692,19 @@ export default function ScraperPage() {
                   <span className="text-sm">Active Accounts</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{accountsStatus?.active ?? stats?.activeAccounts ?? 0}/{accountsStatus?.total ?? stats?.totalAccounts ?? 0}</div>
-                  <div className="text-xs text-gray-500">{(() => { const active = accountsStatus?.active ?? stats?.activeAccounts ?? 0; const total = accountsStatus?.total ?? stats?.totalAccounts ?? 0; return total ? Math.round((active / total) * 100) : 0 })()}% active</div>
+                  <div className="font-semibold">{accountsStatus?.accounts.active ?? 0}/{accountsStatus?.accounts.total ?? 0}</div>
+                  <div className="text-xs text-gray-500">{(() => { const active = accountsStatus?.accounts.active ?? 0; const total = accountsStatus?.accounts.total ?? 0; return total ? Math.round((active / total) * 100) : 0 })()}% active</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wifi className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm">Active Proxies</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{accountsStatus?.proxies.active ?? 0}/{accountsStatus?.proxies.total ?? 0}</div>
+                  <div className="text-xs text-gray-500">{(() => { const active = accountsStatus?.proxies.active ?? 0; const total = accountsStatus?.proxies.total ?? 0; return total ? Math.round((active / total) * 100) : 0 })()}% active</div>
                 </div>
               </div>
               
@@ -512,10 +743,12 @@ export default function ScraperPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-b9-pink" />
+                <div className="p-2 bg-b9-pink/10 rounded-lg">
+                  <Globe className="h-5 w-5 text-b9-pink" />
+                </div>
                 Top Subreddits
               </CardTitle>
               <CardDescription>Most active communities being monitored</CardDescription>
@@ -557,11 +790,66 @@ export default function ScraperPage() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
+        {/* Error Feed */}
+        <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-b9-pink" />
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              Error Feed
+            </CardTitle>
+            <CardDescription>
+              Real-time error monitoring with timestamps
+              <span className="text-xs text-gray-400 ml-2">
+                Last updated: {scraperStatus?.last_updated ? new Date(scraperStatus.last_updated).toLocaleTimeString() : 'Never'}
+              </span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {statusLoading ? (
+                <div className="text-center py-4 text-gray-500">Loading error feed...</div>
+              ) : scraperStatus?.error_feed && scraperStatus.error_feed.length > 0 ? (
+                scraperStatus.error_feed.map((error, index) => (
+                  <div key={index} className="flex items-start justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-red-800">{error.message}</div>
+                        <div className="text-xs text-red-600 mt-1">
+                          {new Date(error.timestamp).toLocaleString()}
+                        </div>
+                        {error.context && Object.keys(error.context).length > 0 && (
+                          <div className="text-xs text-red-500 mt-1 font-mono">
+                            {JSON.stringify(error.context, null, 2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-red-600 bg-red-50 border-red-200">
+                      {error.level}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-green-600">
+                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                  <div className="font-medium">No errors detected</div>
+                  <div className="text-sm text-gray-500">System running smoothly</div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 bg-b9-pink/10 rounded-lg">
+                <Eye className="h-5 w-5 text-b9-pink" />
+              </div>
               Recent Activity
             </CardTitle>
             <CardDescription>

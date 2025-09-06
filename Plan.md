@@ -11,6 +11,8 @@
 - ✅ Categorization: now loads only `review = 'Ok'` subreddits; added All/Uncategorized/Categorized filters
 - ✅ Category editing: `category_text` is a single-select fed by `/api/categories`, with clear and add-new options
 - ✅ Routing cleanup: removed duplicate top-level routes `/categorization` and `/users` in favor of `(dashboard)/categorization` and `(dashboard)/users` to fix Next.js path conflicts
+- ✅ Node runtime upgraded to 20+ to address `@supabase/supabase-js` Node 18 deprecations (package.json engines, .nvmrc, Vercel functions)
+- ✅ ESLint cleanup: removed unused imports on Analytics/Settings pages and cleaned unused directives in components
 
 ## 🎯 Purpose
 Reddit intelligence system for OnlyFans marketing - automated subreddit discovery, categorization, and performance analysis.

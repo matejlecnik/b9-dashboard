@@ -6,7 +6,7 @@ export function MetricsCardsSkeleton() {
       {[...Array(4)].map((_, index) => (
         <div 
           key={index}
-          className="bg-white rounded-xl p-6 shadow-sm border-2 border-gray-100 animate-pulse"
+          className="glass-card rounded-xl p-6 shadow-apple apple-shimmer"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-gray-100 w-11 h-11"></div>
@@ -35,7 +35,8 @@ export function TableSkeleton() {
     <div className="space-y-4">
       {/* Table Header */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse bg-white">
+        <div className="glass-card rounded-2xl overflow-hidden shadow-apple">
+        <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-100">
               <th className="py-4 px-6 w-12 bg-white">
@@ -96,6 +97,7 @@ export function TableSkeleton() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
@@ -104,7 +106,7 @@ export function TableSkeleton() {
 export function UnifiedFiltersSkeleton() {
   return (
     <div className="mb-8">
-      <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 animate-pulse">
+      <div className="glass-card rounded-2xl p-4 shadow-apple apple-shimmer">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Search skeleton */}
           <div className="flex-1">

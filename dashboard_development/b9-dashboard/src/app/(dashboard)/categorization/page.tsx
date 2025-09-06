@@ -9,6 +9,8 @@ import { MetricsCardsSkeleton, TableSkeleton } from '@/components/SkeletonLoader
 import { useToast } from '@/components/ui/toast'
 import { useErrorHandler } from '@/lib/errorUtils'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
+import { Button } from '@/components/ui/button'
+import { Brain, Zap, TrendingUp } from 'lucide-react'
 
 type FilterType = 'all' | 'uncategorized' | 'categorized'
 
@@ -33,6 +35,8 @@ export default function CategorizationPage() {
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<Map<number, Record<string, unknown>>>(new Map())
   const observerRef = useRef<HTMLDivElement>(null)
 
   const filteredSubreddits = subreddits.filter(subreddit => {
@@ -227,6 +231,61 @@ export default function CategorizationPage() {
     })
   }
 
+  const handleAIFeedback = (subredditId: number, feedback: string, actualCategory?: string) => {
+    // Update AI suggestions map to track feedback
+    setAiSuggestions(prev => {
+      const newMap = new Map(prev)
+      const existing = newMap.get(subredditId) || {}
+      newMap.set(subredditId, {
+        ...existing,
+        userFeedback: feedback,
+        actualCategory
+      })
+      return newMap
+    })
+  }
+
+  const bulkGetAISuggestions = async () => {
+    const uncategorized = subreddits.filter(sub => !sub.category_text || sub.category_text.trim() === '')
+    if (uncategorized.length === 0) {
+      addToast({
+        type: 'info',
+        title: 'No Uncategorized Subreddits',
+        description: 'All subreddits already have categories assigned.',
+        duration: 3000
+      })
+      return
+    }
+
+    const response = await fetch('/api/ai/bulk-categorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        limit: Math.min(uncategorized.length, 20), // Limit to avoid high costs
+        sessionName: `Quick Suggestions ${new Date().toLocaleString()}`,
+        onlyUncategorized: true
+      })
+    })
+
+    const data = await response.json()
+    if (data.success) {
+      setShowAISuggestions(true)
+      addToast({
+        type: 'success',
+        title: 'AI Suggestions Started',
+        description: `Getting suggestions for ${data.totalSubreddits} subreddits. Est. cost: $${data.estimatedCost}`,
+        duration: 5000
+      })
+    } else {
+      addToast({
+        type: 'error',
+        title: 'AI Suggestions Failed',
+        description: data.error || 'Failed to start AI suggestions',
+        duration: 5000
+      })
+    }
+  }
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -277,6 +336,43 @@ export default function CategorizationPage() {
         loading={loading}
       />
 
+      {/* AI Suggestions Toolbar */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+        <div className="flex items-center gap-3">
+          <Brain className="h-5 w-5 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-900">AI-Powered Categorization</h3>
+            <p className="text-sm text-gray-600">Get intelligent category suggestions for uncategorized subreddits</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowAISuggestions(!showAISuggestions)}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Zap className="h-4 w-4" />
+            {showAISuggestions ? 'Hide AI' : 'Show AI'}
+          </Button>
+          <Button
+            onClick={bulkGetAISuggestions}
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            size="sm"
+          >
+            <TrendingUp className="h-4 w-4" />
+            Get AI Suggestions
+          </Button>
+          <Button
+            onClick={() => window.open('/ai-categorization', '_blank')}
+            variant="outline"
+            size="sm"
+          >
+            AI Dashboard
+          </Button>
+        </div>
+      </div>
+
       <div 
         className="rounded-2xl sm:rounded-3xl border-0 overflow-hidden shadow-lg"
         style={{
@@ -302,6 +398,8 @@ export default function CategorizationPage() {
                 onUpdateCategory={updateCategory}
                 onBulkUpdateCategory={bulkUpdateCategory}
                 loading={loading}
+                showAISuggestions={showAISuggestions}
+                onAIFeedback={handleAIFeedback}
               />
               
               {/* Infinite scroll loader */}

@@ -1,0 +1,319 @@
+name: 🛡️ Security Monitoring
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard_development/b9-dashboard/package*.json'
+
+jobs:
+  # Security vulnerability scan
+  security-scan:
+    name: 🔍 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard_development/b9-dashboard/package-lock.json
+
+      - name: 🔧 Install dependencies
+        run: |
+          cd dashboard_development/b9-dashboard
+          npm ci --prefer-offline --no-audit
+
+      - name: 🛡️ Run security audit
+        id: audit
+        run: |
+          cd dashboard_development/b9-dashboard
+          audit_output=$(npm audit --audit-level=moderate --json)
+          echo "$audit_output" > audit-results.json
+          
+          # Check if there are any vulnerabilities
+          vulnerabilities=$(echo "$audit_output" | jq '.metadata.vulnerabilities.total // 0')
+          echo "vulnerabilities=$vulnerabilities" >> $GITHUB_OUTPUT
+          
+          if [ "$vulnerabilities" -gt 0 ]; then
+            echo "❌ Found $vulnerabilities vulnerabilities"
+            npm audit --audit-level=moderate
+            exit 1
+          else
+            echo "✅ No security vulnerabilities found"
+          fi
+
+      - name: 📊 Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-results
+          path: dashboard_development/b9-dashboard/audit-results.json
+          retention-days: 30
+
+      - name: 🚨 Create security issue
+        if: failure() && steps.audit.outputs.vulnerabilities > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let auditData = {};
+            
+            try {
+              auditData = JSON.parse(fs.readFileSync('dashboard_development/b9-dashboard/audit-results.json', 'utf8'));
+            } catch (error) {
+              console.log('Could not parse audit results');
+            }
+            
+            const vulnerabilities = auditData.metadata?.vulnerabilities?.total || 0;
+            const advisories = auditData.advisories || {};
+            
+            let vulnDetails = '';
+            Object.entries(advisories).forEach(([id, advisory]) => {
+              vulnDetails += `- **${advisory.title}** (${advisory.severity})\n`;
+              vulnDetails += `  - Module: ${advisory.module_name}\n`;
+              vulnDetails += `  - More info: ${advisory.url}\n\n`;
+            });
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Security Vulnerabilities Found (${vulnerabilities} total)`,
+              body: `Security scan found ${vulnerabilities} vulnerabilities in dependencies.
+              
+              ## Vulnerabilities
+              
+              ${vulnDetails}
+              
+              ## Next Steps
+              
+              1. Review each vulnerability and assess impact
+              2. Update dependencies using \`npm audit fix\`
+              3. Test thoroughly after updates
+              4. Close this issue once resolved
+              
+              **Scan Date**: ${new Date().toISOString()}
+              **Workflow**: [Security Monitoring](${context.server_url}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              labels: ['security', 'bug', 'high-priority']
+            });
+
+  # Dependency freshness check
+  dependency-check:
+    name: 📦 Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard_development/b9-dashboard/package-lock.json
+
+      - name: 🔧 Install dependencies
+        run: |
+          cd dashboard_development/b9-dashboard
+          npm ci --prefer-offline --no-audit
+
+      - name: 📊 Check for outdated dependencies
+        run: |
+          cd dashboard_development/b9-dashboard
+          
+          echo "🔍 Checking for outdated dependencies..."
+          outdated_output=$(npm outdated --json 2>/dev/null || echo '{}')
+          echo "$outdated_output" > outdated-deps.json
+          
+          # Count outdated dependencies
+          outdated_count=$(echo "$outdated_output" | jq 'length')
+          echo "Found $outdated_count outdated dependencies"
+          
+          if [ "$outdated_count" -gt 0 ]; then
+            echo "📊 Outdated dependencies:"
+            npm outdated
+          fi
+
+      - name: 📈 Create dependency update issue
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let outdatedData = {};
+            
+            try {
+              outdatedData = JSON.parse(fs.readFileSync('dashboard_development/b9-dashboard/outdated-deps.json', 'utf8'));
+            } catch (error) {
+              console.log('Could not parse outdated dependencies');
+              return;
+            }
+            
+            const outdatedCount = Object.keys(outdatedData).length;
+            
+            if (outdatedCount === 0) {
+              console.log('No outdated dependencies found');
+              return;
+            }
+            
+            // Check if there's already an open dependency update issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'dependencies'
+            });
+            
+            const existingIssue = issues.find(issue => 
+              issue.title.includes('📦 Dependency Updates Available')
+            );
+            
+            let updateDetails = '';
+            Object.entries(outdatedData).forEach(([name, info]) => {
+              updateDetails += `- **${name}**: ${info.current} → ${info.wanted} (latest: ${info.latest})\n`;
+            });
+            
+            const body = `Found ${outdatedCount} outdated dependencies that should be updated.
+            
+            ## Outdated Dependencies
+            
+            ${updateDetails}
+            
+            ## Update Instructions
+            
+            1. Review each dependency and check for breaking changes
+            2. Update dependencies incrementally: \`npm update <package-name>\`
+            3. Test the application thoroughly after each update
+            4. Create a PR with the updates
+            5. Close this issue once all dependencies are updated
+            
+            **Last Check**: ${new Date().toISOString()}`;
+            
+            if (existingIssue) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingIssue.id,
+                body: body
+              });
+              console.log('Updated existing dependency issue');
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `📦 Dependency Updates Available (${outdatedCount} packages)`,
+                body: body,
+                labels: ['dependencies', 'maintenance']
+              });
+              console.log('Created new dependency update issue');
+            }
+
+  # License compliance check
+  license-check:
+    name: 📄 License Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard_development/b9-dashboard/package-lock.json
+
+      - name: 🔧 Install dependencies
+        run: |
+          cd dashboard_development/b9-dashboard
+          npm ci --prefer-offline --no-audit
+
+      - name: 📜 Install license checker
+        run: npm install -g license-checker
+
+      - name: 🔍 Check licenses
+        run: |
+          cd dashboard_development/b9-dashboard
+          
+          # Create list of allowed licenses
+          allowed_licenses="MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Apache;Unlicense;WTFPL;CC0-1.0"
+          
+          echo "🔍 Checking package licenses..."
+          license-checker --onlyAllow "$allowed_licenses" --summary
+
+      - name: 📊 Generate license report
+        run: |
+          cd dashboard_development/b9-dashboard
+          license-checker --json > license-report.json
+          echo "📊 License report generated"
+
+      - name: 📊 Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: dashboard_development/b9-dashboard/license-report.json
+          retention-days: 30
+
+  # Code quality monitoring
+  code-quality:
+    name: 📈 Code Quality
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard_development/b9-dashboard/package-lock.json
+
+      - name: 🔧 Install dependencies
+        run: |
+          cd dashboard_development/b9-dashboard
+          npm ci --prefer-offline --no-audit
+
+      - name: 📊 Code complexity analysis
+        run: |
+          cd dashboard_development/b9-dashboard
+          
+          # Count TypeScript files
+          ts_files=$(find src -name "*.ts" -o -name "*.tsx" | wc -l)
+          echo "TypeScript files: $ts_files"
+          
+          # Count total lines of code
+          loc=$(find src -name "*.ts" -o -name "*.tsx" | xargs wc -l | tail -1 | awk '{print $1}')
+          echo "Lines of code: $loc"
+          
+          # Check for TODO/FIXME comments
+          todos=$(grep -r "TODO\|FIXME\|XXX\|HACK" src/ --include="*.ts" --include="*.tsx" || true)
+          todo_count=$(echo "$todos" | grep -c . || echo "0")
+          echo "TODO/FIXME comments: $todo_count"
+          
+          # Store metrics
+          echo "{
+            \"typescript_files\": $ts_files,
+            \"lines_of_code\": $loc,
+            \"todo_count\": $todo_count,
+            \"last_updated\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+          }" > code-metrics.json
+
+      - name: 📊 Upload code metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-metrics
+          path: dashboard_development/b9-dashboard/code-metrics.json
+          retention-days: 90

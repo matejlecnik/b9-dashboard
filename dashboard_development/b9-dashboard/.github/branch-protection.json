@@ -1,0 +1,54 @@
+{
+  "branch_protection_rules": {
+    "main": {
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "🔒 Security Scan",
+          "🧪 Test & Validate",
+          "🎯 Code Quality",
+          "🔒 Security Check",
+          "⚡ Performance Check",
+          "🎯 PR Ready"
+        ]
+      },
+      "enforce_admins": true,
+      "required_pull_request_reviews": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": false,
+        "require_last_push_approval": true
+      },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "block_creations": false,
+      "required_conversation_resolution": true,
+      "lock_branch": false,
+      "allow_fork_syncing": true
+    }
+  },
+  "repository_settings": {
+    "allow_squash_merge": true,
+    "allow_merge_commit": false,
+    "allow_rebase_merge": false,
+    "delete_branch_on_merge": true,
+    "allow_auto_merge": true,
+    "allow_update_branch": true
+  },
+  "setup_instructions": [
+    "1. Go to Settings > Branches in your GitHub repository",
+    "2. Click 'Add rule' for the main branch",
+    "3. Configure the following settings:",
+    "   - Require pull request reviews before merging (1 review minimum)",
+    "   - Dismiss stale PR reviews when new commits are pushed",
+    "   - Require status checks to pass before merging",
+    "   - Require branches to be up to date before merging",
+    "   - Include administrators in restrictions",
+    "   - Restrict pushes that create files larger than 100MB",
+    "   - Allow force pushes: NO",
+    "   - Allow deletions: NO",
+    "4. Add the required status checks listed above",
+    "5. Save the branch protection rule"
+  ]
+}

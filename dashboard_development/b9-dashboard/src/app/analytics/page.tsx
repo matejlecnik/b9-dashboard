@@ -10,7 +10,6 @@ import {
   TrendingUp, 
   Users, 
   Calendar,
-  ArrowRight,
   Activity,
   Target,
   Zap
