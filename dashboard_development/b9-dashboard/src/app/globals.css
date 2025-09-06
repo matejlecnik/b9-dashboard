@@ -230,7 +230,7 @@
   }
   
   .apple-focus {
-    @apply focus-visible:ring-2 focus-visible:ring-b9-pink/50 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply focus-visible:ring-2 focus-visible:ring-pink-500/50 focus-visible:ring-offset-2 focus-visible:outline-none;
   }
 
   /* Apple-style Loading States */
@@ -251,19 +251,19 @@
 
   /* Apple-style Content Animations */
   .apple-fade-in {
-    @apply animate-fade-in;
+    @apply animate-pulse;
   }
   
   .apple-slide-up {
-    @apply animate-slide-up;
+    @apply animate-bounce;
   }
   
   .apple-slide-down {
-    @apply animate-slide-down;
+    @apply animate-pulse;
   }
   
   .apple-scale-in {
-    @apply animate-scale-in;
+    @apply animate-ping;
   }
 
   /* Apple-style Status Indicators */
@@ -272,7 +272,7 @@
   }
   
   .status-online {
-    @apply bg-green-400 animate-pulse-glow;
+    @apply bg-green-400 animate-pulse;
   }
   
   .status-warning {

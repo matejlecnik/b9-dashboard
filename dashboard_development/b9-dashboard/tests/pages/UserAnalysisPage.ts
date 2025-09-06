@@ -87,6 +87,15 @@ export class UserAnalysisPage extends BasePage {
     return this.page.locator('button:has-text("Export Selected"), [data-testid="bulk-export"]');
   }
 
+  // Row selection methods
+  async selectUser(index: number) {
+    const rows = await this.userRows.all();
+    if (rows[index]) {
+      const checkbox = rows[index].locator('input[type="checkbox"]');
+      await checkbox.check();
+    }
+  }
+
   // Metrics cards
   get totalUsersMetric() {
     return this.page.locator('[data-testid="total-users"]');
@@ -327,8 +336,8 @@ export class UserAnalysisPage extends BasePage {
 
   async measureBulkOperationTime() {
     // Select some users first
-    await this.selectSubreddit(0);
-    await this.selectSubreddit(1);
+    await this.selectUser(0);
+    await this.selectUser(1);
     
     const startTime = Date.now();
     await this.bulkToggleCreatorStatus();
