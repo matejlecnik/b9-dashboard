@@ -1,0 +1,26 @@
+# Environments & secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# Node/Next.js
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.vercel/
+dashboard_development/b9-dashboard/node_modules/
+dashboard_development/b9-dashboard/.next/
+dashboard_development/b9-dashboard/.vercel/
+

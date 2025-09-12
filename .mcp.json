@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@automatalabs/mcp-server-playwright"
+      ],
+      "env": {}
+    },
+    "lighthouse": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "lighthouse-mcp"
+      ],
+      "env": {}
+    },
+    "a11y": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "a11y-mcp"
+      ],
+      "env": {}
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {}
+    },
+    "supabase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=cetrhongdrjztsrsffuh"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_d41094ad18fee721399c6ada03895e54aff9dd46"
+      }
+    }
+  }
+}

@@ -1,0 +1,447 @@
+/* stylelint-disable */
+@import "tailwindcss";
+/* stylelint-disable at-rule-no-unknown */
+/* Removed tw-animate-css import - using minimal CSS animations for performance */
+
+/* Dark mode variant removed per user preference */
+
+:root {
+  /* Tailwind v4 token mappings (moved from @theme) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --radius: 0.625rem;
+  
+  /* B9 Agency Color Scheme - Monochromatic Pink & Grayscale System */
+  --b9-pink: #FF8395;
+  --b9-black: #000000;
+  --b9-white: #FFFFFF;
+  --b9-grey: #6B7280;
+  
+  /* Semantic Color Variables for Consistent Usage */
+  --color-success: #FF8395;        /* Pink for positive actions */
+  --color-error: #171717;          /* Near black for errors */
+  --color-warning: #525252;        /* Medium gray for warnings */
+  --color-info: #737373;           /* Gray for informational */
+  
+  /* Review Status Colors - Pink & Grayscale Only */
+  --status-ok: #FF8395;            /* B9 Pink */
+  --status-ok-bg: #FFF5F7;         /* Pink-50 */
+  --status-no-seller: #404040;     /* Gray-700 */
+  --status-no-seller-bg: #F5F5F5;  /* Gray-100 */
+  --status-non-related: #737373;   /* Gray-500 */
+  --status-non-related-bg: #FAFAFA; /* Gray-50 */
+  --status-user-feed: #FFB3C1;     /* Pink-300 */
+  --status-user-feed-bg: #FFFFFF;  /* White */
+  
+  /* Base colors using B9 scheme */
+  --background: oklch(1 0 0); /* White */
+  --foreground: oklch(0 0 0); /* Black */
+  --card: oklch(1 0 0); /* White */
+  --card-foreground: oklch(0 0 0); /* Black */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+  
+  /* Primary uses B9 Pink */
+  --primary: oklch(0.75 0.22 15); /* B9 Pink */
+  --primary-foreground: oklch(1 0 0); /* White */
+  
+  /* Secondary uses B9 Grey */
+  --secondary: oklch(0.95 0 0); /* Light grey background */
+  --secondary-foreground: oklch(0.4 0 0); /* Dark grey text */
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.45 0 0); /* B9 Grey equivalent */
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0 0 0);
+  
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0 0); /* Light grey borders */
+  --input: oklch(0.98 0 0);
+  --ring: oklch(0.75 0.22 15); /* B9 Pink for focus rings */
+  
+  --chart-1: oklch(0.75 0.22 15); /* B9 Pink */
+  --chart-2: oklch(0.45 0 0); /* B9 Grey */
+  --chart-3: oklch(0 0 0); /* B9 Black */
+  --chart-4: oklch(0.8 0.2 330); /* Light B9 Pink */
+  --chart-5: oklch(0.6 0 0); /* Medium grey */
+  
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0 0 0);
+  --sidebar-primary: oklch(0.75 0.22 15);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.75 0.22 15);
+}
+
+/* Dark mode removed per user preference */
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  /* B9 Agency specific utilities */
+  .text-b9-pink {
+    color: var(--b9-pink);
+  }
+  .bg-b9-pink {
+    background-color: var(--b9-pink);
+  }
+  .border-b9-pink {
+    border-color: var(--b9-pink);
+  }
+  .text-b9-grey {
+    color: var(--b9-grey);
+  }
+  .bg-b9-grey {
+    background-color: var(--b9-grey);
+  }
+  .hover\:bg-b9-pink:hover {
+    background-color: var(--b9-pink);
+  }
+  .focus\:ring-b9-pink:focus {
+    --tw-ring-color: var(--b9-pink);
+  }
+  .hover\:border-b9-pink\/50:hover {
+    border-color: rgba(255, 131, 149, 0.5);
+  }
+  .focus-visible\:border-b9-pink:focus-visible {
+    border-color: var(--b9-pink);
+  }
+  .focus-visible\:ring-b9-pink\/50:focus-visible {
+    --tw-ring-color: rgba(255, 131, 149, 0.5);
+  }
+  .data-\[state\=checked\]\:bg-b9-pink[data-state="checked"] {
+    background-color: var(--b9-pink) !important;
+  }
+  .data-\[state\=checked\]\:border-b9-pink[data-state="checked"] {
+    border-color: var(--b9-pink) !important;
+  }
+  .data-\[state\=checked\]\:text-white[data-state="checked"] {
+    color: white !important;
+  }
+
+  /* Simplified card styles - no blur effects */
+  .glass-card {
+    background-color: white;
+    border: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .glass-card-strong {
+    background-color: white;
+    border: 1px solid rgb(209 213 219);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  
+  .glass-overlay {
+    background-color: white;
+    border: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .glass-sidebar {
+    background-color: white;
+    border-right: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .glass-gradient {
+    background-color: white;
+    border: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .glass-button {
+    background-color: white;
+    border: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .glass-input {
+    background-color: white;
+    border: 1px solid rgb(209 213 219);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .pink-glass-input {
+    background-color: white;
+    border: 1px solid #FFCCD5;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .pink-glass-input:focus {
+    background-color: white;
+    border-color: #FF8395;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .pink-glass-input:hover {
+    background-color: white;
+    border-color: #FFB3C1;
+  }
+  
+  .shadow-pink-glow {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  /* Airtable-style Data Dense Utilities */
+  .data-table {
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+  
+  .data-cell {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgb(243 244 246);
+  }
+  
+  .data-row:hover {
+    background-color: rgb(249 250 251);
+  }
+  
+  .data-header {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(107 114 128);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgb(229 231 235);
+    background-color: rgba(249, 250, 251, 0.5);
+  }
+
+  /* Simplified visual effects */
+  .frosted-bg {
+    background-color: white;
+  }
+  
+  /* Removed empty rulesets that only had comments */
+  
+  .shadow-apple {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .shadow-apple-strong {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  /* Simplified interactive elements */
+  
+  .apple-focus:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #FF8395;
+  }
+
+  /* Static Loading States - Performance Optimized */
+  .static-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  }
+
+  /* Minimal Content Animations - Performance Optimized */
+  .fade-in {
+    opacity: 0;
+    animation: fadeIn 0.2s ease-out forwards;
+  }
+  
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  /* Simplified backgrounds */
+  .static-pink-gradient-bg {
+    background-color: #FFF5F7;
+  }
+
+  /* Simplified background */
+  .static-gradient-bg {
+    background-color: rgb(249 250 251);
+  }
+
+  /* Removed infinite gradient animations for performance */
+
+  /* Removed infinite float animations for performance - causing constant repaints */
+
+  /* Status Indicators - Static for Performance */
+  .status-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+  }
+  
+  .status-online {
+    background-color: #FF8395;
+    opacity: 0.9;
+  }
+  
+  .status-warning {
+    background-color: rgb(107 114 128);
+    opacity: 0.8;
+  }
+  
+  .status-error {
+    background-color: rgb(17 24 39);
+    opacity: 0.9;
+  }
+  
+  .status-offline {
+    background-color: rgb(209 213 219);
+  }
+  
+  /* Review Status Utility Classes */
+  .status-ok {
+    background-color: var(--status-ok-bg);
+    color: var(--status-ok);
+    border-color: rgba(255, 131, 149, 0.3);
+  }
+  
+  .status-no-seller {
+    background-color: var(--status-no-seller-bg);
+    color: var(--status-no-seller);
+    border-color: rgba(64, 64, 64, 0.3);
+  }
+  
+  .status-non-related {
+    background-color: var(--status-non-related-bg);
+    color: var(--status-non-related);
+    border-color: rgba(115, 115, 115, 0.3);
+  }
+  
+  .status-user-feed {
+    background-color: var(--status-user-feed-bg);
+    color: var(--status-user-feed);
+    border-color: rgba(255, 179, 193, 0.3);
+  }
+
+  /* Performance Optimizations - Reduced Set */
+  .pink-glass-input {
+    contain: layout style;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* Static Status Indicator - Performance Optimized */
+  .static-pulse {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  /* Static Search Focus - Performance Optimized */
+  .search-focus-static {
+    border-color: rgba(255, 131, 149, 0.6) !important;
+    box-shadow: 0 0 20px rgba(255, 131, 149, 0.2),
+                0 4px 15px rgba(255, 131, 149, 0.1) !important;
+  }
+
+  /* Simplified search input */
+  .search-input-enhanced {
+    border-color: #FFB3C1;
+    background-color: white;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .search-input-enhanced:hover {
+    border-color: #FF99A9;
+  }
+
+  /* Removed card animations for performance */
+  
+  /* Simplified card styling */
+  .dashboard-card-active {
+    background-color: white;
+    border: 1px solid #FFCCD5;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .dashboard-card-active:hover {
+    border-color: #FFB3C1;
+  }
+  
+  .dashboard-card-inactive {
+    background-color: rgb(249 250 251);
+    border: 1px solid rgb(229 231 235);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .dashboard-card-inactive:hover {
+    border-color: rgb(209 213 219);
+  }
+
+  /* Text clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+/* stylelint-enable at-rule-no-unknown */
