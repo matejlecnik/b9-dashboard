@@ -597,8 +597,10 @@ export const UniversalTable = memo(function UniversalTable({
           <div className="w-48 px-2 font-medium text-gray-700" role="columnheader">
             {mode === 'review' ? 'Review' : 'Category'}
           </div>
-          <div className="ml-3 text-sm text-gray-500" aria-label="Row count">
-            {processedSubreddits.length.toLocaleString()} results
+          <div className="flex-1 flex justify-end pr-4">
+            <span className="text-xs text-gray-400" aria-label="Row count">
+              {processedSubreddits.length.toLocaleString()} results
+            </span>
           </div>
         </div>
       )}
