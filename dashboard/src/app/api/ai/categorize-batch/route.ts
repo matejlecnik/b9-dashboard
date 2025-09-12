@@ -77,6 +77,17 @@ export async function POST(request: Request) {
     })
 
     const renderData = await renderResponse.json()
+    
+    // Comprehensive logging
+    console.log('=== RENDER API RESPONSE DEBUG ===')
+    console.log('Status:', renderResponse.status)
+    console.log('Full response:', JSON.stringify(renderData, null, 2))
+    console.log('Response keys:', Object.keys(renderData))
+    if (renderData.results) {
+      console.log('Results keys:', Object.keys(renderData.results))
+      console.log('Results stats:', renderData.results.stats)
+    }
+    console.log('=================================')
 
     if (!renderResponse.ok) {
       console.error('Render API error:', renderData)
@@ -87,15 +98,22 @@ export async function POST(request: Request) {
       }, { status: renderResponse.status })
     }
 
-    return NextResponse.json({
+    // Forward the complete response from Render
+    const response = {
       success: true,
-      message: 'AI categorization started successfully',
+      message: 'AI categorization completed',
       batch_size: batchSize,
-      estimated_subreddits: renderData.subreddits_to_process || 0,
-      estimated_cost: renderData.estimated_cost || 0,
+      estimated_subreddits: renderData.results?.stats?.total_processed || limit || batchSize,
+      estimated_cost: renderData.results?.stats?.total_cost || 0,
       job_id: renderData.job_id,
-      render_response: renderData
-    })
+      render_response: renderData  // This contains the full response including results
+    }
+    
+    console.log('=== SENDING TO FRONTEND ===')
+    console.log(JSON.stringify(response, null, 2))
+    console.log('===========================')
+    
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Error starting AI categorization:', error)

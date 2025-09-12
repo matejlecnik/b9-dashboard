@@ -76,12 +76,14 @@ class CategorizationService:
     async def get_uncategorized_subreddits(self, limit: int = 1000) -> List[Dict[str, Any]]:
         """Get subreddits that need categorization"""
         try:
+            # Get subreddits that are approved (Ok) but not yet categorized
             response = self.supabase.table('subreddits').select(
-                'id, name, title, public_description, subscribers'
+                'id, name, title, public_description, subscribers, display_name_prefixed'
             ).eq('review', 'Ok').or_(
                 'category_text.is.null,category_text.eq.'
             ).order('subscribers', desc=True).limit(limit).execute()
             
+            self.logger.info(f"Found {len(response.data or [])} uncategorized subreddits")
             return response.data or []
             
         except Exception as e:

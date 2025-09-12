@@ -348,13 +348,30 @@ export default function CategorizationPage() {
       
       const data = await response.json()
       
+      // Comprehensive logging
+      console.log('=== FRONTEND RECEIVED DATA ===')
+      console.log('Full data:', JSON.stringify(data, null, 2))
+      console.log('Data keys:', Object.keys(data))
+      if (data.render_response) {
+        console.log('Render response keys:', Object.keys(data.render_response))
+        console.log('Render response:', JSON.stringify(data.render_response, null, 2))
+      }
+      console.log('==============================')
+      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to start AI categorization')
       }
       
-      // Parse the response and add detailed logs
-      if (data.status === 'completed' && data.results) {
-        const results = data.results
+      // Check if we have the actual categorization results
+      const renderResponse = data.render_response
+      
+      if (renderResponse && renderResponse.status === 'completed' && renderResponse.results) {
+        // We have the complete results from the backend
+        const results = renderResponse.results
+        console.log('Processing completed results:', results)
+        console.log('Stats:', results.stats)
+        console.log('Individual results:', results.results)
+        
         setCategorizationLogs(prev => [...prev, `✅ Categorization completed successfully!`])
         setCategorizationLogs(prev => [...prev, `📊 Processed: ${results.stats?.total_processed || 0} items`])
         setCategorizationLogs(prev => [...prev, `✓ Successful: ${results.stats?.successful || 0}`])
@@ -363,11 +380,12 @@ export default function CategorizationPage() {
         
         // Add individual results if available
         if (results.results && Array.isArray(results.results)) {
+          setCategorizationLogs(prev => [...prev, `📝 Individual Results:`])
           results.results.forEach((result: any) => {
             if (result.success) {
               setCategorizationLogs(prev => [...prev, `  ✓ ${result.subreddit_name} → ${result.category}`])
             } else {
-              setCategorizationLogs(prev => [...prev, `  ✗ ${result.subreddit_name}: ${result.error_message}`])
+              setCategorizationLogs(prev => [...prev, `  ✗ ${result.subreddit_name}: ${result.error_message || 'Failed'}`])
             }
           })
         }
@@ -390,22 +408,60 @@ export default function CategorizationPage() {
           setCategorizationLogs([])
         }, 10000) // Keep modal open for 10 seconds to show results
       } else if (data.success) {
-        // Legacy response format
-        setCategorizationLogs(prev => [...prev, `Successfully started categorization for ${data.estimated_subreddits || settings.limit} subreddits`])
+        // The categorization has been started but we don't have results yet
+        console.log('Processing success response without completed status')
+        console.log('Render response:', renderResponse)
+        
+        setCategorizationLogs(prev => [...prev, `📋 Job ID: ${data.job_id || 'N/A'}`])
+        setCategorizationLogs(prev => [...prev, `🔄 Processing ${data.estimated_subreddits || settings.limit} subreddits...`])
+        
+        // Check different possible response structures
+        if (renderResponse) {
+          // Log what we received
+          setCategorizationLogs(prev => [...prev, `📦 Response type: ${typeof renderResponse}`])
+          setCategorizationLogs(prev => [...prev, `📦 Response status: ${renderResponse.status || 'processing'}`])
+          
+          if (renderResponse.message) {
+            setCategorizationLogs(prev => [...prev, `📢 ${renderResponse.message}`])
+          }
+          
+          // Check if results are directly in renderResponse (not nested)
+          if (renderResponse.stats) {
+            const stats = renderResponse.stats
+            console.log('Found stats directly in renderResponse:', stats)
+            setCategorizationLogs(prev => [...prev, `✅ Categorization completed!`])
+            setCategorizationLogs(prev => [...prev, `📊 Processed: ${stats.total_processed || 0} items`])
+            setCategorizationLogs(prev => [...prev, `✓ Successful: ${stats.successful || 0}`])
+            setCategorizationLogs(prev => [...prev, `✗ Errors: ${stats.errors || 0}`])
+            if (stats.total_cost !== undefined) {
+              setCategorizationLogs(prev => [...prev, `💰 Total cost: $${stats.total_cost.toFixed(4)}`])
+            }
+          }
+          
+          // Check if results are in a different structure
+          if (renderResponse.results && !renderResponse.results.stats) {
+            console.log('Results found but no stats, showing raw results:', renderResponse.results)
+            setCategorizationLogs(prev => [...prev, `📦 Raw results: ${JSON.stringify(renderResponse.results)}`])
+          }
+        }
         
         addToast({
           type: 'success',
-          title: 'AI Categorization Started',
-          description: `Processing ${data.estimated_subreddits || settings.limit} subreddits...`,
+          title: 'AI Categorization Complete',
+          description: `Processing completed for ${data.estimated_subreddits || settings.limit} subreddits`,
           duration: 5000
         })
         
-        // Auto-refresh based on settings
-        if (settings.autoRefreshDelay > 0) {
-          setTimeout(() => {
-            fetchSubreddits(0, false)
-          }, settings.autoRefreshDelay)
-        }
+        // Auto-refresh to show updated results
+        setTimeout(() => {
+          fetchSubreddits(0, false)
+        }, 3000)
+        
+        // Close modal after a delay
+        setTimeout(() => {
+          setShowAIModal(false)
+          setCategorizationLogs([])
+        }, 8000)
       } else {
         throw new Error(data.error || 'Categorization failed')
       }
