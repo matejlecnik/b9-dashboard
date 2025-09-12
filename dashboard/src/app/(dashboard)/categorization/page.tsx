@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles } from 'lucide-react'
+import { AICategorizationModal, type AICategorizationSettings } from '@/components/AICategorizationModal'
 
 
 const PAGE_SIZE = 50 // Standard page size
@@ -59,6 +60,8 @@ export default function CategorizationPage() {
   ])
   const [bulkCategory, setBulkCategory] = useState('')
   const [categorizingAll, setCategorizingAll] = useState(false)
+  const [showAIModal, setShowAIModal] = useState(false)
+  const [categorizationLogs, setCategorizationLogs] = useState<string[]>([])
   const fetchingPageRef = useRef<number | null>(null)
   
   // Debounced search for better performance
@@ -303,6 +306,90 @@ export default function CategorizationPage() {
     })
   }, [subreddits, handleAsyncOperation, selectedCategories, addToast, fetchSubreddits])
 
+  // Handle opening AI categorization modal
+  const handleCategorizeAll = useCallback(() => {
+    if (categoryCounts.uncategorized === 0) {
+      addToast({
+        type: 'info',
+        title: 'No Uncategorized Items',
+        description: 'All subreddits have already been categorized!',
+        duration: 3000
+      })
+      return
+    }
+    setShowAIModal(true)
+  }, [categoryCounts.uncategorized, addToast])
+  
+  // Handle starting AI categorization with settings
+  const handleStartAICategorization = useCallback(async (settings: AICategorizationSettings) => {
+    setShowAIModal(false)
+    setCategorizingAll(true)
+    setCategorizationLogs([]) // Clear previous logs
+    
+    try {
+      // Add initial log
+      setCategorizationLogs(prev => [...prev, `Starting AI categorization with ${settings.limit} items...`])
+      
+      const response = await fetch('/api/ai/categorize-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batchSize: settings.batchSize,
+          limit: settings.limit,
+          model: settings.model,
+          temperature: settings.temperature,
+          categories: settings.categories,
+          apiKeyOverride: settings.apiKeyOverride
+        })
+      })
+      
+      // Log response status
+      setCategorizationLogs(prev => [...prev, `API Response: ${response.status} ${response.statusText}`])
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start AI categorization')
+      }
+      
+      if (data.success) {
+        setCategorizationLogs(prev => [...prev, `Successfully started categorization for ${data.estimated_subreddits || settings.limit} subreddits`])
+        
+        addToast({
+          type: 'success',
+          title: 'AI Categorization Started',
+          description: `Processing ${data.estimated_subreddits || settings.limit} subreddits with ${settings.model}...`,
+          duration: 5000
+        })
+        
+        // Auto-refresh based on settings
+        if (settings.autoRefreshDelay > 0) {
+          setTimeout(() => {
+            fetchSubreddits(0, false)
+          }, settings.autoRefreshDelay)
+        }
+      } else {
+        throw new Error(data.error || 'Categorization failed')
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to start AI categorization'
+      setCategorizationLogs(prev => [...prev, `Error: ${errorMsg}`])
+      
+      console.error('AI categorization error:', error)
+      addToast({
+        type: 'error',
+        title: 'AI Categorization Failed',
+        description: errorMsg,
+        duration: 5000
+      })
+      
+      // Keep modal open if there was an error to show logs
+      setShowAIModal(true)
+    } finally {
+      setCategorizingAll(false)
+    }
+  }, [addToast, fetchSubreddits])
+
   // Bulk category update
   const updateBulkCategory = useCallback(async (categoryText: string) => {
     const selectedIds = Array.from(selectedSubreddits)
@@ -347,69 +434,6 @@ export default function CategorizationPage() {
       }
     })
   }, [selectedSubreddits, handleAsyncOperation, addToast, fetchSubreddits])
-
-  // Handle AI categorize all
-  const handleCategorizeAll = async () => {
-    setCategorizingAll(true)
-    
-    try {
-      const response = await fetch('/api/ai/categorize-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          batchSize: 30,
-          limit: Math.min(categoryCounts.uncategorized, 500)
-        })
-      })
-      
-      const result = await response.json()
-      
-      if (!response.ok) {
-        if (result.configuration_needed) {
-          throw new Error('AI categorization service is not configured. Please contact support.')
-        } else if (result.connection_error) {
-          throw new Error('Cannot connect to AI categorization service. Please try again later.')
-        } else {
-          throw new Error(result.error || 'Failed to start AI categorization')
-        }
-      }
-      
-      addToast({
-        type: 'success',
-        title: 'AI Categorization Started',
-        description: `Processing ${result.estimated_subreddits || categoryCounts.uncategorized} uncategorized subreddits with GPT-4...`,
-        duration: 6000
-      })
-
-      // Show estimated cost if available
-      if (result.estimated_cost && result.estimated_cost > 0) {
-        addToast({
-          type: 'info',
-          title: 'Estimated Cost',
-          description: `Estimated cost: $${result.estimated_cost.toFixed(2)} for ${result.estimated_subreddits} subreddits`,
-          duration: 4000
-        })
-      }
-      
-      // Refresh after 30 seconds
-      setTimeout(() => {
-        fetchSubreddits(0, false)
-      }, 30000)
-      
-    } catch (error) {
-      console.error('Error starting AI categorization:', error)
-      addToast({
-        type: 'error',
-        title: 'AI Categorization Failed',
-        description: error instanceof Error ? error.message : 'Failed to start AI categorization. Please try again.',
-        duration: 7000
-      })
-    } finally {
-      setCategorizingAll(false)
-    }
-  }
 
   // Simplified data loading on mount and filter changes
   useEffect(() => {
@@ -469,22 +493,40 @@ export default function CategorizationPage() {
                   />
                 </div>
                 
-                {/* AI Review Button - Compact */}
+                {/* AI Review Button - Glass Morphism */}
                 <button
                   onClick={handleCategorizeAll}
                   disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
-                  className="px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-xl shadow-sm hover:shadow-md transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center min-w-[120px]"
+                  className="group relative px-5 py-3.5 min-w-[130px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                  }}
                 >
-                  <Sparkles className="h-5 w-5 text-pink-500 mb-1" />
-                  <span className="text-xs font-medium text-gray-900">AI Review</span>
-                  <span className="text-[10px] text-gray-600">
-                    {categorizingAll 
-                      ? 'Processing...' 
-                      : categoryCounts.uncategorized === 0
-                      ? 'All done!'
-                      : `${Math.min(categoryCounts.uncategorized, 500)} items`
-                    }
-                  </span>
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
+                  
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center">
+                    <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                    <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                      AI Review
+                    </span>
+                    <span className="text-[10px] text-gray-600 mt-0.5">
+                      {categorizingAll 
+                        ? 'Processing...' 
+                        : categoryCounts.uncategorized === 0
+                        ? 'All done!'
+                        : `${Math.min(categoryCounts.uncategorized, 500)} items`
+                      }
+                    </span>
+                  </div>
                 </button>
               </div>
             )}
@@ -787,6 +829,17 @@ export default function CategorizationPage() {
             </div>
           </div>
         )}
+        
+        {/* AI Categorization Modal */}
+        <AICategorizationModal
+          isOpen={showAIModal}
+          onClose={() => setShowAIModal(false)}
+          onStart={handleStartAICategorization}
+          uncategorizedCount={categoryCounts.uncategorized}
+          availableCategories={availableCategories}
+          isProcessing={categorizingAll}
+          logs={categorizationLogs}
+        />
       </div>
     </DashboardLayout>
   )

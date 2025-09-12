@@ -32,11 +32,12 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const body = await request.json() as CategorizationRequest
+    const body = await request.json()
+    
+    // Extract only the parameters that the backend expects
+    const { batchSize = 50, limit, subredditIds } = body
     
     // Validate request parameters
-    const { batchSize = 30, limit, subredditIds } = body
-    
     if (batchSize < 1 || batchSize > 100) {
       return NextResponse.json({
         success: false,
@@ -51,6 +52,20 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    // Forward ONLY the expected parameters to the Render API
+    const requestPayload = {
+      batchSize: batchSize || 50,
+      limit: limit || undefined,
+      subredditIds: subredditIds || undefined
+    }
+    
+    // Remove undefined values
+    const cleanPayload = Object.fromEntries(
+      Object.entries(requestPayload).filter(([_, v]) => v !== undefined)
+    )
+    
+    console.log('Forwarding to Render API:', cleanPayload)
+    
     // Forward the request to the Render API
     const renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/start`, {
       method: 'POST',
@@ -58,11 +73,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'User-Agent': 'B9-Dashboard/1.0'
       },
-      body: JSON.stringify({
-        batchSize,
-        limit,
-        subredditIds
-      })
+      body: JSON.stringify(cleanPayload)
     })
 
     const renderData = await renderResponse.json()

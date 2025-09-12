@@ -9,24 +9,6 @@
       ],
       "env": {}
     },
-    "lighthouse": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "lighthouse-mcp"
-      ],
-      "env": {}
-    },
-    "a11y": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "a11y-mcp"
-      ],
-      "env": {}
-    },
     "sequential-thinking": {
       "type": "stdio",
       "command": "npx",

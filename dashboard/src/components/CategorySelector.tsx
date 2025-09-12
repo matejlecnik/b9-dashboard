@@ -293,7 +293,7 @@ export function CategorySelector({
           value={selectedValue}
           onValueChange={handleCategorySelect}
         >
-          <SelectTrigger className="w-[170px] h-7 border border-gray-200 hover:bg-gray-50 transition-colors text-xs">
+          <SelectTrigger className="w-[200px] h-7 border border-gray-200 hover:bg-gray-50 transition-colors text-xs">
             <SelectValue placeholder="Select Category" />
           </SelectTrigger>
           <SelectContent className="max-h-80">

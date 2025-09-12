@@ -418,7 +418,7 @@ async def get_system_stats(request: Request, cache: cache_manager = Depends(get_
 
 @app.post("/api/categorization/start")
 @rate_limit("api")
-async def start_categorization(payload: CategorizationRequest):
+async def start_categorization(request: Request, payload: CategorizationRequest):
     """Start AI categorization process for approved subreddits"""
     if not categorization_service:
         raise HTTPException(status_code=503, detail="Categorization service not initialized")
@@ -443,7 +443,7 @@ async def start_categorization(payload: CategorizationRequest):
 
 @app.get("/api/categorization/stats")
 @rate_limit("api")
-async def get_categorization_stats():
+async def get_categorization_stats(request: Request):
     """Get categorization statistics"""
     if not categorization_service:
         raise HTTPException(status_code=503, detail="Categorization service not initialized")
@@ -458,7 +458,7 @@ async def get_categorization_stats():
 
 @app.get("/api/categorization/categories")
 @rate_limit("api") 
-async def get_categories():
+async def get_categories(request: Request):
     """Get list of available marketing categories"""
     if not categorization_service:
         raise HTTPException(status_code=503, detail="Categorization service not initialized")
@@ -479,7 +479,7 @@ async def get_categories():
 
 @app.post("/api/jobs/start")
 @rate_limit("api")
-async def start_background_job(job_request: BackgroundJobRequest):
+async def start_background_job(request: Request, job_request: BackgroundJobRequest):
     """Start a background job (replaces Celery functionality)"""
     try:
         # Generate job ID
@@ -528,7 +528,7 @@ async def start_background_job(job_request: BackgroundJobRequest):
 
 @app.get("/api/jobs/{job_id}")
 @rate_limit("api")
-async def get_job_status(job_id: str):
+async def get_job_status(request: Request, job_id: str):
     """Get background job status"""
     try:
         if not supabase:
