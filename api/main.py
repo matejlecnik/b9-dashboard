@@ -420,10 +420,27 @@ async def get_system_stats(request: Request, cache: cache_manager = Depends(get_
 @rate_limit("api")
 async def start_categorization(request: Request, payload: CategorizationRequest):
     """Start AI categorization process for approved subreddits"""
+    logger.info(f"📝 Categorization request received: batchSize={payload.batchSize}, limit={payload.limit}, subredditIds={payload.subredditIds}")
+    
     if not categorization_service:
+        logger.error("❌ Categorization service not initialized")
         raise HTTPException(status_code=503, detail="Categorization service not initialized")
     
+    if not supabase:
+        logger.error("❌ Supabase client not initialized")
+        raise HTTPException(status_code=503, detail="Supabase connection not available")
+    
+    # Test Supabase connection
     try:
+        test_response = supabase.table('subreddits').select('id').limit(1).execute()
+        logger.info(f"✅ Supabase connection test successful: {len(test_response.data)} test rows")
+    except Exception as e:
+        logger.error(f"❌ Supabase connection test failed: {e}")
+        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
+    
+    try:
+        logger.info(f"🚀 Starting categorization with batch_size={payload.batchSize}, limit={payload.limit}")
+        
         # Start categorization with specified parameters
         result = await categorization_service.categorize_all_uncategorized(
             batch_size=payload.batchSize,

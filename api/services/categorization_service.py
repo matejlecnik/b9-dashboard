@@ -76,16 +76,22 @@ class CategorizationService:
     async def get_uncategorized_subreddits(self, limit: int = 1000) -> List[Dict[str, Any]]:
         """Get subreddits that need categorization"""
         try:
+            self.logger.info(f"🔍 Fetching uncategorized subreddits (limit={limit})")
+            
             # Get subreddits that are approved (Ok) but not yet categorized
             # Using filter for null or empty category_text
             response = self.supabase.table('subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
             ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers', desc=True).limit(limit).execute()
             
+            self.logger.info(f"📊 Query 1 (null category_text): Found {len(response.data or [])} subreddits")
+            
             # Also get subreddits with empty category_text
             response2 = self.supabase.table('subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
             ).eq('review', 'Ok').eq('category_text', '').order('subscribers', desc=True).limit(limit).execute()
+            
+            self.logger.info(f"📊 Query 2 (empty category_text): Found {len(response2.data or [])} subreddits")
             
             # Combine results and remove duplicates
             all_subreddits = response.data or []
@@ -293,19 +299,26 @@ Category:"""
         """Categorize all uncategorized subreddits in batches"""
         start_time = datetime.now(timezone.utc)
         
+        self.logger.info(f"🎯 categorize_all_uncategorized called: batch_size={batch_size}, limit={limit}, subreddit_ids={subreddit_ids}")
+        
         # Get uncategorized subreddits
         if subreddit_ids:
             # If specific IDs are provided, fetch those subreddits
+            self.logger.info(f"📝 Fetching specific subreddits by IDs: {subreddit_ids}")
             subreddits = []
             for subreddit_id in subreddit_ids:
                 try:
                     response = self.supabase.table('subreddits').select('*').eq('id', subreddit_id).execute()
                     if response.data:
                         subreddits.extend(response.data)
+                        self.logger.info(f"✅ Found subreddit {subreddit_id}: {response.data[0].get('name')}")
+                    else:
+                        self.logger.warning(f"⚠️ Subreddit {subreddit_id} not found")
                 except Exception as e:
                     self.logger.error(f"Failed to fetch subreddit {subreddit_id}: {e}")
         else:
             # Otherwise get all uncategorized subreddits
+            self.logger.info(f"📋 Fetching all uncategorized subreddits")
             subreddits = await self.get_uncategorized_subreddits(limit or 10000)
         
         if not subreddits:
