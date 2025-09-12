@@ -60,6 +60,13 @@ export function AICategorizationModal({
     }))
   }, [uncategorizedCount])
   
+  // Auto-show logs when processing starts or logs are added
+  useEffect(() => {
+    if (isProcessing || logs.length > 0) {
+      setShowLogs(true)
+    }
+  }, [isProcessing, logs.length])
+  
   // Calculate estimated cost (GPT-4 fixed pricing)
   useEffect(() => {
     const costPerItem = 0.01 // GPT-4 pricing
@@ -216,21 +223,38 @@ export function AICategorizationModal({
                   </div>
                   {showLogs && (
                     <div 
-                      className="rounded-lg p-2 font-mono text-[10px] space-y-0.5 max-h-24 overflow-y-auto"
+                      className="rounded-lg p-3 font-mono text-[11px] space-y-1 max-h-48 overflow-y-auto"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.92))',
+                        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.95))',
                         backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(75, 85, 99, 0.3)'
+                        border: '1px solid rgba(75, 85, 99, 0.3)',
+                        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)'
                       }}
                     >
                       {logs.length > 0 ? (
-                        logs.map((log, index) => (
-                          <div key={index} className="text-gray-300">
-                            <span className="text-pink-400">[{new Date().toLocaleTimeString()}]</span> {log}
-                          </div>
-                        ))
+                        logs.map((log, index) => {
+                          // Style different log types
+                          let logClass = "text-gray-300"
+                          if (log.includes('✅') || log.includes('✓')) logClass = "text-green-400"
+                          else if (log.includes('❌') || log.includes('✗') || log.includes('Error')) logClass = "text-red-400"
+                          else if (log.includes('📊') || log.includes('💰')) logClass = "text-blue-400"
+                          else if (log.includes('API Response')) logClass = "text-yellow-400"
+                          else if (log.includes('→')) logClass = "text-purple-400"
+                          
+                          return (
+                            <div key={index} className={logClass}>
+                              {!log.startsWith(' ') && (
+                                <span className="text-pink-400 mr-1">[{new Date().toLocaleTimeString()}]</span>
+                              )}
+                              {log}
+                            </div>
+                          )
+                        })
                       ) : (
-                        <div className="text-gray-400">Waiting for logs...</div>
+                        <div className="text-gray-400 flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-400" />
+                          Waiting for response...
+                        </div>
                       )}
                     </div>
                   )}

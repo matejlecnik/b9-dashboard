@@ -322,7 +322,7 @@ export default function CategorizationPage() {
   
   // Handle starting AI categorization with settings
   const handleStartAICategorization = useCallback(async (settings: AICategorizationSettings) => {
-    setShowAIModal(false)
+    // Keep modal open to show logs
     setCategorizingAll(true)
     setCategorizationLogs([]) // Clear previous logs
     
@@ -352,13 +352,51 @@ export default function CategorizationPage() {
         throw new Error(data.error || 'Failed to start AI categorization')
       }
       
-      if (data.success) {
+      // Parse the response and add detailed logs
+      if (data.status === 'completed' && data.results) {
+        const results = data.results
+        setCategorizationLogs(prev => [...prev, `✅ Categorization completed successfully!`])
+        setCategorizationLogs(prev => [...prev, `📊 Processed: ${results.stats?.total_processed || 0} items`])
+        setCategorizationLogs(prev => [...prev, `✓ Successful: ${results.stats?.successful || 0}`])
+        setCategorizationLogs(prev => [...prev, `✗ Errors: ${results.stats?.errors || 0}`])
+        setCategorizationLogs(prev => [...prev, `💰 Total cost: $${results.stats?.total_cost?.toFixed(4) || '0.00'}`])
+        
+        // Add individual results if available
+        if (results.results && Array.isArray(results.results)) {
+          results.results.forEach((result: any) => {
+            if (result.success) {
+              setCategorizationLogs(prev => [...prev, `  ✓ ${result.subreddit_name} → ${result.category}`])
+            } else {
+              setCategorizationLogs(prev => [...prev, `  ✗ ${result.subreddit_name}: ${result.error_message}`])
+            }
+          })
+        }
+        
+        addToast({
+          type: 'success',
+          title: 'AI Categorization Complete',
+          description: `Successfully categorized ${results.stats?.successful || 0} out of ${results.stats?.total_processed || 0} subreddits`,
+          duration: 5000
+        })
+        
+        // Auto-refresh after a delay to show updated results
+        setTimeout(() => {
+          fetchSubreddits(0, false)
+        }, 2000)
+        
+        // Close modal after showing results for a few seconds
+        setTimeout(() => {
+          setShowAIModal(false)
+          setCategorizationLogs([])
+        }, 10000) // Keep modal open for 10 seconds to show results
+      } else if (data.success) {
+        // Legacy response format
         setCategorizationLogs(prev => [...prev, `Successfully started categorization for ${data.estimated_subreddits || settings.limit} subreddits`])
         
         addToast({
           type: 'success',
           title: 'AI Categorization Started',
-          description: `Processing ${data.estimated_subreddits || settings.limit} subreddits with ${settings.model}...`,
+          description: `Processing ${data.estimated_subreddits || settings.limit} subreddits...`,
           duration: 5000
         })
         
@@ -373,7 +411,7 @@ export default function CategorizationPage() {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to start AI categorization'
-      setCategorizationLogs(prev => [...prev, `Error: ${errorMsg}`])
+      setCategorizationLogs(prev => [...prev, `❌ Error: ${errorMsg}`])
       
       console.error('AI categorization error:', error)
       addToast({
@@ -382,9 +420,6 @@ export default function CategorizationPage() {
         description: errorMsg,
         duration: 5000
       })
-      
-      // Keep modal open if there was an error to show logs
-      setShowAIModal(true)
     } finally {
       setCategorizingAll(false)
     }
