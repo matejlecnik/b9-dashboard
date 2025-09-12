@@ -40,9 +40,11 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (filter === 'categorized') {
-      query = query.not('category_text', 'is', null)
+      // Categorized means it has a non-empty category_text
+      query = query.not('category_text', 'is', null).neq('category_text', '')
     } else if (filter === 'uncategorized') {
-      query = query.is('category_text', null)
+      // Uncategorized means null OR empty string
+      query = query.or('category_text.is.null,category_text.eq.')
     } else if (filter === 'unreviewed') {
       query = query.is('review', null)
     } else if (filter === 'ok') {
@@ -120,8 +122,10 @@ export async function GET(request: NextRequest) {
 
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
         baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })),
-        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).not('category_text', 'is', null),
-        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).is('category_text', null)
+        // Categorized: not null AND not empty string
+        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).not('category_text', 'is', null).neq('category_text', ''),
+        // Uncategorized: null OR empty string
+        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).or('category_text.is.null,category_text.eq.')
       ])
       statsDuration = Date.now() - statsStartTime
 
