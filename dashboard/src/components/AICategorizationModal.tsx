@@ -67,9 +67,11 @@ export function AICategorizationModal({
     }
   }, [isProcessing, logs.length])
   
-  // Calculate estimated cost (GPT-4 fixed pricing)
+  // Calculate estimated cost (GPT-4 actual pricing based on real usage)
   useEffect(() => {
-    const costPerItem = 0.01 // GPT-4 pricing
+    // Based on actual costs: $0.0064 for 2 items = ~$0.0032 per item
+    // Adding a small buffer for variation in prompt/response sizes
+    const costPerItem = 0.0035 // Actual GPT-4 pricing with small buffer
     const itemsToProcess = Math.min(settings.limit, uncategorizedCount)
     setEstimatedCost(itemsToProcess * costPerItem)
   }, [settings.limit, uncategorizedCount])

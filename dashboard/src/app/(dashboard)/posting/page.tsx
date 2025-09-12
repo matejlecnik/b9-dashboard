@@ -12,6 +12,14 @@ interface Creator {
   account_age_days: number | null
   icon_img: string | null
   our_creator: boolean
+  total_posts?: number
+  avg_score?: number
+  best_subreddit?: string
+  subreddit_description?: string | null
+  verified?: boolean
+  is_gold?: boolean
+  has_verified_email?: boolean
+  created_utc?: string | null
 }
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,10 +43,17 @@ import {
   Heart,
   Image as ImageIcon,
   Video,
-  FileText
+  FileText,
+  X,
+  UserPlus,
+  BarChart3,
+  ExternalLink,
+  Search,
+  AlertCircle
 } from 'lucide-react'
 import { BookOpen } from 'lucide-react'
 import Image from 'next/image'
+import { Input } from '@/components/ui/input'
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
 type SortField = 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour' | 'moderator_score' | 'health_score'
@@ -71,6 +86,13 @@ export default function PostingPage() {
   const [okSubreddits, setOkSubreddits] = useState<SubredditWithPosts[]>([])
   const [creators, setCreators] = useState<Creator[]>([])
   const [loadingCreators, setLoadingCreators] = useState(true)
+  const [expandedCreators, setExpandedCreators] = useState(false)
+  const [searchingUser, setSearchingUser] = useState(false)
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Creator[]>([])
+  const [removingCreator, setRemovingCreator] = useState<number | null>(null)
+  const [creatorStats, setCreatorStats] = useState<Record<number, { posts: number, avgScore: number, topSubreddit: string }>>({})
+  const [loadingStats, setLoadingStats] = useState(false)
   const [loading, setLoading] = useState(true)
   const [expandedSubreddits, setExpandedSubreddits] = useState<Set<number>>(new Set())
   const [topPostsBySubreddit, setTopPostsBySubreddit] = useState<Record<number, Post[]>>({})
@@ -205,7 +227,46 @@ export default function PostingPage() {
   
   
   
-  // Fetch creators marked as "our creator"
+  // Fetch stats for creators
+  const fetchCreatorStats = useCallback(async (usernames: string[]) => {
+    try {
+      if (!supabase) return
+      setLoadingStats(true)
+      const sb = supabase as NonNullable<typeof supabase>
+      
+      const stats: Record<number, { posts: number, avgScore: number, topSubreddit: string }> = {}
+      
+      for (const username of usernames) {
+        const { data: posts } = await sb
+          .from('posts')
+          .select('score, subreddit_name')
+          .eq('author', username)
+          .order('score', { ascending: false })
+          .limit(100)
+        
+        if (posts && posts.length > 0) {
+          const avgScore = posts.reduce((sum, p) => sum + p.score, 0) / posts.length
+          const topSubreddit = posts[0].subreddit_name || ''
+          const creator = creators.find(c => c.username === username)
+          if (creator) {
+            stats[creator.id] = {
+              posts: posts.length,
+              avgScore: Math.round(avgScore),
+              topSubreddit
+            }
+          }
+        }
+      }
+      
+      setCreatorStats(stats)
+    } catch (error) {
+      console.error('Error fetching creator stats:', error)
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [creators])
+  
+  // Fetch creators marked as "our creator" with stats
   const fetchCreators = useCallback(async () => {
     setLoadingCreators(true)
     try {
@@ -214,12 +275,17 @@ export default function PostingPage() {
       
       const { data: creatorsData, error } = await sb
         .from('users')
-        .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator')
+        .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator, subreddit_description, verified, is_gold, has_verified_email, created_utc')
         .eq('our_creator', true)
-        .order('username')
+        .order('link_karma', { ascending: false })
       
       if (error) throw error
       setCreators(creatorsData || [])
+      
+      // Fetch stats for each creator
+      if (creatorsData && creatorsData.length > 0) {
+        await fetchCreatorStats(creatorsData.map(c => c.username))
+      }
     } catch (error) {
       console.error('Error fetching creators:', error)
       addToast({
@@ -230,7 +296,77 @@ export default function PostingPage() {
       })
     }
     setLoadingCreators(false)
-  }, [addToast])
+  }, [addToast, fetchCreatorStats])
+  
+  // Search for users to add as creators
+  const searchUsers = useCallback(async () => {
+    if (!userSearchQuery.trim()) return
+    
+    setSearchingUser(true)
+    try {
+      if (!supabase) return
+      const sb = supabase as NonNullable<typeof supabase>
+      
+      const { data: users, error } = await sb
+        .from('users')
+        .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator, subreddit_description, verified, is_gold, has_verified_email, created_utc')
+        .ilike('username', `%${userSearchQuery}%`)
+        .eq('our_creator', false)
+        .limit(10)
+        .order('link_karma', { ascending: false })
+      
+      if (error) throw error
+      setSearchResults(users || [])
+    } catch (error) {
+      console.error('Error searching users:', error)
+      addToast({
+        type: 'error',
+        title: 'Search Failed',
+        description: 'Failed to search for users. Please try again.',
+        duration: 3000
+      })
+    }
+    setSearchingUser(false)
+  }, [userSearchQuery, addToast])
+  
+  // Toggle creator status
+  const toggleCreator = useCallback(async (userId: number, makeCreator: boolean) => {
+    try {
+      const response = await fetch('/api/users/toggle-creator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, our_creator: makeCreator })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to update creator status')
+      }
+      
+      addToast({
+        type: 'success',
+        title: makeCreator ? 'Creator Added' : 'Creator Removed',
+        description: result.message,
+        duration: 3000
+      })
+      
+      // Refresh creators list
+      await fetchCreators()
+      setSearchResults([])
+      setUserSearchQuery('')
+    } catch (error) {
+      console.error('Error toggling creator:', error)
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        description: error instanceof Error ? error.message : 'Failed to update creator status',
+        duration: 5000
+      })
+    } finally {
+      setRemovingCreator(null)
+    }
+  }, [fetchCreators, addToast])
   
   // Refresh when sort changes (after initial load)
   useEffect(() => {
@@ -470,73 +606,354 @@ export default function PostingPage() {
       showSearch={false}
     >
       <div className="space-y-6">
-        {/* Active Accounts Section */}
-        <Card className="bg-white/70 backdrop-blur-md border-0">
-          <CardHeader className="py-3">
+        {/* Active Accounts Section - Enhanced */}
+        <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm text-gray-700">Active accounts</CardTitle>
-              <Badge variant="outline" className="text-xs">{creators.length} creators</Badge>
+              <div className="flex items-center space-x-3">
+                <CardTitle className="text-lg text-gray-900">Active Creator Accounts</CardTitle>
+                <Badge variant="outline" className="text-xs bg-pink-50 border-pink-200">
+                  {creators.length} {creators.length === 1 ? 'creator' : 'creators'}
+                </Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setExpandedCreators(!expandedCreators)}
+                  className="text-xs"
+                >
+                  {expandedCreators ? (
+                    <><ChevronUp className="h-3 w-3 mr-1" /> Collapse</>
+                  ) : (
+                    <><ChevronDown className="h-3 w-3 mr-1" /> Expand</>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="bg-b9-pink hover:bg-pink-600 text-white text-xs"
+                  onClick={() => setExpandedCreators(true)}
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Add Creator
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-0 pb-4">
+          <CardContent className="pt-0">
             {loadingCreators ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
-                    <div className="h-2 bg-gray-200 rounded w-16"></div>
-                  </div>
-                </div>
-              </div>
-            ) : creators.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">No active creator accounts found</p>
-            ) : (
-              <div className="flex flex-wrap gap-4">
-                {creators.map((creator) => (
-                  <div key={creator.id} className="flex items-center space-x-3 bg-white/50 rounded-lg p-3 border border-gray-200/50">
-                    <a 
-                      href={getRedditProfileUrl(creator.username)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative group"
-                      title={`Open u/${creator.username} on Reddit`}
-                    >
-                      {creator.icon_img ? (
-                        <Image
-                          src={creator.icon_img}
-                          alt={`${creator.username} avatar`}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                          {creator.username.substring(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                    </a>
-                    <div className="flex-1 min-w-0">
-                      <a 
-                        href={getRedditProfileUrl(creator.username)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-semibold text-gray-900 hover:text-b9-pink truncate block"
-                      >
-                        u/{creator.username}
-                      </a>
-                      <div className="flex items-center space-x-3 text-xs text-gray-500">
-                        <span title="Post karma">📮 {creator.link_karma.toLocaleString('en-US')}</span>
-                        <span title="Comment karma">💬 {creator.comment_karma.toLocaleString('en-US')}</span>
-                        {creator.account_age_days && (
-                          <span title="Account age">📅 {creator.account_age_days}d</span>
-                        )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+            ) : creators.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium mb-2">No active creator accounts</p>
+                <p className="text-sm text-gray-500 mb-4">Add creator accounts to track their performance</p>
+                <Button
+                  size="sm"
+                  className="bg-b9-pink hover:bg-pink-600 text-white"
+                  onClick={() => setExpandedCreators(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Your First Creator
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {(expandedCreators ? creators : creators.slice(0, 10)).map((creator) => {
+                    const stats = creatorStats[creator.id]
+                    const accountAge = creator.account_age_days ? 
+                      creator.account_age_days > 365 ? 
+                        `${Math.floor(creator.account_age_days / 365)}y` : 
+                        `${creator.account_age_days}d` 
+                      : 'New'
+                    
+                    return (
+                      <div key={creator.id} className="relative bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all hover:scale-105 group">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute -top-2 -right-2 h-5 w-5 p-0 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onClick={() => {
+                            setRemovingCreator(creator.id)
+                            toggleCreator(creator.id, false)
+                          }}
+                          disabled={removingCreator === creator.id}
+                        >
+                          {removingCreator === creator.id ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
+                        </Button>
+                        
+                        <div className="p-3">
+                          {/* Avatar and Name */}
+                          <div className="flex flex-col items-center text-center mb-2">
+                            <a 
+                              href={getRedditProfileUrl(creator.username)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative mb-2"
+                            >
+                              {creator.icon_img ? (
+                                <Image
+                                  src={creator.icon_img}
+                                  alt={`${creator.username} avatar`}
+                                  width={40}
+                                  height={40}
+                                  className="w-10 h-10 rounded-full object-cover border border-gray-200 hover:border-b9-pink transition-colors"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                  {creator.username.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </a>
+                            <a 
+                              href={getRedditProfileUrl(creator.username)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group/link"
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs font-semibold text-gray-900 group-hover/link:text-b9-pink truncate max-w-[100px]">
+                                  u/{creator.username}
+                                </span>
+                                <ExternalLink className="h-2.5 w-2.5 text-gray-400 group-hover/link:text-b9-pink" />
+                              </div>
+                            </a>
+                            
+                            {/* Badges */}
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[10px] px-1 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                {accountAge}
+                              </span>
+                              {creator.verified && (
+                                <span className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-600 rounded" title="Verified">
+                                  ✓
+                                </span>
+                              )}
+                              {creator.is_gold && (
+                                <span className="text-[10px] px-1 py-0.5 bg-yellow-100 text-yellow-600 rounded" title="Reddit Gold">
+                                  ⭐
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Bio if available */}
+                          {creator.subreddit_description && (
+                            <p className="text-[10px] text-gray-600 line-clamp-2 mb-2 italic">
+                              {creator.subreddit_description}
+                            </p>
+                          )}
+                          
+                          {/* Karma Stats - Compact */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-gray-500">Post</span>
+                              <span className="text-[10px] font-medium text-gray-900">
+                                {creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(1)}k` : creator.link_karma}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-gray-500">Comment</span>
+                              <span className="text-[10px] font-medium text-gray-900">
+                                {creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(1)}k` : creator.comment_karma}
+                              </span>
+                            </div>
+                            
+                            {/* Performance if available */}
+                            {stats && !loadingStats && (
+                              <>
+                                <div className="border-t pt-1 mt-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-gray-500">Posts</span>
+                                    <span className="text-[10px] font-medium text-gray-900">{stats.posts}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-gray-500">Avg</span>
+                                    <span className="text-[10px] font-medium text-gray-900">{stats.avgScore}</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Quick Action Links */}
+                          <div className="mt-2 pt-2 border-t flex justify-center gap-2">
+                            <a
+                              href={`https://www.reddit.com/user/${creator.username}/submitted/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-gray-500 hover:text-b9-pink"
+                              title="View posts"
+                            >
+                              Posts
+                            </a>
+                            <span className="text-[10px] text-gray-300">•</span>
+                            <a
+                              href={`https://www.reddit.com/user/${creator.username}/comments/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-gray-500 hover:text-b9-pink"
+                              title="View comments"
+                            >
+                              Comments
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                {!expandedCreators && creators.length > 10 && (
+                  <div className="text-center mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setExpandedCreators(true)}
+                      className="text-xs"
+                    >
+                      Show All {creators.length} Creators
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Add Creator Section */}
+                {expandedCreators && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <UserPlus className="h-4 w-4 text-gray-600" />
+                      <h4 className="font-medium text-gray-900">Add New Creator</h4>
+                    </div>
+                    <div className="flex space-x-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder="Search Reddit username..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
+                          className="pl-10 pr-3"
+                        />
+                      </div>
+                      <Button
+                        onClick={searchUsers}
+                        disabled={searchingUser || !userSearchQuery.trim()}
+                        className="bg-b9-pink hover:bg-pink-600 text-white"
+                      >
+                        {searchingUser ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        ) : (
+                          'Search'
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {/* Search Results */}
+                    {searchResults.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs text-gray-600 mb-3">Found {searchResults.length} users:</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {searchResults.map((user) => {
+                            const accountAge = user.account_age_days ? 
+                              user.account_age_days > 365 ? 
+                                `${Math.floor(user.account_age_days / 365)}y` : 
+                                `${user.account_age_days}d` 
+                              : 'New'
+                            
+                            return (
+                              <div key={user.id} className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 hover:shadow-md transition-all">
+                                <div className="flex flex-col items-center text-center">
+                                  {/* Avatar */}
+                                  <div className="mb-2">
+                                    {user.icon_img ? (
+                                      <Image
+                                        src={user.icon_img}
+                                        alt={`${user.username} avatar`}
+                                        width={36}
+                                        height={36}
+                                        className="w-9 h-9 rounded-full object-cover border border-gray-200"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-xs">
+                                        {user.username.substring(0, 2).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Username */}
+                                  <div className="font-medium text-xs text-gray-900 truncate max-w-full mb-1">
+                                    u/{user.username}
+                                  </div>
+                                  
+                                  {/* Stats */}
+                                  <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-[10px] px-1 py-0.5 bg-white text-gray-600 rounded">
+                                      {accountAge}
+                                    </span>
+                                    {user.link_karma > 10000 && (
+                                      <span className="text-[10px] px-1 py-0.5 bg-yellow-100 text-yellow-600 rounded">
+                                        {(user.link_karma / 1000).toFixed(0)}k
+                                      </span>
+                                    )}
+                                    {user.verified && (
+                                      <span className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-600 rounded">
+                                        ✓
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Bio if available */}
+                                  {user.subreddit_description && (
+                                    <p className="text-[10px] text-gray-600 line-clamp-2 mb-2 italic">
+                                      {user.subreddit_description}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Karma display */}
+                                  <div className="text-[10px] text-gray-500 mb-2">
+                                    {user.link_karma.toLocaleString()} • {user.comment_karma.toLocaleString()}
+                                  </div>
+                                  
+                                  {/* Add button */}
+                                  <Button
+                                    size="sm"
+                                    onClick={() => toggleCreator(user.id, true)}
+                                    className="bg-b9-pink hover:bg-pink-600 text-white text-[10px] h-6 px-2 w-full"
+                                  >
+                                    <UserPlus className="h-3 w-3 mr-1" />
+                                    Add
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
