@@ -5,7 +5,11 @@ import { z } from 'zod'
 // Validation schema for subreddit updates
 const SubredditUpdateSchema = z.object({
   review: z.enum(['Ok', 'No Seller', 'Non Related']).nullable().optional(),
-  category_text: z.string().min(1).max(100).nullable().optional()
+  category_text: z.union([
+    z.string().length(0), // Allow empty string for uncategorized
+    z.string().min(1).max(100),
+    z.null()
+  ]).optional()
 }).refine(
   (data) => Object.keys(data).length > 0,
   { message: "At least one field must be provided for update" }
