@@ -266,12 +266,25 @@ Category:"""
         return results
     
     async def categorize_all_uncategorized(self, batch_size: int = 30, 
-                                         limit: Optional[int] = None) -> Dict[str, Any]:
+                                         limit: Optional[int] = None,
+                                         subreddit_ids: Optional[List[int]] = None) -> Dict[str, Any]:
         """Categorize all uncategorized subreddits in batches"""
         start_time = datetime.now(timezone.utc)
         
         # Get uncategorized subreddits
-        subreddits = await self.get_uncategorized_subreddits(limit or 10000)
+        if subreddit_ids:
+            # If specific IDs are provided, fetch those subreddits
+            subreddits = []
+            for subreddit_id in subreddit_ids:
+                try:
+                    response = self.supabase.table('subreddits').select('*').eq('id', subreddit_id).execute()
+                    if response.data:
+                        subreddits.extend(response.data)
+                except Exception as e:
+                    self.logger.error(f"Failed to fetch subreddit {subreddit_id}: {e}")
+        else:
+            # Otherwise get all uncategorized subreddits
+            subreddits = await self.get_uncategorized_subreddits(limit or 10000)
         
         if not subreddits:
             return {
