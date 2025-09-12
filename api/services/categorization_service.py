@@ -77,14 +77,34 @@ class CategorizationService:
         """Get subreddits that need categorization"""
         try:
             # Get subreddits that are approved (Ok) but not yet categorized
+            # Using filter for null or empty category_text
             response = self.supabase.table('subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
-            ).eq('review', 'Ok').or_(
-                'category_text.is.null,category_text.eq.'
-            ).order('subscribers', desc=True).limit(limit).execute()
+            ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers', desc=True).limit(limit).execute()
             
-            self.logger.info(f"Found {len(response.data or [])} uncategorized subreddits")
-            return response.data or []
+            # Also get subreddits with empty category_text
+            response2 = self.supabase.table('subreddits').select(
+                'id, name, title, public_description, subscribers, display_name_prefixed'
+            ).eq('review', 'Ok').eq('category_text', '').order('subscribers', desc=True).limit(limit).execute()
+            
+            # Combine results and remove duplicates
+            all_subreddits = response.data or []
+            all_subreddits.extend(response2.data or [])
+            
+            # Remove duplicates based on id
+            seen = set()
+            unique_subreddits = []
+            for sub in all_subreddits:
+                if sub['id'] not in seen:
+                    seen.add(sub['id'])
+                    unique_subreddits.append(sub)
+            
+            # Sort by subscribers and limit
+            unique_subreddits.sort(key=lambda x: x.get('subscribers', 0), reverse=True)
+            unique_subreddits = unique_subreddits[:limit]
+            
+            self.logger.info(f"Found {len(unique_subreddits)} uncategorized subreddits")
+            return unique_subreddits
             
         except Exception as e:
             self.logger.error(f"Error fetching uncategorized subreddits: {e}")
