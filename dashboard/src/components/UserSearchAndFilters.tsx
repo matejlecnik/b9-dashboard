@@ -33,6 +33,14 @@ interface FilterConfig {
   getCount: (counts: UserCounts) => number
 }
 
+// Helper function to format numbers with abbreviations
+const formatFilterCount = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return '0'
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return num.toString()
+}
+
 export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
   currentFilter,
   onFilterChange,
@@ -94,7 +102,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
         {/* Search Bar (60% on larger screens) */}
         <ToolbarSearch
           id="user-search"
-          placeholder="Search users by username..."
+          placeholder=""
           value={searchQuery}
           onChange={onSearchChange}
           disabled={loading}
@@ -107,8 +115,9 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
         <div className="flex items-center gap-1.5 flex-wrap lg:justify-end" role="group" aria-label="User quality filters">
           {filters.map((filter) => {
             const isActive = currentFilter === filter.id
-            const count = userCounts ? filter.getCount(userCounts) : 0
-            
+            const rawCount = userCounts ? filter.getCount(userCounts) : 0
+            const formattedCount = formatFilterCount(rawCount)
+
             return (
               <ToolbarFilterButton
                 key={filter.id}
@@ -116,7 +125,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
                 label={filter.label}
                 icon={filter.icon}
                 isActive={isActive}
-                count={loading ? undefined : count}
+                count={loading ? undefined : formattedCount}
                 onClick={() => onFilterChange(filter.id)}
                 disabled={loading}
                 gradient={

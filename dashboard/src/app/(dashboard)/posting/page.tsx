@@ -28,15 +28,17 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
 import { DiscoveryTable } from '@/components/DiscoveryTable'
-import { 
+import {
   ChevronDown,
   X,
   UserPlus,
   AlertCircle,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
+import { AddUserModal } from '@/components/AddUserModal'
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
 type SortField = 'avg_upvotes' | 'min_post_karma'
@@ -69,11 +71,8 @@ export default function PostingPage() {
   const [okSubreddits, setOkSubreddits] = useState<SubredditWithPosts[]>([])
   const [creators, setCreators] = useState<Creator[]>([])
   const [loadingCreators, setLoadingCreators] = useState(true)
-  const [showAddAccount, setShowAddAccount] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<{ id: number, username: string } | null>(null)
-  const [searchingUser, setSearchingUser] = useState(false)
-  const [userSearchQuery, setUserSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Creator[]>([])
   const [removingCreator, setRemovingCreator] = useState<number | null>(null)
   const [creatorStats, setCreatorStats] = useState<Record<number, { posts: number, avgScore: number, topSubreddit: string }>>({})
   const [, setLoadingStats] = useState(false)
@@ -323,37 +322,6 @@ export default function PostingPage() {
     setLoadingCreators(false)
   }, [addToast, fetchCreatorStats])
   
-  // Search for users to add as creators
-  const searchUsers = useCallback(async () => {
-    if (!userSearchQuery.trim()) return
-    
-    setSearchingUser(true)
-    try {
-      if (!supabase) return
-      const sb = supabase as NonNullable<typeof supabase>
-      
-      const { data: users, error } = await sb
-        .from('users')
-        .select('*')
-        .ilike('username', `%${userSearchQuery}%`)
-        .eq('our_creator', false)
-        .limit(10)
-        .order('link_karma', { ascending: false })
-      
-      if (error) throw error
-      setSearchResults(users || [])
-    } catch (error) {
-      console.error('Error searching users:', error)
-      addToast({
-        type: 'error',
-        title: 'Search Failed',
-        description: 'Failed to search for users. Please try again.',
-        duration: 3000
-      })
-    }
-    setSearchingUser(false)
-  }, [userSearchQuery, addToast])
-  
   // Toggle account status
   const toggleCreator = useCallback(async (userId: number, makeCreator: boolean, username?: string) => {
     // If removing, show confirmation first
@@ -384,11 +352,8 @@ export default function PostingPage() {
         description: result.message?.replace('creator', 'account'),
         duration: 3000
       })
-      
       // Refresh creators list
       await fetchCreators()
-      setSearchResults([])
-      setUserSearchQuery('')
     } catch (error) {
       console.error('Error toggling creator:', error)
       addToast({
@@ -552,27 +517,32 @@ export default function PostingPage() {
                 </Badge>
               </div>
               <button
-                onClick={() => setShowAddAccount(!showAddAccount)}
-                className="group relative px-4 py-2 min-w-[110px] overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] flex items-center justify-center text-xs font-medium"
+                onClick={() => setShowAddUserModal(true)}
+                className="group relative px-4 py-2.5 min-w-[120px] overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
+                  backdropFilter: 'blur(16px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
                 }}
               >
                 {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
-                
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
+
                 {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+                {/* Glow effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
+                </div>
+
                 {/* Content */}
-                <div className="relative flex items-center">
-                  <UserPlus className="h-3.5 w-3.5 mr-1.5 text-pink-500" />
-                  <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-                    Add Account
+                <div className="relative z-10 flex flex-col items-center">
+                  <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Add User
                   </span>
                 </div>
               </button>
@@ -599,7 +569,7 @@ export default function PostingPage() {
                 <p className="text-gray-600 font-medium mb-2">No active accounts</p>
                 <p className="text-sm text-gray-500 mb-4">Add accounts to track their performance</p>
                 <button
-                  onClick={() => setShowAddAccount(true)}
+                  onClick={() => setShowAddUserModal(true)}
                   className="group relative px-4 py-2.5 overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] inline-flex items-center justify-center text-sm font-medium"
                   style={{
                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
@@ -611,10 +581,10 @@ export default function PostingPage() {
                 >
                   {/* Gradient overlay on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
-                  
+
                   {/* Shine effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                  
+
                   {/* Content */}
                   <div className="relative flex items-center">
                     <UserPlus className="h-4 w-4 mr-2 text-pink-500" />
@@ -712,124 +682,6 @@ export default function PostingPage() {
                     )
                   })}
                 </div>
-                
-                {/* Add Account Section */}
-                {showAddAccount && (
-                  <div className="mt-6 pt-6 border-t">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <UserPlus className="h-4 w-4 text-gray-600" />
-                      <h4 className="font-medium text-gray-900">Add New Account</h4>
-                    </div>
-                    <div className="flex space-x-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          type="text"
-                          placeholder="Search Reddit username..."
-                          value={userSearchQuery}
-                          onChange={(e) => setUserSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
-                          className="pl-10 pr-3"
-                        />
-                      </div>
-                      <Button
-                        onClick={searchUsers}
-                        disabled={searchingUser || !userSearchQuery.trim()}
-                        className="bg-b9-pink hover:bg-pink-600 text-white"
-                      >
-                        {searchingUser ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        ) : (
-                          'Search'
-                        )}
-                      </Button>
-                    </div>
-                    
-                    {/* Search Results */}
-                    {searchResults.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-xs text-gray-600 mb-3">Found {searchResults.length} users:</p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                          {searchResults.map((user) => {
-                            const accountAge = user.account_age_days ? 
-                              user.account_age_days > 365 ? 
-                                `${Math.floor(user.account_age_days / 365)}y` : 
-                                `${user.account_age_days}d` 
-                              : 'New'
-                            
-                            return (
-                              <div key={user.id} className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 hover:shadow-md transition-all">
-                                <div className="flex flex-col items-center text-center">
-                                  {/* Avatar */}
-                                  <div className="mb-2">
-                                    {user.icon_img ? (
-                                      <Image
-                                        src={user.icon_img}
-                                        alt={`${user.username} avatar`}
-                                        width={36}
-                                        height={36}
-                                        className="w-9 h-9 rounded-full object-cover border border-gray-200"
-                                        unoptimized
-                                      />
-                                    ) : (
-                                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-xs">
-                                        {user.username.substring(0, 2).toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Username */}
-                                  <div className="font-medium text-xs text-gray-900 truncate max-w-full mb-1">
-                                    u/{user.username}
-                                  </div>
-                                  
-                                  {/* Stats */}
-                                  <div className="flex items-center gap-1 mb-2">
-                                    <span className="text-[10px] px-1 py-0.5 bg-white text-gray-600 rounded">
-                                      {accountAge}
-                                    </span>
-                                    {user.link_karma > 10000 && (
-                                      <span className="text-[10px] px-1 py-0.5 bg-yellow-100 text-yellow-600 rounded">
-                                        {(user.link_karma / 1000).toFixed(0)}k
-                                      </span>
-                                    )}
-                                    {user.verified && (
-                                      <span className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-600 rounded">
-                                        ✓
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Bio if available */}
-                                  {user.subreddit_description && (
-                                    <p className="text-[10px] text-gray-600 line-clamp-2 mb-2 italic">
-                                      {user.subreddit_description}
-                                    </p>
-                                  )}
-                                  
-                                  {/* Karma display */}
-                                  <div className="text-[10px] text-gray-500 mb-2">
-                                    {user.link_karma.toLocaleString()} • {user.comment_karma.toLocaleString()}
-                                  </div>
-                                  
-                                  {/* Add button */}
-                                  <Button
-                                    size="sm"
-                                    onClick={() => toggleCreator(user.id, true)}
-                                    className="bg-b9-pink hover:bg-pink-600 text-white text-[10px] h-6 px-2 w-full"
-                                  >
-                                    <UserPlus className="h-3 w-3 mr-1" />
-                                    Add
-                                  </Button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </>
             )}
           </CardContent>
@@ -1027,6 +879,14 @@ export default function PostingPage() {
             <span className="ml-3 text-gray-600">Loading more subreddits...</span>
           </div>
         )}
+
+        {/* Add User Modal */}
+        <AddUserModal
+          isOpen={showAddUserModal}
+          onClose={() => setShowAddUserModal(false)}
+          onUserAdded={fetchCreators}
+          existingCreators={creators}
+        />
       </div>
     </DashboardLayout>
   )

@@ -363,99 +363,100 @@ export default function UserAnalysisPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">User Analytics</h1>
-            <p className="text-muted-foreground">
-              Analyze Reddit user behavior and quality metrics for marketing optimization
-            </p>
-          </div>
-          {/* Glass Morphism Add User Button - matching AI Review style */}
-          <button
-            onClick={() => setShowAddUser(true)}
-            className="group relative px-5 py-3.5 min-w-[130px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
-            }}
-          >
-            {/* Gradient overlay on hover */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
 
-            {/* Shine effect */}
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-            {/* Content */}
-            <div className="relative z-10 flex flex-col items-center">
-              <Plus className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-              <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                Add User
-              </span>
-            </div>
-          </button>
-        </div>
-
-        {/* Stats Overview with Glass Morphism Cards */}
+        {/* Stats Overview with Glass Morphism Cards and Add User Button */}
         <ComponentErrorBoundary componentName="Stats Overview">
           {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-              <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-              <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="flex gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+              </div>
+              <div className="w-32 h-28 bg-gray-100 rounded-xl animate-pulse" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Total Users Card - Glass Morphism */}
-              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Total Users</h3>
-                  <Users className="h-4 w-4 text-gray-500" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {formatNumber(stats?.total_users)}
+            <div className="flex gap-3">
+              {/* Stats Cards Container - 80% width */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                {/* Total Users Card - Glass Morphism */}
+                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Total Users</h3>
+                    <Users className="h-4 w-4 text-gray-500" />
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Active (30d): {formatNumber(stats?.users_active_last_30_days)}
-                  </p>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {formatNumber(stats?.total_users)}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Active (30d): {formatNumber(stats?.users_active_last_30_days)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* High Quality Users Card - Glass Morphism */}
+                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900">High Quality</h3>
+                    <Star className="h-4 w-4 text-yellow-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {formatNumber(stats?.high_quality_users)}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Score ≥ 7.0
+                    </p>
+                  </div>
+                </div>
+
+                {/* Our Creators Card - Glass Morphism with Pink Accent */}
+                <div className="bg-gradient-to-br from-pink-50/80 to-white/80 backdrop-blur-sm border border-pink-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Our Creators</h3>
+                    <Crown className="h-4 w-4 text-pink-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                      {formatNumber(stats?.our_creators)}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Manually marked
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* High Quality Users Card - Glass Morphism */}
-              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">High Quality</h3>
-                  <Star className="h-4 w-4 text-yellow-500" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {formatNumber(stats?.high_quality_users)}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Score ≥ 7.0
-                  </p>
-                </div>
-              </div>
+              {/* Add User Button - Glass Morphism matching AI Review style */}
+              <button
+                onClick={() => setShowAddUser(true)}
+                className="group relative px-5 py-3.5 min-w-[130px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
 
-              {/* Our Creators Card - Glass Morphism with Pink Accent */}
-              <div className="bg-gradient-to-br from-pink-50/80 to-white/80 backdrop-blur-sm border border-pink-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Our Creators</h3>
-                  <Crown className="h-4 w-4 text-pink-500" />
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <Plus className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Add User
+                  </span>
+                  <span className="text-[10px] text-gray-600 mt-0.5">
+                    Track new
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    {formatNumber(stats?.our_creators)}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Manually marked
-                  </p>
-                </div>
-              </div>
+              </button>
             </div>
           )}
         </ComponentErrorBoundary>

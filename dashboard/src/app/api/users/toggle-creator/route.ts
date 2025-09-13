@@ -14,27 +14,34 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const { id, our_creator } = body
+    const { id, username, our_creator } = body
 
     // Comprehensive input validation
-    if (id === undefined || id === null) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'User ID is required' 
+    if (!id && !username) {
+      return NextResponse.json({
+        success: false,
+        error: 'Either user ID or username is required'
       }, { status: 400 })
     }
 
-    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'User ID must be a positive integer' 
+    if (id !== undefined && (typeof id !== 'number' || !Number.isInteger(id) || id <= 0)) {
+      return NextResponse.json({
+        success: false,
+        error: 'User ID must be a positive integer'
+      }, { status: 400 })
+    }
+
+    if (username !== undefined && (typeof username !== 'string' || username.trim().length === 0)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Username must be a non-empty string'
       }, { status: 400 })
     }
 
     if (typeof our_creator !== 'boolean') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'our_creator must be a boolean value' 
+      return NextResponse.json({
+        success: false,
+        error: 'our_creator must be a boolean value'
       }, { status: 400 })
     }
 
@@ -50,28 +57,32 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user exists before updating
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('id, username')
-      .eq('id', id)
-      .single()
+    let query = supabase.from('users').select('id, username')
+
+    if (id) {
+      query = query.eq('id', id)
+    } else if (username) {
+      query = query.eq('username', username)
+    }
+
+    const { data: existingUser, error: checkError } = await query.single()
 
     if (checkError || !existingUser) {
       console.error('User lookup error:', checkError)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'User not found' 
+      return NextResponse.json({
+        success: false,
+        error: 'User not found'
       }, { status: 404 })
     }
 
     // Update the user's creator status
     const { error: updateError } = await supabase
       .from('users')
-      .update({ 
+      .update({
         our_creator,
         updated_at: new Date().toISOString()
       })
-      .eq('id', id)
+      .eq('id', existingUser.id)
 
     if (updateError) {
       console.error('Toggle creator error:', updateError)
@@ -82,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the action for audit purposes
-    console.log(`User ${existingUser.username} (ID: ${id}) creator status changed to: ${our_creator}`)
+    console.log(`User ${existingUser.username} (ID: ${existingUser.id}) creator status changed to: ${our_creator}`)
 
     return NextResponse.json({ 
       success: true,
