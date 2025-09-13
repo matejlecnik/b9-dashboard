@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+export const runtime = 'nodejs'
 
 interface CategorizationRequest {
   batchSize?: number
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const body = await request.json()
+    const body: CategorizationRequest = await request.json()
     
     // Extract only the parameters that the backend expects
     const { batchSize = 50, limit, subredditIds } = body
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     
     // Remove undefined values
     const cleanPayload = Object.fromEntries(
-      Object.entries(requestPayload).filter(([_, v]) => v !== undefined)
+      Object.entries(requestPayload).filter(([, v]) => v !== undefined)
     )
     
     console.log('Forwarding to Render API:', { url: RENDER_API_URL, payload: cleanPayload })
@@ -164,15 +165,17 @@ export async function GET() {
     
     try {
       console.log(`🔄 [AI] Attempting to connect to Render API: ${RENDER_API_URL}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
       renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'B9-Dashboard/1.0'
         },
-        // Add timeout for development
-        signal: AbortSignal.timeout(5000)
+        signal: controller.signal
       })
+      clearTimeout(timeoutId)
       renderData = await renderResponse.json()
     } catch (error) {
       console.warn(`⚠️ [AI] Render API unavailable (development mode):`, error instanceof Error ? error.message : error)
