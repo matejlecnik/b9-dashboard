@@ -3,11 +3,12 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - 'dashboard_development/b9-dashboard/**'
+      - 'dashboard/**'
       - '.github/workflows/vercel-production.yml'
 
 jobs:
@@ -15,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./dashboard_development/b9-dashboard
+        working-directory: ./dashboard
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,9 +24,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'dashboard_development/b9-dashboard/package-lock.json'
+          cache-dependency-path: 'dashboard/package-lock.json'
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest

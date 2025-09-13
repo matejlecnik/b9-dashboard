@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: dashboard_development/b9-dashboard/package-lock.json
+          cache-dependency-path: dashboard/package-lock.json
 
       - name: Install dependencies
         run: |
-          cd dashboard_development/b9-dashboard
+          cd dashboard
           if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
             npm ci --no-audit --no-fund
           elif [ -f package.json ]; then
@@ -33,7 +33,7 @@ jobs:
 
       - name: Run build (if available)
         run: |
-          cd dashboard_development/b9-dashboard
+          cd dashboard
           if [ -f package.json ] && jq -e '.scripts.build' package.json > /dev/null 2>&1; then
             npm run build --if-present
           else
@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests (if available)
         run: |
-          cd dashboard_development/b9-dashboard
+          cd dashboard
           if [ -f package.json ] && jq -e '.scripts.test' package.json > /dev/null 2>&1; then
             npm test --if-present --silent
           else
