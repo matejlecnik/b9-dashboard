@@ -30,10 +30,12 @@ Every substantial directory MUST have a README.md containing:
 - **Run linting before committing** - `npm run lint` and `npx tsc --noEmit`
 - **Test builds after ANY change** - Dependencies break constantly, catch it early
 - **Test with real data** - We have a Supabase instance loaded with actual Reddit data
+- **Use direct Supabase calls** - Always use direct Supabase queries instead of API routes for better performance and reliability
 - **Use the error handler pattern** - Every API call should use our error boundaries
 - **Check performance** - React.memo, useMemo, useCallback are your friends
 - **Review all imports** - AI-generated code often has redundant/conflicting imports
 - **Ask before implementing** - This is an internal tool, requirements change often
+- **Use number abbreviations in UI** - Format large numbers as 1.2K, 500M, etc. for ALL filter counts and stats displays
 
 ---
 
@@ -259,6 +261,14 @@ const handleChange = useCallback((value) => {
     onChange(value)
   })
 }, [onChange])
+
+// For formatting large numbers in UI (ALWAYS use this)
+const formatNumber = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return '0'
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return num.toString()
+}
 ```
 
 ### 📋 **Pre-Commit Checklist**

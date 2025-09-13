@@ -95,12 +95,14 @@ export function PostingCategoryFilter({
       </Button>
 
       {isOpen && typeof document !== 'undefined' && createPortal(
-        <div 
+        <div
           ref={dropdownRef}
-          className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-[99999]"
+          className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200"
           style={{
             top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`
+            left: `${dropdownPosition.left}px`,
+            zIndex: 999999,
+            pointerEvents: 'auto'
           }}
         >
           <div className="p-2 border-b border-gray-100">
@@ -131,12 +133,14 @@ export function PostingCategoryFilter({
                 <label
                   key={category}
                   className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer group"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="relative flex items-center justify-center w-4 h-4">
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(category)}
                       onChange={() => handleToggleCategory(category)}
+                      onClick={(e) => e.stopPropagation()}
                       className="sr-only"
                     />
                     <div className={`w-4 h-4 rounded border ${

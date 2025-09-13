@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { Sparkles } from 'lucide-react'
 import { AICategorizationModal, type AICategorizationSettings } from '@/components/AICategorizationModal'
+import { formatNumber } from '@/lib/utils'
 
 
 const PAGE_SIZE = 50 // Standard page size
@@ -571,7 +572,7 @@ export default function CategorizationPage() {
                         {Math.round((categoryCounts.categorized / Math.max(1, categoryCounts.categorized + categoryCounts.uncategorized)) * 100)}%
                       </span>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {categoryCounts.categorized.toLocaleString()} / {(categoryCounts.categorized + categoryCounts.uncategorized).toLocaleString()}
+                        {formatNumber(categoryCounts.categorized)} / {formatNumber(categoryCounts.categorized + categoryCounts.uncategorized)}
                       </p>
                     </div>
                   </div>
@@ -677,7 +678,7 @@ export default function CategorizationPage() {
         {selectedSubreddits.size > 0 && (
           <div className="mb-4 p-3 bg-white/70 backdrop-blur-md border border-pink-100 rounded-xl flex items-center gap-3">
             <div className="text-sm font-medium">
-              {selectedSubreddits.size.toLocaleString()} selected
+              {formatNumber(selectedSubreddits.size)} selected
             </div>
             <Select value={bulkCategory} onValueChange={(v) => setBulkCategory(v)}>
               <SelectTrigger className="w-[220px] h-9">

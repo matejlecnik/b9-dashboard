@@ -2,10 +2,10 @@
 
 import React from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { SlimPostToolbar } from '@/components/SlimPostToolbar'
+import { PostAnalysisToolbar } from '@/components/PostAnalysisToolbar'
+import { PostAnalysisStats } from '@/components/PostAnalysisStats'
 import { VirtualizedPostGrid } from '@/components/VirtualizedPostGrid'
 import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
-import { PostAnalysisMetrics } from '@/components/PostAnalysisMetrics'
 import { PostAnalysisErrorBanner } from '@/components/PostAnalysisErrorBanner'
 import { usePostAnalysis } from '@/hooks/usePostAnalysis'
 
@@ -55,29 +55,26 @@ export default function PostAnalysisPage() {
         />
 
         {/* Metrics Dashboard */}
-        <ComponentErrorBoundary componentName="Post Analysis Metrics">
-          <PostAnalysisMetrics
+        <ComponentErrorBoundary componentName="Post Analysis Stats">
+          <PostAnalysisStats
             metrics={metrics}
             loading={metricsLoading}
-            sfwCount={sfwCount}
-            nsfwCount={nsfwCount}
-            topCategories={topCategories}
           />
         </ComponentErrorBoundary>
 
         {/* Filters and Toolbar */}
         <ComponentErrorBoundary componentName="Post Analysis Toolbar">
-          <SlimPostToolbar
+          <PostAnalysisToolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             sortBy={sortBy}
             onSortChange={setSortBy}
             selectedCategories={selectedCategories}
-            onCategoryChange={setSelectedCategories}
+            onCategoriesChange={setSelectedCategories}
             isCategoryFiltering={isCategoryFiltering}
             onToggleCategoryFilter={() => setIsCategoryFiltering(!isCategoryFiltering)}
             sfwOnly={sfwOnly}
-            onSFWOnlyChange={setSfwOnly}
+            onSfwChange={setSfwOnly}
             ageFilter={ageFilter}
             onAgeFilterChange={setAgeFilter}
             loading={loading}

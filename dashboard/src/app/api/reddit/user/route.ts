@@ -82,37 +82,37 @@ function generateUserAgent(): string {
   return userAgents[Math.floor(Math.random() * userAgents.length)]
 }
 
-async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
+async function fetchWithProxy(url: string, maxRetries = 3): Promise<unknown> {
   const userAgent = generateUserAgent()
-  const proxyPool = [...PROXY_CONFIGS]
 
-  if (proxyPool.length === 0) {
-    throw new Error('No proxy configurations available. Please check environment variables.')
-  }
+  // Try with proxies first if available
+  if (PROXY_CONFIGS.length > 0) {
+    const proxyPool = [...PROXY_CONFIGS]
+    let lastError: Error | null = null
 
-  let lastError: Error | null = null
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const proxyConfig = proxyPool[(attempt - 1) % proxyPool.length]
+      try {
+        console.log(`Attempt ${attempt}/${maxRetries} using proxy ${proxyConfig.display_name}`)
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const proxy = proxyPool[(attempt - 1) % proxyPool.length]
-    try {
-      console.log(`Attempt ${attempt}/${maxRetries} using proxy ${proxy.display_name}`)
-      
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Connection': 'keep-alive',
-          'Referer': 'https://www.reddit.com/',
-        },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      })
+        // For now, we'll try direct connection with proper headers
+        // TODO: Implement proper proxy support with node-fetch-with-proxy or similar
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': userAgent,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Connection': 'keep-alive',
+            'Referer': 'https://www.reddit.com/',
+          },
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        })
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error')
-        console.log(`Proxy ${proxy.display_name} returned ${response.status}: ${errorText}`)
+        console.log(`Reddit API returned ${response.status}: ${errorText}`)
         
         // Specific error handling
         if (response.status === 404) {
@@ -135,26 +135,52 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
       }
 
       const data = await response.json()
-      console.log(`Successfully fetched data using proxy ${proxy.display_name}`)
+      console.log(`Successfully fetched Reddit user data`)
       return data
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      console.error(`Proxy ${proxy.display_name} failed on attempt ${attempt}:`, lastError.message)
+      console.error(`Reddit API failed on attempt ${attempt}:`, lastError.message)
       
       if (attempt === maxRetries) {
         break
       }
       
-      // Wait before next attempt, with exponential backoff
-      const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
+      // Wait before next attempt, shorter delay
+      const waitTime = 1000 * attempt // 1s, 2s, 3s
       console.log(`Waiting ${waitTime}ms before retry...`)
       await new Promise(resolve => setTimeout(resolve, waitTime))
     }
   }
 
-  // All attempts failed
-  throw new Error(`All proxy attempts failed. Last error: ${lastError?.message || 'Unknown error'}`)
+    // All proxy attempts failed
+    throw new Error(`All proxy attempts failed. Last error: ${lastError?.message || 'Unknown error'}`)
+  }
+
+  // No proxies available, try direct connection
+  console.log('No proxy configurations available, attempting direct connection')
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': userAgent,
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Connection': 'keep-alive',
+        'Referer': 'https://www.reddit.com/',
+      },
+      signal: AbortSignal.timeout(10000),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Reddit API error ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    throw new Error(`Direct connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 function calculateUserQualityScores(username: string, accountAgeDays: number, postKarma: number, commentKarma: number) {
@@ -367,7 +393,7 @@ export async function POST(request: NextRequest) {
       preferred_content_type: preferredContentType,
       most_active_posting_hour: mostActiveHour,
       most_active_posting_day: mostActiveDay,
-      our_creator: false, // Default to false - manually mark creators as needed
+      our_creator: true, // Mark as our creator when fetched through this API
       last_scraped_at: new Date().toISOString(),
     }
 

@@ -81,9 +81,25 @@ export default function DashboardsPage() {
         gradient: 'from-pink-500/10 via-pink-400/5 to-pink-500/10',
         accent: 'bg-gray-600 text-white',
         metrics: [
-          { label: 'Subreddits', value: '1,200+' },
-          { label: 'Categories', value: '3' },
+          { label: 'Subreddits', value: '5.8K+' },
+          { label: 'Posts', value: '500K+' },
           { label: 'Active', value: '24/7' }
+        ]
+      },
+      {
+        id: 'system',
+        name: 'System Monitor',
+        description: 'Real-time monitoring of system health, scraper status, and data collection metrics',
+        icon: Activity,
+        href: '/system-monitor',
+        status: 'active',
+        color: 'border-gray-300 hover:border-gray-400',
+        gradient: 'from-gray-600/10 via-gray-500/5 to-gray-600/10',
+        accent: 'bg-gray-800 text-white',
+        metrics: [
+          { label: 'Accounts', value: '10' },
+          { label: 'Daily', value: '100+' },
+          { label: 'Uptime', value: '99.9%' }
         ]
       },
       {

@@ -120,6 +120,36 @@
     background-color: var(--background);
     color: var(--foreground);
   }
+  /* Remove any list markers and pseudo elements from navigation */
+  nav a::before,
+  nav a::after,
+  nav a::marker,
+  nav div::before,
+  nav div::after,
+  nav div::marker,
+  .glass-sidebar a::before,
+  .glass-sidebar a::after,
+  .glass-sidebar a::marker,
+  .glass-sidebar div::marker,
+  [role="menuitem"]::before,
+  [role="menuitem"]::after,
+  [role="menuitem"]::marker {
+    content: none !important;
+    display: none !important;
+  }
+  nav a,
+  nav div,
+  .glass-sidebar a,
+  .glass-sidebar div {
+    list-style: none !important;
+    list-style-type: none !important;
+  }
+  /* Prevent any list item dots */
+  aside a::marker,
+  aside div::marker {
+    content: none !important;
+    display: none !important;
+  }
 }
 
 @layer utilities {

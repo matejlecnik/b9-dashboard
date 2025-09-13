@@ -5,6 +5,7 @@ import { Users, Star, Crown, AlertCircle } from 'lucide-react'
 import { UniversalToolbar } from '@/components/UniversalToolbar'
 import { ToolbarSearch, ToolbarFilterButton } from '@/components/ui/ToolbarComponents'
 import { B9_GRADIENTS } from '@/lib/toolbarStyles'
+import { formatNumber } from '@/lib/utils'
 
 type QualityFilter = 'all' | 'high' | 'our_creators' | 'low'
 
@@ -31,14 +32,6 @@ interface FilterConfig {
   activeBg: string
   activeTextColor: string
   getCount: (counts: UserCounts) => number
-}
-
-// Helper function to format numbers with abbreviations
-const formatFilterCount = (num: number | null | undefined): string => {
-  if (num === null || num === undefined) return '0'
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
 }
 
 export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
@@ -116,7 +109,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
           {filters.map((filter) => {
             const isActive = currentFilter === filter.id
             const rawCount = userCounts ? filter.getCount(userCounts) : 0
-            const formattedCount = formatFilterCount(rawCount)
+            const formattedCount = formatNumber(rawCount)
 
             return (
               <ToolbarFilterButton

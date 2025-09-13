@@ -6,6 +6,7 @@ import { ChevronDown, Check, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getCategoryStyles } from '@/lib/categoryColors'
+import { formatNumber } from '@/lib/utils'
 
 interface CategoryFilterDropdownProps {
   availableCategories: string[]
@@ -70,10 +71,10 @@ export function CategoryFilterDropdown({
   }
 
   const isShowingUncategorized = selectedCategories.length === 0
-  const displayText = isShowingUncategorized 
-    ? `Uncategorized (${uncategorizedCount})`
+  const displayText = isShowingUncategorized
+    ? `Uncategorized (${formatNumber(uncategorizedCount)})`
     : selectedCategories.length === availableCategories.length
-    ? `All Categories (${categorizedCount})`
+    ? `All Categories (${formatNumber(categorizedCount)})`
     : selectedCategories.length === 1
     ? selectedCategories[0]
     : `${selectedCategories.length} categories`

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { MultiSelectCategoryDropdown } from '@/components/MultiSelectCategoryDropdown'
 import { UniversalToolbar } from '@/components/UniversalToolbar'
 import { ToolbarSearch } from '@/components/ui/ToolbarComponents'
+import { formatNumber } from '@/lib/utils'
 
 interface SlimPostToolbarProps {
   searchQuery: string
@@ -69,9 +70,9 @@ const SlimPostToolbar = memo(function SlimPostToolbar({
           </h2>
           {currentPostCount > 0 && (
             <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200 font-semibold">
-              {currentPostCount.toLocaleString()} 
+              {formatNumber(currentPostCount)}
               {totalAvailablePosts > currentPostCount && (
-                <span className="text-pink-600"> of {totalAvailablePosts.toLocaleString()}</span>
+                <span className="text-pink-600"> of {formatNumber(totalAvailablePosts)}</span>
               )}
               {currentPostCount === 1 ? ' post' : ' posts'}
             </Badge>
@@ -82,13 +83,13 @@ const SlimPostToolbar = memo(function SlimPostToolbar({
           {sfwCount > 0 && (
             <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-lg text-xs font-medium border border-green-200">
               <Shield className="w-3 h-3" />
-              <span>{sfwCount.toLocaleString()} SFW</span>
+              <span>{formatNumber(sfwCount)} SFW</span>
             </div>
           )}
           {nsfwCount > 0 && (
             <div className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium border border-red-200">
               <ShieldOff className="w-3 h-3" />
-              <span>{nsfwCount.toLocaleString()} NSFW</span>
+              <span>{formatNumber(nsfwCount)} NSFW</span>
             </div>
           )}
         </div>

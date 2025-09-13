@@ -34,7 +34,7 @@ services:
     maxmemoryPolicy: allkeys-lru
     region: oregon
     
-  # Background Worker Service
+  # Background Worker Service (24/7 Continuous Scraper)
   - type: worker
     name: b9-dashboard-worker
     runtime: python3
@@ -45,6 +45,19 @@ services:
     branch: main
     rootDir: api
     autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: AUTO_START_SCRAPER
+        value: false  # Set to true to auto-start on deploy
+      - key: LOG_LEVEL
+        value: info
+      - key: MAX_DAILY_REQUESTS
+        value: 10000
+      - key: BATCH_SIZE
+        value: 10
+      - key: DELAY_BETWEEN_BATCHES
+        value: 30
 
   # Cron Job Service for Scheduled Tasks
   - type: cron

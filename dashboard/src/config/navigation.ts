@@ -1,8 +1,7 @@
-import { 
-  Tags, 
-  PenTool, 
-  Users, 
-  Activity,
+import {
+  Tags,
+  PenTool,
+  Users,
   FileText,
   FolderTree,
   LucideIcon
@@ -72,30 +71,18 @@ export const navigationConfig: NavigationConfig = {
           shortcut: '⌘3'
         },
         {
-          id: 'user-analysis',
-          title: 'User Analysis',
-          href: '/user-analysis',
-          icon: Users,
-          shortcut: '⌘4'
-        },
-        {
           id: 'post-analysis',
           title: 'Post Analysis',
           href: '/post-analysis',
           icon: FileText,
-          shortcut: '⌘5'
+          shortcut: '⌘4'
         },
         {
-          id: 'scraper',
-          title: 'Scraper',
-          href: '/scraper',
-          icon: Activity,
-          shortcut: '⌘6',
-          badge: {
-            type: 'status',
-            color: 'success',
-            pulse: true
-          }
+          id: 'user-analysis',
+          title: 'User Analysis',
+          href: '/user-analysis',
+          icon: Users,
+          shortcut: '⌘5'
         }
       ]
     }

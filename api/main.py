@@ -39,6 +39,7 @@ from services.categorization_service import CategorizationService
 from services.scraper_service import RedditScraperService
 from services.user_service import UserService
 from services.logging_service import SupabaseLoggingService
+from routes.scraper_routes import router as scraper_router
 
 # Configure logging for production
 log_level = os.getenv('LOG_LEVEL', 'info').upper()
@@ -214,6 +215,9 @@ app = FastAPI(
 # =============================================================================
 # MIDDLEWARE CONFIGURATION
 # =============================================================================
+
+# Include routers
+app.include_router(scraper_router)
 
 # Security middleware
 app.add_middleware(

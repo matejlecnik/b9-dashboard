@@ -816,7 +816,7 @@ export default function PostingPage() {
                 </div>
               </div>
               <span className="text-sm font-medium text-gray-700">
-                SFW Only
+                SFW
               </span>
               {sfwOnly && sfwCount > 0 && (
                 <span className="text-xs text-b9-pink font-semibold">
@@ -885,7 +885,6 @@ export default function PostingPage() {
           isOpen={showAddUserModal}
           onClose={() => setShowAddUserModal(false)}
           onUserAdded={fetchCreators}
-          existingCreators={creators}
         />
       </div>
     </DashboardLayout>

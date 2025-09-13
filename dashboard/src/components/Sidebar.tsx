@@ -23,9 +23,7 @@ const MemoizedNavigationItem = React.memo<{
   const accessibilityProps = {
     'aria-current': isActive ? ('page' as const) : undefined,
     'aria-label': item.title,
-    'aria-describedby': item.shortcut ? `shortcut-${item.id}` : undefined,
-    'tabIndex': 0,
-    'role': 'menuitem' as const
+    'tabIndex': 0
   }
   
   return (
@@ -36,27 +34,18 @@ const MemoizedNavigationItem = React.memo<{
       className="focus:outline-none focus:ring-2 focus:ring-b9-pink/50 focus:ring-offset-2 focus:ring-offset-transparent rounded-xl relative group"
     >
       <div className={`
-        relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-500 ease-out cursor-pointer transform hover:scale-[1.03] active:scale-[0.97]
-        ${isActive 
-          ? 'bg-b9-pink/15 text-b9-pink shadow-apple' 
-          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-lg'
+        relative flex items-center px-3 py-2.5 rounded-xl cursor-pointer transform
+        ${isActive
+          ? 'bg-b9-pink/15 text-b9-pink shadow-apple transition-colors duration-200'
+          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]'
         }
-        justify-start
+        justify-start will-change-auto
       `}>
         <div className="flex items-center flex-1">
-          <Icon className={`h-5 w-5 ${isActive ? 'text-b9-pink' : ''} mr-3 transition-all duration-400 ease-out transform group-hover:scale-110`} aria-hidden="true" />
-          <div className="flex-1 transition-all duration-400 ease-out opacity-100">
-            <div className="font-medium text-sm flex items-center gap-2 transition-all duration-400 ease-out">
-              <span className="transition-all duration-400 ease-out transform group-hover:translate-x-1">{item.title}</span>
-              {item.shortcut && (
-                <span 
-                  id={`shortcut-${item.id}`}
-                  className="text-xs text-gray-400/80 bg-gray-50/80 px-1.5 py-0.5 rounded-sm font-mono transition-all duration-400 ease-out hover:bg-gray-100/90 hover:text-gray-500 hover:scale-105"
-                  aria-label={`Keyboard shortcut: ${item.shortcut}`}
-                >
-                  {item.shortcut}
-                </span>
-              )}
+          <Icon className={`h-5 w-5 ${isActive ? 'text-b9-pink' : ''} mr-3 transition-transform duration-200 ease-out group-hover:scale-110`} aria-hidden="true" />
+          <div className="flex-1">
+            <div className="font-medium text-sm flex items-center gap-2">
+              <span className="transition-transform duration-200 ease-out group-hover:translate-x-0.5">{item.title}</span>
             </div>
           </div>
         </div>
@@ -113,16 +102,17 @@ export const Sidebar = React.memo<SidebarProps>(() => {
   
 
   return (
-    <aside 
+    <aside
       ref={sidebarRef}
-      className="glass-sidebar sticky top-3 my-3 ml-3 transition-all duration-700 ease-in-out flex flex-col rounded-2xl z-30 w-64 lg:w-72"
+      className="glass-sidebar sticky top-3 my-3 ml-3 flex flex-col rounded-2xl z-30 w-64 lg:w-72"
       style={{
         height: 'calc(100vh - 1.5rem)',
-        background: 'linear-gradient(180deg, rgba(248,250,252,0.8) 0%, rgba(240,242,247,0.7) 100%)',
+        background: 'linear-gradient(180deg, rgba(248,250,252,0.85) 0%, rgba(240,242,247,0.75) 100%)',
         backdropFilter: 'blur(20px) saturate(140%)',
         WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.3)'
+        boxShadow: '0 20px 50px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.02)',
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        contain: 'layout style'
       }}
       aria-label="Main navigation"
       role="navigation"
@@ -157,14 +147,13 @@ export const Sidebar = React.memo<SidebarProps>(() => {
       </div>
 
       {/* Navigation */}
-      <nav 
-        className="flex-1 px-3 py-2" 
-        aria-label="Primary navigation" 
+      <nav
+        className="flex-1 px-3 py-2"
+        aria-label="Primary navigation"
         data-testid="sidebar-nav"
-        role="menu"
       >
         {/* Navigation items */}
-        <div className="space-y-1.5" role="group" aria-label="Navigation items">
+        <div className="space-y-1.5" aria-label="Navigation items">
           {activeStates.map((item) => (
             <MemoizedNavigationItem
               key={item.href}

@@ -5,14 +5,13 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import type { User } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { formatNumber as formatNumberUtil } from '@/lib/utils'
 import {
   Users,
   Clock,
   MessageCircle,
   Star,
   ExternalLink,
-  Plus,
   X,
   Loader2,
   Crown,
@@ -28,7 +27,6 @@ import { useToast } from '@/components/ui/toast'
 import {
   useUserStats,
   useInfiniteUsers,
-  useAddUser,
   useUserProfile,
   type UserProfile
 } from '@/hooks/useUserAnalytics'
@@ -158,8 +156,6 @@ export default function UserAnalysisPage() {
   // Separate input state from query state to prevent focus loss
   const [searchInput, setSearchInput] = useState('')
   const [qualityFilter, setQualityFilter] = useState<'all' | 'high' | 'our_creators' | 'low'>('all')
-  const [showAddUser, setShowAddUser] = useState(false)
-  const [newUsername, setNewUsername] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   
   // Multi-selection state
@@ -186,8 +182,6 @@ export default function UserAnalysisPage() {
     isFetchingNextPage
   } = useInfiniteUsers(debouncedSearchTerm, qualityFilter)
 
-  // Add user mutation
-  const addUserMutation = useAddUser()
 
   // Flatten all pages of users into a single array
   const allUsers = React.useMemo(() => {
@@ -204,9 +198,7 @@ export default function UserAnalysisPage() {
   // Utility functions
   const formatNumber = (num: number | null | undefined) => {
     if (num === null || num === undefined) return 'N/A'
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toLocaleString('en-US')
+    return formatNumberUtil(num)
   }
 
   const formatScore = (score: number | null | undefined) => {
@@ -236,18 +228,6 @@ export default function UserAnalysisPage() {
       setSelectedUser(userProfile)
     }
   }, [userProfile, selectedUserId])
-
-  const handleAddUser = async () => {
-    if (!newUsername.trim()) return
-    
-    try {
-      await addUserMutation.mutateAsync(newUsername.trim())
-      setNewUsername('')
-      setShowAddUser(false)
-    } catch (error) {
-      console.error('Failed to add user:', error)
-    }
-  }
 
 
   const handleSelectAll = useCallback(() => {
@@ -428,35 +408,6 @@ export default function UserAnalysisPage() {
                 </div>
               </div>
 
-              {/* Add User Button - Glass Morphism matching AI Review style */}
-              <button
-                onClick={() => setShowAddUser(true)}
-                className="group relative px-5 py-3.5 min-w-[130px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
-                }}
-              >
-                {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  <Plus className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Add User
-                  </span>
-                  <span className="text-[10px] text-gray-600 mt-0.5">
-                    Track new
-                  </span>
-                </div>
-              </button>
             </div>
           )}
         </ComponentErrorBoundary>
@@ -486,7 +437,7 @@ export default function UserAnalysisPage() {
               {selectedUserIds.size > 0 && (
                 <div className="p-3 bg-white/70 backdrop-blur-md border border-pink-100 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-200">
                   <div className="text-sm font-medium text-gray-700">
-                    {selectedUserIds.size.toLocaleString()} selected
+                    {formatNumber(selectedUserIds.size)} selected
                   </div>
                   <div className="flex gap-2 flex-1">
                     <Button
@@ -923,79 +874,6 @@ export default function UserAnalysisPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add User Modal with Glass Morphism */}
-        {showAddUser && (
-          <div
-            className="fixed inset-0 z-50 p-4 flex items-center justify-center"
-            style={{
-              background: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(8px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(8px) saturate(140%)'
-            }}
-            onClick={() => setShowAddUser(false)}
-          >
-            <div
-              className="bg-white/95 backdrop-blur-xl rounded-2xl max-w-md w-full p-6 shadow-2xl ring-1 ring-black/5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Add New User</h2>
-                <button
-                  onClick={() => setShowAddUser(false)}
-                  className="rounded-full p-2 hover:bg-gray-100 transition-colors"
-                >
-                  <X className="h-4 w-4 text-gray-500" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div className="relative">
-                  <Input
-                    placeholder="Enter Reddit username (without u/)"
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                    className="pr-10"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newUsername.trim() && !addUserMutation.isPending) {
-                        handleAddUser()
-                      }
-                    }}
-                  />
-                  <Users className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleAddUser}
-                    disabled={addUserMutation.isPending || !newUsername.trim()}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600"
-                  >
-                    {addUserMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Adding...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add User
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddUser(false)
-                      setNewUsername('')
-                    }}
-                    className="hover:bg-gray-50"
-                  >
-                    Cancel
-                  </Button>
                 </div>
               </div>
             </div>

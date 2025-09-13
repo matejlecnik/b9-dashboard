@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@/lib/supabase'
 import { useMemo } from 'react'
@@ -71,16 +71,19 @@ export const userAnalyticsKeys = {
 
 // Lightweight user stats - only essential counts
 export function useUserStats() {
-  if (!supabase) throw new Error('Supabase client not available')
-  
   return useQuery({
     queryKey: userAnalyticsKeys.stats(),
     queryFn: async (): Promise<UserStats> => {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
       // Use count queries for better performance
       const [totalResult, highQualityResult, ourCreatorsResult] = await Promise.all([
-        supabase!.from('users').select('*', { count: 'exact', head: true }),
-        supabase!.from('users').select('*', { count: 'exact', head: true }).gte('overall_user_score', 7),
-        supabase!.from('users').select('*', { count: 'exact', head: true }).eq('our_creator', true)
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('users').select('*', { count: 'exact', head: true }).gte('overall_user_score', 7),
+        supabase.from('users').select('*', { count: 'exact', head: true }).eq('our_creator', true)
       ])
 
       if (totalResult.error) throw totalResult.error
@@ -121,7 +124,6 @@ export function useUserStats() {
 }
 
 export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> = {}) {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useQuery({
     queryKey: userAnalyticsKeys.userList({ page, limit, ...filters }),
@@ -129,7 +131,12 @@ export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> 
       const from = (page - 1) * limit
       const to = from + limit - 1
 
-      let query = supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      let query = supabase
         .from('users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,
@@ -180,7 +187,6 @@ export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> 
 
 // New hook for infinite scrolling with debounced search
 export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'all') {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useInfiniteQuery({
     queryKey: userAnalyticsKeys.userList({ searchTerm, qualityFilter }),
@@ -196,7 +202,12 @@ export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'al
         return { users: [], nextCursor: null }
       }
 
-      let query = supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      let query = supabase
         .from('users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,
@@ -251,13 +262,17 @@ export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'al
 }
 
 export function useUserProfile(userId: number) {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useQuery({
     queryKey: userAnalyticsKeys.userProfile(userId),
     queryFn: async (): Promise<UserProfile | null> => {
       // Get user details
-      const { data: user, error: userError } = await supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data: user, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
@@ -266,7 +281,7 @@ export function useUserProfile(userId: number) {
       if (userError || !user) throw userError || new Error('User not found')
 
       // Get recent posts
-      const { data: posts } = await supabase!
+      const { data: posts } = await supabase
         .from('posts')
         .select(`
           id, reddit_id, title, score, num_comments, subreddit_name,
@@ -287,12 +302,16 @@ export function useUserProfile(userId: number) {
 }
 
 export function useContentTypeStats() {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useQuery({
     queryKey: userAnalyticsKeys.contentStats(),
     queryFn: async (): Promise<ContentTypeStats[]> => {
-      const { data, error } = await supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data, error } = await supabase
         .from('users')
         .select('preferred_content_type, overall_user_score, avg_post_score')
         .not('preferred_content_type', 'is', null)
@@ -324,12 +343,16 @@ export function useContentTypeStats() {
 }
 
 export function useHourlyActivityStats() {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useQuery({
     queryKey: userAnalyticsKeys.hourlyStats(),
     queryFn: async (): Promise<HourlyActivityStats[]> => {
-      const { data, error } = await supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data, error } = await supabase
         .from('users')
         .select('most_active_posting_hour, overall_user_score')
         .not('most_active_posting_hour', 'is', null)
@@ -358,62 +381,20 @@ export function useHourlyActivityStats() {
   })
 }
 
-export function useToggleCreatorStatus() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async ({ userId, ourCreator }: { userId: number, ourCreator: boolean }) => {
-      const response = await fetch('/api/users/toggle-creator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, our_creator: ourCreator })
-      })
-      
-      const data = await response.json()
-      if (!data.success) throw new Error(data.error)
-      return data
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch user lists
-      queryClient.invalidateQueries({ queryKey: userAnalyticsKeys.users() })
-      queryClient.invalidateQueries({ queryKey: userAnalyticsKeys.stats() })
-      queryClient.invalidateQueries({ queryKey: userAnalyticsKeys.userProfile(variables.userId) })
-    }
-  })
-}
-
-export function useAddUser() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async (username: string) => {
-      const response = await fetch('/api/reddit/user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      })
-      
-      const data = await response.json()
-      if (!data.success) throw new Error(data.error)
-      return data
-    },
-    onSuccess: () => {
-      // Invalidate and refetch all user data
-      queryClient.invalidateQueries({ queryKey: userAnalyticsKeys.all })
-    }
-  })
-}
-
 // Utility hooks
 export function useSearchUsers(searchTerm: string) {
-  if (!supabase) throw new Error('Supabase client not available')
   
   return useQuery({
     queryKey: userAnalyticsKeys.search(searchTerm),
     queryFn: async (): Promise<User[]> => {
       if (!searchTerm.trim()) return []
       
-      const { data, error } = await supabase!
+      if (!supabase) {
+        console.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data, error } = await supabase
         .from('users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,

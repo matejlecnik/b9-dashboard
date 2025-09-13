@@ -62,6 +62,13 @@ Shared React components for the B9 Dashboard, built with Next.js 15, TypeScript,
 ## Current Errors
 - None - all components working as expected
 
+## Recent Changes (2025-01-13)
+- ✅ Added `AddUserModal.tsx` - Modal for searching and adding Reddit users
+- ✅ Removed deprecated/unused components:
+  - `SimplifiedPostingToolbar.tsx` (unused)
+  - `UserBulkActionsToolbar.tsx` (unused, replaced by UniversalToolbar)
+  - `UnifiedToolbar.tsx` (deprecated, replaced by UniversalToolbar)
+
 ## Potential Improvements (DO NOT IMPLEMENT WITHOUT DISCUSSION)
 - Component library documentation with Storybook
 - Advanced virtualization for even larger datasets
@@ -120,5 +127,5 @@ Centralized category management:
 
 ---
 
-*Last Updated: 2025-01-12*
+*Last Updated: 2025-01-13*
 *Status: Production Ready*

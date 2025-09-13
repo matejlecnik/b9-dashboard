@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UNIFIED_TOOLBAR_STYLES, TOOLBAR_DIMENSIONS, B9_GRADIENTS } from '@/lib/toolbarStyles'
+import { formatNumber } from '@/lib/utils'
 
 // Unified Search Input Component
 interface ToolbarSearchProps {
@@ -183,7 +184,7 @@ export function ToolbarBadge({
       {disabled ? (
         <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
       ) : (
-        typeof count === 'number' ? count.toLocaleString() : count
+        typeof count === 'number' ? formatNumber(count) : count
       )}
     </Badge>
   )
