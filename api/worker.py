@@ -197,9 +197,14 @@ class ContinuousScraperWorker:
         """Start the continuous scraping process"""
         if not self.config['enabled']:
             logger.info("⏸️ Scraper is disabled. Waiting for activation...")
+            await self._log_activity('info', 'Scraper is disabled, waiting for activation')
             return
 
         logger.info("🚀 Starting continuous scraping...")
+        await self._log_activity('success', 'Starting continuous 24/7 scraping', {
+            'accounts': len(self.reddit_accounts),
+            'proxies': len(self.proxy_configs)
+        })
         self.running = True
 
         while self.running and self.config['enabled']:
@@ -307,6 +312,7 @@ class ContinuousScraperWorker:
             return
 
         logger.info(f"🔍 Scraping r/{subreddit_name}")
+        await self._log_activity('info', f'Scraping r/{subreddit_name}')
 
         try:
             # Analyze subreddit
@@ -322,11 +328,19 @@ class ContinuousScraperWorker:
                 self.stats['subreddits_processed'] += 1
                 self.stats['posts_collected'] += len(result.get('posts', []))
 
+                await self._log_activity('success', f'Successfully scraped r/{subreddit_name}', {
+                    'posts_collected': len(result.get('posts', [])),
+                    'processing_time_ms': result.get('processing_time_ms')
+                })
+
                 # Update Redis stats
                 await self._update_redis_stats()
 
         except Exception as e:
             logger.error(f"Error scraping r/{subreddit_name}: {e}")
+            await self._log_activity('error', f'Failed to scrape r/{subreddit_name}', {
+                'error': str(e)
+            })
 
     async def _analyze_user(self, username: str):
         """Analyze a Reddit user"""
@@ -364,9 +378,15 @@ class ContinuousScraperWorker:
                     )
 
                 logger.info(f"📦 Discovered {len(discovered)} new subreddits")
+                await self._log_activity('success', f'Discovered {len(discovered)} new subreddits', {
+                    'subreddits': discovered[:10]  # Log first 10
+                })
 
         except Exception as e:
             logger.error(f"Error discovering subreddits: {e}")
+            await self._log_activity('error', 'Failed to discover new subreddits', {
+                'error': str(e)
+            })
 
     async def _discover_from_subreddit(self, subreddit_name: str):
         """Discover related subreddits from a given subreddit"""
@@ -404,6 +424,26 @@ class ContinuousScraperWorker:
 
         except Exception as e:
             logger.error(f"Error updating Redis stats: {e}")
+
+    async def _log_activity(self, level: str, message: str, context: dict = None):
+        """Log activity to Redis for live monitoring"""
+        try:
+            log_entry = {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'level': level,
+                'message': message,
+                'context': context or {}
+            }
+
+            # Add to Redis list (keep last 1000 logs)
+            await self.redis_client.lpush('scraper_logs', json.dumps(log_entry))
+            await self.redis_client.ltrim('scraper_logs', 0, 999)
+
+            # Also log to Python logger
+            logger.info(f"[{level.upper()}] {message}")
+
+        except Exception as e:
+            logger.error(f"Error logging activity: {e}")
 
     async def stop(self):
         """Stop the scraper gracefully"""

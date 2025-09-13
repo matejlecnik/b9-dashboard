@@ -393,17 +393,29 @@ export const UniversalTable = memo(function UniversalTable({
         )}
         
         {/* Name and title */}
-        <a 
+        <a
           href={`https://www.reddit.com/${safeDisplayName}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-72 min-w-0 px-3 hover:opacity-80 transition-opacity"
         >
           <div className={cn(
-            "font-semibold text-gray-900 truncate",
+            "font-semibold text-gray-900 truncate flex items-center gap-2",
             compactMode ? "text-xs" : "text-sm"
           )}>
             {safeDisplayName}
+            {/* NSFW/SFW Badge */}
+            {subreddit.over18 !== null && (
+              <span className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                subreddit.over18
+                  ? "bg-red-100 text-red-800 border border-red-200"
+                  : "bg-green-100 text-green-800 border border-green-200",
+                compactMode && "px-1.5 py-0 text-[10px]"
+              )}>
+                {subreddit.over18 ? "NSFW" : "SFW"}
+              </span>
+            )}
           </div>
           {safeTitle && !compactMode && (
             <div className="text-xs text-gray-600 line-clamp-2">

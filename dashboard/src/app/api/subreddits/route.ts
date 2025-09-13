@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('subreddits')
       .select(
-        'id,name,display_name_prefixed,title,subscribers,subscriber_engagement_ratio,avg_upvotes_per_post,review,category_text,community_icon,icon_img,top_content_type,rules_data'
+        'id,name,display_name_prefixed,title,subscribers,subscriber_engagement_ratio,avg_upvotes_per_post,review,category_text,community_icon,icon_img,top_content_type,rules_data,over18'
       )
 
     // Apply filters

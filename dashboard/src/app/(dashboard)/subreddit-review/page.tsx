@@ -26,7 +26,7 @@ export default function SubredditReviewPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [, setCurrentPage] = useState(0)
+  const [currentPage, setCurrentPage] = useState(0)
   const [totalSubreddits, setTotalSubreddits] = useState(0)
   const [currentFilter, setCurrentFilter] = useState<FilterType>('unreviewed')
   const [reviewCounts, setReviewCounts] = useState({
@@ -48,9 +48,11 @@ export default function SubredditReviewPage() {
     type: 'single' | 'bulk'
     items: Array<{ id: number, prevReview: ReviewValue }>
   } | null>(null)
-  
+
   // Ref to break circular dependency with undoLastAction
   const undoLastActionRef = useRef<() => Promise<void>>(() => Promise.resolve())
+  // Ref to track if a fetch is already in progress
+  const fetchInProgressRef = useRef(false)
   
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
@@ -134,6 +136,13 @@ export default function SubredditReviewPage() {
 
   // Simplified subreddit fetching
   const fetchSubreddits = useCallback(async (page = 0, append = false) => {
+    // Prevent concurrent fetches
+    if (fetchInProgressRef.current) {
+      console.log('🔄 [REVIEW] Fetch already in progress, skipping...')
+      return
+    }
+    fetchInProgressRef.current = true
+
     if (page === 0) {
       setLoading(true)
     } else {
@@ -180,18 +189,26 @@ export default function SubredditReviewPage() {
       
       if (append) {
         setSubreddits(prev => {
-          const updated = [...prev, ...newData]
-          console.log('✅ [REVIEW] Updated subreddits (append):', { 
-            previousCount: prev.length, 
-            newCount: newData.length, 
-            totalCount: updated.length 
+          // Create a Set of existing IDs for fast lookup
+          const existingIds = new Set(prev.map(sub => sub.id))
+
+          // Filter out duplicates from newData
+          const uniqueNewData = newData.filter((sub: Subreddit) => !existingIds.has(sub.id))
+
+          const updated = [...prev, ...uniqueNewData]
+          console.log('✅ [REVIEW] Updated subreddits (append):', {
+            previousCount: prev.length,
+            newCount: newData.length,
+            uniqueNewCount: uniqueNewData.length,
+            duplicatesRemoved: newData.length - uniqueNewData.length,
+            totalCount: updated.length
           })
           return updated
         })
       } else {
         setSubreddits(newData)
         setCurrentPage(0)
-        console.log('✅ [REVIEW] Updated subreddits (replace):', { 
+        console.log('✅ [REVIEW] Updated subreddits (replace):', {
           newCount: newData.length,
           firstItem: newData[0]?.name || 'none'
         })
@@ -212,6 +229,7 @@ export default function SubredditReviewPage() {
       })
     } finally {
       // Always update loading states in finally block
+      fetchInProgressRef.current = false // Reset the fetch flag
       if (page === 0) {
         console.log('✅ [REVIEW] Setting loading to false for page 0 (finally)')
         setLoading(false)
@@ -457,7 +475,7 @@ export default function SubredditReviewPage() {
       }
       clearInterval(refreshInterval)
     }
-  }, [currentFilter, debouncedSearchQuery])
+  }, [currentFilter, debouncedSearchQuery, fetchSubreddits])
 
 
   return (
@@ -566,13 +584,11 @@ export default function SubredditReviewPage() {
                     hasMore,
                     loadingMore,
                     onReachEnd: () => {
-                      if (loading || loadingMore || !hasMore) return
-                      setCurrentPage((prev) => {
-                        const next = prev + 1
-                        // Append next page
-                        void fetchSubreddits(next, true)
-                        return next
-                      })
+                      if (loading || loadingMore || !hasMore || fetchInProgressRef.current) return
+                      const nextPage = currentPage + 1
+                      setCurrentPage(nextPage)
+                      // Append next page
+                      void fetchSubreddits(nextPage, true)
                     },
                     searchQuery: debouncedSearchQuery,
                     brokenIcons,
