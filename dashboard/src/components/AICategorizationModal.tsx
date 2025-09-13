@@ -86,7 +86,7 @@ export function AICategorizationModal({
       })
       return
     }
-    
+
     if (settings.limit < 1 || settings.limit > 1000) {
       addToast({
         type: 'error',
@@ -96,9 +96,19 @@ export function AICategorizationModal({
       })
       return
     }
-    
+
+    if (settings.limit > uncategorizedCount) {
+      addToast({
+        type: 'error',
+        title: 'Invalid Item Count',
+        description: `Cannot process ${settings.limit} items. Only ${uncategorizedCount} uncategorized records available.`,
+        duration: 5000
+      })
+      return
+    }
+
     onStart(settings)
-  }, [settings, onStart, addToast])
+  }, [settings, onStart, addToast, uncategorizedCount])
   
   
   if (!isOpen) return null

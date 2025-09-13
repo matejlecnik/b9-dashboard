@@ -494,7 +494,7 @@ export const UniversalTable = memo(function UniversalTable({
         </div>
         
         {/* Action column */}
-        <div className="w-48 px-2">
+        <div className="w-52 px-2">
           {mode === 'review' ? (
             <div className="flex gap-1">
               {['Ok', 'No Seller', 'Non Related'].map((option) => (

@@ -154,7 +154,6 @@ export default function PostingPage() {
 
   // Optimized fetch with pagination and selective fields
   const fetchOkSubreddits = useCallback(async (page = 0, append = false) => {
-    console.log('fetchOkSubreddits called with page:', page, 'append:', append)
     if (!append) setLoading(true)
     try {
       if (!supabase) {
@@ -171,8 +170,8 @@ export default function PostingPage() {
       
       const sortColumn = sortColumnMap[sortBy]
       
-      // Optimized query with selective fields
-      const { data: subreddits, error } = await sb
+      // Build the base query
+      let query = sb
         .from('subreddits')
         .select(`
           id, name, display_name_prefixed, title, public_description,
@@ -186,6 +185,24 @@ export default function PostingPage() {
         `)
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
+      
+      // Apply category filter server-side
+      if (selectedCategories.length === 0) {
+        // Show only uncategorized
+        query = query.or('category_text.is.null,category_text.eq.')
+      } else if (selectedCategories.length < availableCategories.length) {
+        // Show only selected categories
+        query = query.in('category_text', selectedCategories)
+      }
+      // If all categories selected, no additional filter needed
+      
+      // Apply SFW filter
+      if (sfwOnly) {
+        query = query.eq('over18', false)
+      }
+      
+      // Apply sorting and pagination
+      const { data: subreddits, error } = await query
         .order(sortColumn, { ascending: sortDirection === 'asc' })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
         
@@ -194,18 +211,14 @@ export default function PostingPage() {
         throw error
       }
 
-      console.log('Fetched subreddits count:', subreddits?.length || 0)
-      console.log('Sample data:', subreddits?.slice(0, 3).map(s => ({
-        name: s.name,
-        category: s.category_text
-      })))
       
-      const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: Partial<SubredditWithPosts>) => ({
-        ...(subreddit as Partial<SubredditWithPosts>),
+      const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: any) => ({
+        ...subreddit,
         recent_posts: [], // Will be loaded lazily when expanded
-        review: (subreddit as Partial<SubredditWithPosts>).review ?? null,
+        review: subreddit.review ?? null,
+        category_text: subreddit.category_text || null, // Explicitly preserve category_text
         created_at: new Date().toISOString()
-      })) as unknown as SubredditWithPosts[]
+      })) as SubredditWithPosts[]
 
       if (append) {
         setOkSubreddits(prev => [...prev, ...processedSubreddits])
@@ -234,9 +247,8 @@ export default function PostingPage() {
       })
     } finally {
       setLoading(false)
-      console.log('fetchOkSubreddits completed, loading set to false')
     }
-  }, [sortBy, sortDirection, addToast, loadFilterCounts])
+  }, [sortBy, sortDirection, addToast, loadFilterCounts, selectedCategories, availableCategories.length, sfwOnly])
   
   
   
@@ -390,28 +402,28 @@ export default function PostingPage() {
     }
   }, [fetchCreators, addToast])
   
-  // Refresh when sort changes (after initial load)
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true)
+  
+  // Refresh when sort or filters change (after initial load)
   useEffect(() => {
-    // Only run if we already have data (not on initial mount)
-    if (okSubreddits.length > 0) {
-      setCurrentPage(0)
-      fetchOkSubreddits(0, false)
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
     }
+    // Reset to first page and re-fetch when filters change
+    setCurrentPage(0)
+    fetchOkSubreddits(0, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortDirection])
+  }, [sortBy, sortDirection, selectedCategories, sfwOnly])
 
 
 
-  // Advanced client-side filtering with memoization
+  // Client-side filtering for text search only (other filters are applied server-side)
   const filteredOkSubreddits = useMemo(() => {
     let filtered = okSubreddits
     
-    // Debug logging
-    console.log('Starting filter with', okSubreddits.length, 'subreddits')
-    console.log('Selected categories:', selectedCategories)
-    console.log('Available categories length:', availableCategories.length)
-    
-    // Text search
+    // Text search only - all other filtering is done server-side
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       filtered = filtered.filter((subreddit) => (
@@ -423,50 +435,8 @@ export default function PostingPage() {
       ))
     }
     
-    // SFW filter
-    if (sfwOnly) {
-      filtered = filtered.filter(s => !s.over18)
-    }
-    
-    // Category filter (multiple categories)
-    // When no categories are selected, show uncategorized only
-    // When specific categories are selected, only show those
-    // When all categories are selected, show everything (including uncategorized)
-    if (selectedCategories.length === 0) {
-      // Show only uncategorized subreddits
-      console.log('Filtering for uncategorized only')
-      filtered = filtered.filter(s => !s.category_text || s.category_text === '')
-    } else if (selectedCategories.length < availableCategories.length) {
-      // Show only selected categories
-      console.log('Filtering by specific categories:', selectedCategories)
-      console.log('First 5 subreddits before filter:', filtered.slice(0, 5).map(s => ({ 
-        name: s.name, 
-        category: s.category_text,
-        hasCategory: !!s.category_text,
-        categoryType: typeof s.category_text
-      })))
-      
-      filtered = filtered.filter(s => {
-        const hasCategory = s.category_text && s.category_text.trim() !== ''
-        const isInSelected = hasCategory && selectedCategories.includes(s.category_text)
-        if (s.name === 'collegensfw' || s.name === 'tanktoptitz') {
-          console.log(`Debug ${s.name}:`, {
-            category: s.category_text,
-            hasCategory,
-            isInSelected,
-            selectedCategories
-          })
-        }
-        return isInSelected
-      })
-      console.log('After filter count:', filtered.length)
-    } else {
-      console.log('Showing all categories (no filter)')
-    }
-    // If all categories are selected, show everything (no additional filtering)
-    
     return filtered
-  }, [okSubreddits, searchQuery, sfwOnly, selectedCategories, availableCategories.length])
+  }, [okSubreddits, searchQuery])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
@@ -533,8 +503,6 @@ export default function PostingPage() {
 
   // Initial load
   useEffect(() => {
-    console.log('Initial load useEffect triggered')
-    console.log('Supabase client available:', !!supabase)
     setCurrentPage(0)
     fetchOkSubreddits(0, false)
     fetchCreators()
