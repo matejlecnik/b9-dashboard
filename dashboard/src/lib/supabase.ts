@@ -163,6 +163,7 @@ export interface Subreddit {
   description?: string | null
   public_description?: string | null
   subscribers?: number | null
+  accounts_active?: number | null // Active members count
   review: 'Ok' | 'No Seller' | 'Non Related' | null // Review status for subreddit-review page
   category_text: string | null // Legacy category text for categorization page
   category_id?: string | null // New foreign key reference to categories table

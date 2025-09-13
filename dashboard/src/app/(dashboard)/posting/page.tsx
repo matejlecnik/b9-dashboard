@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type React from 'react'
 import { supabase, type Subreddit, type Post } from '../../../lib/supabase'
 
@@ -26,37 +26,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
-import { SimplifiedPostingToolbar } from '@/components/SimplifiedPostingToolbar'
+import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
+import { DiscoveryTable } from '@/components/DiscoveryTable'
 import { 
-  Users, 
-  Clock, 
-  MessageCircle,
-  ArrowUpCircle,
   ChevronDown,
-  ChevronUp,
-  TrendingUp,
-  Zap,
-  Calendar,
-  Shield,
-  Copy,
-  Activity,
-  Heart,
-  Image as ImageIcon,
-  Video,
-  FileText,
   X,
   UserPlus,
-  BarChart3,
-  ExternalLink,
-  Search,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react'
-import { BookOpen } from 'lucide-react'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
-type SortField = 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour' | 'moderator_score' | 'health_score'
+type SortField = 'avg_upvotes' | 'min_post_karma'
 type SortDirection = 'asc' | 'desc'
 
 type BaseSubreddit = Omit<Subreddit, 'review'> & { review: Subreddit['review'] | AllowedCategory | null }
@@ -86,23 +69,40 @@ export default function PostingPage() {
   const [okSubreddits, setOkSubreddits] = useState<SubredditWithPosts[]>([])
   const [creators, setCreators] = useState<Creator[]>([])
   const [loadingCreators, setLoadingCreators] = useState(true)
-  const [expandedCreators, setExpandedCreators] = useState(false)
+  const [showAddAccount, setShowAddAccount] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState<{ id: number, username: string } | null>(null)
   const [searchingUser, setSearchingUser] = useState(false)
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Creator[]>([])
   const [removingCreator, setRemovingCreator] = useState<number | null>(null)
   const [creatorStats, setCreatorStats] = useState<Record<number, { posts: number, avgScore: number, topSubreddit: string }>>({})
-  const [loadingStats, setLoadingStats] = useState(false)
+  const [, setLoadingStats] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [expandedSubreddits, setExpandedSubreddits] = useState<Set<number>>(new Set())
-  const [topPostsBySubreddit, setTopPostsBySubreddit] = useState<Record<number, Post[]>>({})
-  const [loadingTopPosts, setLoadingTopPosts] = useState<Set<number>>(new Set())
   const [, setLastUpdated] = useState<Date>(new Date())
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const availableCategories = [
+    'Age Demographics',
+    'Ass & Booty',
+    'Body Types & Features',
+    'Boobs & Chest',
+    'Clothed & Dressed',
+    'Cosplay & Fantasy',
+    'Ethnic & Cultural',
+    'Feet & Foot Fetish',
+    'Full Body & Nude',
+    'Goth & Alternative',
+    'Gym & Fitness',
+    'Interactive & Personalized',
+    'Lifestyle & Themes',
+    'Lingerie & Underwear',
+    'OnlyFans Promotion',
+    'Selfie & Amateur',
+    'Specific Body Parts'
+  ]
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(availableCategories)
   // Filters & sorting
   const [sfwOnly, setSfwOnly] = useState<boolean>(false)
-  const [sortBy, setSortBy] = useState<SortField>('engagement')
+  const [sortBy, setSortBy] = useState<SortField>('avg_upvotes')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   // Pagination
   const [currentPage, setCurrentPage] = useState(0)
@@ -154,21 +154,19 @@ export default function PostingPage() {
 
   // Optimized fetch with pagination and selective fields
   const fetchOkSubreddits = useCallback(async (page = 0, append = false) => {
+    console.log('fetchOkSubreddits called with page:', page, 'append:', append)
     if (!append) setLoading(true)
     try {
       if (!supabase) {
+        console.error('Supabase client not initialized')
         throw new Error('Supabase client not initialized')
       }
       const sb = supabase as NonNullable<typeof supabase>
       
       // Build sort column mapping
       const sortColumnMap: Record<SortField, string> = {
-        'engagement': 'subscriber_engagement_ratio',
-        'subscribers': 'subscribers', 
         'avg_upvotes': 'avg_upvotes_per_post',
-        'best_hour': 'best_posting_hour',
-        'moderator_score': 'moderator_activity_score',
-        'health_score': 'community_health_score'
+        'min_post_karma': 'min_post_karma'
       }
       
       const sortColumn = sortColumnMap[sortBy]
@@ -184,15 +182,24 @@ export default function PostingPage() {
           image_post_avg_score, video_post_avg_score, text_post_avg_score,
           last_scraped_at, min_account_age_days, min_comment_karma, 
           min_post_karma, allow_images, icon_img, community_icon,
-          top_content_type, avg_engagement_velocity
+          top_content_type, avg_engagement_velocity, accounts_active
         `)
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
         .order(sortColumn, { ascending: sortDirection === 'asc' })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
         
-      if (error) throw error
+      if (error) {
+        console.error('Supabase query error:', error)
+        throw error
+      }
 
+      console.log('Fetched subreddits count:', subreddits?.length || 0)
+      console.log('Sample data:', subreddits?.slice(0, 3).map(s => ({
+        name: s.name,
+        category: s.category_text
+      })))
+      
       const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: Partial<SubredditWithPosts>) => ({
         ...(subreddit as Partial<SubredditWithPosts>),
         recent_posts: [], // Will be loaded lazily when expanded
@@ -215,14 +222,20 @@ export default function PostingPage() {
       }
     } catch (error) {
       console.error('Error fetching Ok subreddits:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       addToast({
         type: 'error',
         title: 'Error Loading Posting Data',
         description: 'Failed to load subreddits and posts. Please try again.',
         duration: 5000
       })
+    } finally {
+      setLoading(false)
+      console.log('fetchOkSubreddits completed, loading set to false')
     }
-    setLoading(false)
   }, [sortBy, sortDirection, addToast, loadFilterCounts])
   
   
@@ -275,7 +288,7 @@ export default function PostingPage() {
       
       const { data: creatorsData, error } = await sb
         .from('users')
-        .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator, subreddit_description, verified, is_gold, has_verified_email, created_utc')
+        .select('*')
         .eq('our_creator', true)
         .order('link_karma', { ascending: false })
       
@@ -291,7 +304,7 @@ export default function PostingPage() {
       addToast({
         type: 'error',
         title: 'Error Loading Creators',
-        description: 'Failed to load creator accounts. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to load creator accounts. Please try again.',
         duration: 5000
       })
     }
@@ -309,7 +322,7 @@ export default function PostingPage() {
       
       const { data: users, error } = await sb
         .from('users')
-        .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator, subreddit_description, verified, is_gold, has_verified_email, created_utc')
+        .select('*')
         .ilike('username', `%${userSearchQuery}%`)
         .eq('our_creator', false)
         .limit(10)
@@ -329,8 +342,17 @@ export default function PostingPage() {
     setSearchingUser(false)
   }, [userSearchQuery, addToast])
   
-  // Toggle creator status
-  const toggleCreator = useCallback(async (userId: number, makeCreator: boolean) => {
+  // Toggle account status
+  const toggleCreator = useCallback(async (userId: number, makeCreator: boolean, username?: string) => {
+    // If removing, show confirmation first
+    if (!makeCreator && !username) {
+      return
+    }
+    if (!makeCreator) {
+      setConfirmRemove({ id: userId, username: username || '' })
+      return
+    }
+    
     try {
       const response = await fetch('/api/users/toggle-creator', {
         method: 'POST',
@@ -346,8 +368,8 @@ export default function PostingPage() {
       
       addToast({
         type: 'success',
-        title: makeCreator ? 'Creator Added' : 'Creator Removed',
-        description: result.message,
+        title: makeCreator ? 'Account Added' : 'Account Removed',
+        description: result.message?.replace('creator', 'account'),
         duration: 3000
       })
       
@@ -379,62 +401,15 @@ export default function PostingPage() {
   }, [sortBy, sortDirection])
 
 
-  // Format time ago
-  const timeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 30) return `${diffInDays}d ago`
-    const diffInMonths = Math.floor(diffInDays / 30)
-    return `${diffInMonths}mo ago`
-  }
-
-  // Sanitize subreddit icon URL (community_icon often contains &amp;)
-  const getIconUrl = (subreddit: SubredditWithPosts): string | null => {
-    let url = (subreddit.icon_img && String(subreddit.icon_img).trim()) || (subreddit.community_icon && String(subreddit.community_icon).trim()) || ''
-    if (!url) return null
-    url = url.replace(/&amp;/g, '&')
-    if (url.startsWith('//')) url = `https:${url}`
-    return url
-  }
-
-  // Generate a color based on subreddit name for consistent placeholder avatars
-  const getSubredditColor = (name: string) => {
-    const colors = [
-      '#FF8395', // B9 Pink (primary)
-      '#FF6B80', // Medium Dark Pink
-      '#FF99A9', // Medium Pink
-      '#FFB3C1', // Light Pink
-      '#FF4D68', // Dark Pink
-      '#E63950', // Very Dark Pink
-      '#737373', // Medium Gray
-      '#525252', // Dark Gray
-      '#404040', // Very Dark Gray
-      '#6b7280'  // Neutral Gray
-    ]
-    
-    // Simple hash function to get consistent color
-    let hash = 0
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash)
-    }
-    return colors[Math.abs(hash) % colors.length]
-  }
-
-  // Get initials from subreddit name for placeholder
-  const getSubredditInitials = (name: string) => {
-    // Remove r/ prefix and get first 2 characters
-    const cleanName = name.replace(/^r\//, '').replace(/^u\//, '')
-    return cleanName.substring(0, 2).toUpperCase()
-  }
 
   // Advanced client-side filtering with memoization
   const filteredOkSubreddits = useMemo(() => {
     let filtered = okSubreddits
+    
+    // Debug logging
+    console.log('Starting filter with', okSubreddits.length, 'subreddits')
+    console.log('Selected categories:', selectedCategories)
+    console.log('Available categories length:', availableCategories.length)
     
     // Text search
     if (searchQuery.trim()) {
@@ -454,14 +429,44 @@ export default function PostingPage() {
     }
     
     // Category filter (multiple categories)
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(s => 
-        s.category_text && selectedCategories.includes(s.category_text)
-      )
+    // When no categories are selected, show uncategorized only
+    // When specific categories are selected, only show those
+    // When all categories are selected, show everything (including uncategorized)
+    if (selectedCategories.length === 0) {
+      // Show only uncategorized subreddits
+      console.log('Filtering for uncategorized only')
+      filtered = filtered.filter(s => !s.category_text || s.category_text === '')
+    } else if (selectedCategories.length < availableCategories.length) {
+      // Show only selected categories
+      console.log('Filtering by specific categories:', selectedCategories)
+      console.log('First 5 subreddits before filter:', filtered.slice(0, 5).map(s => ({ 
+        name: s.name, 
+        category: s.category_text,
+        hasCategory: !!s.category_text,
+        categoryType: typeof s.category_text
+      })))
+      
+      filtered = filtered.filter(s => {
+        const hasCategory = s.category_text && s.category_text.trim() !== ''
+        const isInSelected = hasCategory && selectedCategories.includes(s.category_text)
+        if (s.name === 'collegensfw' || s.name === 'tanktoptitz') {
+          console.log(`Debug ${s.name}:`, {
+            category: s.category_text,
+            hasCategory,
+            isInSelected,
+            selectedCategories
+          })
+        }
+        return isInSelected
+      })
+      console.log('After filter count:', filtered.length)
+    } else {
+      console.log('Showing all categories (no filter)')
     }
+    // If all categories are selected, show everything (no additional filtering)
     
     return filtered
-  }, [okSubreddits, searchQuery, sfwOnly, selectedCategories])
+  }, [okSubreddits, searchQuery, sfwOnly, selectedCategories, availableCategories.length])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
@@ -478,10 +483,14 @@ export default function PostingPage() {
     setSfwOnly(sfwOnly)
   }, [])
   
+  const handleSelectAllCategories = useCallback(() => {
+    setSelectedCategories(availableCategories)
+  }, [])
+  
   const handleClearAllFilters = useCallback(() => {
     setSearchQuery('')
     setSfwOnly(false)
-    setSelectedCategories([])
+    setSelectedCategories(availableCategories) // Reset to all selected
   }, [])
   
   
@@ -493,9 +502,39 @@ export default function PostingPage() {
     }
   }, [currentPage, hasMore, loading, fetchOkSubreddits])
 
+  // Infinite scroll implementation
+  useEffect(() => {
+    const handleScroll = () => {
+      // Check if we're near the bottom of the page
+      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      const scrollHeight = document.documentElement.scrollHeight
+      const clientHeight = window.innerHeight
+      
+      // Load more when user is within 500px of the bottom
+      if (scrollHeight - scrollTop - clientHeight < 500) {
+        handleLoadMore()
+      }
+    }
+
+    // Add throttling to prevent excessive calls
+    let timeoutId: NodeJS.Timeout
+    const throttledScroll = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(handleScroll, 100)
+    }
+
+    window.addEventListener('scroll', throttledScroll)
+    return () => {
+      window.removeEventListener('scroll', throttledScroll)
+      clearTimeout(timeoutId)
+    }
+  }, [handleLoadMore])
+
 
   // Initial load
   useEffect(() => {
+    console.log('Initial load useEffect triggered')
+    console.log('Supabase client available:', !!supabase)
     setCurrentPage(0)
     fetchOkSubreddits(0, false)
     fetchCreators()
@@ -515,84 +554,12 @@ export default function PostingPage() {
   // Final sorted subreddits (already sorted from server, just apply client filters)
   const sortedSubreddits = filteredOkSubreddits
 
-  // Toggle expand and lazy-load top posts
-  const toggleExpanded = async (subredditId: number) => {
-    setExpandedSubreddits(prev => {
-      const ns = new Set(prev)
-      if (ns.has(subredditId)) ns.delete(subredditId)
-      else ns.add(subredditId)
-      return ns
-    })
-    if (!topPostsBySubreddit[subredditId]) {
-      setLoadingTopPosts(prev => new Set(prev).add(subredditId))
-      try {
-        const sr = okSubreddits.find(s => s.id === subredditId)
-        if (sr && supabase) {
-          const { data: posts } = await supabase
-            .from('posts')
-            .select('*')
-            .eq('subreddit_name', sr.name)
-            .order('score', { ascending: false })
-            .limit(20)
-          setTopPostsBySubreddit(prev => ({ ...prev, [subredditId]: posts || [] }))
-        }
-      } finally {
-        setLoadingTopPosts(prev => { const ns = new Set(prev); ns.delete(subredditId); return ns })
-      }
-    }
-  }
-
-  // (removed content-type icon rendering)
-
-  const copyTitle = async (e: React.MouseEvent, title: string) => {
-    e?.preventDefault?.()
-    e?.stopPropagation?.()
-    try {
-      await navigator.clipboard.writeText(title)
-      addToast({ type: 'success', title: 'Copied', description: 'Title copied to clipboard', duration: 1500 })
-    } catch {
-      addToast({ type: 'error', title: 'Copy failed', description: 'Could not copy title', duration: 2000 })
-    }
-  }
-
-  // removed copyLink / copyMarkdown per new UX
 
   // Summary stats
   const showingCount = sortedSubreddits.length
   const totalCount = sfwCount + nsfwCount
   // const totalMembersFiltered = sortedSubreddits.reduce((sum, s) => sum + (s.subscribers || 0), 0)
 
-  // Get best content type for a subreddit
-  const getBestContentType = useCallback((subreddit: SubredditWithPosts) => {
-    const scores = {
-      image: subreddit.image_post_avg_score || 0,
-      video: subreddit.video_post_avg_score || 0, 
-      text: subreddit.text_post_avg_score || 0
-    }
-    
-    const bestType = Object.keys(scores).reduce((a, b) => 
-      scores[a as keyof typeof scores] > scores[b as keyof typeof scores] ? a : b
-    )
-    
-    return { type: bestType, score: scores[bestType as keyof typeof scores] }
-  }, [])
-  
-  // Get engagement quality color
-  const getEngagementColor = useCallback((ratio: number) => {
-    if (ratio > 0.05) return 'text-pink-600' // Excellent
-    if (ratio > 0.02) return 'text-gray-700'  // Good  
-    if (ratio > 0.01) return 'text-gray-600' // Average
-    return 'text-gray-800' // Poor
-  }, [])
-  
-  // Get health score color and label
-  const getHealthScore = useCallback((score: number | null) => {
-    if (!score) return { color: 'text-gray-400', label: 'N/A' }
-    if (score >= 8) return { color: 'text-pink-600', label: 'Excellent' }
-    if (score >= 6) return { color: 'text-gray-700', label: 'Good' }
-    if (score >= 4) return { color: 'text-gray-600', label: 'Fair' }
-    return { color: 'text-gray-800', label: 'Poor' }
-  }, [])
   
   // Get Reddit profile URL
   const getRedditProfileUrl = (username: string) => {
@@ -611,34 +578,36 @@ export default function PostingPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <CardTitle className="text-lg text-gray-900">Active Creator Accounts</CardTitle>
+                <CardTitle className="text-lg text-gray-900">Active Accounts</CardTitle>
                 <Badge variant="outline" className="text-xs bg-pink-50 border-pink-200">
-                  {creators.length} {creators.length === 1 ? 'creator' : 'creators'}
+                  {creators.length} {creators.length === 1 ? 'account' : 'accounts'}
                 </Badge>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setExpandedCreators(!expandedCreators)}
-                  className="text-xs"
-                >
-                  {expandedCreators ? (
-                    <><ChevronUp className="h-3 w-3 mr-1" /> Collapse</>
-                  ) : (
-                    <><ChevronDown className="h-3 w-3 mr-1" /> Expand</>
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="bg-b9-pink hover:bg-pink-600 text-white text-xs"
-                  onClick={() => setExpandedCreators(true)}
-                >
-                  <UserPlus className="h-3 w-3 mr-1" />
-                  Add Creator
-                </Button>
-              </div>
+              <button
+                onClick={() => setShowAddAccount(!showAddAccount)}
+                className="group relative px-4 py-2 min-w-[110px] overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] flex items-center justify-center text-xs font-medium"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
+                
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                
+                {/* Content */}
+                <div className="relative flex items-center">
+                  <UserPlus className="h-3.5 w-3.5 mr-1.5 text-pink-500" />
+                  <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                    Add Account
+                  </span>
+                </div>
+              </button>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -659,22 +628,38 @@ export default function PostingPage() {
             ) : creators.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 font-medium mb-2">No active creator accounts</p>
-                <p className="text-sm text-gray-500 mb-4">Add creator accounts to track their performance</p>
-                <Button
-                  size="sm"
-                  className="bg-b9-pink hover:bg-pink-600 text-white"
-                  onClick={() => setExpandedCreators(true)}
+                <p className="text-gray-600 font-medium mb-2">No active accounts</p>
+                <p className="text-sm text-gray-500 mb-4">Add accounts to track their performance</p>
+                <button
+                  onClick={() => setShowAddAccount(true)}
+                  className="group relative px-4 py-2.5 overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] inline-flex items-center justify-center text-sm font-medium"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                  }}
                 >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Your First Creator
-                </Button>
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
+                  
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  
+                  {/* Content */}
+                  <div className="relative flex items-center">
+                    <UserPlus className="h-4 w-4 mr-2 text-pink-500" />
+                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                      Add Your First Account
+                    </span>
+                  </div>
+                </button>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {(expandedCreators ? creators : creators.slice(0, 10)).map((creator) => {
-                    const stats = creatorStats[creator.id]
+                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+                  {creators.map((creator) => {
                     const accountAge = creator.account_age_days ? 
                       creator.account_age_days > 365 ? 
                         `${Math.floor(creator.account_age_days / 365)}y` : 
@@ -682,44 +667,42 @@ export default function PostingPage() {
                       : 'New'
                     
                     return (
-                      <div key={creator.id} className="relative bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all hover:scale-105 group">
+                      <div key={creator.id} className="relative bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-all group">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="absolute -top-2 -right-2 h-5 w-5 p-0 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          onClick={() => {
-                            setRemovingCreator(creator.id)
-                            toggleCreator(creator.id, false)
-                          }}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onClick={() => toggleCreator(creator.id, false, creator.username)}
                           disabled={removingCreator === creator.id}
                         >
                           {removingCreator === creator.id ? (
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
+                            <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-gray-400" />
                           ) : (
-                            <X className="h-3 w-3" />
+                            <X className="h-2.5 w-2.5" />
                           )}
                         </Button>
                         
-                        <div className="p-3">
+                        <div className="p-2">
                           {/* Avatar and Name */}
-                          <div className="flex flex-col items-center text-center mb-2">
+                          <div className="flex flex-col items-center text-center">
                             <a 
                               href={getRedditProfileUrl(creator.username)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="relative mb-2"
+                              className="relative mb-1"
+                              title={`u/${creator.username}`}
                             >
                               {creator.icon_img ? (
                                 <Image
                                   src={creator.icon_img}
                                   alt={`${creator.username} avatar`}
-                                  width={40}
-                                  height={40}
-                                  className="w-10 h-10 rounded-full object-cover border border-gray-200 hover:border-b9-pink transition-colors"
+                                  width={32}
+                                  height={32}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 hover:border-b9-pink transition-colors"
                                   unoptimized
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-[10px] shadow-sm">
                                   {creator.username.substring(0, 2).toUpperCase()}
                                 </div>
                               )}
@@ -728,94 +711,33 @@ export default function PostingPage() {
                               href={getRedditProfileUrl(creator.username)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="group/link"
+                              className="hover:text-b9-pink"
+                              title={`u/${creator.username}`}
                             >
-                              <div className="flex items-center space-x-1">
-                                <span className="text-xs font-semibold text-gray-900 group-hover/link:text-b9-pink truncate max-w-[100px]">
-                                  u/{creator.username}
-                                </span>
-                                <ExternalLink className="h-2.5 w-2.5 text-gray-400 group-hover/link:text-b9-pink" />
-                              </div>
+                              <span className="text-[10px] font-semibold text-gray-900 hover:text-b9-pink truncate block max-w-[60px]">
+                                {creator.username}
+                              </span>
                             </a>
                             
-                            {/* Badges */}
-                            <div className="flex items-center gap-1 mt-1">
-                              <span className="text-[10px] px-1 py-0.5 bg-gray-100 text-gray-600 rounded">
+                            {/* Minimal badges */}
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <span className="text-[9px] px-1 py-0 bg-gray-100 text-gray-600 rounded">
                                 {accountAge}
                               </span>
                               {creator.verified && (
-                                <span className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-600 rounded" title="Verified">
-                                  ✓
-                                </span>
-                              )}
-                              {creator.is_gold && (
-                                <span className="text-[10px] px-1 py-0.5 bg-yellow-100 text-yellow-600 rounded" title="Reddit Gold">
-                                  ⭐
-                                </span>
+                                <span className="text-[9px] text-blue-500" title="Verified">✓</span>
                               )}
                             </div>
                           </div>
                           
-                          {/* Bio if available */}
-                          {creator.subreddit_description && (
-                            <p className="text-[10px] text-gray-600 line-clamp-2 mb-2 italic">
-                              {creator.subreddit_description}
-                            </p>
-                          )}
-                          
-                          {/* Karma Stats - Compact */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] text-gray-500">Post</span>
-                              <span className="text-[10px] font-medium text-gray-900">
-                                {creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(1)}k` : creator.link_karma}
-                              </span>
+                          {/* Compact Karma - Separate Post and Comment */}
+                          <div className="mt-1.5 text-center space-y-0.5">
+                            <div className="text-[9px] text-gray-600">
+                              <span className="text-gray-500">PK</span> <span className="font-medium">{creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(0)}k` : creator.link_karma}</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] text-gray-500">Comment</span>
-                              <span className="text-[10px] font-medium text-gray-900">
-                                {creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(1)}k` : creator.comment_karma}
-                              </span>
+                            <div className="text-[9px] text-gray-600">
+                              <span className="text-gray-500">CK</span> <span className="font-medium">{creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(0)}k` : creator.comment_karma}</span>
                             </div>
-                            
-                            {/* Performance if available */}
-                            {stats && !loadingStats && (
-                              <>
-                                <div className="border-t pt-1 mt-1">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[10px] text-gray-500">Posts</span>
-                                    <span className="text-[10px] font-medium text-gray-900">{stats.posts}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[10px] text-gray-500">Avg</span>
-                                    <span className="text-[10px] font-medium text-gray-900">{stats.avgScore}</span>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          
-                          {/* Quick Action Links */}
-                          <div className="mt-2 pt-2 border-t flex justify-center gap-2">
-                            <a
-                              href={`https://www.reddit.com/user/${creator.username}/submitted/`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] text-gray-500 hover:text-b9-pink"
-                              title="View posts"
-                            >
-                              Posts
-                            </a>
-                            <span className="text-[10px] text-gray-300">•</span>
-                            <a
-                              href={`https://www.reddit.com/user/${creator.username}/comments/`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] text-gray-500 hover:text-b9-pink"
-                              title="View comments"
-                            >
-                              Comments
-                            </a>
                           </div>
                         </div>
                       </div>
@@ -823,25 +745,12 @@ export default function PostingPage() {
                   })}
                 </div>
                 
-                {!expandedCreators && creators.length > 10 && (
-                  <div className="text-center mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setExpandedCreators(true)}
-                      className="text-xs"
-                    >
-                      Show All {creators.length} Creators
-                    </Button>
-                  </div>
-                )}
-                
-                {/* Add Creator Section */}
-                {expandedCreators && (
+                {/* Add Account Section */}
+                {showAddAccount && (
                   <div className="mt-6 pt-6 border-t">
                     <div className="flex items-center space-x-2 mb-4">
                       <UserPlus className="h-4 w-4 text-gray-600" />
-                      <h4 className="font-medium text-gray-900">Add New Creator</h4>
+                      <h4 className="font-medium text-gray-900">Add New Account</h4>
                     </div>
                     <div className="flex space-x-2">
                       <div className="relative flex-1">
@@ -957,381 +866,199 @@ export default function PostingPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* New Simplified Posting Toolbar */}
-        <SimplifiedPostingToolbar 
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onSortChange={handleSortChange}
-          sfwOnly={sfwOnly}
-          onSFWOnlyChange={handleSfwChange}
-          sfwCount={sfwCount}
-          selectedCategories={selectedCategories}
-          onCategoriesChange={handleCategoriesChange}
-          categoryCounts={categoryCounts}
-          onClearAllFilters={handleClearAllFilters}
-          loading={loading}
-          totalResults={totalCount}
-          filteredResults={showingCount}
-        />
-
-
-        {/* Subreddits List with Load More */}
-        <div id="subreddit-list" className="space-y-4">
-          {loading && currentPage === 0 ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="bg-white/60 backdrop-blur-xl rounded-2xl p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-14 h-14 bg-gray-200 rounded-xl"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                      <div className="flex space-x-4 mt-3">
-                        <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        <div className="h-3 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : sortedSubreddits.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-500 text-lg mb-2">No subreddits found</div>
-              <p className="text-gray-400 text-sm mb-6">
-                {searchQuery || selectedCategories.length > 0 || sfwOnly
-                  ? 'Try adjusting your filters or search terms'
-                  : 'No approved subreddits available'
-                }
+        
+        {/* Confirmation Dialog */}
+        {confirmRemove && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove Account</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to remove <strong>u/{confirmRemove.username}</strong> from active accounts?
               </p>
-              {(searchQuery || selectedCategories.length > 0 || sfwOnly) && (
-                <Button onClick={handleClearAllFilters} variant="outline">
-                  Clear All Filters
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmRemove(null)}
+                >
+                  Cancel
                 </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={async () => {
+                    const { id } = confirmRemove
+                    setRemovingCreator(id)
+                    setConfirmRemove(null)
+                    
+                    try {
+                      const response = await fetch('/api/users/toggle-creator', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, our_creator: false })
+                      })
+                      
+                      const result = await response.json()
+                      
+                      if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to remove account')
+                      }
+                      
+                      addToast({
+                        type: 'success',
+                        title: 'Account Removed',
+                        description: `u/${confirmRemove.username} has been removed from active accounts`,
+                        duration: 3000
+                      })
+                      
+                      await fetchCreators()
+                    } catch (error) {
+                      console.error('Error removing account:', error)
+                      addToast({
+                        type: 'error',
+                        title: 'Failed to Remove',
+                        description: error instanceof Error ? error.message : 'Failed to remove account',
+                        duration: 5000
+                      })
+                    } finally {
+                      setRemovingCreator(null)
+                    }
+                  }}
+                  disabled={removingCreator === confirmRemove.id}
+                >
+                  {removingCreator === confirmRemove.id ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                  ) : (
+                    'Remove'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filter Bar - Same style as categorization */}
+        <div className="flex items-stretch gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+          {/* Search Section - Left Side */}
+          <div className="flex items-center flex-1 min-w-0 max-w-xs">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
+                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder=""
+                title="Search subreddits by name, title, or description"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={loading}
+                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8 relative"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               )}
             </div>
-          ) : (
-            sortedSubreddits.map((subreddit) => (
-              <div key={subreddit.id} className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-gray-600/5 via-purple-500/5 to-pink-500/5 rounded-2xl blur-sm"></div>
-                <Card className="relative bg-white/80 backdrop-blur-xl border-0 shadow-lg rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/30"></div>
-                  
-                  {/* Main Subreddit Header */}
-                  <CardHeader className="relative pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {/* Subreddit Icon / Avatar */}
-                        <a 
-                          href={`https://reddit.com/${subreddit.display_name_prefixed}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative"
-                          title={`Open ${subreddit.display_name_prefixed} on Reddit`}
-                        >
-                          {getIconUrl(subreddit) ? (
-                            <Image
-                              src={getIconUrl(subreddit) || ''}
-                              alt={`${subreddit.name} icon`}
-                              width={56}
-                              height={56}
-                              className="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow"
-                              unoptimized
-                            />
-                          ) : null}
-                          <div 
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg border border-gray-200 ${
-                              getIconUrl(subreddit) ? 'hidden' : 'flex'
-                            }`}
-                            style={{
-                              backgroundColor: getSubredditColor(subreddit.name),
-                              display: getIconUrl(subreddit) ? 'none' : 'flex'
-                            }}
-                          >
-                            {getSubredditInitials(subreddit.name)}
-                          </div>
-                          {/* Removed corner 18+ badge to avoid duplication with SFW/NSFW */}
-                        </a>
-
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <a
-                              href={`https://reddit.com/${subreddit.display_name_prefixed}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xl font-bold text-gray-900 hover:text-b9-pink"
-                            >
-                              {subreddit.display_name_prefixed}
-                            </a>
-                            {/* Category badge */}
-                            {subreddit.review && (
-                              <Badge variant="outline" className="text-xs px-1.5 py-0.5 font-semibold border bg-white/60">
-                                {subreddit.review}
-                              </Badge>
-                            )}
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs px-1.5 py-0.5 font-semibold border ${subreddit.over18 ? 'bg-gray-100 text-gray-900 border-gray-400' : 'bg-pink-50 text-pink-700 border-pink-300'}`}
-                            >
-                              {subreddit.over18 ? 'NSFW' : 'SFW'}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-600 mt-1 line-clamp-2">{subreddit.public_description || subreddit.title}</p>
-                          
-                          {/* Enhanced Key Metrics Row */}
-                          <div className="space-y-3 mt-3">
-                            {/* Primary metrics */}
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                              <div className="flex items-center space-x-1 text-sm">
-                                <Users className="h-4 w-4 text-gray-700" />
-                                <span className="font-medium text-gray-900">{(subreddit.subscribers || 0).toLocaleString('en-US')}</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-sm">
-                                <ArrowUpCircle className="h-4 w-4 text-pink-600" />
-                                <span className="font-medium text-gray-900">{Math.round(subreddit.avg_upvotes_per_post || 0)}</span>
-                                <span className="text-gray-500">avg</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-sm">
-                                <TrendingUp className={`h-4 w-4 ${getEngagementColor(subreddit.subscriber_engagement_ratio || 0)}`} />
-                                <span className={`font-medium ${getEngagementColor(subreddit.subscriber_engagement_ratio || 0)}`}>
-                                  {((subreddit.subscriber_engagement_ratio || 0) * 100).toFixed(1)}%
-                                </span>
-                              </div>
-                              {subreddit.avg_engagement_velocity && (
-                                <div className="flex items-center space-x-1 text-sm">
-                                  <Zap className="h-4 w-4 text-gray-600" />
-                                  <span className="font-medium text-gray-900">{Math.round(subreddit.avg_engagement_velocity)}</span>
-                                  <span className="text-gray-500">upvotes/hr</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Secondary metrics row */}
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Clock className="h-4 w-4 text-pink-600" />
-                                <span className="font-medium text-gray-900">{subreddit.best_posting_hour || '?'}:00</span>
-                                {subreddit.best_posting_day && (
-                                  <>
-                                    <Calendar className="h-4 w-4 text-gray-600" />
-                                    <span className="font-medium">{subreddit.best_posting_day}</span>
-                                  </>
-                                )}
-                              </div>
-                              
-                              {/* Health scores */}
-                              {subreddit.community_health_score && (
-                                <div className="flex items-center space-x-1 text-sm">
-                                  <Heart className={`h-4 w-4 ${getHealthScore(subreddit.community_health_score).color}`} />
-                                  <span className={`font-medium ${getHealthScore(subreddit.community_health_score).color}`}>
-                                    {getHealthScore(subreddit.community_health_score).label}
-                                  </span>
-                                </div>
-                              )}
-                              
-                              {subreddit.moderator_activity_score && (
-                                <div className="flex items-center space-x-1 text-sm">
-                                  <Activity className={`h-4 w-4 ${getHealthScore(subreddit.moderator_activity_score).color}`} />
-                                  <span className="font-medium text-gray-900">{subreddit.moderator_activity_score.toFixed(1)}</span>
-                                  <span className="text-gray-500">mod</span>
-                                </div>
-                              )}
-                              
-                              {/* Best content type indicator */}
-                              {(() => {
-                                const bestContent = getBestContentType(subreddit)
-                                if (bestContent.score > 0) {
-                                  const IconComponent = {
-                                    image: ImageIcon,
-                                    video: Video,
-                                    text: FileText
-                                  }[bestContent.type] || FileText
-                                  
-                                  return (
-                                    <div className="flex items-center space-x-1 text-sm">
-                                      <IconComponent className="h-4 w-4 text-gray-600" />
-                                      <span className="font-medium text-gray-900">{bestContent.type}</span>
-                                      <span className="text-gray-500">({Math.round(bestContent.score)})</span>
-                                    </div>
-                                  )
-                                }
-                                return null
-                              })()}
-                            </div>
-                          </div>
-                          
-                          {/* Minimal Requirements Row */}
-                          {(subreddit.min_account_age_days || subreddit.min_comment_karma || subreddit.min_post_karma || subreddit.allow_images !== null) && (
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
-                              <span className="text-gray-600 font-medium">Requirements:</span>
-                              {subreddit.min_account_age_days && (
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>{subreddit.min_account_age_days}d account</span>
-                                </div>
-                              )}
-                              {subreddit.min_comment_karma && (
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <MessageCircle className="h-3 w-3" />
-                                  <span>{subreddit.min_comment_karma} comment karma</span>
-                                </div>
-                              )}
-                              {subreddit.min_post_karma && (
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <ArrowUpCircle className="h-3 w-3" />
-                                  <span>{subreddit.min_post_karma} post karma</span>
-                                </div>
-                              )}
-                              {subreddit.allow_images === false && (
-                                <div className="flex items-center space-x-1 text-gray-800">
-                                  <Shield className="h-3 w-3" />
-                                  <span>No images</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <a
-                          href={`https://www.reddit.com/${subreddit.display_name_prefixed.replace(/^\//, '')}/about/rules`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-gray-700"
-                          title="Subreddit rules"
-                          aria-label="Open subreddit rules"
-                        >
-                          <BookOpen className="h-5 w-5" />
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleExpanded(subreddit.id)}
-                          className="text-gray-500 hover:text-gray-700"
-                          title={expandedSubreddits.has(subreddit.id) ? 'Hide top posts' : 'Show top posts'}
-                          aria-expanded={expandedSubreddits.has(subreddit.id)}
-                        >
-                          {expandedSubreddits.has(subreddit.id) ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </Button>
-                        {subreddit.last_scraped_at && (
-                          <div className="flex items-center text-xs text-gray-500" title={`updated ${timeAgo(subreddit.last_scraped_at)}`}>
-                            <Clock className="h-3.5 w-3.5 mr-1" />
-                            <span>{timeAgo(subreddit.last_scraped_at)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  {expandedSubreddits.has(subreddit.id) && (
-                    <CardContent className="relative pt-0">
-                      <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <MessageCircle className="h-5 w-5 text-gray-700" />
-                          <h4 className="font-semibold text-gray-900">Top 20 Most Upvoted Posts</h4>
-                          {loadingTopPosts.has(subreddit.id) && (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-b9-pink ml-2"></div>
-                          )}
-                        </div>
-                        {topPostsBySubreddit[subreddit.id] && topPostsBySubreddit[subreddit.id].length > 0 ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[70vh] overflow-y-auto">
-                            {topPostsBySubreddit[subreddit.id].map((post) => {
-                              const postUrl = `https://www.reddit.com/comments/${post.reddit_id}`
-                              const thumb = (post as unknown as { thumbnail?: string }).thumbnail
-                              const hasThumb = !!thumb && /^https?:\/\//.test(thumb) && !/(self|default)$/i.test(thumb)
-                              return (
-                                <a key={post.id} href={postUrl} target="_blank" rel="noopener noreferrer" className="group block bg-white/70 rounded-xl border border-gray-200 overflow-hidden">
-                                  {/* Media */}
-                                  <div className="relative aspect-square bg-gray-100">
-                                    {hasThumb ? (
-                                      <Image src={thumb} alt="thumb" fill sizes="(max-width:768px) 50vw, (max-width:1200px) 25vw, 20vw" className="object-cover" unoptimized />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-gray-400">No preview</div>
-                                    )}
-                                    <div className="absolute top-1 right-1">
-                                      <button
-                                        onClick={(e) => copyTitle(e, post.title)}
-                                        className="p-1.5 rounded-md bg-white/80 text-gray-700 hover:bg-white shadow"
-                                        title="Copy title"
-                                        aria-label="Copy title"
-                                      >
-                                        <Copy className="h-3.5 w-3.5" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  {/* Meta */}
-                                  <div className="p-2">
-                                    <div className="text-xs font-medium text-gray-900 line-clamp-2 min-h-[2.25rem]">{post.title}</div>
-                                    <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
-                                      <div className="flex items-center space-x-2">
-                                        <span className="flex items-center space-x-1">
-                                          <ArrowUpCircle className="h-3 w-3" />
-                                          <span>{post.score}</span>
-                                        </span>
-                                        <span className="flex items-center space-x-1">
-                                          <MessageCircle className="h-3 w-3" />
-                                          <span>{post.num_comments}</span>
-                                        </span>
-                                      </div>
-                                      <span>{timeAgo(post.created_utc)}</span>
-                                    </div>
-                                  </div>
-                                </a>
-                              )
-                            })}
-                          </div>
-                        ) : !loadingTopPosts.has(subreddit.id) ? (
-                          <div className="text-sm text-gray-500 italic">No top posts data</div>
-                        ) : null}
-                      </div>
-                    </CardContent>
+          </div>
+          
+          {/* Filters Section - Right Side */}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* SFW Filter Checkbox */}
+            <label className="flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={sfwOnly}
+                  onChange={(e) => handleSfwChange(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`
+                  w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center
+                  ${sfwOnly 
+                    ? 'bg-b9-pink border-b9-pink' 
+                    : 'bg-white border-gray-300 hover:border-b9-pink'
+                  }
+                `}>
+                  {sfwOnly && (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                   )}
-
-                </Card>
+                </div>
               </div>
-            ))
-          )}
-          
-          {/* Load More Button */}
-          {hasMore && sortedSubreddits.length > 0 && (
-            <div className="text-center py-8">
-              <Button
-                onClick={handleLoadMore}
-                disabled={loading}
-                variant="outline"
-                size="lg"
-                className="bg-white/80 backdrop-blur-sm"
+              <span className="text-sm font-medium text-gray-700">
+                SFW Only
+              </span>
+              {sfwOnly && sfwCount > 0 && (
+                <span className="text-xs text-b9-pink font-semibold">
+                  ({sfwCount})
+                </span>
+              )}
+            </label>
+            
+            <PostingCategoryFilter
+              availableCategories={availableCategories}
+              selectedCategories={selectedCategories}
+              onCategoriesChange={handleCategoriesChange}
+              loading={loading}
+            />
+            
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={`${sortBy}-${sortDirection}`}
+                onChange={(e) => {
+                  const [field, direction] = e.target.value.split('-')
+                  handleSortChange(field as SortField, direction as SortDirection)
+                }}
+                className="appearance-none bg-white border border-gray-200 rounded-md px-3 py-1.5 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 h-8"
               >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-b9-pink mr-2"></div>
-                    Loading More...
-                  </>
-                ) : (
-                  'Load More Subreddits'
-                )}
-              </Button>
-            </div>
-          )}
-          
-          {/* End of results indicator */}
-          {!hasMore && sortedSubreddits.length > 0 && (
-            <div className="text-center py-6">
-              <div className="text-sm text-gray-500">
-                You&apos;ve reached the end of the results
+                <option value="avg_upvotes-desc">Avg Upvotes ↓</option>
+                <option value="avg_upvotes-asc">Avg Upvotes ↑</option>
+                <option value="min_post_karma-desc">Min Post Karma ↓</option>
+                <option value="min_post_karma-asc">Min Post Karma ↑</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
               </div>
             </div>
-          )}
+            
+            {/* Stats */}
+            <div className="text-xs text-gray-600 px-3">
+              {loading ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : (
+                <span>{showingCount} of {totalCount}</span>
+              )}
+            </div>
+          </div>
         </div>
+
+
+        {/* DiscoveryTable Component */}
+        <DiscoveryTable
+          subreddits={sortedSubreddits}
+          loading={loading && currentPage === 0}
+          onLoadMore={handleLoadMore}
+          hasMore={hasMore}
+        />
+        
+        {/* Loading indicator for infinite scroll */}
+        {loading && currentPage > 0 && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-b9-pink"></div>
+            <span className="ml-3 text-gray-600">Loading more subreddits...</span>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )
