@@ -6,7 +6,9 @@
   "framework": "nextjs",
   "github": { "enabled": true, "autoAlias": false, "autoJobCancelation": true },
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "RENDER_API_URL": "https://b9-dashboard.onrender.com",
+    "NEXT_PUBLIC_RENDER_API_URL": "https://b9-dashboard.onrender.com"
   },
   "installCommand": "cd dashboard && npm ci --prefer-offline --no-audit --legacy-peer-deps",
   "buildCommand": "cd dashboard && npm run build",
