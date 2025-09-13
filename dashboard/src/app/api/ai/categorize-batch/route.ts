@@ -14,16 +14,20 @@ interface CategorizationStats {
   last_categorization?: string
 }
 
-// Get the Render API URL from environment variables
-const RENDER_API_URL = process.env.RENDER_API_URL || process.env.NEXT_PUBLIC_RENDER_API_URL
-
-if (!RENDER_API_URL) {
-  console.error('⚠️ RENDER_API_URL environment variable not set. AI categorization will not work.')
+// Resolve the Render API URL at request time to avoid build-time inlining
+function getRenderApiUrl(): string | undefined {
+  // Use bracket notation to prevent Next/webpack from inlining at build time
+  return (
+    process.env['RENDER_API_URL'] ||
+    process.env['NEXT_PUBLIC_RENDER_API_URL'] ||
+    undefined
+  )
 }
 
 // POST /api/ai/categorize-batch - Start AI categorization
 export async function POST(request: Request) {
   try {
+    const RENDER_API_URL = getRenderApiUrl()
     if (!RENDER_API_URL) {
       return NextResponse.json({
         success: false,
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
       Object.entries(requestPayload).filter(([_, v]) => v !== undefined)
     )
     
-    console.log('Forwarding to Render API:', cleanPayload)
+    console.log('Forwarding to Render API:', { url: RENDER_API_URL, payload: cleanPayload })
     
     // Forward the request to the Render API
     const renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/start`, {
@@ -136,6 +140,7 @@ export async function POST(request: Request) {
 // GET /api/ai/categorize-batch - Get categorization statistics and progress
 export async function GET() {
   try {
+    const RENDER_API_URL = getRenderApiUrl()
     if (!RENDER_API_URL) {
       return NextResponse.json({
         success: false,
