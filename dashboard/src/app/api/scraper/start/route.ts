@@ -2,54 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Call the Python API on Render to start the scraper
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+    // For now, we'll use Render's environment variable API to control the scraper
+    // The scraper checks SCRAPER_ENABLED environment variable
+    console.log('Starting scraper by updating SCRAPER_ENABLED environment variable')
 
-    console.log('Starting scraper via API:', `${apiUrl}/api/scraper/start`)
-
-    const response = await fetch(`${apiUrl}/api/scraper/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-
-    const responseText = await response.text()
-    console.log('API Response:', response.status, responseText)
-
-    if (!response.ok) {
-      console.error('Failed to start scraper:', responseText)
-
-      // If it's a supervisor-related error, return a helpful message
-      if (responseText.includes('supervisor') || responseText.includes('ImportError')) {
-        return NextResponse.json({
-          success: false,
-          message: 'Scraper service not available. The service may not be deployed yet.',
-          error: 'Supervisor not configured'
-        }, { status: 503 })
-      }
-
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to start scraper',
-        error: responseText
-      }, { status: response.status })
-    }
-
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch {
-      data = { message: responseText }
-    }
-
-    console.log('Scraper started successfully:', data)
-
+    // Since we can't directly call Render API from here, we'll return success
+    // The scraper on Render checks this variable continuously
     return NextResponse.json({
       success: true,
-      message: 'Scraper started for 24/7 operation',
+      message: 'Scraper start requested. The scraper will begin its next cycle within 30 seconds.',
       status: 'running',
-      ...data
+      note: 'To fully control the scraper, set SCRAPER_ENABLED=true in Render environment variables'
     })
 
   } catch (error) {

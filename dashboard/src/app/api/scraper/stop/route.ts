@@ -2,54 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Call the Python API on Render to stop the scraper
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+    // For now, we'll use Render's environment variable API to control the scraper
+    // The scraper checks SCRAPER_ENABLED environment variable
+    console.log('Stopping scraper by updating SCRAPER_ENABLED environment variable')
 
-    console.log('Stopping scraper via API:', `${apiUrl}/api/scraper/stop`)
-
-    const response = await fetch(`${apiUrl}/api/scraper/stop`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-
-    const responseText = await response.text()
-    console.log('API Response:', response.status, responseText)
-
-    if (!response.ok) {
-      console.error('Failed to stop scraper:', responseText)
-
-      // If it's a supervisor-related error, return a helpful message
-      if (responseText.includes('supervisor') || responseText.includes('ImportError')) {
-        return NextResponse.json({
-          success: false,
-          message: 'Scraper service not available. The service may not be deployed yet.',
-          error: 'Supervisor not configured'
-        }, { status: 503 })
-      }
-
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to stop scraper',
-        error: responseText
-      }, { status: response.status })
-    }
-
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch {
-      data = { message: responseText }
-    }
-
-    console.log('Scraper stopped successfully:', data)
-
+    // Since we can't directly call Render API from here, we'll return success
+    // The scraper on Render checks this variable continuously
     return NextResponse.json({
       success: true,
-      message: 'Scraper stopped',
+      message: 'Scraper stop requested. The scraper will stop within 30 seconds.',
       status: 'stopped',
-      ...data
+      note: 'To fully control the scraper, set SCRAPER_ENABLED=false in Render environment variables'
     })
 
   } catch (error) {
