@@ -3,7 +3,7 @@
 import { Activity } from 'lucide-react'
 import { SidebarTemplate } from '@/components/SidebarTemplate'
 
-export function SystemMonitorSidebar() {
+export function RedditMonitorSidebar() {
   // Custom Reddit icon SVG component
   const RedditIcon = (
     <svg
@@ -20,7 +20,7 @@ export function SystemMonitorSidebar() {
 
   return (
     <SidebarTemplate
-      title="Reddit Monitor"
+      title="System Monitor"
       icon={RedditIcon}
       backHref="/dashboards"
       navigationItems={[]}

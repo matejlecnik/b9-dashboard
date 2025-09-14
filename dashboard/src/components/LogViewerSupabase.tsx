@@ -1,26 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  Terminal,
-  Pause,
-  Play,
-  Trash2,
-  Download,
-  AlertCircle,
-  CheckCircle,
-  Info,
-  XCircle,
-  Loader2,
-  Search,
-  Filter,
-  X,
-  Zap,
-  Activity
+  AlertCircle
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
@@ -72,7 +58,7 @@ export function LogViewerSupabase({
       setError(null)
 
       const params = new URLSearchParams({
-        limit: since ? '50' : '200', // Fetch fewer logs for updates
+        limit: since ? '50' : '30', // Fetch 30 logs initially for quick load
         ...(selectedLevel !== 'all' && { level: selectedLevel }),
         ...(searchQuery && { search: searchQuery }),
         ...(since && { since })
@@ -179,10 +165,10 @@ export function LogViewerSupabase({
     }
   }, [isPaused, selectedLevel, searchQuery, maxLogs])
 
-  // Initial fetch on mount and when filters change
+  // Initial fetch on mount
   useEffect(() => {
-    fetchLogs()
-  }, [fetchLogs])
+    fetchLogs() // Just fetch logs immediately
+  }, []) // Remove dependency to prevent refetching on every render
 
   // Periodic refresh for catching up (backup to real-time)
   useEffect(() => {
@@ -243,7 +229,8 @@ export function LogViewerSupabase({
       'platform:',
       'screen resolution',
       'ensure_subreddits_exist_sync',  // Hide internal sync logs
-      'fetching user data for'  // Hide user data fetching logs
+      'fetching user data for',  // Hide user data fetching logs
+      'race condition'  // Hide race condition logs as requested
     ]
 
     // Check if message contains any skip pattern
@@ -326,6 +313,34 @@ export function LogViewerSupabase({
     setIsPaused(!isPaused)
   }
 
+  // Get color based on log importance
+  const getLogImportanceColor = (log: LogEntry): string => {
+    const message = log.message.toLowerCase()
+
+    // Critical/Error logs - darkest
+    if (log.level === 'error' || message.includes('error') || message.includes('failed') || message.includes('exception')) {
+      return 'text-[#8B0000] font-semibold' // Dark red
+    }
+
+    // Success/Important logs - dark brand color
+    if (log.level === 'success' || message.includes('success') || message.includes('saved') || message.includes('completed')) {
+      return 'text-[#D64365] font-medium' // Dark brand pink
+    }
+
+    // Processing/Active logs - medium
+    if (message.includes('analyzing') || message.includes('processing') || message.includes('tracking') || message.includes('discovered')) {
+      return 'text-[#FF6B82]' // Medium brand pink
+    }
+
+    // Info/Status logs - lighter
+    if (message.includes('race condition') || message.includes('updated') || message.includes('detected')) {
+      return 'text-[#FF8395]' // Light brand pink
+    }
+
+    // Default/Less important - lightest
+    return 'text-[#FFB3C0]' // Very light pink
+  }
+
   // Export logs
   const handleExport = () => {
     const logText = filteredLogs.map(log =>
@@ -343,37 +358,6 @@ export function LogViewerSupabase({
     URL.revokeObjectURL(url)
   }
 
-  // Get icon for log level
-  const getLogIcon = (level: string) => {
-    switch (level) {
-      case 'error':
-        return <XCircle className="h-3.5 w-3.5 text-red-500" />
-      case 'warning':
-        return <AlertCircle className="h-3.5 w-3.5 text-yellow-500" />
-      case 'success':
-        return <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-      case 'debug':
-        return <Info className="h-3.5 w-3.5 text-gray-400" />
-      default:
-        return <Info className="h-3.5 w-3.5 text-blue-500" />
-    }
-  }
-
-  // Get color for log level
-  const getLogColor = (level: string) => {
-    switch (level) {
-      case 'error':
-        return 'text-red-600'
-      case 'warning':
-        return 'text-yellow-600'
-      case 'success':
-        return 'text-green-600'
-      case 'debug':
-        return 'text-gray-500'
-      default:
-        return 'text-gray-700'
-    }
-  }
 
   // Count logs by level
   const logCounts = useMemo(() => {
@@ -387,41 +371,12 @@ export function LogViewerSupabase({
   }, [logs])
 
   return (
-    <Card className="border-gray-100">
-      <CardHeader className="py-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <Terminal className="h-4 w-4" />
-            {title}
-            {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
-            {isConnected && (
-              <Badge variant="outline" className="text-xs">
-                <Zap className="h-3 w-3 mr-1 text-green-500" />
-                Live
-              </Badge>
-            )}
-            {filteredLogs.length < logs.length && (
-              <span className="text-xs text-gray-500">
-                ({filteredLogs.length}/{logs.length})
-              </span>
-            )}
-          </CardTitle>
-
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => fetchLogs()}
-              className="h-7 w-7"
-              title="Refresh"
-              disabled={isLoading}
-            >
-              <Activity className={`h-3.5 w-3.5 ${isLoading ? 'animate-pulse' : ''}`} />
-            </Button>
-          </div>
+    <Card className="border-gray-200/50 bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl">
+      {title && (
+        <div className="px-2 py-1 border-b border-gray-200/30">
+          <h3 className="text-[10px] font-medium text-gray-600">{title}</h3>
         </div>
-      </CardHeader>
-
+      )}
       <CardContent className="p-0">
         {error ? (
           <div className="p-4 text-sm text-red-600 flex items-center gap-2">
@@ -437,24 +392,23 @@ export function LogViewerSupabase({
         ) : (
           <div
             ref={scrollAreaRef}
-            className="w-full overflow-y-auto overflow-x-hidden"
+            className="w-full overflow-y-auto overflow-x-hidden bg-gradient-to-b from-transparent to-gray-100/20"
             style={{ height }}
           >
-            <div className="p-2 font-mono text-xs space-y-0.5">
+            <div className="p-2 font-mono text-xs space-y-0.5 backdrop-blur-sm">
               {filteredLogs.map((log, index) => (
                 <div
                   key={`${log.id}-${log.timestamp}-${index}`}
-                  className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-50`}
+                  className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-200/40 transition-colors`}
                 >
                   <div className="flex items-center gap-1.5 min-w-fit">
-                    {getLogIcon(log.level)}
                     <span className="text-gray-400 text-[10px]" title={new Date(log.timestamp).toLocaleString()}>
                       {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
                     </span>
                   </div>
 
                   <div className="flex-1 break-all">
-                    <span className={getLogColor(log.level)}>
+                    <span className={getLogImportanceColor(log)}>
                       {log.message}
                     </span>
                     {log.source && log.source !== 'scraper' && (

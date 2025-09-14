@@ -30,6 +30,41 @@ const InstagramIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
   </svg>
 )
 
+// TikTok Icon Component
+const TikTokIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+  </svg>
+)
+
+// X (Twitter) Icon Component
+const XIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+  </svg>
+)
+
+// OnlyFans Icon Component
+const OnlyFansIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
+    <path d="M24 4.003h-4.015c-3.45 0-5.3.197-6.748 1.957a7.996 7.996 0 1 0 2.103 9.211c3.182-.231 5.39-2.134 6.085-5.173 0 0-2.399.585-4.43 0 4.018-.777 6.333-3.037 7.005-5.995zM5.61 11.999A2.391 2.391 0 0 1 9.28 9.97a2.966 2.966 0 0 1 2.998-2.528h.008c-.92 1.778-1.407 3.352-1.998 5.263A2.392 2.392 0 0 1 5.61 12Zm2.386-7.996a7.996 7.996 0 1 0 7.996 7.996 7.996 7.996 0 0 0-7.996-7.996Zm0 10.394A2.399 2.399 0 1 1 10.395 12a2.396 2.396 0 0 1-2.399 2.398Z"/>
+  </svg>
+)
+
+// YouTube Icon Component
+const YouTubeIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+)
+
+// Threads Icon Component
+const ThreadsIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
+    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221z"/>
+  </svg>
+)
+
 interface Dashboard {
   id: string
   name: string
@@ -91,7 +126,7 @@ export default function DashboardsPage() {
         name: 'System Monitor',
         description: 'Real-time monitoring of system health, scraper status, and data collection metrics',
         icon: Activity,
-        href: '/system-monitor',
+        href: '/reddit/monitor',
         status: 'active',
         color: 'border-gray-300 hover:border-gray-400',
         gradient: 'from-gray-600/10 via-gray-500/5 to-gray-600/10',
@@ -104,7 +139,7 @@ export default function DashboardsPage() {
       },
       {
         id: 'instagram',
-        name: 'Instagram Analytics',
+        name: 'Instagram Dashboard',
         description: 'Instagram engagement tracking and influencer discovery platform',
         icon: InstagramIcon,
         href: '/instagram',
@@ -120,9 +155,9 @@ export default function DashboardsPage() {
       },
       {
         id: 'tiktok',
-        name: 'TikTok Intelligence',
+        name: 'TikTok Dashboard',
         description: 'TikTok trend analysis and viral content optimization',
-        icon: TrendingUp,
+        icon: TikTokIcon,
         href: '/tiktok',
         status: 'coming-soon',
         color: 'border-black hover:border-gray-700',
@@ -135,27 +170,11 @@ export default function DashboardsPage() {
         ]
       },
       {
-        id: 'onlyfans',
-        name: 'OnlyFans Analytics',
-        description: 'Revenue tracking and subscriber growth optimization',
-        icon: Target,
-        href: '/tracking',
-        status: 'beta',
-        color: 'border-cyan-200 hover:border-cyan-300',
-        gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
-        accent: 'bg-gray-600 text-white',
-        metrics: [
-          { label: 'Revenue', value: 'Live' },
-          { label: 'Subscribers', value: 'Growth' },
-          { label: 'Status', value: 'Beta' }
-        ]
-      },
-      {
-        id: 'twitter',
-        name: 'X (Twitter) Monitor',
-        description: 'Twitter engagement and audience analysis platform',
-        icon: Activity,
-        href: '/twitter',
+        id: 'x',
+        name: 'X Dashboard',
+        description: 'X (Twitter) engagement and audience analysis platform',
+        icon: XIcon,
+        href: '/x',
         status: 'coming-soon',
         color: 'border-black hover:border-gray-700',
         gradient: 'from-black/10 via-gray-900/5 to-black/10',
@@ -167,19 +186,67 @@ export default function DashboardsPage() {
         ]
       },
       {
-        id: 'unified',
-        name: 'Unified Analytics',
-        description: 'Cross-platform insights and comprehensive business intelligence',
-        icon: Globe,
-        href: '/unified-dashboard',
+        id: 'onlyfans',
+        name: 'OnlyFans Dashboard',
+        description: 'Revenue tracking and subscriber growth optimization',
+        icon: OnlyFansIcon,
+        href: '/onlyfans',
         status: 'coming-soon',
-        color: 'border-b9-pink/30 hover:border-b9-pink/50',
-        gradient: 'from-b9-pink/10 via-pink-400/5 to-pink-500/10',
-        accent: 'bg-gray-200 text-gray-700',
+        color: 'border-cyan-200 hover:border-cyan-300',
+        gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
+        accent: 'bg-cyan-600 text-white',
         metrics: [
-          { label: 'Platforms', value: 'All' },
-          { label: 'Insights', value: 'AI-Powered' },
-          { label: 'Launch', value: '2025' }
+          { label: 'Revenue', value: 'Live' },
+          { label: 'Subscribers', value: 'Growth' },
+          { label: 'Launch', value: 'Q2 2025' }
+        ]
+      },
+      {
+        id: 'tracking',
+        name: 'Tracking Dashboard',
+        description: 'Cross-platform performance tracking and analytics',
+        icon: Target,
+        href: '/tracking',
+        status: 'coming-soon',
+        color: 'border-purple-200 hover:border-purple-300',
+        gradient: 'from-purple-500/10 via-purple-400/5 to-purple-500/10',
+        accent: 'bg-purple-600 text-white',
+        metrics: [
+          { label: 'Metrics', value: 'Multi-Platform' },
+          { label: 'Analysis', value: 'Real-time' },
+          { label: 'Launch', value: 'Q3 2025' }
+        ]
+      },
+      {
+        id: 'youtube',
+        name: 'YouTube Dashboard',
+        description: 'YouTube channel analytics and video performance optimization',
+        icon: YouTubeIcon,
+        href: '/youtube',
+        status: 'coming-soon',
+        color: 'border-red-200 hover:border-red-300',
+        gradient: 'from-red-500/10 via-red-400/5 to-red-500/10',
+        accent: 'bg-red-600 text-white',
+        metrics: [
+          { label: 'Videos', value: 'Analytics' },
+          { label: 'Subscribers', value: 'Growth' },
+          { label: 'Launch', value: 'Q4 2025' }
+        ]
+      },
+      {
+        id: 'threads',
+        name: 'Threads Dashboard',
+        description: 'Threads engagement monitoring and community growth tracking',
+        icon: ThreadsIcon,
+        href: '/threads',
+        status: 'coming-soon',
+        color: 'border-gray-200 hover:border-gray-300',
+        gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
+        accent: 'bg-black text-white',
+        metrics: [
+          { label: 'Posts', value: 'Tracking' },
+          { label: 'Engagement', value: 'Analytics' },
+          { label: 'Launch', value: '2026' }
         ]
       }
     ]
