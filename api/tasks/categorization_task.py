@@ -7,7 +7,6 @@ Celery task wrapper for categorize_all.py script with progress tracking
 import os
 import sys
 import logging
-import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 from celery import Task

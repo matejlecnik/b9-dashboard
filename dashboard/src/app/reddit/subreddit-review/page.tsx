@@ -1,4 +1,4 @@
-'use client'
+  'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, type Subreddit } from '@/lib/supabase'
@@ -11,11 +11,11 @@ import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MetricsCardsSkeleton, TableSkeleton } from '@/components/UniversalLoading'
 import { useErrorHandler } from '@/lib/errorUtils'
-import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller'
-type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | null
+type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
 
 const PAGE_SIZE = 50 // Standard page size
 
@@ -402,7 +402,7 @@ export default function SubredditReviewPage() {
         // Don't refresh the entire page on error - let user retry
       }
     })
-  }, [subreddits, handleAsyncOperation, fetchSubreddits, addToast, currentFilter])
+  }, [subreddits, handleAsyncOperation, addToast, currentFilter])
   // Bulk update reviews for selected subreddits via API
   const bulkUpdateReview = useCallback(async (review: 'Ok' | 'No Seller' | 'Non Related') => {
     if (selectedSubreddits.size === 0) return
@@ -528,7 +528,7 @@ export default function SubredditReviewPage() {
         })
       }
     })
-  }, [selectedSubreddits, subreddits, handleAsyncOperation, addToast, fetchSubreddits, fetchCounts])
+  }, [selectedSubreddits, subreddits, handleAsyncOperation, addToast, currentFilter])
 
   // Wrappers for SubredditTable (accept string review labels) - memoized
   const updateReviewByText = useCallback(async (id: number, reviewText: string) => {
@@ -611,7 +611,7 @@ export default function SubredditReviewPage() {
       setCurrentPage(0)
       setHasMore(true)
       fetchSubreddits(0, false)
-    }, 300000)
+    }, 300000)  
 
     return () => {
       if (channel && supabase) {
@@ -630,17 +630,17 @@ export default function SubredditReviewPage() {
 
         {/* Metrics Cards - Simplified */}
         <div className="mb-6">
-          <ComponentErrorBoundary componentName="Metrics Cards">
+          <ComponentErrorBoundary>
             {loading ? (
               <MetricsCardsSkeleton />
             ) : (
-              <MetricsCards 
+              <MetricsCards
                 totalSubreddits={totalSubreddits}
                 statusCount={reviewCounts.unreviewed}
                 statusTitle="Unreviewed"
                 newTodayCount={newTodayCount}
-                loading={loading}
                 reviewCounts={reviewCounts}
+                loading={loading}
               />
             )}
           </ComponentErrorBoundary>
@@ -717,7 +717,7 @@ export default function SubredditReviewPage() {
             </div>
           ) : (
             <>
-              <ComponentErrorBoundary componentName="Subreddit Data Table">
+              <ComponentErrorBoundary>
                 <UniversalTable
                   {...createSubredditReviewTable({
                     subreddits: displayedSubreddits,

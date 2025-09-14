@@ -2,14 +2,19 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  AlertCircle
-} from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+
+interface LogContext {
+  subreddit?: string
+  operation?: string
+  processing_time_ms?: number
+  posts_collected?: number
+  users_discovered?: number
+  [key: string]: unknown
+}
 
 interface LogEntry {
   id: string
@@ -17,7 +22,7 @@ interface LogEntry {
   level: 'info' | 'warning' | 'error' | 'success' | 'debug'
   message: string
   source?: string
-  context?: any
+  context?: LogContext
 }
 
 interface LogViewerSupabaseProps {
@@ -36,29 +41,25 @@ export function LogViewerSupabase({
   maxLogs = 500
 }: LogViewerSupabaseProps) {
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [isPaused, setIsPaused] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
+  const [isPaused] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedLevel, setSelectedLevel] = useState<string>('all')
-  const [showFilters, setShowFilters] = useState(false)
-  const [showVerbose, setShowVerbose] = useState(false)
+  const [searchQuery] = useState('')
+  const [selectedLevel] = useState<string>('all')
+  const [showVerbose] = useState(false)
   const [lastTimestamp, setLastTimestamp] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const shouldAutoScroll = useRef(autoScroll)
-  const subscriptionRef = useRef<any>(null)
+  const subscriptionRef = useRef<RealtimeChannel | null>(null)
 
   // Fetch initial logs
   const fetchLogs = useCallback(async (since?: string) => {
     if (isPaused) return
 
     try {
-      setIsLoading(true)
       setError(null)
 
       const params = new URLSearchParams({
-        limit: since ? '50' : '30', // Fetch 30 logs initially for quick load
+        limit: since ? '50' : '50', // Fetch 50 logs initially to ensure we get enough after filtering
         ...(selectedLevel !== 'all' && { level: selectedLevel }),
         ...(searchQuery && { search: searchQuery }),
         ...(since && { since })
@@ -98,13 +99,17 @@ export function LogViewerSupabase({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
-    } finally {
-      setIsLoading(false)
     }
   }, [isPaused, selectedLevel, searchQuery, maxLogs])
 
   // Set up Supabase real-time subscription
   useEffect(() => {
+    // Check if supabase client is available
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      return
+    }
+
     // Subscribe to new logs
     const channel = supabase
       .channel('reddit_scraper_logs_changes')
@@ -151,15 +156,13 @@ export function LogViewerSupabase({
           }
         }
       )
-      .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED')
-      })
+      .subscribe()
 
     subscriptionRef.current = channel
 
     // Cleanup on unmount
     return () => {
-      if (subscriptionRef.current) {
+      if (subscriptionRef.current && supabase) {
         supabase.removeChannel(subscriptionRef.current)
       }
     }
@@ -168,7 +171,7 @@ export function LogViewerSupabase({
   // Initial fetch on mount
   useEffect(() => {
     fetchLogs() // Just fetch logs immediately
-  }, []) // Remove dependency to prevent refetching on every render
+  }, [fetchLogs])
 
   // Periodic refresh for catching up (backup to real-time)
   useEffect(() => {
@@ -183,105 +186,53 @@ export function LogViewerSupabase({
 
   // Function to check if a log message is important
   const isImportantLog = (message: string): boolean => {
-    // Skip logs with the globe emoji
-    if (message.includes('🌐')) {
-      return false
-    }
-
     const lowercaseMsg = message.toLowerCase()
 
-    // Skip verbose/unimportant logs
+    // Only skip the most verbose/repetitive logs
     const skipPatterns = [
-      '🔍 request to:',  // Hide all request logs
-      'generated random user agent',
+      '🔍 request to:',  // Hide request logs
+      '🌐',  // Hide user agent logs
+      '📋 headers:',  // Hide header logs
       'user-agent:',
-      'headers:',
-      'request headers',
-      'response headers',
       'accept-language:',
       'accept-encoding:',
       'cache-control:',
-      'connection:',
-      'content-type:',
-      'cookie:',
-      'host:',
-      'pragma:',
-      'referer:',
       'sec-ch-ua',
       'sec-fetch',
       'x-forwarded',
-      'x-requested-with',
-      'upgrade-insecure-requests',
-      'dnt:',
-      'te:',
-      'if-none-match',
-      'if-modified-since',
-      'accept: text/html',
-      'accept: */*',
-      'setting headers',
-      'setting user agent',
-      'using proxy',
-      'proxy configuration',
-      'initializing proxy',
       'browser fingerprint',
       'viewport size',
-      'timezone:',
-      'platform:',
-      'screen resolution',
-      'ensure_subreddits_exist_sync',  // Hide internal sync logs
-      'fetching user data for',  // Hide user data fetching logs
-      'race condition'  // Hide race condition logs as requested
+      'screen resolution'
     ]
 
     // Check if message contains any skip pattern
     for (const pattern of skipPatterns) {
-      if (lowercaseMsg.includes(pattern)) {
+      if (lowercaseMsg.includes(pattern.toLowerCase())) {
         return false
       }
     }
 
-    // Always show important logs
-    const importantPatterns = [
-      'error',
-      'failed',
-      'success',
-      'completed',
-      'started',
-      'stopped',
-      'found',
-      'discovered',
-      'processed',
-      'analyzing',
-      'subreddit',
-      'posts collected',
-      'users discovered',
-      'rate limit',
-      'queue',
-      'batch',
-      'total'
-    ]
-
-    for (const pattern of importantPatterns) {
-      if (lowercaseMsg.includes(pattern)) {
-        return true
-      }
-    }
-
-    // Default: show the log if it's not in skip list
+    // Everything else is considered important enough to show
     return true
   }
 
   // Filter logs based on search and importance (for already fetched logs)
   const filteredLogs = useMemo(() => {
-    const filtered = logs.filter(log => {
-      // Filter out unimportant logs (unless showVerbose is enabled)
-      if (!showVerbose && !isImportantLog(log.message)) {
-        return false
-      }
+    // First apply search and level filters
+    const searchAndLevelFiltered = logs.filter(log => {
       if (searchQuery && !log.message.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
       if (selectedLevel !== 'all' && log.level !== selectedLevel) {
+        return false
+      }
+      return true
+    })
+
+    // Then apply importance filter
+    const filtered = searchAndLevelFiltered.filter(log => {
+      // Filter out unimportant logs (unless showVerbose is enabled)
+      if (!showVerbose && !isImportantLog(log.message)) {
         return false
       }
       return true
@@ -299,19 +250,25 @@ export function LogViewerSupabase({
       }
     }
 
+    // If no important logs found, show the last 20 logs regardless of importance
+    if (deduped.length === 0 && searchAndLevelFiltered.length > 0 && !showVerbose) {
+      const recentLogs = searchAndLevelFiltered.slice(0, 20)
+      const dedupedRecent: LogEntry[] = []
+      let lastMsg = ''
+
+      for (const log of recentLogs) {
+        if (log.message !== lastMsg) {
+          dedupedRecent.push(log)
+          lastMsg = log.message
+        }
+      }
+
+      return dedupedRecent
+    }
+
     return deduped
   }, [logs, searchQuery, selectedLevel, showVerbose])
 
-  // Clear logs
-  const handleClear = () => {
-    setLogs([])
-    setLastTimestamp(null)
-  }
-
-  // Toggle pause
-  const handlePauseToggle = () => {
-    setIsPaused(!isPaused)
-  }
 
   // Get color based on log importance
   const getLogImportanceColor = (log: LogEntry): string => {
@@ -341,34 +298,6 @@ export function LogViewerSupabase({
     return 'text-[#FFB3C0]' // Very light pink
   }
 
-  // Export logs
-  const handleExport = () => {
-    const logText = filteredLogs.map(log =>
-      `[${new Date(log.timestamp).toLocaleString()}] [${log.level.toUpperCase()}] ${log.message}`
-    ).join('\n')
-
-    const blob = new Blob([logText], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `scraper-logs-${new Date().toISOString()}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-
-  // Count logs by level
-  const logCounts = useMemo(() => {
-    const counts = { info: 0, warning: 0, error: 0, success: 0, debug: 0 }
-    logs.forEach(log => {
-      if (log.level in counts) {
-        counts[log.level as keyof typeof counts]++
-      }
-    })
-    return counts
-  }, [logs])
 
   return (
     <Card className="border-gray-200/50 bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl">
@@ -383,12 +312,6 @@ export function LogViewerSupabase({
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500 text-center">
-            {searchQuery || selectedLevel !== 'all'
-              ? 'No logs match your filters'
-              : 'No logs available. Waiting for scraper activity...'}
-          </div>
         ) : (
           <div
             ref={scrollAreaRef}
@@ -396,7 +319,14 @@ export function LogViewerSupabase({
             style={{ height }}
           >
             <div className="p-2 font-mono text-xs space-y-0.5 backdrop-blur-sm">
-              {filteredLogs.map((log, index) => (
+              {filteredLogs.length === 0 ? (
+                <div className="p-4 text-sm text-gray-500 text-center">
+                  {searchQuery || selectedLevel !== 'all'
+                    ? 'No logs match your filters'
+                    : 'No recent scraper activity. Check if the scraper is running.'}
+                </div>
+              ) : (
+                filteredLogs.map((log, index) => (
                 <div
                   key={`${log.id}-${log.timestamp}-${index}`}
                   className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-200/40 transition-colors`}
@@ -418,7 +348,8 @@ export function LogViewerSupabase({
                     )}
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
         )}
@@ -434,7 +365,7 @@ export function LogViewerSupabase({
 }
 
 // Helper function to format log messages with context
-function formatLogMessage(message: string, context: any): string {
+function formatLogMessage(message: string, context: LogContext | undefined): string {
   if (!context) return message
 
   let formatted = message

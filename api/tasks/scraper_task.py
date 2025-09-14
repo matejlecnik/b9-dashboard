@@ -6,6 +6,7 @@ Celery task wrapper for Reddit scraping operations with progress tracking
 
 import os
 import sys
+import asyncio
 import logging
 import json
 from datetime import datetime
@@ -112,13 +113,13 @@ class ScraperTask(Task):
             for i, item in enumerate(items):
                 try:
                     if operation == "analyze_subreddits":
-                        result = await scraper_service.analyze_subreddit(item)
+                        result = asyncio.run(scraper_service.analyze_subreddit(item))
                         if result:
                             successful += 1
                             results.append(result)
-                    
+
                     elif operation == "discover_from_users":
-                        discovered = await scraper_service.discover_subreddits_from_users([item], 50)
+                        discovered = asyncio.run(scraper_service.discover_subreddits_from_users([item], 50))
                         if discovered:
                             successful += len(discovered)
                             results.extend(discovered)

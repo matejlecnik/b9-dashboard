@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Filter, SlidersHorizontal, X, RefreshCw } from 'lucide-react'
+import { Search, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
 import { formatNumber } from '@/lib/utils'
 
@@ -47,7 +46,6 @@ export function PostAnalysisToolbar({
   currentPostCount,
   totalAvailablePosts,
   sfwCount = 0,
-  nsfwCount = 0,
   onRefresh,
   availableCategories = [
     'Age Demographics',

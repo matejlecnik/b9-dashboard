@@ -44,17 +44,29 @@ interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_
   video_post_avg_score?: number | null
   text_post_avg_score?: number | null
   created_at?: string
-  review?: 'Ok' | 'No Seller' | 'Non Related' | null
+  review?: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
   posts_loading?: boolean
   posts_error?: string | null
   thumbnail?: string | null
-  preview_data?: any
+  preview_data?: {
+    images?: Array<{
+      source?: {
+        url?: string
+      }
+    }>
+  }
   verification_required_detected?: boolean | null
 }
 
 interface ExtendedPost extends Post {
   thumbnail?: string | null
-  preview_data?: any
+  preview_data?: {
+    images?: Array<{
+      source?: {
+        url?: string
+      }
+    }>
+  }
   url?: string | null
   is_video?: boolean
 }
@@ -238,11 +250,8 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
 
 export const DiscoveryTable = memo(function DiscoveryTable({
   subreddits,
-  loading = false,
-  onLoadMore,
-  hasMore = false
+  loading = false
 }: DiscoveryTableProps) {
-  const { addToast } = useToast()
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
   const [postErrors, setPostErrors] = useState<Record<number, string>>({})
@@ -311,7 +320,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         fetchPosts(subreddit.id, subreddit.name)
       }
     })
-  }, [subreddits])
+  }, [subreddits, postCache, loadingPosts, fetchPosts])
 
   // Handle showing rules modal
   const handleShowRules = useCallback((subreddit: SubredditWithPosts) => {
@@ -345,13 +354,6 @@ export const DiscoveryTable = memo(function DiscoveryTable({
     return num.toString()
   }
 
-  // Get engagement color
-  const getEngagementColor = (ratio: number) => {
-    if (ratio >= 0.1) return 'text-green-600'
-    if (ratio >= 0.05) return 'text-yellow-600'
-    return 'text-red-600'
-  }
-
   if (loading && subreddits.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-pink-200 overflow-hidden">
@@ -373,7 +375,6 @@ export const DiscoveryTable = memo(function DiscoveryTable({
       {/* Table Body */}
       <div className="divide-y divide-pink-100">
         {subreddits.map((subreddit) => {
-          const engagementColor = getEngagementColor(subreddit.subscriber_engagement_ratio || 0)
           const posts = postCache[subreddit.id] || []
           const isLoadingPosts = loadingPosts.has(subreddit.id)
           const postError = postErrors[subreddit.id]
@@ -581,7 +582,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                 if (Array.isArray(rules) && rules.length > 0) {
                   return (
                     <div className="space-y-3">
-                      {rules.map((rule: any, index: number) => (
+                      {rules.map((rule: { short_name?: string; title?: string; description?: string; violation_reason?: string }, index: number) => (
                         <div key={index} className="border-b border-gray-100 pb-3 last:border-0">
                           <h3 className="font-medium text-gray-900">
                             {index + 1}. {rule.short_name || rule.title || `Rule ${index + 1}`}

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get today's start
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
     // Get logs from today
-    const { data: logs, error } = await supabase
+    const { data: logs, error } = await supabase!
       .from('reddit_scraper_logs')
       .select('message, level, timestamp')
       .gte('timestamp', today.toISOString())

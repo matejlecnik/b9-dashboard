@@ -9,6 +9,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || null
     const since = searchParams.get('since') || null // ISO timestamp for real-time updates
 
+    // Check if supabase client is available
+    if (!supabase) {
+      throw new Error('Supabase client not initialized')
+    }
+
     // Build query
     let query = supabase
       .from('reddit_scraper_logs')
@@ -70,8 +75,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Type for log context
+interface LogContext {
+  subreddit?: string
+  operation?: string
+  processing_time_ms?: number
+  posts_collected?: number
+  users_discovered?: number
+  [key: string]: unknown
+}
+
 // Helper function to format log messages with context
-function formatLogMessage(message: string, context: any): string {
+function formatLogMessage(message: string, context: LogContext | null): string {
   if (!context) return message
 
   let formatted = message
@@ -108,6 +123,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const action = body.action || 'stats'
+
+    // Check if supabase client is available
+    if (!supabase) {
+      throw new Error('Supabase client not initialized')
+    }
 
     if (action === 'stats') {
 

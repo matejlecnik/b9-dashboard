@@ -12,8 +12,8 @@ import time
 import random
 import requests
 import asyncpraw
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Dict, List, Any, Optional
 from supabase import Client
 from fake_useragent import UserAgent
 

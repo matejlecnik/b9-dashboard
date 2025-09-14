@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { PostAnalysisToolbar } from '@/components/PostAnalysisToolbar'
 import { PostAnalysisStats } from '@/components/PostAnalysisStats'
 import { VirtualizedPostGrid } from '@/components/VirtualizedPostGrid'
-import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { PostAnalysisErrorBanner } from '@/components/PostAnalysisErrorBanner'
 import { usePostAnalysis } from '@/hooks/usePostAnalysis'
 
@@ -16,7 +16,6 @@ export default function PostAnalysisPage() {
     metrics,
     sfwCount,
     nsfwCount,
-    topCategories,
     
     // Loading states
     loading,
@@ -55,7 +54,7 @@ export default function PostAnalysisPage() {
         />
 
         {/* Metrics Dashboard */}
-        <ComponentErrorBoundary componentName="Post Analysis Stats">
+        <ComponentErrorBoundary>
           <PostAnalysisStats
             metrics={metrics}
             loading={metricsLoading}
@@ -63,7 +62,7 @@ export default function PostAnalysisPage() {
         </ComponentErrorBoundary>
 
         {/* Filters and Toolbar */}
-        <ComponentErrorBoundary componentName="Post Analysis Toolbar">
+        <ComponentErrorBoundary>
           <PostAnalysisToolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -86,7 +85,7 @@ export default function PostAnalysisPage() {
         </ComponentErrorBoundary>
 
         {/* Post Grid */}
-        <ComponentErrorBoundary componentName="Post Grid">
+        <ComponentErrorBoundary>
           <VirtualizedPostGrid
             posts={posts}
             loading={loading}

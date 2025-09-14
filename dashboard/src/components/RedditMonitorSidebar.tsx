@@ -18,12 +18,27 @@ export function RedditMonitorSidebar() {
     </svg>
   )
 
+  const navigationItems = [
+    {
+      id: 'reddit-monitor',
+      title: 'Reddit Monitor',
+      href: '/monitor/reddit',
+      icon: Activity,
+      badge: {
+        type: 'status' as const,
+        value: 'Live',
+        color: 'success' as const,
+        pulse: true
+      }
+    }
+  ]
+
   return (
     <SidebarTemplate
       title="System Monitor"
       icon={RedditIcon}
       backHref="/dashboards"
-      navigationItems={[]}
+      navigationItems={navigationItems}
       showTeamSection={true}
       showLogout={true}
     />

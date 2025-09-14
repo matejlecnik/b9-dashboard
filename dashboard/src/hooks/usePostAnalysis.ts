@@ -51,7 +51,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   const [metrics, setMetrics] = useState<PostMetrics | null>(null)
   const [sfwCount, setSfwCount] = useState(0)
   const [nsfwCount, setNsfwCount] = useState(0)
-  const [topCategories, setTopCategories] = useState<Array<{ category: string; count: number }>>([])
+  const [topCategories] = useState<Array<{ category: string; count: number }>>([])
 
   // Loading states
   const [loading, setLoading] = useState(true)
@@ -427,7 +427,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   useEffect(() => {
     setCurrentPage(0)
     fetchPosts(0, false)
-  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, selectedCategories])
+  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, selectedCategories, fetchPosts])
 
   // Fetch metrics when filters change
   useEffect(() => {

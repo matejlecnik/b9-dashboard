@@ -5,13 +5,40 @@ import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 
-interface ApiActivity {
+interface ApiActivityDetails {
+  new_status?: boolean
+  query?: string
+  results_count?: number
+  batch_size?: number
+  categorized?: number
+  total?: number
+  [key: string]: unknown
+}
+
+interface RedditCategorizationLog {
+  id: string
+  timestamp: string
+  subreddit_name: string
+  category_assigned?: string
+  success?: boolean
+}
+
+interface RedditScraperLog {
+  id: string
+  timestamp: string
+  message?: string
+  source: string
+  level?: string
+  context?: Record<string, unknown>
+}
+
+type ApiActivity = {
   id: string
   timestamp: string
   endpoint: string
   status: 'success' | 'error' | 'pending'
   message: string
-  details?: any
+  details?: ApiActivityDetails
 }
 
 interface ApiActivityLogProps {
@@ -25,55 +52,101 @@ export function ApiActivityLog({
   title,
   endpoint,
   height = '120px',
-  maxLogs = 10
+  maxLogs = 20
 }: ApiActivityLogProps) {
   const [activities, setActivities] = useState<ApiActivity[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  // Fetch real activity from Supabase
+  // Fetch real activity from appropriate tables
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        if (endpoint === 'users') {
-          // Fetch recent user activities from reddit_users table
-          const { data, error } = await supabase
-            .from('reddit_users')
-            .select('id, created_at, username, is_creator')
-            .order('created_at', { ascending: false })
+        // Check if supabase client is available
+        if (!supabase) {
+          console.error('Supabase client not initialized')
+          return
+        }
+
+        let data, error
+
+        if (endpoint === 'categorization') {
+          // Fetch from reddit_categorization_logs for categorization
+          const response = await supabase
+            .from('reddit_categorization_logs')
+            .select('id, timestamp, subreddit_name, category_assigned, success')
+            .order('timestamp', { ascending: false })
             .limit(maxLogs)
 
-          if (data && !error) {
-            const userActivities = data.map(user => ({
-              id: user.id,
-              timestamp: user.created_at,
-              endpoint: 'users',
-              status: 'success' as const,
-              message: `${user.is_creator ? '✓ Creator' : 'User'}: u/${user.username}`
-            }))
-            setActivities(userActivities)
-          }
+          data = response.data
+          error = response.error
         } else {
-          // Fetch recent categorization activities from reddit_subreddits table
-          const { data, error } = await supabase
-            .from('reddit_subreddits')
-            .select('id, created_at, display_name, category')
-            .not('category', 'is', null)
-            .order('created_at', { ascending: false })
+          // Fetch from reddit_scraper_logs for other endpoints
+          const sourceFilter = endpoint === 'users' ? 'user_tracking' : 'scraper'
+
+          const response = await supabase
+            .from('reddit_scraper_logs')
+            .select('id, timestamp, message, source, level, context')
+            .eq('source', sourceFilter)
+            .order('timestamp', { ascending: false })
             .limit(maxLogs)
 
-          if (data && !error) {
-            const catActivities = data.map(sub => ({
-              id: sub.id,
-              timestamp: sub.created_at,
-              endpoint: 'categorization',
-              status: 'success' as const,
-              message: `r/${sub.display_name} → ${sub.category}`
-            }))
-            setActivities(catActivities)
-          }
+          data = response.data
+          error = response.error
+        }
+
+        if (data && !error) {
+          const mappedActivities = data.map((log: any) => {
+            let displayMessage = ''
+            let status: 'success' | 'error' | 'pending' = 'success'
+
+            if (endpoint === 'categorization') {
+              // Handle data from reddit_categorization_logs table
+              if ('category_assigned' in log && log.category_assigned) {
+                displayMessage = `r/${log.subreddit_name} → ${log.category_assigned}`
+                status = log.success ? 'success' : 'error'
+              } else if ('subreddit_name' in log) {
+                displayMessage = `Categorizing r/${log.subreddit_name}...`
+                status = 'pending'
+              } else {
+                displayMessage = 'Processing categorization...'
+                status = 'pending'
+              }
+            } else {
+              // Handle data from reddit_scraper_logs table for users
+              displayMessage = log.message || ''
+
+              // Format message based on source and context
+              if (log.source === 'user_tracking') {
+                // For user tracking, focus on new users discovered
+                if (log.context?.username) {
+                  const username = log.context.username
+                  displayMessage = `New user discovered: ${username.startsWith('u/') ? username : `u/${username}`}`
+                } else if (log.message?.includes('toggle-creator')) {
+                  const status = log.context?.new_status ? 'marked as creator' : 'unmarked as creator'
+                  const username = log.context?.username || 'User'
+                  displayMessage = `${username.startsWith('u/') ? username : `u/${username}`} ${status}`
+                } else if (log.message?.includes('search')) {
+                  const count = log.context?.results_count || 0
+                  displayMessage = `Search: "${log.context?.query}" → ${count} results`
+                }
+              }
+
+              status = log.level === 'ERROR' ? 'error' : 'success'
+            }
+
+            return {
+              id: log.id,
+              timestamp: log.timestamp,
+              endpoint: endpoint,
+              status: status,
+              message: displayMessage,
+              details: log.context || {}
+            }
+          })
+          setActivities(mappedActivities)
         }
       } catch (err) {
-        console.error('Error fetching activities:', err)
+        console.error('Error fetching activities from logs:', err)
       }
     }
 
@@ -99,26 +172,26 @@ export function ApiActivityLog({
       <CardContent className="p-0">
         <div
           ref={scrollAreaRef}
-          className="w-full overflow-y-auto overflow-x-auto"
+          className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
           style={{ height }}
         >
           {activities.length === 0 ? (
-            <div className="p-2 text-[9px] text-gray-500 text-center">
+            <div className="flex items-center justify-center h-full text-[9px] text-gray-400">
               No recent activity
             </div>
           ) : (
-            <div className="p-1 space-y-0.5">
+            <div className="space-y-0.5 p-1">
               {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-1 text-[9px] py-0.5 px-1 rounded hover:bg-gray-200/30 transition-colors whitespace-nowrap"
-                >
-                  <span className="text-gray-400 min-w-fit text-[8px] flex-shrink-0">
-                    {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
-                  </span>
-                  <span className={`${getStatusColor(activity.status)} truncate`}>
-                    {activity.message}
-                  </span>
+                <div key={activity.id} className="flex items-start gap-1 px-1 py-0.5 hover:bg-gray-100/50 rounded transition-colors">
+                  <span className={`text-[8px] ${getStatusColor(activity.status)} mt-0.5`}>●</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] text-gray-700 truncate">
+                      {activity.message}
+                    </p>
+                    <p className="text-[8px] text-gray-400">
+                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>

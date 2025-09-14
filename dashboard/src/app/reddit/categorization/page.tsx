@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { TableSkeleton } from '@/components/UniversalLoading'
 import { useErrorHandler } from '@/lib/errorUtils'
-import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { CategoryFilterDropdown } from '@/components/CategoryFilterDropdown'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -459,6 +459,7 @@ export default function CategorizationPage() {
         // Add individual results if available
         if (results.results && Array.isArray(results.results)) {
           setCategorizationLogs(prev => [...prev, `📝 Individual Results:`])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           results.results.forEach((result: any) => {
             if (result.success) {
               setCategorizationLogs(prev => [...prev, `  ✓ ${result.subreddit_name} → ${result.category}`])
@@ -630,7 +631,7 @@ export default function CategorizationPage() {
 
         {/* Progress Bar and AI Review Cards */}
         <div className="mb-6">
-          <ComponentErrorBoundary componentName="Progress and AI Cards">
+          <ComponentErrorBoundary>
             {loading ? (
               <div className="flex gap-3">
                 <div className="flex-1 h-20 bg-gray-100 rounded-xl animate-pulse" />
@@ -786,7 +787,7 @@ export default function CategorizationPage() {
             </div>
           ) : (
             <>
-              <ComponentErrorBoundary componentName="Categorization Table">
+              <ComponentErrorBoundary>
                 <UniversalTable
                   {...createCategorizationTable({
                     subreddits: displayedSubreddits,

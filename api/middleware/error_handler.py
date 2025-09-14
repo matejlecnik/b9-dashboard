@@ -8,7 +8,7 @@ import logging
 import traceback
 from typing import Dict, Any, Optional
 from datetime import datetime
-from fastapi import Request, Response, HTTPException
+from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import ValidationError, RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException

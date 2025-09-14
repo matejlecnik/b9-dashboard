@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 import { X, Search, UserPlus, Loader2, AlertCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -135,9 +136,10 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       } else {
         throw new Error('Failed to fetch user data')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Fetch error:', error)
-      showError(error.message || 'Failed to fetch user from Reddit')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user from Reddit'
+      showError(errorMessage)
     } finally {
       setIsFetching(false)
     }
@@ -220,10 +222,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 >
                   <div className="flex items-center gap-3">
                     {user.avatar_url ? (
-                      <img
+                      <Image
                         src={user.avatar_url}
                         alt={user.username}
-                        className="h-10 w-10 rounded-full"
+                        width={40}
+                        height={40}
+                        className="rounded-full"
                       />
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pink-100 to-purple-100 text-sm font-semibold text-pink-600">

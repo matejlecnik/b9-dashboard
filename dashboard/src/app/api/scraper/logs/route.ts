@@ -42,9 +42,17 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json()
 
+    // Type for log entries
+    type LogEntry = string | {
+      timestamp: string
+      level: string
+      message: string
+      source: string
+    }
+
     // Transform log data if needed
     const logs = data.logs || []
-    const transformedLogs = logs.map((log: any) => {
+    const transformedLogs = logs.map((log: LogEntry) => {
       // Parse log line if it's a string
       if (typeof log === 'string') {
         // Try to parse structured log format

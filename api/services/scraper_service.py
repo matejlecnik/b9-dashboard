@@ -4,19 +4,14 @@ Reddit Scraper Service - Extracted and refactored from reddit_scraper.py
 """
 
 import asyncio
-import json
 import logging
 import random
 import time
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
-from collections import defaultdict
 
 import asyncpraw
-import asyncprawcore
-import aiohttp
-import requests
 from supabase import Client
 from fake_useragent import UserAgent
 

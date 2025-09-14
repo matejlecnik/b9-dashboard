@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Tag } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/components/ui/toast'
@@ -46,7 +45,7 @@ export function CategorySelector({
   const { addToast } = useToast()
   const [isUpdating, setIsUpdating] = useState(false)
   const [options, setOptions] = useState<string[]>(availableCategories || [])
-  const [searchTerm, setSearchTerm] = useState('')
+  const searchTerm = ''
   const debouncedSearch = useDebounce(searchTerm, 250)
   
   // Special token used to represent clearing the selection (cannot use empty string in SelectItem)

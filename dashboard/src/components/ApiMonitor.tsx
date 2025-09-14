@@ -5,11 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 
+interface LogContext {
+  [key: string]: unknown
+}
+
 interface LogEntry {
   timestamp: string
   level: 'info' | 'warning' | 'error' | 'success'
   message: string
-  context?: any
+  context?: LogContext
 }
 
 interface ApiEndpoint {
@@ -26,18 +30,8 @@ interface ApiMonitorProps {
   compact?: boolean
 }
 
-export function ApiMonitor({
-  type = 'all',
-  showLogs = true,
-  autoRefresh = true,
-  compact = false
-}: ApiMonitorProps) {
-  const [logs, setLogs] = useState<LogEntry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [endpoints, setEndpoints] = useState<ApiEndpoint[]>([])
-
-  // Define API endpoints
-  const allEndpoints: ApiEndpoint[] = [
+// Define API endpoints outside component to avoid recreating on each render
+const allEndpoints: ApiEndpoint[] = [
     // Scraper endpoints
     {
       name: 'Start Scraper',
@@ -107,6 +101,16 @@ export function ApiMonitor({
       status: 'active'
     }
   ]
+
+export function ApiMonitor({
+  type = 'all',
+  showLogs = true,
+  autoRefresh = true,
+  compact = false
+}: ApiMonitorProps) {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(false)
+  const [endpoints, setEndpoints] = useState<ApiEndpoint[]>([])
 
   // Filter endpoints based on type
   useEffect(() => {

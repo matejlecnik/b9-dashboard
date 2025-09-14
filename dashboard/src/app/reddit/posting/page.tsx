@@ -33,11 +33,9 @@ import {
   X,
   UserPlus,
   AlertCircle,
-  Search,
   Sparkles
 } from 'lucide-react'
 import Image from 'next/image'
-import { Input } from '@/components/ui/input'
 import { AddUserModal } from '@/components/AddUserModal'
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
@@ -75,7 +73,7 @@ export default function PostingPage() {
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<{ id: number, username: string } | null>(null)
   const [removingCreator, setRemovingCreator] = useState<number | null>(null)
-  const [creatorStats, setCreatorStats] = useState<Record<number, { posts: number, avgScore: number, topSubreddit: string }>>({})
+  const [, setCreatorStats] = useState<Record<number, { posts: number, avgScore: number, topSubreddit: string }>>({})
   const [, setLoadingStats] = useState(false)
   const [loading, setLoading] = useState(true)
   const [, setLastUpdated] = useState<Date>(new Date())
@@ -108,7 +106,7 @@ export default function PostingPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   // Counts for UI
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
+  const [, setCategoryCounts] = useState<Record<string, number>>({})
   const [sfwCount, setSfwCount] = useState(0)
   const [nsfwCount, setNsfwCount] = useState(0)
 
@@ -212,7 +210,8 @@ export default function PostingPage() {
         throw error
       }
 
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: any) => ({
         ...subreddit,
         recent_posts: [], // Will be loaded lazily when expanded
@@ -420,15 +419,8 @@ export default function PostingPage() {
     setSfwOnly(sfwOnly)
   }, [])
   
-  const handleSelectAllCategories = useCallback(() => {
-    setSelectedCategories(availableCategories)
-  }, [])
-  
-  const handleClearAllFilters = useCallback(() => {
-    setSearchQuery('')
-    setSfwOnly(false)
-    setSelectedCategories(availableCategories) // Reset to all selected
-  }, [])
+  // Removed unused handlers - handleSelectAllCategories and handleClearAllFilters
+  // These can be re-added if needed in the future
   
   
   const handleLoadMore = useCallback(() => {

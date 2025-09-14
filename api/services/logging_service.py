@@ -5,9 +5,7 @@ Centralized Logging Service with Supabase Integration
 Provides structured logging to different Supabase tables based on operation type.
 """
 
-import asyncio
 import logging
-import json
 import time
 import threading
 from datetime import datetime, timezone
@@ -362,6 +360,25 @@ class SupabaseLoggingService:
         
         self.force_flush()
     
+    def log_to_scraper(self, message: str, level: str = 'INFO', source: str = 'scraper',
+                       context: Dict[str, Any] = None):
+        """Log directly to reddit_scraper_logs table for visibility in monitor"""
+        try:
+            log_data = {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'level': level.lower(),
+                'message': message,
+                'source': source,
+                'context': context or {}
+            }
+
+            # Insert directly without buffering for immediate visibility
+            response = self.supabase.table('reddit_scraper_logs').insert(log_data).execute()
+            if hasattr(response, 'error') and response.error:
+                self.logger.error(f"Error logging to reddit_scraper_logs: {response.error}")
+        except Exception as e:
+            self.logger.error(f"Exception logging to reddit_scraper_logs: {e}")
+
     def get_stats(self) -> Dict[str, Any]:
         """Get logging statistics"""
         with self.lock:

@@ -67,13 +67,16 @@ export function LogViewer({
       const data = await response.json()
 
       // Process log entries
-      const newLogs: LogEntry[] = (data.logs || []).map((log: any, index: number) => ({
-        id: log.id || `${Date.now()}-${index}`,
-        timestamp: log.timestamp || new Date().toISOString(),
-        level: log.level || 'info',
-        message: log.message || log,
-        source: log.source || 'scraper'
-      }))
+      const newLogs: LogEntry[] = (data.logs || []).map((log: unknown, index: number) => {
+        const logData = log as Partial<LogEntry> & { message?: string }
+        return {
+          id: logData.id || `${Date.now()}-${index}`,
+          timestamp: logData.timestamp || new Date().toISOString(),
+          level: logData.level || 'info',
+          message: logData.message || String(log),
+          source: logData.source || 'scraper'
+        }
+      })
 
       setLogs(newLogs)
 

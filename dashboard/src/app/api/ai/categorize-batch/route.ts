@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { loggingService } from '@/lib/logging-service'
 export const runtime = 'nodejs'
 
 interface CategorizationRequest {
@@ -28,9 +29,21 @@ function getRenderApiUrl(): string | undefined {
 
 // POST /api/ai/categorize-batch - Start AI categorization
 export async function POST(request: Request) {
+  const startTime = Date.now()
+
   try {
     const RENDER_API_URL = getRenderApiUrl()
     if (!RENDER_API_URL) {
+      // Log configuration error
+      await loggingService.logAICategorization(
+        'service-not-configured',
+        {
+          error: 'NEXT_PUBLIC_API_URL not set'
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: 'AI categorization service not configured. Please set NEXT_PUBLIC_API_URL environment variable.',
@@ -45,6 +58,17 @@ export async function POST(request: Request) {
     
     // Validate request parameters
     if (batchSize < 1 || batchSize > 100) {
+      // Log invalid batch size
+      await loggingService.logAICategorization(
+        'invalid-batch-size',
+        {
+          batch_size: batchSize,
+          error: 'Batch size must be between 1 and 100'
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: 'Batch size must be between 1 and 100'
@@ -52,6 +76,17 @@ export async function POST(request: Request) {
     }
 
     if (limit && (limit < 1 || limit > 1000)) {
+      // Log invalid limit
+      await loggingService.logAICategorization(
+        'invalid-limit',
+        {
+          limit,
+          error: 'Limit must be between 1 and 1000'
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: 'Limit must be between 1 and 1000'
@@ -97,6 +132,20 @@ export async function POST(request: Request) {
 
     if (!renderResponse.ok) {
       console.error('Render API error:', renderData)
+
+      // Log Render API error
+      await loggingService.logAICategorization(
+        'render-api-error',
+        {
+          status: renderResponse.status,
+          error: renderData.detail || 'Unknown error',
+          batch_size: batchSize,
+          limit
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: renderData.detail || 'AI categorization service error',
@@ -118,19 +167,56 @@ export async function POST(request: Request) {
     console.log('=== SENDING TO FRONTEND ===')
     console.log(JSON.stringify(response, null, 2))
     console.log('===========================')
-    
+
+    // Log successful categorization start
+    await loggingService.logAICategorization(
+      'categorization-started',
+      {
+        batch_size: batchSize,
+        limit: limit || batchSize,
+        estimated_subreddits: renderData.results?.stats?.total_processed || limit || batchSize,
+        estimated_cost: renderData.results?.stats?.total_cost || 0,
+        job_id: renderData.job_id,
+        subreddit_ids: subredditIds?.length || 0
+      },
+      true,
+      Date.now() - startTime
+    )
+
     return NextResponse.json(response)
 
   } catch (error) {
     console.error('Error starting AI categorization:', error)
     
     if (error instanceof TypeError && error.message.includes('fetch')) {
+      // Log connection error
+      const renderUrl = getRenderApiUrl()
+      await loggingService.logAICategorization(
+        'connection-error',
+        {
+          error: error.message,
+          render_api_url: renderUrl
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: 'Failed to connect to AI categorization service. Please check the NEXT_PUBLIC_API_URL configuration.',
         connection_error: true
       }, { status: 503 })
     }
+
+    // Log unexpected error
+    await loggingService.logAICategorization(
+      'unexpected-error',
+      {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      false,
+      Date.now() - startTime
+    )
 
     return NextResponse.json({
       success: false,
@@ -141,6 +227,8 @@ export async function POST(request: Request) {
 
 // GET /api/ai/categorize-batch - Get categorization statistics and progress
 export async function GET() {
+  const startTime = Date.now()
+
   try {
     const RENDER_API_URL = getRenderApiUrl()
     if (!RENDER_API_URL) {
@@ -201,6 +289,18 @@ export async function GET() {
 
     if (!renderResponse.ok) {
       console.error('Render API stats error:', renderData)
+
+      // Log stats fetch error
+      await loggingService.logAICategorization(
+        'stats-fetch-error',
+        {
+          status: renderResponse.status,
+          error: renderData.detail || 'Unknown error'
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: renderData.detail || 'Failed to get categorization statistics',
@@ -215,6 +315,18 @@ export async function GET() {
       categories_available: renderData.categories || [],
       last_categorization: renderData.last_categorization
     }
+
+    // Log successful stats fetch
+    await loggingService.logAICategorization(
+      'stats-fetched',
+      {
+        uncategorized: stats.uncategorized_count,
+        categorized: stats.categorized_count,
+        total: stats.total_subreddits
+      },
+      true,
+      Date.now() - startTime
+    )
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
+import { loggingService } from '@/lib/logging-service'
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+
   try {
     // Parse and validate request body
     let body
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user exists before updating
-    let query = supabase.from('reddit_users').select('id, username')
+    let query = supabase!.from('reddit_users').select('id, username')
 
     if (id) {
       query = query.eq('id', id)
@@ -69,6 +72,19 @@ export async function POST(req: NextRequest) {
 
     if (checkError || !existingUser) {
       console.error('User lookup error:', checkError)
+
+      // Log failed user lookup
+      await loggingService.logUserTracking(
+        'toggle-creator-lookup-failed',
+        username || `user-${id}`,
+        {
+          error: checkError?.message || 'User not found',
+          lookup_method: id ? 'by_id' : 'by_username'
+        },
+        false,
+        Date.now() - startTime
+      )
+
       return NextResponse.json({
         success: false,
         error: 'User not found'
@@ -86,25 +102,65 @@ export async function POST(req: NextRequest) {
 
     if (updateError) {
       console.error('Toggle creator error:', updateError)
-      return NextResponse.json({ 
-        success: false, 
-        error: `Failed to update user: ${updateError.message}` 
+
+      // Log update failure
+      await loggingService.logUserTracking(
+        'toggle-creator-update-failed',
+        existingUser.username,
+        {
+          user_id: existingUser.id,
+          attempted_status: our_creator,
+          error: updateError.message
+        },
+        false,
+        Date.now() - startTime
+      )
+
+      return NextResponse.json({
+        success: false,
+        error: `Failed to update user: ${updateError.message}`
       }, { status: 500 })
     }
 
     // Log the action for audit purposes
     console.log(`User ${existingUser.username} (ID: ${existingUser.id}) creator status changed to: ${our_creator}`)
 
-    return NextResponse.json({ 
+    // Log successful toggle
+    await loggingService.logUserTracking(
+      'toggle-creator-success',
+      existingUser.username,
+      {
+        user_id: existingUser.id,
+        new_status: our_creator,
+        previous_status: !our_creator
+      },
+      true,
+      Date.now() - startTime
+    )
+
+    return NextResponse.json({
       success: true,
       message: `User ${existingUser.username} ${our_creator ? 'marked as' : 'removed from'} our creators`
     })
 
   } catch (error) {
     console.error('Unexpected error in toggle-creator API:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error' 
+
+    // Log unexpected error
+    await loggingService.logUserTracking(
+      'toggle-creator-error',
+      undefined,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        error_type: 'unexpected'
+      },
+      false,
+      Date.now() - startTime
+    )
+
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
     }, { status: 500 })
   }
 }

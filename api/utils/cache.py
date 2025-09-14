@@ -7,9 +7,7 @@ Optimized caching for Render deployment with Redis
 import os
 import json
 import hashlib
-import asyncio
-from typing import Any, Optional, Dict, Union
-from datetime import datetime, timedelta
+from typing import Any, Optional, Dict
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 import logging

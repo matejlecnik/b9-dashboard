@@ -31,7 +31,7 @@ import {
   type UserProfile
 } from '@/hooks/useUserAnalytics'
 import { useDebounce } from '@/hooks/useDebounce'
-import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 
 // Enhanced Avatar component with better fallback handling
 const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, size?: number, username: string }) => {
@@ -345,7 +345,7 @@ export default function UserAnalysisPage() {
       <div className="space-y-6">
 
         {/* Stats Overview with Glass Morphism Cards and Add User Button */}
-        <ComponentErrorBoundary componentName="Stats Overview">
+        <ComponentErrorBoundary>
           {statsLoading ? (
             <div className="flex gap-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">

@@ -1,19 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
-  Activity,
-  RefreshCw,
   Play,
-  Square,
-  Clock,
-  Database,
-  CheckCircle,
-  XCircle
+  Square
 } from 'lucide-react'
-import { formatNumber } from '@/lib/format'
 import { useToast } from '@/components/ui/toast'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 import { RedditMonitorSidebar } from '@/components/RedditMonitorSidebar'
@@ -74,6 +65,12 @@ export default function RedditMonitor() {
   // Calculate success rate from Supabase logs
   const calculateSuccessRate = useCallback(async () => {
     try {
+      // Check if supabase client is available
+      if (!supabase) {
+        console.error('Supabase client not initialized')
+        return
+      }
+
       // Get logs from today
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -296,7 +293,7 @@ export default function RedditMonitor() {
       clearInterval(interval)
       clearInterval(successInterval)
     }
-  }, [manualOverride]) // Include manualOverride as dependency
+  }, [manualOverride, fetchMetrics, calculateSuccessRate]) // Include all dependencies
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
@@ -391,7 +388,7 @@ export default function RedditMonitor() {
                     title="User Activity"
                     endpoint="users"
                     height="120px"
-                    maxLogs={10}
+                    maxLogs={20}
                   />
                 </div>
                 <div className="flex-1">
@@ -399,7 +396,7 @@ export default function RedditMonitor() {
                     title="AI Categorization"
                     endpoint="categorization"
                     height="120px"
-                    maxLogs={10}
+                    maxLogs={20}
                   />
                 </div>
               </div>

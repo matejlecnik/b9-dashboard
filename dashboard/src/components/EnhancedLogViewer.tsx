@@ -1,11 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Activity, AlertCircle, CheckCircle, XCircle, Zap, Globe } from 'lucide-react'
+import { Clock, Activity, CheckCircle, XCircle, Zap, Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
+
+// Type for flexible context data
+type LogContextValue = string | number | boolean | null | undefined | LogContextValue[] | { [key: string]: LogContextValue }
+type LogContext = Record<string, LogContextValue>
 
 interface EnhancedLog {
   id: string
@@ -13,7 +17,7 @@ interface EnhancedLog {
   level: 'info' | 'warning' | 'error' | 'success' | 'debug'
   message: string
   source?: string
-  context?: any
+  context?: LogContext
   // New fields
   request_type?: string
   http_status?: number
@@ -26,14 +30,13 @@ interface EnhancedLog {
   retry_count?: number
   proxy_used?: string
   account_used?: string
-  data_collected?: any
+  data_collected?: LogContext
   session_id?: string
 }
 
 interface EnhancedLogViewerProps {
   title?: string
   height?: string
-  autoScroll?: boolean
   refreshInterval?: number
   maxLogs?: number
 }
@@ -41,13 +44,11 @@ interface EnhancedLogViewerProps {
 export function EnhancedLogViewer({
   title = 'Enhanced Scraper Activity',
   height = '600px',
-  autoScroll = true,
   refreshInterval = 5000,
   maxLogs = 100
 }: EnhancedLogViewerProps) {
   const [logs, setLogs] = useState<EnhancedLog[]>([])
   const [isPaused, setIsPaused] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [stats, setStats] = useState({
     totalRequests: 0,
     successRate: 0,
@@ -58,12 +59,16 @@ export function EnhancedLogViewer({
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Fetch logs with new fields
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (isPaused) return
 
-    try {
-      setIsLoading(true)
+    // Check if supabase client is available
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      return
+    }
 
+    try {
       const { data: logs, error } = await supabase
         .from('reddit_scraper_logs')
         .select('*')
@@ -94,14 +99,17 @@ export function EnhancedLogViewer({
       }
     } catch (error) {
       console.error('Error fetching enhanced logs:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [isPaused, maxLogs])
 
   // Set up real-time subscription
   useEffect(() => {
     fetchLogs()
+
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      return
+    }
 
     const channel = supabase
       .channel('enhanced_logs')
@@ -124,9 +132,11 @@ export function EnhancedLogViewer({
 
     return () => {
       clearInterval(interval)
-      supabase.removeChannel(channel)
+      if (supabase) {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [isPaused, maxLogs, refreshInterval])
+  }, [isPaused, maxLogs, refreshInterval, fetchLogs])
 
   // Get status badge color
   const getStatusBadge = (status?: number) => {
@@ -236,7 +246,7 @@ export function EnhancedLogViewer({
                 )}
 
                 {/* Retry Count */}
-                {log.retry_count > 0 && (
+                {log.retry_count && log.retry_count > 0 && (
                   <Badge className="bg-yellow-100 text-yellow-800 text-[10px]">
                     Retry {log.retry_count}
                   </Badge>

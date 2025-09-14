@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Return the current SCRAPER_ENABLED status
     return NextResponse.json({

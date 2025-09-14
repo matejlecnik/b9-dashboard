@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // For now, we'll use Render's environment variable API to control the scraper
     // The scraper checks SCRAPER_ENABLED environment variable

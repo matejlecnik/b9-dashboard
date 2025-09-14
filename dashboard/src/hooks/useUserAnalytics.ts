@@ -433,6 +433,23 @@ interface FilterOptions {
   hasPostsFilter?: boolean | null
 }
 
+// Hook for adding a new user
+export function useAddUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (username: string) => {
+      // This would typically call an API to add/fetch the user
+      // For now, returning a stub response
+      return { success: true, username }
+    },
+    onSuccess: () => {
+      // Invalidate user queries to refetch data
+      queryClient.invalidateQueries({ queryKey: userAnalyticsKeys.users() })
+    }
+  })
+}
+
 export function useFilteredUsers(users: User[] = [], filters: FilterOptions = {}) {
   return useMemo(() => {
     // Defensive check: ensure users is always a valid array
@@ -531,4 +548,17 @@ export function useFilteredUsers(users: User[] = [], filters: FilterOptions = {}
 
     return filtered
   }, [users, filters])
+}
+
+// Main export for useUserAnalytics (backwards compatibility)
+export function useUserAnalytics() {
+  const stats = useUserStats()
+  const users = useUsers()
+
+  return {
+    stats,
+    users,
+    isLoading: stats.isLoading || users.isLoading,
+    error: stats.error || users.error
+  }
 }

@@ -4,10 +4,8 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
-  TrendingUp,
   Target,
   Activity,
-  Globe,
   Search
 } from 'lucide-react'
 import Link from 'next/link'
@@ -126,7 +124,7 @@ export default function DashboardsPage() {
         name: 'System Monitor',
         description: 'Real-time monitoring of system health, scraper status, and data collection metrics',
         icon: Activity,
-        href: '/reddit/monitor',
+        href: '/monitor/reddit',
         status: 'active',
         color: 'border-gray-300 hover:border-gray-400',
         gradient: 'from-gray-600/10 via-gray-500/5 to-gray-600/10',

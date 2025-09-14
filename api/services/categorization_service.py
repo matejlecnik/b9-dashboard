@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from openai import AsyncOpenAI
 from supabase import Client
 
-from .logging_service import SupabaseLoggingService, LogEntry, LogType
+from .logging_service import SupabaseLoggingService
 
 
 @dataclass
@@ -143,12 +143,20 @@ Instructions:
 
 Category:"""
     
-    async def categorize_subreddit(self, subreddit: Dict[str, Any], 
+    async def categorize_subreddit(self, subreddit: Dict[str, Any],
                                    batch_number: Optional[int] = None) -> CategorizationResult:
         """Categorize a single subreddit using AI"""
         start_time = time.time()
         subreddit_name = subreddit.get('name', 'Unknown')
         subreddit_id = subreddit.get('id', 0)
+
+        # Log to reddit_scraper_logs for visibility in monitor
+        self.logging_service.log_to_scraper(
+            message=f"🤖 Categorizing r/{subreddit_name}",
+            level='INFO',
+            source='ai_categorization',
+            context={'subreddit': subreddit_name, 'batch_number': batch_number}
+        )
         
         try:
             prompt = self._build_categorization_prompt(subreddit)
