@@ -11,8 +11,14 @@ const PUBLIC_API_ROUTES = ['/api/health']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Always allow access to public routes
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  // If visiting /login and already authenticated, redirect to /dashboards
+  if (pathname === '/login') {
+    // Replace with real auth check when enabled
+    const userIsAuthenticated = true
+    if (userIsAuthenticated) {
+      const dashboardUrl = new URL('/dashboards', request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
     return NextResponse.next()
   }
   
