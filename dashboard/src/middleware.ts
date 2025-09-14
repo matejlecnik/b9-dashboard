@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 // Auth is handled via Supabase (GitHub provider). We detect session cookies.
 
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login']
-
 // API routes that don't require authentication (very limited)
 const PUBLIC_API_ROUTES = ['/api/health']
 
