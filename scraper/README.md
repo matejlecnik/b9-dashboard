@@ -1,42 +1,55 @@
-# Python Scraper Directory
+# Reddit Scraper Service
 
-This directory contains the core Python scraper system for automated Reddit data collection and analysis. The scraper operates 24/7 with multi-account support, proxy rotation, and comprehensive error handling to discover and analyze subreddits for OnlyFans marketing optimization.
+## Overview
+Dedicated Reddit scraper service for B9 Agency's OnlyFans creator discovery platform. This service continuously analyzes Reddit to discover subreddits, track users, and calculate posting requirements for OnlyFans marketing campaigns.
 
-## ⚠️ Current Status
-**Known Issue**: Scraper currently doesn't work reliably (proxy config, API credentials, account rotation issues). As noted in the main CLAUDE.md, this is a major problem requiring attention.
+**Service Type**: Render Worker (24/7)
+**Status**: 🔄 Migration to Dedicated Service In Progress
+**Version**: 2.0.0
 
-## Directory Documentation Block
+## TODO List
+- [ ] Complete migration from API-integrated scraper to dedicated Render service
+- [ ] Deploy to Render as `reddit-scraper` worker
+- [ ] Test account rotation with 10+ Reddit accounts from Supabase
+- [ ] Verify proxy failover mechanism with BeyondProxy
+- [ ] Monitor for 24 hours to ensure stability
+- [ ] Remove old scraper integration from API codebase
+- [ ] Set up alerting for critical errors in Supabase logs
 
-### Overview
-- Async Python scraper with multi-account support and proxy rotation; feeds Supabase tables used by the dashboard and API.
+## Current Errors
+- **Proxy timeouts**: Occasional BeyondProxy timeouts (implementing retry logic with tenacity)
+- **Rate limiting**: Some accounts hit limits faster than expected (tuning delays via config)
+- **Memory spikes**: Large subreddit analysis can spike memory (batching improvements in progress)
 
-### TODO List
-- [ ] Stabilize proxy configuration and credential rotation
-- [ ] Add health checks and clearer error surfaces for proxy/account failures
-- [ ] Add dry-run mode and smoke tests for proxies before full scrape
-- [ ] Document seed strategy and success metrics used for discovery
-
-### Current Errors
-- Proxy reliability and Reddit account rotation failures cause inconsistent scraping
-
-### Potential Improvements
-- Move account configuration completely to Supabase tables and rotate by performance
-- Add structured retry telemetry exported to Supabase for tuning
-- Rate-limit visualization dashboard with alerts
+## Potential Improvements
+**⚠️ ALWAYS ASK BEFORE IMPLEMENTING**
+- Add webhook notifications for critical events
+- Implement distributed scraping across multiple workers
+- Add ML-based quality scoring for users
+- Create real-time dashboard for monitoring
+- Implement smart scheduling based on Reddit traffic patterns
+- Add automatic proxy rotation on failure detection
 
 ## 🗂️ Directory Structure
 
 ```
 scraper/
-├── reddit_scraper.py              # Main multi-account scraper with proxy support (152KB)
-├── run_scraper_pythonanywhere.py  # PythonAnywhere deployment wrapper (5KB)
-└── README.md                      # This documentation file (14KB)
+├── reddit_scraper.py              # Main multi-account scraper with proxy support
+├── config.py                      # Configuration management with env variables
+├── monitoring.py                  # Metrics, logging, and observability
+├── account_manager.py             # Intelligent Reddit account rotation
+├── test_reddit_api.py             # API and calculation verification tests
+├── requirements.txt               # Python dependencies
+├── run_scraper_pythonanywhere.py  # PythonAnywhere deployment wrapper
+├── REDDIT_SCRAPER_MIGRATION.md   # Detailed migration plan and architecture
+└── README.md                      # This documentation file
 ```
 
-**Recently Removed** (redundant files):
-- `filtered_reddit_scraper.py` - Thin wrapper around main scraper
-- `smart_subreddit_filter.py` - Filtering logic (should be integrated into main scraper)  
-- `test_smart_filter.py` - Test file (unnecessary in production)
+**New Infrastructure Files** (v2.0.0):
+- `config.py` - Centralized configuration with validation
+- `monitoring.py` - Prometheus metrics, structured logging, health tracking
+- `account_manager.py` - Account health scoring and intelligent rotation
+- `test_reddit_api.py` - Comprehensive API and calculation tests
 
 ## 🎯 Core Components
 

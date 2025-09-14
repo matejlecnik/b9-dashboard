@@ -34,7 +34,40 @@ services:
     maxmemoryPolicy: allkeys-lru
     region: oregon
     
-  # Background Worker Service (24/7 Continuous Scraper)
+  # Reddit Scraper Service (Dedicated 24/7 Scraper)
+  - type: worker
+    name: reddit-scraper
+    runtime: python3
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python reddit_scraper.py"
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: scraper
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: AUTO_START
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: MAX_DAILY_REQUESTS
+        value: 50000
+      - key: BATCH_SIZE
+        value: 10
+      - key: MIN_DELAY_SECONDS
+        value: 2.5
+      - key: MAX_DELAY_SECONDS
+        value: 6.0
+      - key: ENABLE_METRICS
+        value: true
+      - key: HEALTH_CHECK_ENABLED
+        value: true
+      - key: HEALTH_CHECK_PORT
+        value: 8080
+
+  # Background Worker Service (General Purpose Tasks)
   - type: worker
     name: b9-dashboard-worker
     runtime: python3
@@ -48,16 +81,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
-      - key: AUTO_START_SCRAPER
-        value: false  # Set to true to auto-start on deploy
       - key: LOG_LEVEL
         value: info
-      - key: MAX_DAILY_REQUESTS
-        value: 10000
-      - key: BATCH_SIZE
-        value: 10
-      - key: DELAY_BETWEEN_BATCHES
-        value: 30
 
   # Cron Job Service for Scheduled Tasks
   - type: cron
@@ -100,6 +125,7 @@ blueprints:
     services:
       - b9-dashboard-api
       - b9-dashboard-redis
+      - reddit-scraper
       - b9-dashboard-worker
     databases:
       - b9-dashboard-queue

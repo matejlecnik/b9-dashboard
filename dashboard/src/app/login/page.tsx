@@ -3,20 +3,68 @@
 import { login } from './actions'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
-import { useActionState } from 'react'
+import { useFormState, useFormStatus } from 'react-dom'
+
+// Submit button component to handle loading state
+function SubmitButton() {
+  const { pending } = useFormStatus()
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="group relative w-full flex justify-center py-4 px-6 border border-transparent rounded-2xl shadow-apple text-white font-semibold text-base tracking-wide transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+      aria-describedby="signin-desc"
+      style={{
+        background: 'linear-gradient(135deg, #FF8395 0%, #E91E63 30%, #FF8395 60%, #F8BBD9 100%)',
+        backgroundSize: '300% 300%',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundPosition = '100% 0%';
+        e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+        e.currentTarget.style.boxShadow = '0 20px 40px rgba(255, 131, 149, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundPosition = '0% 0%';
+        e.currentTarget.style.transform = 'translateY(0px) scale(1)';
+        e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 131, 149, 0.2)';
+      }}
+    >
+      {/* Button shimmer effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 translate-x-[-100%] group-hover:translate-x-[100%] skew-x-12"></div>
+
+      <span className="relative z-10 flex items-center justify-center">
+        {pending ? (
+          <>
+            <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Signing In...</span>
+          </>
+        ) : (
+          <>
+            <span className="mr-2">Sign In</span>
+            <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </>
+        )}
+      </span>
+    </button>
+  )
+}
 
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [envWarning, setEnvWarning] = useState('')
-  const [state, formAction, isPending] = useActionState(login, { error: '' })
+  const [state, formAction] = useFormState(login, { error: '' })
   
   // Defensive programming: ensure formAction is available
   const safeFormAction = formAction || (() => {
     console.warn('Form action not available, possibly due to server action configuration')
   })
-
-  const isLoading = isPending // Use isPending from useActionState for better UX
 
   useEffect(() => {
     setIsClient(true)
@@ -223,48 +271,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="pt-4">
-                  <button 
-                    type="submit"
-                    disabled={isLoading}
-                    className="group relative w-full flex justify-center py-4 px-6 border border-transparent rounded-2xl shadow-apple text-white font-semibold text-base tracking-wide transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    aria-describedby="signin-desc"
-                    style={{
-                      background: 'linear-gradient(135deg, #FF8395 0%, #E91E63 30%, #FF8395 60%, #F8BBD9 100%)',
-                      backgroundSize: '300% 300%',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundPosition = '100% 0%';
-                      e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-                      e.currentTarget.style.boxShadow = '0 20px 40px rgba(255, 131, 149, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundPosition = '0% 0%';
-                      e.currentTarget.style.transform = 'translateY(0px) scale(1)';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 131, 149, 0.2)';
-                    }}
-                  >
-                    {/* Button shimmer effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 translate-x-[-100%] group-hover:translate-x-[100%] skew-x-12"></div>
-                    
-                    <span className="relative z-10 flex items-center justify-center">
-                      {isLoading ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>Signing In...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="mr-2">Sign In</span>
-                          <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </>
-                      )}
-                    </span>
-                  </button>
+                  <SubmitButton />
                 </div>
 
                 {/* Screen reader descriptions */}

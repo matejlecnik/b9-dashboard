@@ -587,7 +587,7 @@ class ProxyEnabledMultiScraper:
         if working_proxies == 0:
             logger.error("❌ No proxies are working! This will likely cause rate limiting.")
         elif working_proxies < 3:
-            logger.warning(f"⚠️ Only {working_proxies}/3 proxies working - reduced anti-detection")
+            logger.warning(f"⚠️ Only {working_proxies}/3 proxies working - redrightuced anti-detection")
         else:
             logger.info("🎉 All proxies working perfectly!")
         
@@ -997,6 +997,7 @@ class ProxyEnabledMultiScraper:
                     # Track minimum requirements for this subreddit (thread-safe)
                     if authors:
                         with requirements_lock:
+                            logger.info(f"📊 Tracking requirements for SEED subreddit r/{subreddit_name} with {len(authors)} authors")
                             self.track_subreddit_requirements(subreddit_name, authors, subreddit_requirements)
                     
                     # Thread-safe updates
@@ -2622,7 +2623,45 @@ class ProxyEnabledMultiScraper:
                     logger.info(f"💾 Upserted r/{name}: hot30={hot_count}, total_upvotes={total_score}, best_day={best_day}, best_hour={best_hour}")
             except Exception as e:
                 logger.error(f"❌ Database exception for r/{name}: {e}")
-            
+
+            # IMPORTANT: Fetch and save user data for minimum requirements calculation
+            if collected_authors:
+                logger.info(f"📊 Fetching user data for {len(collected_authors)} authors from r/{name} for requirements calculation")
+                for author_username in collected_authors:
+                    try:
+                        # Use public API to get user data
+                        user_info = self.public_api.get_user_info(author_username, proxy_config)
+                        if user_info and 'error' not in user_info:
+                            # Calculate user quality scores
+                            link_karma = user_info.get('link_karma', 0) or 0
+                            comment_karma = user_info.get('comment_karma', 0) or 0
+                            created_utc = user_info.get('created_utc', 0)
+
+                            if created_utc:
+                                account_age_days = (datetime.now(timezone.utc) - datetime.fromtimestamp(created_utc, tz=timezone.utc)).days
+                            else:
+                                account_age_days = 0
+
+                            # Save user data to database for requirements calculation
+                            user_payload = {
+                                'username': author_username,
+                                'link_karma': link_karma,
+                                'comment_karma': comment_karma,
+                                'total_karma': link_karma + comment_karma,
+                                'account_age_days': account_age_days,
+                                'created_utc': datetime.fromtimestamp(created_utc, tz=timezone.utc).isoformat() if created_utc else None,
+                                'last_scraped_at': datetime.now(timezone.utc).isoformat()
+                            }
+
+                            # Upsert user data
+                            user_resp = self.supabase.table('reddit_users').upsert(user_payload, on_conflict='username').execute()
+                            if not (hasattr(user_resp, 'error') and user_resp.error):
+                                logger.debug(f"✅ Saved user data for u/{author_username} (karma: {link_karma}/{comment_karma}, age: {account_age_days}d)")
+                    except Exception as e:
+                        logger.debug(f"⚠️ Could not fetch user data for u/{author_username}: {e}")
+
+                logger.info(f"📊 Completed fetching user data for r/{name} - ready for requirements calculation")
+
             return collected_authors
 
         except Exception as e:
@@ -2933,9 +2972,28 @@ class ProxyEnabledMultiScraper:
         """Calculate minimum requirements and save to database"""
         if not subreddit_requirements:
             return
-            
+
         logger.info(f"📊 Calculating minimum requirements for {len(subreddit_requirements)} subreddits...")
-        
+
+        # Log which subreddits are getting requirements calculated
+        seed_subreddits = []
+        discovered_subreddits = []
+        for sub_name in subreddit_requirements.keys():
+            # Check if it's a seed subreddit (has 'Ok' review status)
+            try:
+                check_resp = self.supabase.table('reddit_subreddits').select('review').eq('name', sub_name).execute()
+                if check_resp.data and check_resp.data[0].get('review') == 'Ok':
+                    seed_subreddits.append(sub_name)
+                else:
+                    discovered_subreddits.append(sub_name)
+            except:
+                discovered_subreddits.append(sub_name)
+
+        if seed_subreddits:
+            logger.info(f"📊 SEED subreddits getting requirements: {', '.join(seed_subreddits[:5])}{'...' if len(seed_subreddits) > 5 else ''} ({len(seed_subreddits)} total)")
+        if discovered_subreddits:
+            logger.info(f"📊 DISCOVERED subreddits getting requirements: {', '.join(discovered_subreddits[:5])}{'...' if len(discovered_subreddits) > 5 else ''} ({len(discovered_subreddits)} total)")
+
         for subreddit_name, req_data in subreddit_requirements.items():
             if req_data['user_count'] < 5:  # Increased threshold for better accuracy
                 logger.debug(f"⚠️ r/{subreddit_name}: Only {req_data['user_count']} users - need at least 5 for meaningful analysis")
@@ -2969,7 +3027,17 @@ class ProxyEnabledMultiScraper:
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error saving requirements for r/{subreddit_name}: {resp.error}")
                 else:
-                    logger.info(f"📊 r/{subreddit_name} requirements: post_karma≥{min_post_karma}, comment_karma≥{min_comment_karma}, age≥{min_account_age}d (sample: {req_data['user_count']} users)")
+                    # Check if this is a seed subreddit
+                    is_seed = False
+                    try:
+                        check_resp = self.supabase.table('reddit_subreddits').select('review').eq('name', subreddit_name).execute()
+                        if check_resp.data and check_resp.data[0].get('review') == 'Ok':
+                            is_seed = True
+                    except:
+                        pass
+
+                    subreddit_type = "SEED" if is_seed else "DISCOVERED"
+                    logger.info(f"✅ [{subreddit_type}] r/{subreddit_name} requirements SAVED: post_karma≥{min_post_karma}, comment_karma≥{min_comment_karma}, age≥{min_account_age}d (sample: {req_data['user_count']} users)")
                     
             except Exception as e:
                 logger.error(f"❌ Error calculating requirements for r/{subreddit_name}: {e}")
