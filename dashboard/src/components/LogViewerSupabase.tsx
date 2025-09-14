@@ -206,6 +206,7 @@ export function LogViewerSupabase({
 
     // Skip verbose/unimportant logs
     const skipPatterns = [
+      '🔍 request to:',  // Hide all request logs
       'generated random user agent',
       'user-agent:',
       'headers:',
@@ -240,7 +241,9 @@ export function LogViewerSupabase({
       'viewport size',
       'timezone:',
       'platform:',
-      'screen resolution'
+      'screen resolution',
+      'ensure_subreddits_exist_sync',  // Hide internal sync logs
+      'fetching user data for'  // Hide user data fetching logs
     ]
 
     // Check if message contains any skip pattern
@@ -283,7 +286,7 @@ export function LogViewerSupabase({
 
   // Filter logs based on search and importance (for already fetched logs)
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    const filtered = logs.filter(log => {
       // Filter out unimportant logs (unless showVerbose is enabled)
       if (!showVerbose && !isImportantLog(log.message)) {
         return false
@@ -296,6 +299,20 @@ export function LogViewerSupabase({
       }
       return true
     })
+
+    // Remove duplicate consecutive logs
+    const deduped: LogEntry[] = []
+    let lastMessage = ''
+
+    for (const log of filtered) {
+      // Skip if this is the exact same message as the previous one
+      if (log.message !== lastMessage) {
+        deduped.push(log)
+        lastMessage = log.message
+      }
+    }
+
+    return deduped
   }, [logs, searchQuery, selectedLevel, showVerbose])
 
   // Clear logs
