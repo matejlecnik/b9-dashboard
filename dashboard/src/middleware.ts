@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isAuthenticated } from '@/lib/auth'
+// Auth is handled via Supabase (GitHub provider). We detect session cookies.
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = ['/login']
@@ -13,9 +13,9 @@ export async function middleware(request: NextRequest) {
   
   // If visiting /login and already authenticated, redirect to /dashboards
   if (pathname === '/login') {
-    // Replace with real auth check when enabled
-    const userIsAuthenticated = true
-    if (userIsAuthenticated) {
+    const hasAuthCookie = ['sb-access-token','sb-refresh-token','supabase-auth-token','supabase.auth.token']
+      .some((name) => request.cookies.has(name))
+    if (hasAuthCookie) {
       const dashboardUrl = new URL('/dashboards', request.url)
       return NextResponse.redirect(dashboardUrl)
     }
@@ -27,8 +27,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // Authentication disabled - always treat users as authenticated
-  const userIsAuthenticated = true // Authentication disabled per user request
+  // Detect Supabase session (GitHub auth) by presence of Supabase auth cookies
+  const userIsAuthenticated = ['sb-access-token','sb-refresh-token','supabase-auth-token','supabase.auth.token']
+    .some((name) => request.cookies.has(name))
   
   if (!userIsAuthenticated) {
     // Redirect to login for unauthenticated users
@@ -38,8 +39,9 @@ export async function middleware(request: NextRequest) {
   
   // Handle root route - redirect authenticated users to dashboards
   if (pathname === '/') {
-    const dashboardUrl = new URL('/dashboards', request.url)
-    return NextResponse.redirect(dashboardUrl)
+    const target = userIsAuthenticated ? '/dashboards' : '/login'
+    const url = new URL(target, request.url)
+    return NextResponse.redirect(url)
   }
   
   // User is authenticated, allow access to other routes
