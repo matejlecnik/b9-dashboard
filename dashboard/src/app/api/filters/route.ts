@@ -12,7 +12,7 @@ export async function GET() {
     }
     
     const { data: filterSettings, error } = await supabase
-      .from('filter_settings')
+      .from('reddit_filter_settings')
       .select('*')
       .order('category', { ascending: true })
     
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data, error } = await supabase
-      .from('filter_settings')
+      .from('reddit_filter_settings')
       .insert({
         category,
         keywords,
@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest) {
     if (weight !== undefined) updateData.weight = weight
     
     const { data, error } = await supabase
-      .from('filter_settings')
+      .from('reddit_filter_settings')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -155,7 +155,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     const { error } = await supabase
-      .from('filter_settings')
+      .from('reddit_filter_settings')
       .delete()
       .eq('id', id)
     

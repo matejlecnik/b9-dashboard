@@ -203,9 +203,9 @@ class SupabaseLoggingService:
             return
         
         table_map = {
-            LogType.AI_REVIEW: 'ai_review_logs',
-            LogType.CATEGORIZATION: 'categorization_logs',
-            LogType.USER_DISCOVERY: 'user_discovery_logs',
+            LogType.AI_REVIEW: 'reddit_ai_review_logs',
+            LogType.CATEGORIZATION: 'reddit_categorization_logs',
+            LogType.USER_DISCOVERY: 'reddit_user_discovery_logs',
             LogType.SCRAPER_OPERATION: 'scraper_operation_logs',
             LogType.API_OPERATION: 'api_operation_logs',
         }
