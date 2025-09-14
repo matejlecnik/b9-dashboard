@@ -88,6 +88,9 @@ interface UniversalTableProps {
   // Image handling
   brokenIcons?: Set<number | string>
   handleIconError?: (id: number | string) => void
+
+  // Animation
+  removingIds?: Set<number>
 }
 
 // ============================================================================
@@ -185,7 +188,10 @@ export const UniversalTable = memo(function UniversalTable({
   
   // Image handling
   brokenIcons = new Set(),
-  handleIconError
+  handleIconError,
+
+  // Animation
+  removingIds = new Set()
 }: UniversalTableProps) {
   
   // ============================================================================
@@ -313,6 +319,7 @@ export const UniversalTable = memo(function UniversalTable({
   const renderRow = useCallback((subreddit: Subreddit, index: number) => {
     const isSelected = selectedSubreddits?.has(subreddit.id) || false
     const isHighlighted = typeof highlightedIndex === 'number' && highlightedIndex === index
+    const isRemoving = removingIds.has(subreddit.id)
     const iconUrl = subreddit.community_icon
     const isBroken = finalBrokenIcons.has(subreddit.id)
     const safeDisplayName = subreddit.display_name_prefixed || (subreddit.name ? `r/${subreddit.name}` : 'Unknown subreddit')
@@ -321,10 +328,11 @@ export const UniversalTable = memo(function UniversalTable({
     return (
       <div
         className={cn(
-          "flex items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50/50 transition-colors",
+          "flex items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50/50 transition-all duration-300",
           isHighlighted && "bg-pink-50 border-pink-200",
           isSelected && "bg-pink-50/50",
-          compactMode && "py-1"
+          compactMode && "py-1",
+          isRemoving && "opacity-0 scale-95 pointer-events-none"
         )}
         role="row"
         aria-selected={isSelected}
@@ -556,7 +564,8 @@ export const UniversalTable = memo(function UniversalTable({
     handleIconErrorInternal,
     onShowRules,
     handleUpdate,
-    availableCategories
+    availableCategories,
+    removingIds
   ])
   
   // ============================================================================

@@ -36,6 +36,7 @@ export default function CategorizationPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [brokenIcons, setBrokenIcons] = useState<Set<number>>(new Set())
+  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
   const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({
     isOpen: false,
     subreddit: null
@@ -272,12 +273,30 @@ export default function CategorizationPage() {
       context: 'review_update',
       showToast: false,
       onSuccess: ({ subreddit, reviewText }) => {
-        // Optimistic update
-        setSubreddits(prev => prev.map(sub =>
-          sub.id === id
-            ? { ...sub, review: reviewText as 'Ok' | 'No Seller' | 'Non Related' }
-            : sub
-        ))
+        // Check if we should remove item from categorization view
+        const shouldRemove = reviewText !== 'Ok'
+
+        if (shouldRemove) {
+          // Add to removing list for fade effect
+          setRemovingIds(prev => new Set([...prev, id]))
+
+          // Delay actual removal for smooth transition
+          setTimeout(() => {
+            setSubreddits(prev => prev.filter(sub => sub.id !== id))
+            setRemovingIds(prev => {
+              const next = new Set(prev)
+              next.delete(id)
+              return next
+            })
+          }, 300)
+        } else {
+          // Just update in place
+          setSubreddits(prev => prev.map(sub =>
+            sub.id === id
+              ? { ...sub, review: reviewText as 'Ok' | 'No Seller' | 'Non Related' }
+              : sub
+          ))
+        }
 
         addToast({
           type: 'success',
@@ -321,12 +340,25 @@ export default function CategorizationPage() {
         const wasCategorized = (subreddit?.category_text || '').trim() !== ''
         const nowCategorized = categoryText.trim() !== ''
 
-        // If switching views, remove item from current list
-        if (selectedCategories.length === 0 && nowCategorized) {
-          setSubreddits(prev => prev.filter(sub => sub.id !== id))
-        }
-        if (selectedCategories.length > 0 && !nowCategorized) {
-          setSubreddits(prev => prev.filter(sub => sub.id !== id))
+        // Check if item should be removed from current view
+        const shouldRemove = (
+          (selectedCategories.length === 0 && nowCategorized) ||
+          (selectedCategories.length > 0 && !nowCategorized)
+        )
+
+        if (shouldRemove) {
+          // Add to removing list for fade effect
+          setRemovingIds(prev => new Set([...prev, id]))
+
+          // Delay actual removal for smooth transition
+          setTimeout(() => {
+            setSubreddits(prev => prev.filter(sub => sub.id !== id))
+            setRemovingIds(prev => {
+              const next = new Set(prev)
+              next.delete(id)
+              return next
+            })
+          }, 300)
         }
 
         // Update counts
@@ -777,7 +809,8 @@ export default function CategorizationPage() {
                     brokenIcons,
                     handleIconError,
                     onShowRules: handleShowRules,
-                    testId: 'categorization-table'
+                    testId: 'categorization-table',
+                    removingIds
                   })}
                 />
               </ComponentErrorBoundary>

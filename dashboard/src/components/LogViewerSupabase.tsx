@@ -57,6 +57,7 @@ export function LogViewerSupabase({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLevel, setSelectedLevel] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [showVerbose, setShowVerbose] = useState(false)
   const [lastTimestamp, setLastTimestamp] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const shouldAutoScroll = useRef(autoScroll)
@@ -194,9 +195,94 @@ export function LogViewerSupabase({
     return () => clearInterval(interval)
   }, [fetchLogs, refreshInterval, isPaused, lastTimestamp])
 
-  // Filter logs based on search (for already fetched logs)
+  // Function to check if a log message is important
+  const isImportantLog = (message: string): boolean => {
+    const lowercaseMsg = message.toLowerCase()
+
+    // Skip verbose/unimportant logs
+    const skipPatterns = [
+      'generated random user agent',
+      'user-agent:',
+      'headers:',
+      'request headers',
+      'response headers',
+      'accept-language:',
+      'accept-encoding:',
+      'cache-control:',
+      'connection:',
+      'content-type:',
+      'cookie:',
+      'host:',
+      'pragma:',
+      'referer:',
+      'sec-ch-ua',
+      'sec-fetch',
+      'x-forwarded',
+      'x-requested-with',
+      'upgrade-insecure-requests',
+      'dnt:',
+      'te:',
+      'if-none-match',
+      'if-modified-since',
+      'accept: text/html',
+      'accept: */*',
+      'setting headers',
+      'setting user agent',
+      'using proxy',
+      'proxy configuration',
+      'initializing proxy',
+      'browser fingerprint',
+      'viewport size',
+      'timezone:',
+      'platform:',
+      'screen resolution'
+    ]
+
+    // Check if message contains any skip pattern
+    for (const pattern of skipPatterns) {
+      if (lowercaseMsg.includes(pattern)) {
+        return false
+      }
+    }
+
+    // Always show important logs
+    const importantPatterns = [
+      'error',
+      'failed',
+      'success',
+      'completed',
+      'started',
+      'stopped',
+      'found',
+      'discovered',
+      'processed',
+      'analyzing',
+      'subreddit',
+      'posts collected',
+      'users discovered',
+      'rate limit',
+      'queue',
+      'batch',
+      'total'
+    ]
+
+    for (const pattern of importantPatterns) {
+      if (lowercaseMsg.includes(pattern)) {
+        return true
+      }
+    }
+
+    // Default: show the log if it's not in skip list
+    return true
+  }
+
+  // Filter logs based on search and importance (for already fetched logs)
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
+      // Filter out unimportant logs (unless showVerbose is enabled)
+      if (!showVerbose && !isImportantLog(log.message)) {
+        return false
+      }
       if (searchQuery && !log.message.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
@@ -205,7 +291,7 @@ export function LogViewerSupabase({
       }
       return true
     })
-  }, [logs, searchQuery, selectedLevel])
+  }, [logs, searchQuery, selectedLevel, showVerbose])
 
   // Clear logs
   const handleClear = () => {
@@ -303,50 +389,6 @@ export function LogViewerSupabase({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-7 w-7"
-              title="Toggle filters"
-            >
-              <Filter className="h-3.5 w-3.5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePauseToggle}
-              className="h-7 w-7"
-              title={isPaused ? 'Resume' : 'Pause'}
-            >
-              {isPaused ? (
-                <Play className="h-3.5 w-3.5" />
-              ) : (
-                <Pause className="h-3.5 w-3.5" />
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClear}
-              className="h-7 w-7"
-              title="Clear logs"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleExport}
-              className="h-7 w-7"
-              title="Export logs"
-            >
-              <Download className="h-3.5 w-3.5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={() => fetchLogs()}
               className="h-7 w-7"
               title="Refresh"
@@ -356,81 +398,6 @@ export function LogViewerSupabase({
             </Button>
           </div>
         </div>
-
-        {/* Filter Bar */}
-        {showFilters && (
-          <div className="mt-3 space-y-2">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search logs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-
-            {/* Level Filter */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant={selectedLevel === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedLevel('all')}
-                className="h-7 px-2 text-xs"
-              >
-                All
-              </Button>
-              <Button
-                variant={selectedLevel === 'info' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedLevel('info')}
-                className="h-7 px-2 text-xs"
-              >
-                <Info className="h-3 w-3 mr-1 text-blue-500" />
-                Info ({logCounts.info})
-              </Button>
-              <Button
-                variant={selectedLevel === 'success' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedLevel('success')}
-                className="h-7 px-2 text-xs"
-              >
-                <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                Success ({logCounts.success})
-              </Button>
-              <Button
-                variant={selectedLevel === 'warning' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedLevel('warning')}
-                className="h-7 px-2 text-xs"
-              >
-                <AlertCircle className="h-3 w-3 mr-1 text-yellow-500" />
-                Warning ({logCounts.warning})
-              </Button>
-              <Button
-                variant={selectedLevel === 'error' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedLevel('error')}
-                className="h-7 px-2 text-xs"
-              >
-                <XCircle className="h-3 w-3 mr-1 text-red-500" />
-                Error ({logCounts.error})
-              </Button>
-            </div>
-          </div>
-        )}
       </CardHeader>
 
       <CardContent className="p-0">
