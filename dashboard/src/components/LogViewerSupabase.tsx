@@ -452,9 +452,9 @@ export function LogViewerSupabase({
             style={{ height }}
           >
             <div className="p-2 font-mono text-xs space-y-0.5">
-              {filteredLogs.map((log) => (
+              {filteredLogs.map((log, index) => (
                 <div
-                  key={log.id}
+                  key={`${log.id}-${log.timestamp}-${index}`}
                   className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-50`}
                 >
                   <div className="flex items-center gap-1.5 min-w-fit">

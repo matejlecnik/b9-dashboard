@@ -44,6 +44,7 @@ export default function SubredditReviewPage() {
   })
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
   const [brokenIcons, setBrokenIcons] = useState<Set<string>>(new Set())
+  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
   const [lastAction, setLastAction] = useState<{
     type: 'single' | 'bulk'
     items: Array<{ id: number, prevReview: ReviewValue }>
@@ -321,20 +322,34 @@ export default function SubredditReviewPage() {
         // Prepare undo details
         const prevReview: ReviewValue = subreddit?.review ?? null
         setLastAction({ type: 'single', items: [{ id, prevReview }] })
-        // Update local list optimistically and remove if it no longer matches filter
-        setSubreddits(prev => {
-          const updated = prev.map(sub => sub.id === id ? { ...sub, review } : sub)
-          switch (currentFilter) {
-            case 'unreviewed':
-              return updated.filter(sub => sub.id !== id) // moved out of unreviewed
-            case 'ok':
-              return review === 'Ok' ? updated : updated.filter(sub => sub.id !== id)
-            case 'non_related':
-              return review === 'Non Related' ? updated : updated.filter(sub => sub.id !== id)
-            case 'no_seller':
-              return review === 'No Seller' ? updated : updated.filter(sub => sub.id !== id)
-          }
-        })
+
+        // Check if item should be removed from current filter
+        const shouldRemove = (
+          (currentFilter === 'unreviewed') ||
+          (currentFilter === 'ok' && review !== 'Ok') ||
+          (currentFilter === 'non_related' && review !== 'Non Related') ||
+          (currentFilter === 'no_seller' && review !== 'No Seller')
+        )
+
+        if (shouldRemove) {
+          // Add to removing list for fade effect
+          setRemovingIds(prev => new Set([...prev, id]))
+
+          // Delay actual removal for smooth transition
+          setTimeout(() => {
+            setSubreddits(prev => prev.filter(sub => sub.id !== id))
+            setRemovingIds(prev => {
+              const next = new Set(prev)
+              next.delete(id)
+              return next
+            })
+          }, 300)
+        } else {
+          // Just update in place
+          setSubreddits(prev => prev.map(sub =>
+            sub.id === id ? { ...sub, review } : sub
+          ))
+        }
         addToast({
           type: 'success',
           title: 'Review Updated',
@@ -640,7 +655,8 @@ export default function SubredditReviewPage() {
                     searchQuery: debouncedSearchQuery,
                     brokenIcons,
                     handleIconError,
-                    onShowRules: handleShowRules
+                    onShowRules: handleShowRules,
+                    removingIds
                   })}
                 />
               </ComponentErrorBoundary>
