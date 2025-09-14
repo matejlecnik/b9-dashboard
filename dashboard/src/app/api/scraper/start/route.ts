@@ -1,81 +1,73 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    if (!supabase) {
+    // Call the Python API on Render to start the scraper
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+
+    console.log('Starting scraper via API:', `${apiUrl}/api/scraper/start`)
+
+    const response = await fetch(`${apiUrl}/api/scraper/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+
+    const responseText = await response.text()
+    console.log('API Response:', response.status, responseText)
+
+    if (!response.ok) {
+      console.error('Failed to start scraper:', responseText)
+
+      // If it's a supervisor-related error, return a helpful message
+      if (responseText.includes('supervisor') || responseText.includes('ImportError')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Scraper service not available. The service may not be deployed yet.',
+          error: 'Supervisor not configured'
+        }, { status: 503 })
+      }
+
       return NextResponse.json({
         success: false,
-        message: 'Database connection failed'
-      }, { status: 503 })
+        message: 'Failed to start scraper',
+        error: responseText
+      }, { status: response.status })
     }
 
-    // Update scraper accounts to active status
-    const { error: updateError } = await supabase
-      .from('scraper_accounts')
-      .update({ 
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('is_enabled', true)
-      .neq('status', 'banned')
-
-    if (updateError) {
-      console.error('Error updating scraper accounts:', updateError)
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to update account status'
-      }, { status: 500 })
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      data = { message: responseText }
     }
 
-    // Log the start operation
-    const { error: logError } = await supabase
-      .from('reddit_scraper_logs')
-      .insert([{
-        level: 'info',
-        message: 'Scraper started via dashboard',
-        source: 'dashboard',
-        context: {
-          operation: 'start',
-          timestamp: new Date().toISOString(),
-          user_initiated: true
-        }
-      }])
+    console.log('Scraper started successfully:', data)
 
-    if (logError) {
-      console.error('Error logging start operation:', logError)
-    }
-
-    // In a real implementation, you would also:
-    // 1. Send signal to actual Python scraper service
-    // 2. Start background processes
-    // 3. Initialize proxy rotation
-    
     return NextResponse.json({
       success: true,
-      message: 'Scraper started successfully',
+      message: 'Scraper started for 24/7 operation',
       status: 'running',
-      active_accounts: await getActiveAccountCount(supabase)
+      ...data
     })
 
   } catch (error) {
     console.error('Error starting scraper:', error)
+
+    // Check if it's a network error (API not reachable)
+    if (error instanceof Error && error.message.includes('fetch')) {
+      return NextResponse.json({
+        success: false,
+        message: 'Cannot connect to scraper service. Please ensure the API is running.',
+        error: error.message
+      }, { status: 503 })
+    }
+
     return NextResponse.json({
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to start scraper',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
-}
-
-async function getActiveAccountCount(supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never) {
-  const { data } = await supabase
-    .from('scraper_accounts')
-    .select('id')
-    .eq('status', 'active')
-    .eq('is_enabled', true)
-    .neq('status', 'banned')
-
-  return data?.length || 0
 }

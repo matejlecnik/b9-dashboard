@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress'
 import { Sparkles } from 'lucide-react'
 import { AICategorizationModal, type AICategorizationSettings } from '@/components/AICategorizationModal'
 import { formatNumber } from '@/lib/utils'
+import { AIButton } from '@/components/GlassMorphismButton'
 
 
 const PAGE_SIZE = 50 // Standard page size
@@ -629,41 +630,22 @@ export default function CategorizationPage() {
                   />
                 </div>
                 
-                {/* AI Review Button - Glass Morphism */}
-                <button
+                {/* AI Review Button using standardized component */}
+                <AIButton
+                  icon={Sparkles}
+                  label="AI Review"
+                  sublabel={
+                    categorizingAll
+                      ? 'Processing...'
+                      : categoryCounts.uncategorized === 0
+                      ? 'All done!'
+                      : `${Math.min(categoryCounts.uncategorized, 500)} items`
+                  }
                   onClick={handleCategorizeAll}
                   disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
-                  className="group relative px-5 py-3.5 min-w-[130px] overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.05] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  {/* Gradient overlay on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
-                  
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                  
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col items-center">
-                    <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                    <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                      AI Review
-                    </span>
-                    <span className="text-[10px] text-gray-600 mt-0.5">
-                      {categorizingAll 
-                        ? 'Processing...' 
-                        : categoryCounts.uncategorized === 0
-                        ? 'All done!'
-                        : `${Math.min(categoryCounts.uncategorized, 500)} items`
-                      }
-                    </span>
-                  </div>
-                </button>
+                  loading={categorizingAll}
+                  size="md"
+                />
               </div>
             )}
           </ComponentErrorBoundary>

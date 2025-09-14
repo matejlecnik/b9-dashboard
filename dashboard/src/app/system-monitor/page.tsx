@@ -9,18 +9,15 @@ import {
   Play,
   Square,
   Clock,
-  Settings,
   Database,
-  Wifi,
-  AlertCircle,
   CheckCircle,
-  XCircle,
-  TrendingUp,
-  Trash2
+  XCircle
 } from 'lucide-react'
 import { formatNumber } from '@/lib/format'
 import { useToast } from '@/components/ui/toast'
-import { ApiMonitor } from '@/components/ApiMonitor'
+import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { SystemMonitorSidebar } from '@/components/SystemMonitorSidebar'
+import { GlassMorphismButton } from '@/components/GlassMorphismButton'
 
 interface SystemMetrics {
   enabled: boolean
@@ -54,34 +51,10 @@ interface SystemMetrics {
   }
 }
 
-interface SystemHealth {
-  database: {
-    status: 'healthy' | 'degraded' | 'down'
-    latency: number
-    connections: number
-  }
-  redis: {
-    status: 'healthy' | 'degraded' | 'down'
-    memory: number
-    uptime: number
-  }
-  reddit_api: {
-    status: 'healthy' | 'degraded' | 'down'
-    rate_limit_remaining: number
-    response_time: number
-  }
-  openai_api: {
-    status: 'healthy' | 'degraded' | 'down'
-    credits_remaining: number
-  }
-}
-
 export default function SystemMonitor() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
-  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
-  const [processingHistory, setProcessingHistory] = useState<number[]>([])
   const { addToast } = useToast()
 
   const fetchMetrics = useCallback(async () => {
@@ -95,16 +68,7 @@ export default function SystemMonitor() {
         const data = await statusRes.json()
         setMetrics(data)
         setIsRunning(data.enabled && data.status === 'running')
-
-        // Update processing history for sparkline
-        setProcessingHistory(prev => {
-          const newHistory = [...prev, data.statistics.processing_rate_per_hour]
-          return newHistory.slice(-20) // Keep last 20 data points
-        })
       }
-
-      // Fetch system health
-      await fetchSystemHealth()
     } catch (error) {
       console.error('Failed to fetch metrics:', error)
     } finally {
@@ -112,43 +76,9 @@ export default function SystemMonitor() {
     }
   }, [])
 
-  const fetchSystemHealth = async () => {
-    try {
-      // Check database health
-      const dbStart = Date.now()
-      const healthRes = await fetch('/api/health')
-      const dbLatency = Date.now() - dbStart
-
-      // Mock health data for now (would come from actual health endpoints)
-      setSystemHealth({
-        database: {
-          status: healthRes.ok ? 'healthy' : 'down',
-          latency: dbLatency,
-          connections: 5
-        },
-        redis: {
-          status: 'healthy',
-          memory: 256,
-          uptime: 86400
-        },
-        reddit_api: {
-          status: metrics?.accounts.count && metrics.accounts.count > 0 ? 'healthy' : 'degraded',
-          rate_limit_remaining: 850,
-          response_time: 120
-        },
-        openai_api: {
-          status: 'healthy',
-          credits_remaining: 1000
-        }
-      })
-    } catch (error) {
-      console.error('Failed to fetch system health:', error)
-    }
-  }
-
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
-      const endpoint = action === 'start' ? '/api/scraper/start-continuous' : '/api/scraper/stop-continuous'
+      const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
       const res = await fetch(endpoint, { method: 'POST' })
 
       if (res.ok) {
@@ -170,81 +100,49 @@ export default function SystemMonitor() {
     }
   }
 
-  const handleClearErrorQueue = async () => {
-    try {
-      const res = await fetch('/api/scraper/clear-errors', { method: 'POST' })
-      if (res.ok) {
-        addToast({
-          title: 'Error queue cleared',
-          description: 'All error entries have been removed',
-          type: 'success'
-        })
-        await fetchMetrics()
-      }
-    } catch {
-      addToast({
-        title: 'Failed to clear error queue',
-        type: 'error'
-      })
-    }
-  }
-
-  const handleResetDailyCounter = async () => {
-    try {
-      const res = await fetch('/api/scraper/reset-daily', { method: 'POST' })
-      if (res.ok) {
-        addToast({
-          title: 'Daily counter reset',
-          description: 'Daily request counter has been reset to 0',
-          type: 'success'
-        })
-        await fetchMetrics()
-      }
-    } catch {
-      addToast({
-        title: 'Failed to reset counter',
-        type: 'error'
-      })
-    }
-  }
-
-
   useEffect(() => {
     fetchMetrics()
     const interval = setInterval(fetchMetrics, 10000) // Refresh every 10 seconds
     return () => clearInterval(interval)
   }, [fetchMetrics])
 
-
   return (
-    <div className="container mx-auto px-6 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">System Monitor</h1>
-            <p className="text-sm text-gray-500 mt-1">Reddit scraper control & monitoring</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+      {/* Apple-style background texture */}
+      <div
+        className="fixed inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
+          `
+        }}
+      />
 
-          <div className="flex items-center gap-2">
+      {/* Sidebar */}
+      <div className="relative z-50">
+        <SystemMonitorSidebar />
+      </div>
 
-            <Button
-              variant={isRunning ? 'outline' : 'default'}
-              size="sm"
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Page Content */}
+        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
+          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
+            <div className="space-y-6">
+        {/* Control Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Start/Stop Scraper Button using standardized component */}
+            <GlassMorphismButton
+              variant={isRunning ? 'stop' : 'start'}
+              icon={isRunning ? Square : Play}
+              label={isRunning ? 'Stop Scraper' : 'Start Scraper'}
+              sublabel={isRunning ? 'Running' : 'Ready'}
               onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
-            >
-              {isRunning ? (
-                <>
-                  <Square className="h-3.5 w-3.5 mr-1.5" />
-                  Stop
-                </>
-              ) : (
-                <>
-                  <Play className="h-3.5 w-3.5 mr-1.5" />
-                  Start
-                </>
-              )}
-            </Button>
+              disabled={loading}
+              size="md"
+            />
 
             <Button
               variant="ghost"
@@ -255,339 +153,158 @@ export default function SystemMonitor() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+
+          {/* Status Bar */}
+          {metrics && (
+            <div className="flex items-center gap-4 text-sm">
+              {/* Status */}
+              <div className="flex items-center gap-2">
+                <div className={`h-2.5 w-2.5 rounded-full ${
+                  isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                }`} />
+                <span className="text-gray-600">
+                  {isRunning ? 'Running' : 'Stopped'}
+                </span>
+              </div>
+
+              {/* Queue */}
+              <div className="text-gray-600">
+                Queue: <span className="font-medium text-gray-900">
+                  {formatNumber(metrics.total_queue_depth)}
+                </span>
+              </div>
+
+              {/* Daily Progress */}
+              <div className="text-gray-600">
+                Today: <span className="font-medium text-gray-900">
+                  {formatNumber(metrics.statistics.daily_requests)}
+                </span> / {formatNumber(metrics.config?.max_daily_requests || 10000)}
+              </div>
+
+              {/* Processing Rate */}
+              <div className="text-gray-600">
+                Rate: <span className="font-medium text-gray-900">
+                  {metrics.statistics.processing_rate_per_hour.toFixed(0)}/hr
+                </span>
+              </div>
+
+              {/* Last Activity */}
+              {metrics.last_activity && (
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  {new Date(metrics.last_activity).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Status Bar */}
-        {metrics && (
-          <div className="flex items-center gap-6 px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
-            <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${
-                isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-              }`} />
-              <span className="text-sm font-medium text-gray-700">
-                {isRunning ? 'Running' : 'Stopped'}
-              </span>
-            </div>
-
-            <div className="h-4 w-px bg-gray-300" />
-
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-gray-500">Queue:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {formatNumber(metrics.total_queue_depth)}
-              </span>
-            </div>
-
-            <div className="h-4 w-px bg-gray-300" />
-
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-gray-500">Today:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {formatNumber(metrics.statistics.daily_requests)}
-              </span>
-              <span className="text-sm text-gray-400">
-                / {formatNumber(metrics.config?.max_daily_requests || 10000)}
-              </span>
-            </div>
-
-            <div className="h-4 w-px bg-gray-300" />
-
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-gray-500">Rate:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {metrics.statistics.processing_rate_per_hour.toFixed(0)}/hr
-              </span>
-            </div>
-
-            {metrics.last_activity && (
-              <>
-                <div className="h-4 w-px bg-gray-300" />
-                <div className="flex items-center gap-1 ml-auto">
-                  <Clock className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="text-sm text-gray-500">
-                    {new Date(metrics.last_activity).toLocaleTimeString()}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* System Health Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Database</div>
-                <div className="text-sm font-medium text-gray-900">
-                  {systemHealth?.database.latency || 0}ms
-                </div>
-              </div>
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                systemHealth?.database.status === 'healthy' ? 'bg-green-100' :
-                systemHealth?.database.status === 'degraded' ? 'bg-yellow-100' : 'bg-red-100'
-              }`}>
-                {systemHealth?.database.status === 'healthy' ?
-                  <CheckCircle className="h-4 w-4 text-green-600" /> :
-                  systemHealth?.database.status === 'degraded' ?
-                  <AlertCircle className="h-4 w-4 text-yellow-600" /> :
-                  <XCircle className="h-4 w-4 text-red-600" />
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Redis Queue</div>
-                <div className="text-sm font-medium text-gray-900">
-                  {systemHealth?.redis.memory || 0}MB
-                </div>
-              </div>
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                systemHealth?.redis.status === 'healthy' ? 'bg-green-100' :
-                systemHealth?.redis.status === 'degraded' ? 'bg-yellow-100' : 'bg-red-100'
-              }`}>
-                {systemHealth?.redis.status === 'healthy' ?
-                  <CheckCircle className="h-4 w-4 text-green-600" /> :
-                  systemHealth?.redis.status === 'degraded' ?
-                  <AlertCircle className="h-4 w-4 text-yellow-600" /> :
-                  <XCircle className="h-4 w-4 text-red-600" />
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Reddit API</div>
-                <div className="text-sm font-medium text-gray-900">
-                  {systemHealth?.reddit_api.rate_limit_remaining || 0}/1000
-                </div>
-              </div>
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                systemHealth?.reddit_api.status === 'healthy' ? 'bg-green-100' :
-                systemHealth?.reddit_api.status === 'degraded' ? 'bg-yellow-100' : 'bg-red-100'
-              }`}>
-                {systemHealth?.reddit_api.status === 'healthy' ?
-                  <CheckCircle className="h-4 w-4 text-green-600" /> :
-                  systemHealth?.reddit_api.status === 'degraded' ?
-                  <AlertCircle className="h-4 w-4 text-yellow-600" /> :
-                  <XCircle className="h-4 w-4 text-red-600" />
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">OpenAI API</div>
-                <div className="text-sm font-medium text-gray-900">
-                  ${(systemHealth?.openai_api.credits_remaining || 0) / 100}
-                </div>
-              </div>
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                systemHealth?.openai_api.status === 'healthy' ? 'bg-green-100' :
-                systemHealth?.openai_api.status === 'degraded' ? 'bg-yellow-100' : 'bg-red-100'
-              }`}>
-                {systemHealth?.openai_api.status === 'healthy' ?
-                  <CheckCircle className="h-4 w-4 text-green-600" /> :
-                  systemHealth?.openai_api.status === 'degraded' ?
-                  <AlertCircle className="h-4 w-4 text-yellow-600" /> :
-                  <XCircle className="h-4 w-4 text-red-600" />
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="text-xs text-gray-500 mb-1">Subreddits</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {formatNumber(metrics?.statistics.subreddits_processed || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="text-xs text-gray-500 mb-1">Posts</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {formatNumber(metrics?.statistics.posts_collected || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="text-xs text-gray-500 mb-1">Users</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {formatNumber(metrics?.statistics.users_discovered || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100">
-          <CardContent className="p-4">
-            <div className="text-xs text-gray-500 mb-1">Success Rate</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {metrics && metrics.statistics.total_requests > 0
-                ? Math.round((metrics.statistics.successful_requests / metrics.statistics.total_requests) * 100)
-                : 0}%
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Queue Status with Color Coding */}
-      {metrics && (
-        <Card className="border-gray-100 mb-6">
-          <CardHeader className="py-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-700">Queue Breakdown</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearErrorQueue}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Clear Errors
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetDailyCounter}
-                  className="h-7 px-2 text-xs"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Reset Daily
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <div className="grid grid-cols-4 gap-3">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Priority</div>
-                <div className={`text-lg font-semibold ${
-                  metrics.queue_depths.priority > 100 ? 'text-red-600' :
-                  metrics.queue_depths.priority > 50 ? 'text-yellow-600' : 'text-gray-900'
-                }`}>
-                  {metrics.queue_depths.priority || 0}
-                </div>
-                {metrics.queue_depths.priority > 100 && (
-                  <div className="text-xs text-red-500 mt-0.5">High load</div>
-                )}
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Discovery</div>
-                <div className={`text-lg font-semibold ${
-                  metrics.queue_depths.new_discovery > 100 ? 'text-red-600' :
-                  metrics.queue_depths.new_discovery > 50 ? 'text-yellow-600' : 'text-gray-900'
-                }`}>
-                  {metrics.queue_depths.new_discovery || 0}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Updates</div>
-                <div className={`text-lg font-semibold ${
-                  metrics.queue_depths.update > 100 ? 'text-red-600' :
-                  metrics.queue_depths.update > 50 ? 'text-yellow-600' : 'text-gray-900'
-                }`}>
-                  {metrics.queue_depths.update || 0}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">User Analysis</div>
-                <div className={`text-lg font-semibold ${
-                  metrics.queue_depths.user_analysis > 100 ? 'text-red-600' :
-                  metrics.queue_depths.user_analysis > 50 ? 'text-yellow-600' : 'text-gray-900'
-                }`}>
-                  {metrics.queue_depths.user_analysis || 0}
-                </div>
-              </div>
-            </div>
-
-            {/* Processing Rate Sparkline */}
-            {processingHistory.length > 1 && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500">Processing Rate Trend</span>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs font-medium text-gray-900">
-                      {processingHistory[processingHistory.length - 1]?.toFixed(0)}/hr
-                    </span>
+        {/* Summary Stats Cards */}
+        <div className="grid grid-cols-4 gap-4">
+          <Card className="border-gray-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">Subreddits</div>
+                  <div className="text-xl font-semibold text-gray-900">
+                    {formatNumber(metrics?.statistics.subreddits_processed || 0)}
                   </div>
                 </div>
-                <div className="h-8 flex items-end gap-0.5">
-                  {processingHistory.map((rate, i) => {
-                    const maxRate = Math.max(...processingHistory)
-                    const height = maxRate > 0 ? (rate / maxRate) * 100 : 0
-                    return (
-                      <div
-                        key={i}
-                        className="flex-1 bg-blue-400 rounded-t-sm transition-all duration-300"
-                        style={{ height: `${height}%` }}
-                      />
-                    )
-                  })}
+                <Activity className="h-5 w-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">Posts</div>
+                  <div className="text-xl font-semibold text-gray-900">
+                    {formatNumber(metrics?.statistics.posts_collected || 0)}
+                  </div>
+                </div>
+                <Database className="h-5 w-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">Success Rate</div>
+                  <div className="text-xl font-semibold text-gray-900">
+                    {metrics && metrics.statistics.total_requests > 0
+                      ? Math.round((metrics.statistics.successful_requests / metrics.statistics.total_requests) * 100)
+                      : 0}%
+                  </div>
+                </div>
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">Errors</div>
+                  <div className="text-xl font-semibold text-gray-900">
+                    {formatNumber(metrics?.statistics.failed_requests || 0)}
+                  </div>
+                </div>
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Queue Details (if available) */}
+        {metrics && metrics.queue_depths && (
+          <Card className="border-gray-100">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Queue Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Priority:</span>{' '}
+                  <span className="font-medium">{formatNumber(metrics.queue_depths.priority)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">New Discovery:</span>{' '}
+                  <span className="font-medium">{formatNumber(metrics.queue_depths.new_discovery)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Updates:</span>{' '}
+                  <span className="font-medium">{formatNumber(metrics.queue_depths.update)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">User Analysis:</span>{' '}
+                  <span className="font-medium">{formatNumber(metrics.queue_depths.user_analysis)}</span>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Configuration */}
-      {metrics?.config && (
-        <Card className="border-gray-100 mb-6">
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Settings className="h-3.5 w-3.5" />
-              Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Batch:</span>
-                <span className="font-medium text-gray-900">{metrics.config.batch_size}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Delay:</span>
-                <span className="font-medium text-gray-900">{metrics.config.delay_between_batches}s</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Daily limit:</span>
-                <span className="font-medium text-gray-900">{formatNumber(metrics.config.max_daily_requests)}</span>
-              </div>
+        {/* Live Logs - Main Focus */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-medium text-gray-900">Live Scraper Logs</h2>
+          <LogViewerSupabase
+            title="Reddit Scraper Activity (Live from Supabase)"
+            height="500px"
+            autoScroll={true}
+            refreshInterval={5000}
+            maxLogs={500}
+          />
+        </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Live Logs */}
-      <div className="mt-6">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Live Activity</h2>
-        <ApiMonitor type="scraper" showLogs={true} autoRefresh={true} compact={true} />
+          </div>
+        </main>
       </div>
     </div>
   )

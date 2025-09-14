@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
       query = query.or(`name.ilike.%${search}%,display_name_prefixed.ilike.%${search}%,title.ilike.%${search}%`)
     }
 
-    // Apply pagination and ordering (use id desc for performance)
+    // Apply pagination and ordering by average upvotes
     query = query
-      .order('id', { ascending: false })
+      .order('avg_upvotes_per_post', { ascending: false })
       .range(offset, offset + limit - 1)
 
     console.log(`🔄 [API:${requestId}] Executing Supabase query...`)

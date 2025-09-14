@@ -1,5 +1,5 @@
-# B9 Dashboard API - Production Dockerfile for Render
-# Optimized multi-stage build with enhanced caching and security
+# B9 Dashboard - Production Dockerfile for Render
+# Combined API + Reddit Scraper with supervisor management
 
 FROM python:3.12-slim-bullseye as builder
 
@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create app directory and copy requirements
 WORKDIR /app
-COPY api/requirements.txt .
+COPY requirements-combined.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-combined.txt
 
 # Production stage
 FROM python:3.12-slim-bullseye
@@ -33,10 +33,11 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=10000 \
     ENVIRONMENT=production
 
-# Install runtime dependencies only
+# Install runtime dependencies and supervisor
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    supervisor \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -50,21 +51,30 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code directly to /app (not /app/api/)
-COPY --chown=app:app api/ ./
+# Copy application code
+COPY --chown=app:app api/ ./api/
+COPY --chown=app:app scraper/ ./scraper/
 
-# Create logs directory
-RUN mkdir -p logs && chown app:app logs
+# Create necessary directories
+RUN mkdir -p logs /var/log/supervisor && \
+    chown -R app:app logs /var/log/supervisor
+
+# Copy supervisor configuration
+COPY --chown=app:app supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Copy startup script
+COPY --chown=app:app start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 # Switch to non-root user
 USER app
 
-# Health check
+# Health check for API
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:$PORT/health')"
 
-# Expose port
+# Expose port for API
 EXPOSE $PORT
 
-# Run the application
-CMD ["python", "main.py"]
+# Run supervisor to manage both processes
+CMD ["./start.sh"]

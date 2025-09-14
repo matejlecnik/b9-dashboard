@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  try {
+    // Fetch detailed status from the Python API
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const response = await fetch(`${apiUrl}/api/scraper/status-detailed`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store'
+    })
+
+    if (!response.ok) {
+      // Return mock data for development
+      return NextResponse.json({
+        enabled: false,
+        status: 'stopped',
+        statistics: {
+          total_requests: 0,
+          successful_requests: 0,
+          failed_requests: 0,
+          subreddits_processed: 0,
+          posts_collected: 0,
+          users_discovered: 0,
+          daily_requests: 0,
+          processing_rate_per_hour: 0
+        },
+        queue_depths: {
+          priority: 0,
+          new_discovery: 0,
+          update: 0,
+          user_analysis: 0
+        },
+        total_queue_depth: 0,
+        accounts: {
+          count: 0,
+          proxies: 3
+        },
+        last_activity: null,
+        config: {
+          batch_size: 10,
+          delay_between_batches: 30,
+          max_daily_requests: 10000
+        }
+      })
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+
+  } catch (error) {
+    console.error('Error fetching scraper status:', error)
+
+    // Return default status
+    return NextResponse.json({
+      enabled: false,
+      status: 'stopped',
+      statistics: {
+        total_requests: 0,
+        successful_requests: 0,
+        failed_requests: 0,
+        subreddits_processed: 0,
+        posts_collected: 0,
+        users_discovered: 0,
+        daily_requests: 0,
+        processing_rate_per_hour: 0
+      },
+      queue_depths: {
+        priority: 0,
+        new_discovery: 0,
+        update: 0,
+        user_analysis: 0
+      },
+      total_queue_depth: 0,
+      accounts: {
+        count: 0,
+        proxies: 3
+      },
+      last_activity: null,
+      config: {
+        batch_size: 10,
+        delay_between_batches: 30,
+        max_daily_requests: 10000
+      }
+    })
+  }
+}

@@ -1,6 +1,19 @@
 {
   "buildCommand": "npm run build",
   "installCommand": "npm ci --prefer-offline --no-audit --legacy-peer-deps",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.b9-dashboard.com"
+        }
+      ],
+      "destination": "https://b9-dashboard.com/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

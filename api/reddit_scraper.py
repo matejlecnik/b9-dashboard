@@ -1314,7 +1314,6 @@ class ProxyEnabledMultiScraper:
         public_description = getattr(subreddit, 'public_description', None)
         description = getattr(subreddit, 'description', None)
         subscribers = getattr(subreddit, 'subscribers', 0) or 0
-        accounts_active = getattr(subreddit, 'accounts_active', None)
         created_ts = getattr(subreddit, 'created_utc', None)
         created_dt = datetime.fromtimestamp(created_ts, tz=timezone.utc) if created_ts else None
         over18 = getattr(subreddit, 'over18', False)
@@ -1384,34 +1383,101 @@ class ProxyEnabledMultiScraper:
         hot_count = 0
         collected_authors = set()
         posts_to_save = []
-        
+
+        # New metrics for improved accuracy
+        engagement_velocities = []
+        content_type_scores = {'image': [], 'video': [], 'text': [], 'link': []}
+        weighted_scores = []
+        weights = []
+
         async for submission in subreddit.hot(limit=30):
             hot_count += 1
             score = getattr(submission, 'score', 0) or 0
             num_comments = getattr(submission, 'num_comments', 0) or 0
             total_score += score
             total_comments += num_comments
-            
+
+            # Calculate engagement velocity (upvotes per hour)
+            created_ts = getattr(submission, 'created_utc', None)
+            if created_ts:
+                created_dt = datetime.fromtimestamp(created_ts, tz=timezone.utc)
+                age_hours = (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600
+                if age_hours > 0:
+                    velocity = score / age_hours
+                    engagement_velocities.append(velocity)
+
+                    # Weight recent posts more heavily for accuracy
+                    if age_hours <= 6:
+                        weight = 1.0
+                    elif age_hours <= 12:
+                        weight = 0.8
+                    elif age_hours <= 24:
+                        weight = 0.6
+                    else:
+                        weight = 0.4
+                    weighted_scores.append(score * weight)
+                    weights.append(weight)
+
+            # Track content type performance
+            is_self = getattr(submission, 'is_self', False)
+            is_video = getattr(submission, 'is_video', False)
+            domain = getattr(submission, 'domain', None)
+            url = getattr(submission, 'url', None)
+
+            # Determine content type
+            content_type = 'text'
+            if is_video or domain in ['v.redd.it', 'youtube.com', 'youtu.be']:
+                content_type = 'video'
+            elif domain in ['i.redd.it', 'imgur.com'] or (url and any(url.endswith(ext) for ext in ['.jpg', '.png', '.gif', '.jpeg'])):
+                content_type = 'image'
+            elif not is_self and url:
+                content_type = 'link'
+
+            content_type_scores[content_type].append(score)
+
             # Collect author for discovery
             author = getattr(submission, 'author', None)
             if author and hasattr(author, 'name') and author.name not in ['[deleted]', '[removed]', None]:
                 collected_authors.add(author.name)
-            
+
             # Prepare post data for saving
             post_data = await self.extract_post_data(submission, name)
             posts_to_save.append(post_data)
-            
+
         # Save all posts to database
         if posts_to_save:
             await self.save_posts_batch(posts_to_save)
             logger.info(f"💾 Saved {len(posts_to_save)} posts from r/{name}")
-            
+
         self.stats['posts_analyzed'] += hot_count
 
+        # Calculate standard averages
         avg_upvotes_per_post = round(total_score / max(1, hot_count), 2)
         avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
         subscriber_engagement_ratio = round((total_score / max(1, subscribers)), 6)
         comment_to_upvote_ratio = round((total_comments / max(1, total_score if total_score else 1)), 6)
+
+        # Calculate new metrics
+        avg_engagement_velocity = round(sum(engagement_velocities) / len(engagement_velocities), 2) if engagement_velocities else 0
+
+        # Calculate content type averages
+        image_post_avg_score = round(sum(content_type_scores['image']) / len(content_type_scores['image']), 2) if content_type_scores['image'] else 0
+        video_post_avg_score = round(sum(content_type_scores['video']) / len(content_type_scores['video']), 2) if content_type_scores['video'] else 0
+        text_post_avg_score = round(sum(content_type_scores['text']) / len(content_type_scores['text']), 2) if content_type_scores['text'] else 0
+        link_post_avg_score = round(sum(content_type_scores['link']) / len(content_type_scores['link']), 2) if content_type_scores['link'] else 0
+
+        # Determine top content type
+        top_content_type = None
+        if content_type_scores:
+            type_averages = {}
+            for ctype, scores in content_type_scores.items():
+                if scores:
+                    type_averages[ctype] = sum(scores) / len(scores)
+            if type_averages:
+                top_content_type = max(type_averages, key=type_averages.get)
+
+        # Calculate weighted average (more accurate)
+        weighted_avg_upvotes = round(sum(weighted_scores) / sum(weights), 2) if weights else avg_upvotes_per_post
 
         # Top('year', 100) timing analysis and post saving
         hour_performance = defaultdict(list)
@@ -1478,11 +1544,10 @@ class ProxyEnabledMultiScraper:
                 'public_description': public_description,
                 'description': description,
                 'subscribers': subscribers,
-                'accounts_active': accounts_active,
                 'created_utc': created_dt.isoformat() if created_dt else None,
                 'over18': over18,
                 'allow_images': allow_images,
-                'verification_requiered': verification_requiered,
+                'verification_required_detected': verification_requiered,
                 'allow_videos': allow_videos,
                 'allow_polls': allow_polls,
                 'subreddit_type': subreddit_type,
@@ -1495,6 +1560,12 @@ class ProxyEnabledMultiScraper:
                 'avg_comments_per_post': avg_comments_per_post,
                 'subscriber_engagement_ratio': subscriber_engagement_ratio,
                 'comment_to_upvote_ratio': comment_to_upvote_ratio,
+                'avg_engagement_velocity': avg_engagement_velocity,  # New metric
+                'top_content_type': top_content_type,  # New metric
+                'image_post_avg_score': image_post_avg_score,  # New metric
+                'video_post_avg_score': video_post_avg_score,  # New metric
+                'text_post_avg_score': text_post_avg_score,  # New metric
+                'link_post_avg_score': link_post_avg_score,  # New metric
                 'best_posting_hour': best_hour,
                 'best_posting_day': best_day,
                 'last_scraped_at': datetime.now(timezone.utc).isoformat(),
@@ -2421,7 +2492,6 @@ class ProxyEnabledMultiScraper:
             public_description = subreddit_info.get('public_description')
             description = subreddit_info.get('description')
             subscribers = subreddit_info.get('subscribers', 0) or 0
-            accounts_active = subreddit_info.get('accounts_active')
             created_ts = subreddit_info.get('created_utc')
             created_dt = datetime.fromtimestamp(created_ts, tz=timezone.utc) if created_ts else None
             over18 = subreddit_info.get('over18', False)
@@ -2479,36 +2549,102 @@ class ProxyEnabledMultiScraper:
             hot_count = 0
             collected_authors = set()
             posts_to_save = []
-            
+
+            # New metrics for improved accuracy
+            engagement_velocities = []
+            content_type_scores = {'image': [], 'video': [], 'text': [], 'link': []}
+            weighted_scores = []
+            weights = []
+
             for post in hot_posts:
                 hot_count += 1
                 score = post.get('score', 0) or 0
                 num_comments = post.get('num_comments', 0) or 0
                 total_score += score
                 total_comments += num_comments
-                
+
+                # Calculate engagement velocity (upvotes per hour)
+                created_ts = post.get('created_utc')
+                if created_ts:
+                    created_dt = datetime.fromtimestamp(created_ts, tz=timezone.utc)
+                    age_hours = (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600
+                    if age_hours > 0:
+                        velocity = score / age_hours
+                        engagement_velocities.append(velocity)
+
+                        # Weight recent posts more heavily for accuracy
+                        if age_hours <= 6:
+                            weight = 1.0
+                        elif age_hours <= 12:
+                            weight = 0.8
+                        elif age_hours <= 24:
+                            weight = 0.6
+                        else:
+                            weight = 0.4
+                        weighted_scores.append(score * weight)
+                        weights.append(weight)
+
+                # Track content type performance
+                is_self = post.get('is_self', False)
+                is_video = post.get('is_video', False)
+                domain = post.get('domain')
+                url = post.get('url')
+
+                # Determine content type
+                content_type = 'text'
+                if is_video or domain in ['v.redd.it', 'youtube.com', 'youtu.be']:
+                    content_type = 'video'
+                elif domain in ['i.redd.it', 'imgur.com'] or (url and any(url.endswith(ext) for ext in ['.jpg', '.png', '.gif', '.jpeg'])):
+                    content_type = 'image'
+                elif not is_self and url:
+                    content_type = 'link'
+
+                content_type_scores[content_type].append(score)
+
                 # Collect author for discovery
                 author = post.get('author')
                 if author and author not in ['[deleted]', '[removed]', None]:
                     collected_authors.add(author)
-                
+
                 # Convert post data for database
                 post_data = self.convert_public_post_data(post, name)
                 if post_data:
                     posts_to_save.append(post_data)
-            
+
             # Save posts to database (synchronous version for threading)
             if posts_to_save:
                 self.save_posts_batch_sync(posts_to_save)
                 logger.info(f"💾 Saved {len(posts_to_save)} posts from r/{name}")
-            
+
             self.stats['posts_analyzed'] += hot_count
-            
-            # Calculate metrics
+
+            # Calculate standard averages
             avg_upvotes_per_post = round(total_score / max(1, hot_count), 2)
             avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
             subscriber_engagement_ratio = round((total_score / max(1, subscribers)), 6)
             comment_to_upvote_ratio = round((total_comments / max(1, total_score if total_score else 1)), 6)
+
+            # Calculate new metrics
+            avg_engagement_velocity = round(sum(engagement_velocities) / len(engagement_velocities), 2) if engagement_velocities else 0
+
+            # Calculate content type averages
+            image_post_avg_score = round(sum(content_type_scores['image']) / len(content_type_scores['image']), 2) if content_type_scores['image'] else 0
+            video_post_avg_score = round(sum(content_type_scores['video']) / len(content_type_scores['video']), 2) if content_type_scores['video'] else 0
+            text_post_avg_score = round(sum(content_type_scores['text']) / len(content_type_scores['text']), 2) if content_type_scores['text'] else 0
+            link_post_avg_score = round(sum(content_type_scores['link']) / len(content_type_scores['link']), 2) if content_type_scores['link'] else 0
+
+            # Determine top content type
+            top_content_type = None
+            if content_type_scores:
+                type_averages = {}
+                for ctype, scores in content_type_scores.items():
+                    if scores:
+                        type_averages[ctype] = sum(scores) / len(scores)
+                if type_averages:
+                    top_content_type = max(type_averages, key=type_averages.get)
+
+            # Calculate weighted average (more accurate)
+            weighted_avg_upvotes = round(sum(weighted_scores) / sum(weights), 2) if weights else avg_upvotes_per_post
             
             # Analyze top posts for timing and save them
             hour_performance = defaultdict(list)
@@ -2575,11 +2711,10 @@ class ProxyEnabledMultiScraper:
                     'public_description': public_description,
                     'description': description,
                     'subscribers': subscribers,
-                    'accounts_active': accounts_active,
                     'created_utc': created_dt.isoformat() if created_dt else None,
                     'over18': over18,
                     'allow_images': allow_images,
-                    'verification_requiered': verification_requiered,
+                    'verification_required_detected': verification_requiered,
                     'allow_videos': allow_videos,
                     'allow_polls': allow_polls,
                     'subreddit_type': subreddit_type,
@@ -2592,6 +2727,12 @@ class ProxyEnabledMultiScraper:
                     'avg_comments_per_post': avg_comments_per_post,
                     'subscriber_engagement_ratio': subscriber_engagement_ratio,
                     'comment_to_upvote_ratio': comment_to_upvote_ratio,
+                    'avg_engagement_velocity': avg_engagement_velocity,  # New metric
+                    'top_content_type': top_content_type,  # New metric
+                    'image_post_avg_score': image_post_avg_score,  # New metric
+                    'video_post_avg_score': video_post_avg_score,  # New metric
+                    'text_post_avg_score': text_post_avg_score,  # New metric
+                    'link_post_avg_score': link_post_avg_score,  # New metric
                     'best_posting_hour': best_hour,
                     'best_posting_day': best_day,
                     'last_scraped_at': datetime.now(timezone.utc).isoformat(),

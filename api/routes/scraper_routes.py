@@ -327,13 +327,57 @@ async def get_scraper_status(request: Request):
 
 @router.post("/start")
 async def start_scraper(request: Request):
-    """Start scraper (for compatibility with existing frontend)"""
-    return await start_continuous_scraping(request)
+    """Start scraper for 24/7 continuous operation"""
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from scraper_control import ScraperController
+
+        result = ScraperController.start()
+
+        if result["success"]:
+            logger.info("✅ Scraper started via API for 24/7 operation")
+            return {
+                "success": True,
+                "message": "Scraper started for continuous operation",
+                "status": "running",
+                "details": result["details"]
+            }
+        else:
+            logger.error(f"❌ Failed to start scraper: {result['message']}")
+            raise HTTPException(status_code=500, detail=result["message"])
+    except ImportError:
+        # Fallback to existing method if supervisor not available
+        logger.warning("Supervisor not available, using fallback method")
+        return await start_continuous_scraping(request)
 
 @router.post("/stop")
 async def stop_scraper(request: Request):
-    """Stop scraper (for compatibility with existing frontend)"""
-    return await stop_continuous_scraping(request)
+    """Stop the continuous scraper"""
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from scraper_control import ScraperController
+
+        result = ScraperController.stop()
+
+        if result["success"]:
+            logger.info("✅ Scraper stopped via API")
+            return {
+                "success": True,
+                "message": "Scraper stopped",
+                "status": "stopped",
+                "details": result["details"]
+            }
+        else:
+            logger.error(f"❌ Failed to stop scraper: {result['message']}")
+            raise HTTPException(status_code=500, detail=result["message"])
+    except ImportError:
+        # Fallback to existing method if supervisor not available
+        logger.warning("Supervisor not available, using fallback method")
+        return await stop_continuous_scraping(request)
 
 @router.delete("/errors")
 async def clear_errors(request: Request):
@@ -351,30 +395,167 @@ async def clear_errors(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/logs")
-async def get_scraper_logs(request: Request, limit: int = 50):
-    """Get recent scraper logs"""
+async def get_scraper_logs(request: Request, lines: int = 100, level: Optional[str] = None, search: Optional[str] = None):
+    """Get recent scraper logs from Supabase"""
+    try:
+        from supabase import create_client
+        import os
+
+        # Create Supabase client
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+        if not supabase_url or not supabase_key:
+            # Fallback to Redis if Supabase not configured
+            return await get_scraper_logs_from_redis(request, lines)
+
+        supabase = create_client(supabase_url, supabase_key)
+
+        # Build query
+        query = supabase.table('reddit_scraper_logs').select('*').order('timestamp', desc=True).limit(lines)
+
+        # Add filters if provided
+        if level and level != 'all':
+            query = query.eq('level', level)
+
+        if search:
+            query = query.ilike('message', f'%{search}%')
+
+        # Execute query
+        response = query.execute()
+
+        structured_logs = []
+        for log in response.data:
+            # Format log entry
+            formatted_log = {
+                "id": log.get('id'),
+                "timestamp": log.get('timestamp', datetime.now(timezone.utc).isoformat()),
+                "level": log.get('level', 'info'),
+                "message": log.get('message', ''),
+                "source": log.get('source', 'scraper')
+            }
+
+            # Add context if available
+            if log.get('context'):
+                context = log['context']
+
+                # Enhance message with context details
+                if 'subreddit' in context:
+                    formatted_log['message'] = f"[r/{context['subreddit']}] {formatted_log['message']}"
+                elif 'reddit_subreddits' in context:
+                    subs = context['reddit_subreddits'][:3]  # Show first 3
+                    formatted_log['message'] = f"[{', '.join(subs)}...] {formatted_log['message']}"
+
+                # Add stats to message if available
+                if 'posts_collected' in context:
+                    formatted_log['message'] += f" ({context['posts_collected']} posts)"
+                if 'processing_time_ms' in context:
+                    formatted_log['message'] += f" [{context['processing_time_ms']}ms]"
+                if 'error' in context:
+                    formatted_log['message'] += f" - {context['error']}"
+
+            structured_logs.append(formatted_log)
+
+        return {
+            "success": True,
+            "logs": structured_logs,
+            "lines": lines,
+            "source": "supabase"
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching logs from Supabase: {e}")
+        # Fallback to Redis
+        return await get_scraper_logs_from_redis(request, lines)
+
+async def get_scraper_logs_from_redis(request: Request, lines: int = 100):
+    """Fallback method to get logs from Redis"""
     try:
         client = await get_redis_client()
+        logs_raw = await client.lrange('reddit_scraper_logs', 0, lines - 1)
 
-        # Get logs from Redis list
-        logs_raw = await client.lrange('reddit_scraper_logs', 0, limit - 1)
-
-        logs = []
+        structured_logs = []
         for log_data in logs_raw:
             try:
                 log = json.loads(log_data)
-                logs.append(log)
+                formatted_log = {
+                    "timestamp": log.get('timestamp', datetime.now(timezone.utc).isoformat()),
+                    "level": log.get('level', 'info'),
+                    "message": log.get('message', ''),
+                    "source": log.get('source', 'scraper')
+                }
+                structured_logs.append(formatted_log)
             except:
                 continue
 
+        # Try to get supervisor logs as supplementary source
+        try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from scraper_control import ScraperController
+            supervisor_result = ScraperController.get_logs(20)  # Get last 20 supervisor logs
+
+            if supervisor_result.get("success") and supervisor_result.get("logs"):
+                import re
+                for log_line in supervisor_result["logs"][-10:]:  # Add last 10 supervisor logs
+                    if log_line.strip():
+                        # Parse supervisor log format
+                        match = re.match(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (\w+) - (.+)', log_line)
+
+                        if match:
+                            timestamp_str, level_str, message = match.groups()
+                            try:
+                                dt = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
+                                timestamp = dt.replace(tzinfo=timezone.utc).isoformat()
+                            except:
+                                timestamp = datetime.now(timezone.utc).isoformat()
+
+                            # Determine log level
+                            level = 'info'
+                            if '✅' in message or 'SUCCESS' in message or 'Successfully' in message:
+                                level = 'success'
+                            elif '❌' in message or 'ERROR' in message or 'Failed' in message:
+                                level = 'error'
+                            elif '⚠️' in message or 'WARNING' in message:
+                                level = 'warning'
+                            elif '🔍' in message or '🔎' in message:
+                                level = 'info'
+                            elif '📦' in message or '📋' in message:
+                                level = 'debug'
+
+                            structured_logs.append({
+                                "timestamp": timestamp,
+                                "level": level,
+                                "message": message,
+                                "source": "supervisor"
+                            })
+        except ImportError:
+            pass  # Supervisor not available
+        except Exception as e:
+            logger.debug(f"Could not get supervisor logs: {e}")
+
+        # Sort logs by timestamp (newest first)
+        structured_logs.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        # Limit to requested number of lines
+        structured_logs = structured_logs[:lines]
+
         return {
-            "logs": logs,
-            "total": len(logs),
+            "success": True,
+            "logs": structured_logs,
+            "total": len(structured_logs),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+
     except Exception as e:
         logger.error(f"Failed to get logs: {e}")
-        return {"logs": [], "total": 0}
+        return {
+            "success": False,
+            "logs": [],
+            "total": 0,
+            "error": str(e)
+        }
 
 @router.post("/log")
 async def add_scraper_log(request: Request,
