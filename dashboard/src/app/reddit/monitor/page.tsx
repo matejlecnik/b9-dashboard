@@ -187,8 +187,12 @@ export default function RedditMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
-      const res = await fetch(endpoint, { method: 'POST' })
+      // Use the render-control endpoint that syncs with Render
+      const res = await fetch('/api/scraper/render-control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
 
       if (res.ok) {
         const result = await res.json()
@@ -251,18 +255,18 @@ export default function RedditMonitor() {
 
   // Check scraper status on mount
   useEffect(() => {
-    // Check initial scraper status by trying to start it
+    // Check initial scraper status from Render
     const checkInitialStatus = async () => {
       try {
-        const res = await fetch('/api/scraper/start', { method: 'POST' })
-        if (res.ok) {
-          const result = await res.json()
-          // If it says "already started", the scraper is running
-          if (result.details && result.details.includes('already started')) {
-            setIsRunning(true)
+        // First check the Render control endpoint for actual state
+        const renderRes = await fetch('/api/scraper/render-control')
+        if (renderRes.ok) {
+          const renderStatus = await renderRes.json()
+          if (renderStatus.success) {
+            setIsRunning(renderStatus.scraperEnabled)
             setManualOverride(true)
-            // Clear override after 10 seconds
-            setTimeout(() => setManualOverride(false), 10000)
+            // Clear override after 5 seconds to allow status updates
+            setTimeout(() => setManualOverride(false), 5000)
           }
         }
       } catch (error) {
@@ -270,13 +274,17 @@ export default function RedditMonitor() {
       }
     }
 
-    // Run both checks
+    // Run initial checks
     checkInitialStatus()
     fetchMetrics()
     calculateSuccessRate()
 
     const interval = setInterval(() => {
       fetchMetrics()
+      // Also check scraper status periodically if not manually overridden
+      if (!manualOverride) {
+        checkInitialStatus()
+      }
     }, 10000) // Refresh metrics every 10 seconds
 
     // Calculate success rate less frequently since it doesn't need to be live
@@ -288,7 +296,7 @@ export default function RedditMonitor() {
       clearInterval(interval)
       clearInterval(successInterval)
     }
-  }, []) // Remove dependencies to prevent infinite loop
+  }, [manualOverride]) // Include manualOverride as dependency
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
