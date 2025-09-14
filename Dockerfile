@@ -53,7 +53,6 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY --chown=app:app api/ ./api/
-COPY --chown=app:app scraper/ ./scraper/
 
 # Create necessary directories
 RUN mkdir -p logs /var/log/supervisor && \
