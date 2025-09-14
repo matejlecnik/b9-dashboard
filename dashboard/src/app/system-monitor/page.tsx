@@ -181,49 +181,6 @@ export default function SystemMonitor() {
             </Button>
           </div>
 
-          {/* Status Bar */}
-          {metrics && (
-            <div className="flex items-center gap-4 text-sm">
-              {/* Status */}
-              <div className="flex items-center gap-2">
-                <div className={`h-2.5 w-2.5 rounded-full ${
-                  isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                }`} />
-                <span className="text-gray-600">
-                  {isRunning ? 'Running' : 'Stopped'}
-                </span>
-              </div>
-
-              {/* Queue */}
-              <div className="text-gray-600">
-                Queue: <span className="font-medium text-gray-900">
-                  {formatNumber(metrics.total_queue_depth)}
-                </span>
-              </div>
-
-              {/* Daily Progress */}
-              <div className="text-gray-600">
-                Today: <span className="font-medium text-gray-900">
-                  {formatNumber(metrics.statistics.daily_requests)}
-                </span> / {formatNumber(metrics.config?.max_daily_requests || 10000)}
-              </div>
-
-              {/* Processing Rate */}
-              <div className="text-gray-600">
-                Rate: <span className="font-medium text-gray-900">
-                  {metrics.statistics.processing_rate_per_hour.toFixed(0)}/hr
-                </span>
-              </div>
-
-              {/* Last Activity */}
-              {metrics.last_activity && (
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <Clock className="h-3.5 w-3.5" />
-                  {new Date(metrics.last_activity).toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Live Logs - Main Focus */}
