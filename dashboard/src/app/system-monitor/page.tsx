@@ -67,7 +67,10 @@ export default function SystemMonitor() {
       if (statusRes.ok) {
         const data = await statusRes.json()
         setMetrics(data)
-        setIsRunning(data.enabled && data.status === 'running')
+        // Consider scraper running if status is 'running' OR if there's recent activity
+        const hasRecentActivity = data.last_activity &&
+          (new Date().getTime() - new Date(data.last_activity).getTime() < 60000) // Active within last minute
+        setIsRunning(data.status === 'running' || hasRecentActivity)
       }
     } catch (error) {
       console.error('Failed to fetch metrics:', error)
@@ -79,6 +82,11 @@ export default function SystemMonitor() {
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
       setLoading(true)
+
+      // Optimistically update the UI immediately
+      const newRunningState = action === 'start'
+      setIsRunning(newRunningState)
+
       const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
       const res = await fetch(endpoint, { method: 'POST' })
 
@@ -87,7 +95,7 @@ export default function SystemMonitor() {
 
         // Update state based on actual response
         if (result.success !== false) {
-          setIsRunning(action === 'start')
+          // Keep the optimistic update
           addToast({
             title: `Scraper ${action === 'start' ? 'Started Successfully' : 'Stopped Successfully'}`,
             description: action === 'start'
@@ -95,7 +103,13 @@ export default function SystemMonitor() {
               : '⏹️ Scraper has been stopped. No new data will be collected.',
             type: 'success'
           })
+
+          // Don't call fetchMetrics immediately as it might override our state
+          // Let the periodic refresh handle it
         } else {
+          // Revert optimistic update on failure
+          setIsRunning(!newRunningState)
+
           // Handle API success but operation failed
           addToast({
             title: `Failed to ${action} scraper`,
@@ -103,10 +117,10 @@ export default function SystemMonitor() {
             type: 'error'
           })
         }
-
-        // Always refresh metrics after action
-        await fetchMetrics()
       } else {
+        // Revert optimistic update on HTTP error
+        setIsRunning(!newRunningState)
+
         // Handle HTTP error
         const errorData = await res.json().catch(() => ({}))
         addToast({
@@ -116,6 +130,9 @@ export default function SystemMonitor() {
         })
       }
     } catch (error) {
+      // Revert optimistic update on network error
+      setIsRunning(action !== 'start')
+
       console.error('Scraper control error:', error)
       addToast({
         title: `Failed to ${action} scraper`,

@@ -335,6 +335,37 @@ export default function SubredditReviewPage() {
           // Add to removing list for fade effect
           setRemovingIds(prev => new Set([...prev, id]))
 
+          // Update counts locally immediately
+          setReviewCounts(prev => {
+            const updates = { ...prev }
+            // Decrease the current filter count
+            if (currentFilter === 'unreviewed') {
+              updates.unreviewed = Math.max(0, prev.unreviewed - 1)
+            } else if (currentFilter === 'ok') {
+              updates.ok = Math.max(0, prev.ok - 1)
+            } else if (currentFilter === 'non_related') {
+              updates.non_related = Math.max(0, prev.non_related - 1)
+            } else if (currentFilter === 'no_seller') {
+              updates.no_seller = Math.max(0, prev.no_seller - 1)
+            }
+
+            // Increase the new category count
+            if (review === 'Ok') {
+              updates.ok = prev.ok + 1
+            } else if (review === 'Non Related') {
+              updates.non_related = prev.non_related + 1
+            } else if (review === 'No Seller') {
+              updates.no_seller = prev.no_seller + 1
+            }
+
+            // If moving from unreviewed, decrease unreviewed count
+            if (!subreddit?.review) {
+              updates.unreviewed = Math.max(0, prev.unreviewed - 1)
+            }
+
+            return updates
+          })
+
           // Delay actual removal for smooth transition
           setTimeout(() => {
             setSubreddits(prev => prev.filter(sub => sub.id !== id))
@@ -368,7 +399,7 @@ export default function SubredditReviewPage() {
           description: `Failed to update ${subreddit?.display_name_prefixed}. Please try again.`,
           duration: 5000
         })
-        fetchSubreddits()
+        // Don't refresh the entire page on error - let user retry
       }
     })
   }, [subreddits, handleAsyncOperation, fetchSubreddits, addToast, currentFilter])
@@ -432,9 +463,60 @@ export default function SubredditReviewPage() {
             onClick: () => { void undoLastActionRef.current?.() }
           }
         })
-        // Refresh data and counts after bulk change
-        fetchSubreddits(0, false)
-        fetchCounts()
+        // Update counts locally for bulk changes
+        setReviewCounts(prev => {
+          const updates = { ...prev }
+
+          // Calculate count changes based on the review changes
+          ids.forEach(id => {
+            const sub = subreddits.find(s => s.id === id)
+            if (sub) {
+              // Decrease old category count
+              if (!sub.review) {
+                updates.unreviewed = Math.max(0, updates.unreviewed - 1)
+              } else if (sub.review === 'Ok') {
+                updates.ok = Math.max(0, updates.ok - 1)
+              } else if (sub.review === 'Non Related') {
+                updates.non_related = Math.max(0, updates.non_related - 1)
+              } else if (sub.review === 'No Seller') {
+                updates.no_seller = Math.max(0, updates.no_seller - 1)
+              }
+
+              // Increase new category count
+              if (review === 'Ok') {
+                updates.ok = updates.ok + 1
+              } else if (review === 'Non Related') {
+                updates.non_related = updates.non_related + 1
+              } else if (review === 'No Seller') {
+                updates.no_seller = updates.no_seller + 1
+              }
+            }
+          })
+
+          return updates
+        })
+
+        // Remove items from view if they no longer match filter
+        if (currentFilter === 'unreviewed' ||
+            (currentFilter === 'ok' && review !== 'Ok') ||
+            (currentFilter === 'non_related' && review !== 'Non Related') ||
+            (currentFilter === 'no_seller' && review !== 'No Seller')) {
+
+          // Add to removing list for fade effect
+          ids.forEach(id => {
+            setRemovingIds(prev => new Set([...prev, id]))
+          })
+
+          // Delay actual removal for smooth transition
+          setTimeout(() => {
+            setSubreddits(prev => prev.filter(sub => !ids.includes(sub.id)))
+            setRemovingIds(prev => {
+              const next = new Set(prev)
+              ids.forEach(id => next.delete(id))
+              return next
+            })
+          }, 300)
+        }
       },
       onError: (error) => {
         console.error('❌ [Frontend] Bulk review update failed:', error)
