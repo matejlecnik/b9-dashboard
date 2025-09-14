@@ -186,7 +186,7 @@ class ScraperController:
     def get_logs(lines: int = 100) -> Dict[str, Any]:
         """Get recent logs from the scraper"""
         try:
-            log_file = "/var/log/supervisor/scraper.log"
+            log_file = "/app/logs/scraper.log"
 
             if os.path.exists(log_file):
                 # Get last N lines of log file
