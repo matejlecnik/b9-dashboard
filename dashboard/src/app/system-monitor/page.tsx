@@ -78,25 +78,52 @@ export default function SystemMonitor() {
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
+      setLoading(true)
       const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
       const res = await fetch(endpoint, { method: 'POST' })
 
       if (res.ok) {
-        setIsRunning(action === 'start')
-        addToast({
-          title: `Scraper ${action === 'start' ? 'started' : 'stopped'}`,
-          description: action === 'start'
-            ? 'Continuous 24/7 scraping is now active'
-            : 'Scraper has been stopped',
-          type: 'success'
-        })
+        const result = await res.json()
+
+        // Update state based on actual response
+        if (result.success !== false) {
+          setIsRunning(action === 'start')
+          addToast({
+            title: `Scraper ${action === 'start' ? 'Started Successfully' : 'Stopped Successfully'}`,
+            description: action === 'start'
+              ? '✅ Continuous 24/7 scraping is now active. The scraper will process subreddits automatically.'
+              : '⏹️ Scraper has been stopped. No new data will be collected.',
+            type: 'success'
+          })
+        } else {
+          // Handle API success but operation failed
+          addToast({
+            title: `Failed to ${action} scraper`,
+            description: result.message || result.detail || 'Operation failed. Please check the logs.',
+            type: 'error'
+          })
+        }
+
+        // Always refresh metrics after action
         await fetchMetrics()
+      } else {
+        // Handle HTTP error
+        const errorData = await res.json().catch(() => ({}))
+        addToast({
+          title: `Failed to ${action} scraper`,
+          description: errorData.detail || errorData.message || `HTTP ${res.status} error`,
+          type: 'error'
+        })
       }
-    } catch {
+    } catch (error) {
+      console.error('Scraper control error:', error)
       addToast({
         title: `Failed to ${action} scraper`,
+        description: 'Network error or server is not responding',
         type: 'error'
       })
+    } finally {
+      setLoading(false)
     }
   }
 

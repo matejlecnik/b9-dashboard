@@ -122,56 +122,48 @@ function ToastCard({ toast, onClose }: ToastCardProps) {
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-pink-500" />
+        return <CheckCircle className="h-5 w-5 text-gray-700/80" />
       case 'error':
-        return <XCircle className="h-5 w-5 text-gray-800" />
+        return <XCircle className="h-5 w-5 text-gray-800/80" />
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-gray-600" />
+        return <AlertCircle className="h-5 w-5 text-gray-700/80" />
       case 'info':
       default:
-        return <Info className="h-5 w-5 text-gray-600" />
-    }
-  }
-
-  const getBackgroundColor = () => {
-    switch (toast.type) {
-      case 'success':
-        return 'bg-pink-50 border-pink-200'
-      case 'error':
-        return 'bg-gray-100 border-gray-300'
-      case 'warning':
-        return 'bg-gray-50 border-gray-200'
-      case 'info':
-      default:
-        return 'bg-gray-50 border-gray-200'
+        return <Info className="h-5 w-5 text-gray-600/80" />
     }
   }
 
   return (
     <div
       className={`
-        ${getBackgroundColor()}
-        rounded-lg border p-4 shadow-lg backdrop-blur-sm
+        rounded-xl border border-white/20 p-4
+        shadow-2xl backdrop-blur-xl backdrop-saturate-150
         transform transition-all duration-200 ease-out
-        ${isVisible 
-          ? 'translate-x-0 opacity-100' 
+        ${isVisible
+          ? 'translate-x-0 opacity-100'
           : 'translate-x-full opacity-0'
         }
       `}
+      style={{
+        background: 'linear-gradient(135deg, rgba(249, 250, 251, 0.4) 0%, rgba(243, 244, 246, 0.3) 50%, rgba(249, 250, 251, 0.25) 100%)',
+        backdropFilter: 'blur(20px) saturate(1.8)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1)',
+      }}
     >
       <div className="flex items-start space-x-3">
         {getIcon()}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-gray-900">
+            <h4 className="text-sm font-semibold text-gray-800">
               {toast.title}
             </h4>
             <div className="flex items-center gap-2">
               {toast.action && (
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-xs hover:bg-gray-100"
+                  className="h-6 px-2 text-xs hover:bg-gray-200/50 text-gray-700 font-medium"
                   onClick={() => {
                     try { toast.action?.onClick() } finally { handleClose() }
                   }}
@@ -180,9 +172,9 @@ function ToastCard({ toast, onClose }: ToastCardProps) {
                 </Button>
               )}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="p-1 h-6 w-6 hover:bg-gray-100 border-0"
+                className="p-1 h-6 w-6 hover:bg-gray-200/50 text-gray-500"
                 onClick={handleClose}
               >
                 <X className="h-3 w-3" />
@@ -190,7 +182,7 @@ function ToastCard({ toast, onClose }: ToastCardProps) {
             </div>
           </div>
           {toast.description && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600/90 mt-1">
               {toast.description}
             </p>
           )}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, type Subreddit } from '@/lib/supabase'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { MetricsCards } from '@/components/MetricsCards'
 import { UniversalTable, createSubredditReviewTable } from '@/components/UniversalTable'
 import { BulkActionsToolbar } from '@/components/BulkActionsToolbar'
@@ -12,7 +13,6 @@ import { MetricsCardsSkeleton, TableSkeleton } from '@/components/UniversalLoadi
 import { useErrorHandler } from '@/lib/errorUtils'
 import { ComponentErrorBoundary } from '@/components/UniversalErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller'
 type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | null
@@ -53,6 +53,8 @@ export default function SubredditReviewPage() {
   const undoLastActionRef = useRef<() => Promise<void>>(() => Promise.resolve())
   // Ref to track if a fetch is already in progress
   const fetchInProgressRef = useRef(false)
+  // Ref to track our own updates to avoid refetching
+  const recentlyUpdatedIdsRef = useRef<Set<number>>(new Set())
   
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
@@ -309,6 +311,13 @@ export default function SubredditReviewPage() {
       context: 'review_update',
       showToast: false,
       onSuccess: ({ subreddit, review }) => {
+        // Track this as our own update
+        recentlyUpdatedIdsRef.current.add(id)
+        // Clear after a short delay
+        setTimeout(() => {
+          recentlyUpdatedIdsRef.current.delete(id)
+        }, 2000)
+
         // Prepare undo details
         const prevReview: ReviewValue = subreddit?.review ?? null
         setLastAction({ type: 'single', items: [{ id, prevReview }] })
@@ -385,6 +394,17 @@ export default function SubredditReviewPage() {
       context: 'bulk_review_update_api',
       showToast: false,
       onSuccess: (result) => {
+        // Track these as our own updates
+        ids.forEach(id => {
+          recentlyUpdatedIdsRef.current.add(id)
+        })
+        // Clear after a short delay
+        setTimeout(() => {
+          ids.forEach(id => {
+            recentlyUpdatedIdsRef.current.delete(id)
+          })
+        }, 2000)
+
         setLastAction({ type: 'bulk', items: prevItems })
         setSelectedSubreddits(new Set())
         addToast({
@@ -433,49 +453,76 @@ export default function SubredditReviewPage() {
       console.error('❌ [REVIEW] fetchSubreddits failed:', error)
     })
     
+    // Smart Supabase subscription that only handles external updates
     let channel: RealtimeChannel | null = null
-    // Only set up subscription if supabase is available
     if (supabase) {
       channel = supabase
         .channel('subreddit-changes')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'reddit_subreddits' },
-          (() => {
-            // Coalesce rapid events into a single refresh every 1000ms
-            let timer: ReturnType<typeof setTimeout> | null = null
-            let pending = false
-            return () => {
-              pending = true
-              if (timer) clearTimeout(timer)
-              timer = setTimeout(() => {
-                if (pending) {
-                  pending = false
-                  setCurrentPage(0)
-                  setHasMore(true)
-                  fetchSubreddits(0, false)
-                }
-              }, 1000)
+          { event: 'UPDATE', schema: 'public', table: 'reddit_subreddits' },
+          (payload) => {
+            const updatedId = payload.new.id as number
+
+            // Check if this was our own update
+            if (recentlyUpdatedIdsRef.current.has(updatedId)) {
+              console.log('🔄 [REVIEW] Ignoring own update for subreddit', updatedId)
+              return
             }
-          })()
+
+            // For external updates, handle them smartly based on filter
+            const newReview = payload.new.review as ReviewValue
+            const oldReview = payload.old.review as ReviewValue
+
+            console.log('🔄 [REVIEW] External update detected:', { id: updatedId, oldReview, newReview })
+
+            // Handle the update based on current filter
+            setSubreddits(prev => {
+              // If we're in unreviewed filter and item becomes reviewed, remove it
+              if (currentFilter === 'unreviewed' && newReview !== null) {
+                return prev.filter(sub => sub.id !== updatedId)
+              }
+              // If we're in a specific review filter and item no longer matches, remove it
+              if (currentFilter === 'ok' && newReview !== 'Ok') {
+                return prev.filter(sub => sub.id !== updatedId)
+              }
+              if (currentFilter === 'non_related' && newReview !== 'Non Related') {
+                return prev.filter(sub => sub.id !== updatedId)
+              }
+              if (currentFilter === 'no_seller' && newReview !== 'No Seller') {
+                return prev.filter(sub => sub.id !== updatedId)
+              }
+              // Otherwise, update the item in place
+              return prev.map(sub =>
+                sub.id === updatedId
+                  ? { ...sub, ...payload.new } as Subreddit
+                  : sub
+              )
+            })
+
+            // Update counts if needed
+            if (oldReview !== newReview) {
+              fetchCounts().catch(console.error)
+            }
+          }
         )
         .subscribe()
     }
 
-    const refreshInterval = setInterval(() => { 
+    // Keep 5-minute interval refresh for catching external changes
+    const refreshInterval = setInterval(() => {
       setCurrentPage(0)
       setHasMore(true)
-      fetchSubreddits(0, false) 
+      fetchSubreddits(0, false)
     }, 300000)
-    
+
     return () => {
-      // Safely cleanup subscription
       if (channel && supabase) {
         supabase.removeChannel(channel)
       }
       clearInterval(refreshInterval)
     }
-  }, [currentFilter, debouncedSearchQuery, fetchSubreddits])
+  }, [currentFilter, debouncedSearchQuery, fetchSubreddits, fetchCounts])
 
 
   return (
