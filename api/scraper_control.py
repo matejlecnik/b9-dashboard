@@ -29,7 +29,7 @@ class ScraperController:
         try:
             # Check supervisor status for scraper program
             result = subprocess.run(
-                ['supervisorctl', 'status', 'scraper'],
+                ['/usr/local/bin/supervisorctl', '-c', '/etc/supervisor/conf.d/supervisord.conf', 'status', 'scraper'],
                 capture_output=True,
                 text=True,
                 check=False
@@ -83,7 +83,7 @@ class ScraperController:
         try:
             # Start scraper via supervisor
             result = subprocess.run(
-                ['supervisorctl', 'start', 'scraper'],
+                ['/usr/local/bin/supervisorctl', '-c', '/etc/supervisor/conf.d/supervisord.conf', 'start', 'scraper'],
                 capture_output=True,
                 text=True,
                 check=False
@@ -118,7 +118,7 @@ class ScraperController:
         try:
             # Stop scraper via supervisor
             result = subprocess.run(
-                ['supervisorctl', 'stop', 'scraper'],
+                ['/usr/local/bin/supervisorctl', '-c', '/etc/supervisor/conf.d/supervisord.conf', 'stop', 'scraper'],
                 capture_output=True,
                 text=True,
                 check=False
@@ -153,7 +153,7 @@ class ScraperController:
         try:
             # Restart scraper via supervisor
             result = subprocess.run(
-                ['supervisorctl', 'restart', 'scraper'],
+                ['/usr/local/bin/supervisorctl', '-c', '/etc/supervisor/conf.d/supervisord.conf', 'restart', 'scraper'],
                 capture_output=True,
                 text=True,
                 check=False

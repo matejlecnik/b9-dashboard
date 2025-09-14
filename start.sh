@@ -8,8 +8,8 @@ echo "🚀 Starting B9 Dashboard Services..."
 export PYTHONUNBUFFERED=1
 export PATH=/usr/local/bin:$PATH
 
-# Ensure log directories exist
-mkdir -p /var/log/supervisor /app/logs
+# Ensure log directories exist (only app-writable directories)
+mkdir -p /app/logs
 
 # Start supervisord
 echo "📦 Starting supervisor..."
