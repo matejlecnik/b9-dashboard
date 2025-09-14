@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest) {
 
     // Fetch existing subreddits for audit trail and validation
     const { data: existingSubreddits, error: fetchError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id, name, display_name_prefixed, review')
       .in('id', subredditIds)
 
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { data: updatedSubreddits, error: updateError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .update(updateData)
       .in('id', subredditIds)
       .select('id, name, display_name_prefixed, review')
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch subreddits that would be affected
     const { data: subreddits, error } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id, name, display_name_prefixed, review, subscribers, avg_upvotes_per_post')
       .in('id', subredditIds)
 

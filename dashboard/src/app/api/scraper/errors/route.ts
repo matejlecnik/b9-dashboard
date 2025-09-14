@@ -14,7 +14,7 @@ export async function GET() {
 
     // Get recent error logs
     const { data: errors, error } = await supabase
-      .from('scraper_logs')
+      .from('reddit_scraper_logs')
       .select('timestamp, message, context, level')
       .eq('level', 'error')
       .order('timestamp', { ascending: false })
@@ -58,7 +58,7 @@ export async function DELETE() {
     const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     
     const { data, error: deleteError } = await supabase
-      .from('scraper_logs')
+      .from('reddit_scraper_logs')
       .delete()
       .eq('level', 'error')
       .lt('timestamp', cutoffTime)
@@ -73,7 +73,7 @@ export async function DELETE() {
 
     // Log the clear operation
     const { error: logError } = await supabase
-      .from('scraper_logs')
+      .from('reddit_scraper_logs')
       .insert([{
         level: 'info',
         message: 'Error logs cleared via dashboard',

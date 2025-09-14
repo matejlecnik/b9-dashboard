@@ -247,6 +247,50 @@ export default function CategorizationPage() {
     }
   }, [debouncedSearchQuery, selectedCategories, addToast])
 
+  // Update review for single subreddit
+  const updateReview = useCallback(async (id: number, reviewText: string) => {
+    const subreddit = subreddits.find(sub => sub.id === id)
+
+    await handleAsyncOperation(async () => {
+      const response = await fetch(`/api/subreddits/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ review: reviewText })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to update review')
+      }
+
+      return { subreddit, reviewText }
+    }, {
+      context: 'review_update',
+      showToast: false,
+      onSuccess: ({ subreddit, reviewText }) => {
+        // Optimistic update
+        setSubreddits(prev => prev.map(sub =>
+          sub.id === id
+            ? { ...sub, review: reviewText as 'Ok' | 'No Seller' | 'Non Related' }
+            : sub
+        ))
+
+        addToast({
+          type: 'success',
+          title: 'Review Updated',
+          description: `${subreddit?.display_name_prefixed} marked as ${reviewText}`,
+          duration: 3000
+        })
+      },
+      onError: () => {
+        fetchSubreddits(0, false)
+      }
+    })
+  }, [subreddits, handleAsyncOperation, addToast, fetchSubreddits])
+
   // Update category for single subreddit
   const updateCategory = useCallback(async (id: number, categoryText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
@@ -257,7 +301,7 @@ export default function CategorizationPage() {
       }
       
       const { error } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .update({ category_text: categoryText })
         .eq('id', id)
       if (error) throw new Error(`Failed to update category: ${error.message}`)
@@ -493,7 +537,7 @@ export default function CategorizationPage() {
       }
       
       const { error } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .update({ category_text: categoryText })
         .in('id', selectedIds)
       if (error) throw new Error(`Failed to update categories: ${error.message}`)
@@ -735,6 +779,7 @@ export default function CategorizationPage() {
                     selectedSubreddits,
                     setSelectedSubreddits,
                     onUpdateCategory: updateCategory,
+                    onUpdateReview: updateReview,
                     availableCategories,
                     loading,
                     hasMore,

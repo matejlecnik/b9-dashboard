@@ -89,7 +89,7 @@ export async function PATCH(
 
     // Check if category exists
     const { data: existingCategory, error: existingError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('*')
       .eq('id', id)
       .maybeSingle()
@@ -127,7 +127,7 @@ export async function PATCH(
       // Check for duplicates (excluding current category)
       if (normalizedKey !== existingCategory.normalized_name) {
         const { data: duplicate, error: duplicateError } = await supabase
-          .from('categories')
+          .from('reddit_categories')
           .select('id, name')
           .eq('normalized_name', normalizedKey)
           .neq('id', id)
@@ -185,7 +185,7 @@ export async function PATCH(
         }
 
         const { data: parent, error: parentError } = await supabase
-          .from('categories')
+          .from('reddit_categories')
           .select('id, parent_id')
           .eq('id', parent_id)
           .maybeSingle()
@@ -231,7 +231,7 @@ export async function PATCH(
 
     // Perform the update
     const { data: category, error } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -282,7 +282,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     
     // Check if category exists
     const { data: category, error: fetchError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('id, name')
       .eq('id', id)
       .maybeSingle()
@@ -304,7 +304,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Check if any subreddits reference this category
     const { data: subredditsUsingCategory, error: subredditError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id')
       .eq('category_id', id)
       .limit(5)
@@ -321,7 +321,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Check if any child categories exist
     const { data: childCategories, error: childError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('id')
       .eq('parent_id', id)
       .limit(1)
@@ -353,7 +353,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Delete the category
     const { error: deleteError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .delete()
       .eq('id', id)
 
@@ -404,7 +404,7 @@ export async function GET(
     }
 
     const { data: category, error } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('*')
       .eq('id', id)
       .maybeSingle()

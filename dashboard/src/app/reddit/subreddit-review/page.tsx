@@ -440,7 +440,7 @@ export default function SubredditReviewPage() {
         .channel('subreddit-changes')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'subreddits' },
+          { event: '*', schema: 'public', table: 'reddit_subreddits' },
           (() => {
             // Coalesce rapid events into a single refresh every 1000ms
             let timer: ReturnType<typeof setTimeout> | null = null

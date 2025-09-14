@@ -213,7 +213,7 @@ class RateLimiter:
         stats = {
             "enabled": self.is_enabled,
             "connected": self.is_connected,
-            "categories": self.default_limits
+            "reddit_categories": self.default_limits
         }
         
         if self.is_connected:

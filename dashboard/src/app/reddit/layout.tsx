@@ -1,10 +1,16 @@
 import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/auth'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Reddit Dashboard - B9 Agency',
+  description: 'Reddit marketing analytics platform for OnlyFans creator audience discovery',
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function ProtectedLayout({
+export default async function RedditDashboardLayout({
   children,
 }: {
   children: React.ReactNode

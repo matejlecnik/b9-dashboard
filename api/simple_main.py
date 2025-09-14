@@ -66,7 +66,7 @@ async def get_categorization_stats():
         "uncategorized_count": 125,
         "categorized_count": 300,
         "total_subreddits": 425,
-        "categories": [
+        "reddit_categories": [
             "Ass & Booty", "Body Types & Features", "Lingerie & Underwear",
             "Clothed & Dressed", "Feet & Foot Fetish", "Selfie & Amateur",
             "Goth & Alternative", "Lifestyle & Themes", "Cosplay & Fantasy",
@@ -82,7 +82,7 @@ async def get_categories():
     """Return available categories for categorization"""
     return {
         "success": True,
-        "categories": [
+        "reddit_categories": [
             "Ass & Booty", "Body Types & Features", "Lingerie & Underwear",
             "Clothed & Dressed", "Feet & Foot Fetish", "Selfie & Amateur",
             "Goth & Alternative", "Lifestyle & Themes", "Cosplay & Fantasy",

@@ -1,9 +1,13 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
 
+// Reddit-specific Supabase configuration
 // Get environment variables with fallbacks for build time
-// Temporary fix: hardcode values to test client initialization
-const supabaseUrl = 'https://cetrhongdrjztsrsffuh.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldHJob25nZHJqenRzcnNmZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MTU4MTMsImV4cCI6MjA3MjM5MTgxM30.DjuEhcfDpdd7gmHFVaqcZP838FXls9-HiXJg-QF-vew'
+const supabaseUrl = process.env.NEXT_PUBLIC_REDDIT_SUPABASE_URL ||
+                   process.env.NEXT_PUBLIC_SUPABASE_URL ||
+                   'https://cetrhongdrjztsrsffuh.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_REDDIT_SUPABASE_ANON_KEY ||
+                        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldHJob25nZHJqenRzcnNmZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MTU4MTMsImV4cCI6MjA3MjM5MTgxM30.DjuEhcfDpdd7gmHFVaqcZP838FXls9-HiXJg-QF-vew'
 
 // Browser client for client-side usage with enhanced error handling
 // Always creates a client, with detailed debugging and proper error boundaries
@@ -199,6 +203,7 @@ export interface Subreddit {
     | null
   total_upvotes_hot_30?: number | null
   total_posts_hot_30?: number | null
+  verification_required_detected?: boolean | null // Whether the subreddit requires verification
 }
 
 export interface User {

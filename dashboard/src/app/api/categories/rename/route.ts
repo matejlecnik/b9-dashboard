@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     // Find the category to rename by normalized_name
     const { data: existingCategory, error: findError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('*')
       .eq('normalized_name', oldKey)
       .maybeSingle()
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
     // Check if new name already exists (excluding current category)
     const { data: conflictCategory, error: conflictError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('id, name')
       .eq('normalized_name', newKey)
       .neq('id', existingCategory.id)
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     try {
       // 1. Update the category itself
       const { data: categoryUpdate, error: updateError } = await supabase
-        .from('categories')
+        .from('reddit_categories')
         .update({
           name: normalizedNewName,
           normalized_name: newKey,
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       if (update_subreddits) {
         // Update subreddits that reference this category by ID
         const { data: subredditsByIdUpdate, error: subredditsByIdError } = await supabase
-          .from('subreddits')
+          .from('reddit_subreddits')
           .update({
             category_text: normalizedNewName // Also update the legacy field for consistency
           })
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
 
         // Also update legacy subreddits that only have category_text
         const { data: subredditsByTextUpdate, error: subredditsByTextError } = await supabase
-          .from('subreddits')
+          .from('reddit_subreddits')
           .update({
             category_text: normalizedNewName
           })

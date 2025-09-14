@@ -211,7 +211,7 @@ class RedditScraperService:
             
             return {
                 'subreddit': subreddit_data,
-                'posts': posts_data,
+                'reddit_posts': posts_data,
                 'processing_time_ms': processing_time_ms,
                 'account_used': client_info['username']
             }
@@ -345,7 +345,7 @@ class RedditScraperService:
         """Save subreddit and posts data to database"""
         try:
             # Save subreddit
-            subreddit_response = self.supabase.table('subreddits').upsert(
+            subreddit_response = self.supabase.table('reddit_subreddits').upsert(
                 subreddit_data, on_conflict='name'
             ).execute()
             
@@ -355,7 +355,7 @@ class RedditScraperService:
             
             # Save posts if any
             if posts_data:
-                posts_response = self.supabase.table('posts').upsert(
+                posts_response = self.supabase.table('reddit_posts').upsert(
                     posts_data, on_conflict='reddit_id'
                 ).execute()
                 
@@ -452,13 +452,13 @@ class RedditScraperService:
         
         # Get database stats
         try:
-            subreddits_response = self.supabase.table('subreddits').select('id', count='exact').execute()
+            subreddits_response = self.supabase.table('reddit_subreddits').select('id', count='exact').execute()
             total_subreddits = subreddits_response.count or 0
             
-            posts_response = self.supabase.table('posts').select('id', count='exact').execute()
+            posts_response = self.supabase.table('reddit_posts').select('id', count='exact').execute()
             total_posts = posts_response.count or 0
             
-            users_response = self.supabase.table('users').select('id', count='exact').execute()
+            users_response = self.supabase.table('reddit_users').select('id', count='exact').execute()
             total_users = users_response.count or 0
         except Exception:
             total_subreddits = total_posts = total_users = 0
@@ -467,9 +467,9 @@ class RedditScraperService:
             'runtime_hours': round(runtime_hours, 2),
             'session_stats': self.stats,
             'database_totals': {
-                'subreddits': total_subreddits,
-                'posts': total_posts,
-                'users': total_users
+                'reddit_subreddits': total_subreddits,
+                'reddit_posts': total_posts,
+                'reddit_users': total_users
             },
             'client_stats': [
                 {

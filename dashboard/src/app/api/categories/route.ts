@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     
     // Try to fetch from the new categories table first
     const { data: categories, error: categoriesError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('*')
       .order('sort_order', { ascending: true })
       .order('usage_count', { ascending: false })
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     
     // Fall back to extracting categories from category_text field
     const { data, error } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('category_text')
       .not('category_text', 'is', null)
       .neq('category_text', '')
@@ -226,7 +226,7 @@ export async function POST(request: Request) {
 
     // Check for duplicates using normalized_name
     const { data: existing, error: existingError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('id, name')
       .eq('normalized_name', normalizedKey)
       .maybeSingle()
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
     // If parent_id is provided, validate it exists
     if (parent_id) {
       const { data: parent, error: parentError } = await supabase
-        .from('categories')
+        .from('reddit_categories')
         .select('id')
         .eq('id', parent_id)
         .maybeSingle()
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
     }
 
     const { data: category, error } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .insert(categoryData)
       .select()
       .single()

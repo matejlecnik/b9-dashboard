@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { subreddit_names, limit = 100 } = await request.json()
     
     let query = supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('*')
     
     if (subreddit_names && Array.isArray(subreddit_names)) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         
         // Update the subreddit in database
         const { error: updateError } = await supabase
-          .from('subreddits')
+          .from('reddit_subreddits')
           .update({
             filter_status: filterResult.filter_status,
             filter_reason: filterResult.filter_reason,

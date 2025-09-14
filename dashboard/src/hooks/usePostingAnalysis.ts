@@ -108,7 +108,7 @@ export function usePostingAnalysis(): UsePostingAnalysisReturn {
       }
 
       const query = supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select(`
           id, name, display_name_prefixed, title, description, subscribers,
           subscriber_engagement_ratio, avg_upvotes_per_post, over18,
@@ -146,7 +146,7 @@ export function usePostingAnalysis(): UsePostingAnalysisReturn {
       }
 
       const { data, error: fetchError } = await supabase
-        .from('users')
+        .from('reddit_users')
         .select('id, username, link_karma, comment_karma, account_age_days, icon_img, our_creator')
         .eq('our_creator', true)
         .order('overall_user_score', { ascending: false })

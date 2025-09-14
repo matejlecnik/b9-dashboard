@@ -340,7 +340,7 @@ async def clear_errors(request: Request):
     """Clear error log"""
     try:
         client = await get_redis_client()
-        await client.delete('scraper_logs')
+        await client.delete('reddit_scraper_logs')
         logger.info("🧹 Cleared error log")
         return {
             "status": "success",
@@ -357,7 +357,7 @@ async def get_scraper_logs(request: Request, limit: int = 50):
         client = await get_redis_client()
 
         # Get logs from Redis list
-        logs_raw = await client.lrange('scraper_logs', 0, limit - 1)
+        logs_raw = await client.lrange('reddit_scraper_logs', 0, limit - 1)
 
         logs = []
         for log_data in logs_raw:
@@ -393,8 +393,8 @@ async def add_scraper_log(request: Request,
         }
 
         # Add to Redis list (keep last 1000 logs)
-        await client.lpush('scraper_logs', json.dumps(log_entry))
-        await client.ltrim('scraper_logs', 0, 999)
+        await client.lpush('reddit_scraper_logs', json.dumps(log_entry))
+        await client.ltrim('reddit_scraper_logs', 0, 999)
 
         return {"status": "success"}
     except Exception as e:

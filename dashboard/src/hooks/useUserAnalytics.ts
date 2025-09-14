@@ -81,9 +81,9 @@ export function useUserStats() {
 
       // Use count queries for better performance
       const [totalResult, highQualityResult, ourCreatorsResult] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }).gte('overall_user_score', 7),
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('our_creator', true)
+        supabase.from('reddit_users').select('*', { count: 'exact', head: true }),
+        supabase.from('reddit_users').select('*', { count: 'exact', head: true }).gte('overall_user_score', 7),
+        supabase.from('reddit_users').select('*', { count: 'exact', head: true }).eq('our_creator', true)
       ])
 
       if (totalResult.error) throw totalResult.error
@@ -137,7 +137,7 @@ export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> 
       }
 
       let query = supabase
-        .from('users')
+        .from('reddit_users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,
           link_karma, comment_karma, avg_post_score, preferred_content_type, 
@@ -208,7 +208,7 @@ export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'al
       }
 
       let query = supabase
-        .from('users')
+        .from('reddit_users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,
           link_karma, comment_karma, avg_post_score, preferred_content_type, 
@@ -273,7 +273,7 @@ export function useUserProfile(userId: number) {
       }
 
       const { data: user, error: userError } = await supabase
-        .from('users')
+        .from('reddit_users')
         .select('*')
         .eq('id', userId)
         .single()
@@ -282,7 +282,7 @@ export function useUserProfile(userId: number) {
 
       // Get recent posts
       const { data: posts } = await supabase
-        .from('posts')
+        .from('reddit_posts')
         .select(`
           id, reddit_id, title, score, num_comments, subreddit_name,
           content_type, created_utc, thumbnail, url, over_18
@@ -312,7 +312,7 @@ export function useContentTypeStats() {
       }
 
       const { data, error } = await supabase
-        .from('users')
+        .from('reddit_users')
         .select('preferred_content_type, overall_user_score, avg_post_score')
         .not('preferred_content_type', 'is', null)
 
@@ -353,7 +353,7 @@ export function useHourlyActivityStats() {
       }
 
       const { data, error } = await supabase
-        .from('users')
+        .from('reddit_users')
         .select('most_active_posting_hour, overall_user_score')
         .not('most_active_posting_hour', 'is', null)
 
@@ -395,7 +395,7 @@ export function useSearchUsers(searchTerm: string) {
       }
 
       const { data, error } = await supabase
-        .from('users')
+        .from('reddit_users')
         .select(`
           id, username, reddit_id, overall_user_score, account_age_days, total_karma,
           link_karma, comment_karma, avg_post_score, preferred_content_type, 

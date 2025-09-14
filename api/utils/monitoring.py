@@ -90,7 +90,7 @@ class HealthMonitor:
             supabase = create_client(supabase_url, supabase_key)
             
             # Simple health check query
-            response = supabase.table('subreddits').select('id').limit(1).execute()
+            response = supabase.table('reddit_subreddits').select('id').limit(1).execute()
             
             response_time = (time.time() - start_time) * 1000
             

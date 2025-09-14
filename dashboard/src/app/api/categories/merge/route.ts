@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     // Find all categories by normalized names
     const allKeys = [targetKey, ...sourceKeys]
     const { data: foundCategories, error: findError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('*')
       .in('normalized_name', allKeys)
 
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     // Check if any source categories have child categories
     const sourceIds = sourceCategories.map((cat) => cat.id)
     const { data: childCategories, error: childError } = await supabase
-      .from('categories')
+      .from('reddit_categories')
       .select('id, name, parent_id')
       .in('parent_id', sourceIds)
       .limit(5)
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
 
         // Update subreddits by category_id
         const { data: subredditsByIdUpdate, error: subredditsByIdError } = await supabase
-          .from('subreddits')
+          .from('reddit_subreddits')
           .update({
             category_id: (targetCategory as CategoryRow).id,
             category_text: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
 
         // Update legacy subreddits by category_text
         const { data: subredditsByTextUpdate, error: subredditsByTextError } = await supabase
-          .from('subreddits')
+          .from('reddit_subreddits')
           .update({
             category_id: (targetCategory as CategoryRow).id,
             category_text: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
@@ -282,7 +282,7 @@ export async function POST(request: Request) {
         // Check if new name conflicts with existing categories (excluding target and sources)
         const excludeIds = [(targetCategory as CategoryRow).id, ...sourceIds]
         const { data: conflictCategory, error: conflictError } = await supabase
-          .from('categories')
+          .from('reddit_categories')
           .select('id, name')
           .eq('normalized_name', newNameKey)
           .not('id', 'in', `(${excludeIds.join(',')})`)
@@ -303,7 +303,7 @@ export async function POST(request: Request) {
       }
 
       const { data: updatedTargetCategory, error: updateTargetError } = await supabase
-        .from('categories')
+        .from('reddit_categories')
         .update(targetUpdates)
         .eq('id', (targetCategory as CategoryRow).id)
         .select()
@@ -321,7 +321,7 @@ export async function POST(request: Request) {
       let deletedCategories: string[] = []
       if (delete_empty_sources) {
         const { error: deleteError } = await supabase
-          .from('categories')
+          .from('reddit_categories')
           .delete()
           .in('id', sourceIds)
 

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     
     // Check if subreddit exists
     const { data: subreddit, error: subredditError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('name')
       .eq('name', subreddit_name)
       .single()
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     
     // Update subreddit filter status
     await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .update({ 
         filter_status: 'whitelist',
         filter_reason: 'Added to whitelist',
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest) {
     
     // Update subreddit filter status to unprocessed so it can be re-filtered
     await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .update({ 
         filter_status: 'unprocessed',
         filter_reason: null,

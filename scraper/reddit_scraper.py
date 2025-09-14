@@ -121,7 +121,7 @@ class SupabaseLogHandler(logging.Handler):
             
         try:
             # Send logs to Supabase
-            response = self.supabase.table('scraper_logs').insert(self.log_buffer).execute()
+            response = self.supabase.table('reddit_scraper_logs').insert(self.log_buffer).execute()
             if hasattr(response, 'error') and response.error:
                 print(f"Error sending logs to Supabase: {response.error}")
             else:
@@ -610,7 +610,7 @@ class ProxyEnabledMultiScraper:
             subreddit_list = list(subreddit_names)
             
             # Check which subreddits exist and when they were last scraped
-            resp = self.supabase.table('subreddits').select('name, last_scraped_at').in_('name', subreddit_list).execute()
+            resp = self.supabase.table('reddit_subreddits').select('name, last_scraped_at').in_('name', subreddit_list).execute()
             
             existing_subreddits = set()
             stale_subreddits = set()
@@ -874,7 +874,7 @@ class ProxyEnabledMultiScraper:
     async def get_target_subreddits(self) -> List[str]:
         """Get target subreddits (ONLY Ok review status) in random order"""
         try:
-            response = self.supabase.table('subreddits').select('name, review').eq(
+            response = self.supabase.table('reddit_subreddits').select('name, review').eq(
                 'review', 'Ok'
             ).execute()
             
@@ -912,7 +912,7 @@ class ProxyEnabledMultiScraper:
         logger.info("💾 Initialized cycle subreddit memory cache")
         
         # Initialize minimum requirements tracking for each subreddit
-        subreddit_requirements = {}  # {subreddit_name: {'users': [user_data], 'post_karmas': [], 'comment_karmas': [], 'ages': []}}
+        subreddit_requirements = {}  # {subreddit_name: {'reddit_users': [user_data], 'post_karmas': [], 'comment_karmas': [], 'ages': []}}
         requirements_lock = threading.Lock()
         logger.info("📊 Initialized minimum requirements tracking system")
         
@@ -1460,7 +1460,7 @@ class ProxyEnabledMultiScraper:
         self.stats['posts_analyzed'] += len(top_posts_to_save)
 
         # PROPER FIX: Always fetch existing review and include it in upsert to preserve it
-        existing_check = self.supabase.table('subreddits').select('review').eq('name', name).execute()
+        existing_check = self.supabase.table('reddit_subreddits').select('review').eq('name', name).execute()
         existing_review = None
         
         if existing_check.data and len(existing_check.data) > 0:
@@ -1518,7 +1518,7 @@ class ProxyEnabledMultiScraper:
 
         # Upsert into Supabase
         try:
-            resp = self.supabase.table('subreddits').upsert(payload, on_conflict='name').execute()
+            resp = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Supabase upsert error for r/{name}: {resp.error}")
             else:
@@ -1625,7 +1625,7 @@ class ProxyEnabledMultiScraper:
                 await self.ensure_subreddits_exist(unique_subreddits)
             
             # Upsert posts
-            resp = self.supabase.table('posts').upsert(posts_data, on_conflict='reddit_id').execute()
+            resp = self.supabase.table('reddit_posts').upsert(posts_data, on_conflict='reddit_id').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Error saving posts batch: {resp.error}")
             else:
@@ -1651,7 +1651,7 @@ class ProxyEnabledMultiScraper:
                 self.ensure_subreddits_exist_sync(unique_subreddits)
             
             # Upsert posts
-            resp = self.supabase.table('posts').upsert(posts_data, on_conflict='reddit_id').execute()
+            resp = self.supabase.table('reddit_posts').upsert(posts_data, on_conflict='reddit_id').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Error saving posts batch: {resp.error}")
             else:
@@ -1673,7 +1673,7 @@ class ProxyEnabledMultiScraper:
                     })
             
             if placeholder_users:
-                resp = self.supabase.table('users').upsert(placeholder_users, on_conflict='username').execute()
+                resp = self.supabase.table('reddit_users').upsert(placeholder_users, on_conflict='username').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error creating placeholder users: {resp.error}")
                     
@@ -1693,7 +1693,7 @@ class ProxyEnabledMultiScraper:
                     })
             
             if placeholder_users:
-                resp = self.supabase.table('users').upsert(placeholder_users, on_conflict='username').execute()
+                resp = self.supabase.table('reddit_users').upsert(placeholder_users, on_conflict='username').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error creating placeholder users: {resp.error}")
                     
@@ -1704,7 +1704,7 @@ class ProxyEnabledMultiScraper:
         """Synchronous version of ensure_subreddits_exist for threading - Updates existing but preserves Review field"""
         try:
             # Get existing subreddits with their data
-            resp = self.supabase.table('subreddits').select('name, review').execute()
+            resp = self.supabase.table('reddit_subreddits').select('name, review').execute()
             existing_data = {item['name']: item for item in resp.data} if resp.data else {}
             existing_subreddits = set(existing_data.keys())
             
@@ -1745,7 +1745,7 @@ class ProxyEnabledMultiScraper:
             # Insert new records (handle race condition)
             if new_records:
                 try:
-                    resp = self.supabase.table('subreddits').insert(new_records).execute()
+                    resp = self.supabase.table('reddit_subreddits').insert(new_records).execute()
                     if hasattr(resp, 'error') and resp.error:
                         logger.error(f"❌ Error creating new subreddits: {resp.error}")
                     else:
@@ -1759,7 +1759,7 @@ class ProxyEnabledMultiScraper:
                         for record in new_records:
                             # Fetch the existing review to preserve it
                             try:
-                                existing_resp = self.supabase.table('subreddits').select('review').eq('name', record['name']).execute()
+                                existing_resp = self.supabase.table('reddit_subreddits').select('review').eq('name', record['name']).execute()
                                 existing_review = None
                                 if existing_resp.data and len(existing_resp.data) > 0:
                                     existing_review = existing_resp.data[0].get('review')
@@ -1775,7 +1775,7 @@ class ProxyEnabledMultiScraper:
                         
                         # Update with preserved categories
                         if race_condition_updates:
-                            update_resp = self.supabase.table('subreddits').upsert(race_condition_updates, on_conflict='name').execute()
+                            update_resp = self.supabase.table('reddit_subreddits').upsert(race_condition_updates, on_conflict='name').execute()
                             if hasattr(update_resp, 'error') and update_resp.error:
                                 logger.error(f"❌ Error updating subreddits after race condition: {update_resp.error}")
                             else:
@@ -1785,7 +1785,7 @@ class ProxyEnabledMultiScraper:
             
             # Update existing records (with preserved categories)
             if update_records:
-                resp = self.supabase.table('subreddits').upsert(update_records, on_conflict='name').execute()
+                resp = self.supabase.table('reddit_subreddits').upsert(update_records, on_conflict='name').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error updating existing subreddits: {resp.error}")
                 else:
@@ -1798,7 +1798,7 @@ class ProxyEnabledMultiScraper:
         """Create new subreddits and update existing ones while preserving Review field"""
         try:
             # Get existing subreddits with their data
-            resp = self.supabase.table('subreddits').select('name, review').execute()
+            resp = self.supabase.table('reddit_subreddits').select('name, review').execute()
             existing_data = {item['name']: item for item in resp.data} if resp.data else {}
             existing_subreddits = set(existing_data.keys())
             
@@ -1839,7 +1839,7 @@ class ProxyEnabledMultiScraper:
             # Insert new records (handle race condition)
             if new_records:
                 try:
-                    resp = self.supabase.table('subreddits').insert(new_records).execute()
+                    resp = self.supabase.table('reddit_subreddits').insert(new_records).execute()
                     if hasattr(resp, 'error') and resp.error:
                         logger.error(f"❌ Error creating new subreddits: {resp.error}")
                     else:
@@ -1853,7 +1853,7 @@ class ProxyEnabledMultiScraper:
                         for record in new_records:
                             # Fetch the existing review to preserve it
                             try:
-                                existing_resp = self.supabase.table('subreddits').select('review').eq('name', record['name']).execute()
+                                existing_resp = self.supabase.table('reddit_subreddits').select('review').eq('name', record['name']).execute()
                                 existing_review = None
                                 if existing_resp.data and len(existing_resp.data) > 0:
                                     existing_review = existing_resp.data[0].get('review')
@@ -1869,7 +1869,7 @@ class ProxyEnabledMultiScraper:
                         
                         # Update with preserved categories
                         if race_condition_updates:
-                            update_resp = self.supabase.table('subreddits').upsert(race_condition_updates, on_conflict='name').execute()
+                            update_resp = self.supabase.table('reddit_subreddits').upsert(race_condition_updates, on_conflict='name').execute()
                             if hasattr(update_resp, 'error') and update_resp.error:
                                 logger.error(f"❌ Error updating subreddits after race condition: {update_resp.error}")
                             else:
@@ -1879,7 +1879,7 @@ class ProxyEnabledMultiScraper:
             
             # Update existing records (with preserved categories)
             if update_records:
-                resp = self.supabase.table('subreddits').upsert(update_records, on_conflict='name').execute()
+                resp = self.supabase.table('reddit_subreddits').upsert(update_records, on_conflict='name').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error updating existing subreddits: {resp.error}")
                 else:
@@ -1959,7 +1959,7 @@ class ProxyEnabledMultiScraper:
     async def should_analyze_subreddit(self, subreddit_name: str) -> bool:
         """Check if subreddit should be analyzed (not already in database with complete data)"""
         try:
-            resp = self.supabase.table('subreddits').select('name, title, subscribers').eq('name', subreddit_name).execute()
+            resp = self.supabase.table('reddit_subreddits').select('name, title, subscribers').eq('name', subreddit_name).execute()
             
             if not resp.data:
                 # New subreddit - should analyze
@@ -2260,7 +2260,7 @@ class ProxyEnabledMultiScraper:
             return
             
         try:
-            resp = self.supabase.table('users').upsert(user_data, on_conflict='username').execute()
+            resp = self.supabase.table('reddit_users').upsert(user_data, on_conflict='username').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Error saving user data: {resp.error}")
             else:
@@ -2276,7 +2276,7 @@ class ProxyEnabledMultiScraper:
             
         try:
             # Get existing subreddits with their analysis status
-            resp = self.supabase.table('subreddits').select('name, title, subscribers, review').execute()
+            resp = self.supabase.table('reddit_subreddits').select('name, title, subscribers, review').execute()
             existing_data = {item['name']: item for item in resp.data} if resp.data else {}
             
             # Separate discovered subreddits into categories
@@ -2326,7 +2326,7 @@ class ProxyEnabledMultiScraper:
                 })
             
             if all_new_records:
-                resp = self.supabase.table('subreddits').insert(all_new_records).execute()
+                resp = self.supabase.table('reddit_subreddits').insert(all_new_records).execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error saving new subreddits: {resp.error}")
                 else:
@@ -2557,7 +2557,7 @@ class ProxyEnabledMultiScraper:
             self.stats['posts_analyzed'] += len(top_posts_to_save)
             
             # PROPER FIX: Always fetch existing review and include it in upsert to preserve it
-            existing_check = self.supabase.table('subreddits').select('review').eq('name', name).execute()
+            existing_check = self.supabase.table('reddit_subreddits').select('review').eq('name', name).execute()
             existing_review = None
             
             if existing_check.data and len(existing_check.data) > 0:
@@ -2615,7 +2615,7 @@ class ProxyEnabledMultiScraper:
             
             # Save to database
             try:
-                resp = self.supabase.table('subreddits').upsert(payload, on_conflict='name').execute()
+                resp = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Database error for r/{name}: {resp.error}")
                 else:
@@ -2839,7 +2839,7 @@ class ProxyEnabledMultiScraper:
             
             # Save user to database
             try:
-                resp = self.supabase.table('users').upsert(user_payload, on_conflict='username').execute()
+                resp = self.supabase.table('reddit_users').upsert(user_payload, on_conflict='username').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Database error for u/{username}: {resp.error}")
                 else:
@@ -2863,7 +2863,7 @@ class ProxyEnabledMultiScraper:
                 'last_scraped_at': datetime.now(timezone.utc).isoformat(),
             }
             
-            resp = self.supabase.table('users').upsert(user_payload, on_conflict='username').execute()
+            resp = self.supabase.table('reddit_users').upsert(user_payload, on_conflict='username').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Database error for suspended u/{username}: {resp.error}")
             else:
@@ -2904,7 +2904,7 @@ class ProxyEnabledMultiScraper:
         try:
             # Query users table for karma and age data
             authors_list = list(authors)
-            response = self.supabase.table('users').select(
+            response = self.supabase.table('reddit_users').select(
                 'username, link_karma, comment_karma, total_karma, account_age_days, created_utc'
             ).in_('username', authors_list).execute()
             
@@ -2965,7 +2965,7 @@ class ProxyEnabledMultiScraper:
                 }
                 
                 # Save to database
-                resp = self.supabase.table('subreddits').upsert(requirements_payload, on_conflict='name').execute()
+                resp = self.supabase.table('reddit_subreddits').upsert(requirements_payload, on_conflict='name').execute()
                 if hasattr(resp, 'error') and resp.error:
                     logger.error(f"❌ Error saving requirements for r/{subreddit_name}: {resp.error}")
                 else:

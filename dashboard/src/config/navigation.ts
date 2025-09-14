@@ -48,7 +48,7 @@ export const navigationConfig: NavigationConfig = {
         {
           id: 'subreddit-review',
           title: 'Subreddit Review',
-          href: '/subreddit-review',
+          href: '/reddit/subreddit-review',
           icon: Tags,
           shortcut: '⌘1',
           badge: {
@@ -59,28 +59,28 @@ export const navigationConfig: NavigationConfig = {
         {
           id: 'categorization',
           title: 'Categorization',
-          href: '/categorization',
+          href: '/reddit/categorization',
           icon: FolderTree,
           shortcut: '⌘2'
         },
         {
           id: 'posting',
           title: 'Posting',
-          href: '/posting',
+          href: '/reddit/posting',
           icon: PenTool,
           shortcut: '⌘3'
         },
         {
           id: 'post-analysis',
           title: 'Post Analysis',
-          href: '/post-analysis',
+          href: '/reddit/post-analysis',
           icon: FileText,
           shortcut: '⌘4'
         },
         {
           id: 'user-analysis',
           title: 'User Analysis',
-          href: '/user-analysis',
+          href: '/reddit/user-analysis',
           icon: Users,
           shortcut: '⌘5'
         }

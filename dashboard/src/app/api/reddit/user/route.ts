@@ -408,7 +408,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { error } = await supabase
-      .from('users')
+      .from('reddit_users')
       .upsert(userPayload, { onConflict: 'username' })
 
     if (error) {

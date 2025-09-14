@@ -60,22 +60,22 @@ export async function GET(request: NextRequest) {
         totalResult
       ] = await Promise.all([
         // Count unreviewed (review is null)
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .is('review', null),
         // Count Ok reviewed  
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .eq('review', 'Ok'),
         // Count Non Related
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .eq('review', 'Non Related'),
         // Count No Seller
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .eq('review', 'No Seller'),
         // Count new today (all states)
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .gte('created_utc', today),
         // Total count
-        buildBaseQuery(supabase.from('subreddits').select('id', { count: 'exact', head: true }))
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
       ])
 
       const statsDuration = Date.now() - statsStartTime
@@ -112,12 +112,12 @@ export async function GET(request: NextRequest) {
     } else if (type === 'category') {
       // Category stats for categorization page (already handled by main /api/subreddits endpoint)
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
-        supabase.from('subreddits').select('*', { count: 'exact', head: true }).not('name', 'ilike', 'u_%'),
-        supabase.from('subreddits').select('*', { count: 'exact', head: true })
+        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true }).not('name', 'ilike', 'u_%'),
+        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })
           .not('name', 'ilike', 'u_%')
           .not('category_text', 'is', null)
           .neq('category_text', ''),
-        supabase.from('subreddits').select('*', { count: 'exact', head: true })
+        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })
           .not('name', 'ilike', 'u_%')
           .or('category_text.is.null,category_text.eq.')
       ])

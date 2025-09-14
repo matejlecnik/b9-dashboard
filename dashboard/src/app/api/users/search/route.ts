@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Search for users by username (case insensitive partial match)
     const { data: users, error } = await supabase
-      .from('users')
+      .from('reddit_users')
       .select(`
         id,
         username,

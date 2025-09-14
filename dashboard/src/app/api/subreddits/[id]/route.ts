@@ -44,7 +44,7 @@ export async function GET(
     }
 
     const { data: subreddit, error } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('*')
       .eq('id', subredditId)
       .single()
@@ -134,7 +134,7 @@ export async function PATCH(
 
     // Check if subreddit exists
     const { data: existingSubreddit, error: fetchError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id, name, display_name_prefixed, review, category_text')
       .eq('id', subredditId)
       .single()
@@ -150,7 +150,7 @@ export async function PATCH(
     // Perform update
     const updateStartTime = Date.now()
     const { data: updatedSubreddit, error: updateError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .update({
         ...updateData,
         updated_at: new Date().toISOString()

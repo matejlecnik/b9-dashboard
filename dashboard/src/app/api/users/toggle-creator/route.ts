@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user exists before updating
-    let query = supabase.from('users').select('id, username')
+    let query = supabase.from('reddit_users').select('id, username')
 
     if (id) {
       query = query.eq('id', id)
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     // Update the user's creator status
     const { error: updateError } = await supabase
-      .from('users')
+      .from('reddit_users')
       .update({
         our_creator,
         updated_at: new Date().toISOString()

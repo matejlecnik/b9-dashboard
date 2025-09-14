@@ -80,14 +80,14 @@ class CategorizationService:
             
             # Get subreddits that are approved (Ok) but not yet categorized
             # Using filter for null or empty category_text
-            response = self.supabase.table('subreddits').select(
+            response = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
             ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers', desc=True).limit(limit).execute()
             
             self.logger.info(f"📊 Query 1 (null category_text): Found {len(response.data or [])} subreddits")
             
             # Also get subreddits with empty category_text
-            response2 = self.supabase.table('subreddits').select(
+            response2 = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
             ).eq('review', 'Ok').eq('category_text', '').order('subscribers', desc=True).limit(limit).execute()
             
@@ -229,7 +229,7 @@ Category:"""
     async def _update_subreddit_category(self, subreddit_id: int, category: str) -> bool:
         """Update the category in the database"""
         try:
-            self.supabase.table('subreddits').update({
+            self.supabase.table('reddit_subreddits').update({
                 'category_text': category,
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('id', subreddit_id).execute()
@@ -308,7 +308,7 @@ Category:"""
             subreddits = []
             for subreddit_id in subreddit_ids:
                 try:
-                    response = self.supabase.table('subreddits').select('*').eq('id', subreddit_id).execute()
+                    response = self.supabase.table('reddit_subreddits').select('*').eq('id', subreddit_id).execute()
                     if response.data:
                         subreddits.extend(response.data)
                         self.logger.info(f"✅ Found subreddit {subreddit_id}: {response.data[0].get('name')}")
@@ -419,16 +419,16 @@ Category:"""
         """Get categorization statistics from the database"""
         try:
             # Get total counts
-            total_response = self.supabase.table('subreddits').select('id', count='exact').eq('review', 'Ok').execute()
+            total_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').execute()
             total_approved = total_response.count or 0
             
-            categorized_response = self.supabase.table('subreddits').select('id', count='exact').eq('review', 'Ok').not_.is_('category_text', 'null').execute()
+            categorized_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').not_.is_('category_text', 'null').execute()
             total_categorized = categorized_response.count or 0
             
             uncategorized = total_approved - total_categorized
             
             # Get category distribution
-            categories_response = self.supabase.table('subreddits').select('category_text').eq('review', 'Ok').not_.is_('category_text', 'null').execute()
+            categories_response = self.supabase.table('reddit_subreddits').select('category_text').eq('review', 'Ok').not_.is_('category_text', 'null').execute()
             
             category_counts = {}
             for row in categories_response.data:

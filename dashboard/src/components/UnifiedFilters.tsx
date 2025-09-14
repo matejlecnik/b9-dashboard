@@ -36,8 +36,6 @@ const UnifiedFilters = memo(function UnifiedFilters({
   onFilterChange,
   categoryCounts,
   counts,
-  searchQuery,
-  onSearchChange,
   loading
 }: UnifiedFiltersProps) {
   

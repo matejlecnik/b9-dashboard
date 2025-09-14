@@ -37,7 +37,7 @@ export async function GET() {
     
     // Get seller bans detected count
     const { count: sellerBansCount, error: sellerBansError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('*', { count: 'exact', head: true })
       .eq('seller_ban_detected', true)
     
@@ -48,7 +48,7 @@ export async function GET() {
     
     // Get verification required count
     const { count: verificationCount, error: verificationError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('*', { count: 'exact', head: true })
       .eq('verification_required_detected', true)
     

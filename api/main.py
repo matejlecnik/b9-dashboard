@@ -436,7 +436,7 @@ async def start_categorization(request: Request, payload: CategorizationRequest)
     
     # Test Supabase connection
     try:
-        test_response = supabase.table('subreddits').select('id').limit(1).execute()
+        test_response = supabase.table('reddit_subreddits').select('id').limit(1).execute()
         logger.info(f"✅ Supabase connection test successful: {len(test_response.data)} test rows")
     except Exception as e:
         logger.error(f"❌ Supabase connection test failed: {e}")
@@ -486,7 +486,7 @@ async def get_categories(request: Request):
     
     try:
         return {
-            "categories": categorization_service.CATEGORIES,
+            "reddit_categories": categorization_service.CATEGORIES,
             "total_categories": len(categorization_service.CATEGORIES)
         }
         

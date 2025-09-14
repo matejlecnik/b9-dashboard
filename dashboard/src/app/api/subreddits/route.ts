@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Build the query
     let query = supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select(
         'id,name,display_name_prefixed,title,subscribers,subscriber_engagement_ratio,avg_upvotes_per_post,review,category_text,community_icon,icon_img,top_content_type,rules_data,over18'
       )
@@ -121,11 +121,11 @@ export async function GET(request: NextRequest) {
       }
 
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
-        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })),
+        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })),
         // Categorized: not null AND not empty string
-        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).not('category_text', 'is', null).neq('category_text', ''),
+        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).not('category_text', 'is', null).neq('category_text', ''),
         // Uncategorized: null OR empty string
-        baseFilters(supabase.from('subreddits').select('*', { count: 'exact', head: true })).or('category_text.is.null,category_text.eq.')
+        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).or('category_text.is.null,category_text.eq.')
       ])
       statsDuration = Date.now() - statsStartTime
 

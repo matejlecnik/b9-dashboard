@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // Check if users exist
     const { data: existingUsers, error: checkError } = await supabase
-      .from('users')
+      .from('reddit_users')
       .select('id, username')
       .in('id', userIds)
 
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: updatedUsers, error: updateError } = await supabase
-      .from('users')
+      .from('reddit_users')
       .update(updateData)
       .in('id', userIds)
       .select('id, username, our_creator')
@@ -152,7 +152,7 @@ export async function GET() {
     // Get recent bulk operations from logs or audit table (if implemented)
     // For now, just return basic stats
     const { data: userStats, error } = await supabase
-      .from('users')
+      .from('reddit_users')
       .select('our_creator', { count: 'exact' })
 
     if (error) {

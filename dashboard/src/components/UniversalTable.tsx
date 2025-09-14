@@ -317,7 +317,7 @@ export const UniversalTable = memo(function UniversalTable({
     const isBroken = finalBrokenIcons.has(subreddit.id)
     const safeDisplayName = subreddit.display_name_prefixed || (subreddit.name ? `r/${subreddit.name}` : 'Unknown subreddit')
     const safeTitle = subreddit.title || ''
-    
+
     return (
       <div
         className={cn(
@@ -505,9 +505,9 @@ export const UniversalTable = memo(function UniversalTable({
           </div>
         </div>
         
-        {/* Action column */}
+        {/* Review column */}
         <div className="w-52 px-2">
-          {mode === 'review' ? (
+          {mode === 'review' || mode === 'category' ? (
             <div className="flex gap-1">
               {['Ok', 'No Seller', 'Non Related'].map((option) => (
                 <Button
@@ -526,7 +526,12 @@ export const UniversalTable = memo(function UniversalTable({
                 </Button>
               ))}
             </div>
-          ) : (
+          ) : null}
+        </div>
+
+        {/* Category column (only in category mode) */}
+        {mode === 'category' && (
+          <div className="w-48 px-2">
             <CategorySelector
               subredditId={subreddit.id}
               currentCategory={subreddit.category_text || ''}
@@ -534,8 +539,8 @@ export const UniversalTable = memo(function UniversalTable({
               compact={compactMode}
               availableCategories={availableCategories}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     )
   }, [
@@ -606,8 +611,11 @@ export const UniversalTable = memo(function UniversalTable({
           <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Members</div>
           <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Engagement</div>
           <div className="w-16 text-center font-medium text-gray-700 pr-3" role="columnheader">Avg Upvotes</div>
+          <div className="w-52 px-2 font-medium text-gray-700" role="columnheader">
+            {mode === 'review' ? 'Review' : 'Review'}
+          </div>
           <div className="w-48 px-2 font-medium text-gray-700" role="columnheader">
-            {mode === 'review' ? 'Review' : 'Category'}
+            {mode === 'review' ? '' : 'Category'}
           </div>
           <div className="flex-1 flex justify-end pr-4">
             <span className="text-xs text-gray-400" aria-label="Row count">

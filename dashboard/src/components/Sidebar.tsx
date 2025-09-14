@@ -80,7 +80,7 @@ export const Sidebar = React.memo<SidebarProps>(() => {
       router.push('/login')
       return
     }
-    
+
     try {
       await supabase.auth.signOut()
       router.push('/login')

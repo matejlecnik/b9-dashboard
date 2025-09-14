@@ -450,13 +450,13 @@ class UserService:
             'exists': 0,
             'suspended': 0,
             'errors': 0,
-            'users': []
+            'reddit_users': []
         }
         
         for i, username in enumerate(usernames):
             try:
                 result = await self.add_user(username, reddit_instance, source_subreddit)
-                results['users'].append(result)
+                results['reddit_users'].append(result)
                 
                 # Update counters
                 if result['status'] == 'created':
@@ -475,7 +475,7 @@ class UserService:
             except Exception as e:
                 logger.error(f"Error in batch processing user {username}: {e}")
                 results['errors'] += 1
-                results['users'].append({
+                results['reddit_users'].append({
                     'status': 'error',
                     'message': str(e),
                     'user_data': None
@@ -485,7 +485,7 @@ class UserService:
         self.logging_service.log_user_discovery(
             username=f"batch_{len(usernames)}_users",
             operation_type='batch_add_users',
-            discovered_subreddits=sum(u.get('user_data', {}).get('discovered_subreddits', 0) for u in results['users'] if u.get('user_data')),
+            discovered_subreddits=sum(u.get('user_data', {}).get('discovered_subreddits', 0) for u in results['reddit_users'] if u.get('user_data')),
             success=results['errors'] == 0,
             error_message=f"{results['errors']} errors" if results['errors'] > 0 else None,
             processing_time_ms=int((time.time() - start_time) * 1000),
@@ -529,7 +529,7 @@ class UserService:
     async def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """Get user from database by username"""
         try:
-            response = self.supabase.table('users').select('*').eq('username', username).execute()
+            response = self.supabase.table('reddit_users').select('*').eq('username', username).execute()
             if response.data:
                 return response.data[0]
             return None
@@ -540,7 +540,7 @@ class UserService:
     async def get_users_list(self, limit: int = 50, offset: int = 0, min_score: Optional[float] = None) -> List[Dict[str, Any]]:
         """Get paginated list of users"""
         try:
-            query = self.supabase.table('users').select('*')
+            query = self.supabase.table('reddit_users').select('*')
             
             if min_score is not None:
                 query = query.gte('overall_user_score', min_score)
@@ -555,7 +555,7 @@ class UserService:
     async def get_user_stats(self, username: str) -> Optional[Dict[str, Any]]:
         """Get user statistics from database"""
         try:
-            response = self.supabase.table('users').select('*').eq('username', username).execute()
+            response = self.supabase.table('reddit_users').select('*').eq('username', username).execute()
             if response.data:
                 return response.data[0]
             return None
@@ -566,7 +566,7 @@ class UserService:
     async def update_user_creator_status(self, username: str, is_creator: bool) -> bool:
         """Update whether a user is marked as our creator"""
         try:
-            response = self.supabase.table('users').update({
+            response = self.supabase.table('reddit_users').update({
                 'our_creator': is_creator,
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('username', username).execute()
@@ -593,7 +593,7 @@ class UserService:
     async def _get_existing_user(self, username: str) -> Optional[Dict[str, Any]]:
         """Check if user already exists in database"""
         try:
-            response = self.supabase.table('users').select('*').eq('username', username).execute()
+            response = self.supabase.table('reddit_users').select('*').eq('username', username).execute()
             if response.data:
                 return response.data[0]
             return None
@@ -792,7 +792,7 @@ class UserService:
             return False
             
         try:
-            response = self.supabase.table('users').upsert(user_data, on_conflict='username').execute()
+            response = self.supabase.table('reddit_users').upsert(user_data, on_conflict='username').execute()
             if hasattr(response, 'error') and response.error:
                 logger.error(f"Error saving user data: {response.error}")
                 return False
@@ -815,7 +815,7 @@ class UserService:
                 'last_scraped_at': datetime.now(timezone.utc).isoformat(),
             }
             
-            response = self.supabase.table('users').upsert(user_payload, on_conflict='username').execute()
+            response = self.supabase.table('reddit_users').upsert(user_payload, on_conflict='username').execute()
             if hasattr(response, 'error') and response.error:
                 logger.error(f"Error saving suspended user: {response.error}")
                 return False
@@ -831,20 +831,20 @@ class UserService:
         """Get overall user statistics from database"""
         try:
             # Get total users
-            total_response = self.supabase.table('users').select('id', count='exact').execute()
+            total_response = self.supabase.table('reddit_users').select('id', count='exact').execute()
             total_users = total_response.count or 0
             
             # Get creators count
-            creators_response = self.supabase.table('users').select('id', count='exact').eq('our_creator', True).execute()
+            creators_response = self.supabase.table('reddit_users').select('id', count='exact').eq('our_creator', True).execute()
             creators_count = creators_response.count or 0
             
             # Get suspended users
-            suspended_response = self.supabase.table('users').select('id', count='exact').eq('is_suspended', True).execute()
+            suspended_response = self.supabase.table('reddit_users').select('id', count='exact').eq('is_suspended', True).execute()
             suspended_count = suspended_response.count or 0
             
             # Get average score (calculate from actual data)
             try:
-                avg_response = self.supabase.table('users').select('overall_user_score').not_.is_('overall_user_score', 'null').execute()
+                avg_response = self.supabase.table('reddit_users').select('overall_user_score').not_.is_('overall_user_score', 'null').execute()
                 if avg_response.data:
                     scores = [float(row['overall_user_score']) for row in avg_response.data if row['overall_user_score'] is not None]
                     avg_score = sum(scores) / len(scores) if scores else 0.0
@@ -854,7 +854,7 @@ class UserService:
                 avg_score = 0.0
             
             # Get top users by score
-            top_users_response = self.supabase.table('users').select(
+            top_users_response = self.supabase.table('reddit_users').select(
                 'username, overall_user_score, total_karma, account_age_days'
             ).order('overall_user_score', desc=True).limit(10).execute()
             

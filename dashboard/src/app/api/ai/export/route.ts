@@ -150,7 +150,7 @@ export async function GET(request: Request) {
     } else {
       // Export regular subreddit categorization data
       const { data: subreddits, error } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select(`
           id, name, display_name_prefixed, title, public_description,
           subscribers, over18, category_text, avg_upvotes_per_post,
@@ -328,7 +328,7 @@ export async function POST(request: Request) {
     } else if (subredditIds && subredditIds.length > 0) {
       // Export specific subreddits
       const { data: subreddits, error } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('*')
         .in('id', subredditIds)
 

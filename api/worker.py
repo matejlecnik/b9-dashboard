@@ -322,14 +322,14 @@ class ContinuousScraperWorker:
                 # Save data
                 await self.services['scraper'].save_subreddit_data(
                     result['subreddit'],
-                    result.get('posts', [])
+                    result.get('reddit_posts', [])
                 )
 
                 self.stats['subreddits_processed'] += 1
-                self.stats['posts_collected'] += len(result.get('posts', []))
+                self.stats['posts_collected'] += len(result.get('reddit_posts', []))
 
                 await self._log_activity('success', f'Successfully scraped r/{subreddit_name}', {
-                    'posts_collected': len(result.get('posts', [])),
+                    'posts_collected': len(result.get('reddit_posts', [])),
                     'processing_time_ms': result.get('processing_time_ms')
                 })
 
@@ -362,7 +362,7 @@ class ContinuousScraperWorker:
 
         try:
             # Get active users from database
-            users_result = self.supabase.table('users').select('username').limit(20).execute()
+            users_result = self.supabase.table('reddit_users').select('username').limit(20).execute()
 
             if users_result.data:
                 usernames = [u['username'] for u in users_result.data]
@@ -379,7 +379,7 @@ class ContinuousScraperWorker:
 
                 logger.info(f"📦 Discovered {len(discovered)} new subreddits")
                 await self._log_activity('success', f'Discovered {len(discovered)} new subreddits', {
-                    'subreddits': discovered[:10]  # Log first 10
+                    'reddit_subreddits': discovered[:10]  # Log first 10
                 })
 
         except Exception as e:
@@ -436,8 +436,8 @@ class ContinuousScraperWorker:
             }
 
             # Add to Redis list (keep last 1000 logs)
-            await self.redis_client.lpush('scraper_logs', json.dumps(log_entry))
-            await self.redis_client.ltrim('scraper_logs', 0, 999)
+            await self.redis_client.lpush('reddit_scraper_logs', json.dumps(log_entry))
+            await self.redis_client.ltrim('reddit_scraper_logs', 0, 999)
 
             # Also log to Python logger
             logger.info(f"[{level.upper()}] {message}")

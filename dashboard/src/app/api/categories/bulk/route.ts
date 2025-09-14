@@ -44,7 +44,7 @@ export async function PATCH(request: NextRequest) {
 
     // Verify subreddits exist and get current states for audit
     const { data: existingSubreddits, error: fetchError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id, name, display_name_prefixed, category_id, category_text')
       .in('id', subredditIds)
 
@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
 
     // Perform bulk update
     const { data: updatedSubreddits, error: updateError } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .update(updateData)
       .in('id', subredditIds)
       .select('id, name, display_name_prefixed, category_id, category_text')
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch subreddits that would be affected
     const { data: subreddits, error } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id, name, display_name_prefixed, category_id, category_text')
       .in('id', subredditIds)
 
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     let categoryDetails = null
     if (categoryId) {
       const { data: category } = await supabase
-        .from('categories')
+        .from('reddit_categories')
         .select('id, name, description, color')
         .eq('id', categoryId)
         .single()

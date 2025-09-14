@@ -32,7 +32,7 @@ export async function POST() {
 
     // Log the stop operation
     const { error: logError } = await supabase
-      .from('scraper_logs')
+      .from('reddit_scraper_logs')
       .insert([{
         level: 'info',
         message: 'Scraper stopped via dashboard',

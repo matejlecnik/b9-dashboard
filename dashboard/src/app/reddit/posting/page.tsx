@@ -61,6 +61,7 @@ interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'crea
   video_post_avg_score?: number | null
   text_post_avg_score?: number | null
   created_at?: string
+  verification_required_detected?: boolean | null
 }
 
 const PAGE_SIZE = 30
@@ -117,11 +118,11 @@ export default function PostingPage() {
     try {
       const sb = supabase as NonNullable<typeof supabase>
       const [sfwResult, nsfwResult] = await Promise.all([
-        sb.from('subreddits').select('id', { count: 'exact', head: true })
+        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .eq('review', 'Ok')
           .not('name', 'ilike', 'u_%')
           .eq('over18', false),
-        sb.from('subreddits').select('id', { count: 'exact', head: true })
+        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .eq('review', 'Ok')
           .not('name', 'ilike', 'u_%')
           .eq('over18', true)
@@ -129,7 +130,7 @@ export default function PostingPage() {
       setSfwCount(sfwResult.count || 0)
       setNsfwCount(nsfwResult.count || 0)
       const { data: categoryData } = await sb
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('category_text')
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
@@ -171,16 +172,17 @@ export default function PostingPage() {
       
       // Build the base query
       let query = sb
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select(`
           id, name, display_name_prefixed, title, public_description,
           subscribers, avg_upvotes_per_post, subscriber_engagement_ratio,
           best_posting_hour, best_posting_day, over18, category_text,
           moderator_activity_score, community_health_score,
           image_post_avg_score, video_post_avg_score, text_post_avg_score,
-          last_scraped_at, min_account_age_days, min_comment_karma, 
+          last_scraped_at, min_account_age_days, min_comment_karma,
           min_post_karma, allow_images, icon_img, community_icon,
-          top_content_type, avg_engagement_velocity, accounts_active
+          top_content_type, avg_engagement_velocity, accounts_active,
+          verification_required_detected
         `)
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
@@ -262,7 +264,7 @@ export default function PostingPage() {
       
       for (const username of usernames) {
         const { data: posts } = await sb
-          .from('posts')
+          .from('reddit_posts')
           .select('score, subreddit_name')
           .eq('author', username)
           .order('score', { ascending: false })
@@ -298,7 +300,7 @@ export default function PostingPage() {
       const sb = supabase as NonNullable<typeof supabase>
       
       const { data: creatorsData, error } = await sb
-        .from('users')
+        .from('reddit_users')
         .select('*')
         .eq('our_creator', true)
         .order('link_karma', { ascending: false })

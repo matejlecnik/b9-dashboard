@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, memo, useEffect } from 'react'
 import Image from 'next/image'
-import { 
-  Users, 
+import {
+  Users,
   ArrowUpCircle,
   TrendingUp,
   Clock,
@@ -16,7 +16,8 @@ import {
   BookOpen,
   Play,
   Copy,
-  Check
+  Check,
+  CheckCircle2
 } from 'lucide-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Mousewheel } from 'swiper/modules'
@@ -48,6 +49,7 @@ interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_
   posts_error?: string | null
   thumbnail?: string | null
   preview_data?: any
+  verification_required_detected?: boolean | null
 }
 
 interface ExtendedPost extends Post {
@@ -274,7 +276,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
       const { data: posts, error } = await supabase
-        .from('posts')
+        .from('reddit_posts')
         .select('*')
         .eq('subreddit_name', subredditName)
         .gte('created_utc', thirtyDaysAgo.toISOString())
@@ -419,6 +421,11 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           <span className="font-semibold text-sm text-gray-900 group-hover:text-b9-pink transition-colors">
                             r/{subreddit.name}
                           </span>
+                          {subreddit.verification_required_detected && (
+                            <span title="Verification Required">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                            </span>
+                          )}
                           {subreddit.over18 ? (
                             <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5">
                               NSFW

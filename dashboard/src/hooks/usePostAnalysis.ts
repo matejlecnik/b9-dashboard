@@ -111,7 +111,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     try {
       // Build query for approved subreddits
       let query = supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('name, category_text, avg_upvotes_per_post, avg_comments_per_post')
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%') // Exclude user subreddits
@@ -184,7 +184,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
       // Build the base query for posts
       let query = supabase
-        .from('posts')
+        .from('reddit_posts')
         .select(`
           id, reddit_id, title, score, num_comments, created_utc, subreddit_name,
           content_type, upvote_ratio, thumbnail, url, author_username, preview_data,
@@ -282,7 +282,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
       // Fetch posts for metrics calculation (limited to prevent timeout)
       let metricsQuery = supabase
-        .from('posts')
+        .from('reddit_posts')
         .select('score, num_comments, created_utc, subreddit_name, over_18')
         .in('subreddit_name', limitedSubreddits)
 

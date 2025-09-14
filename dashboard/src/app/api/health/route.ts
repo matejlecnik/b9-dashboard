@@ -26,7 +26,7 @@ export async function GET() {
     
     // Test database connection by trying to fetch subreddits count
     const { error, count } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('id', { count: 'exact', head: true })
 
     if (error) {

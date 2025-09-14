@@ -37,7 +37,7 @@ export async function GET() {
     
     // Get recent subreddits discovered (last 24h)
     const { data: newSubreddits } = await supabase
-      .from('subreddits')
+      .from('reddit_subreddits')
       .select('name, created_at')
       .gte('created_at', yesterday.toISOString())
       .order('created_at', { ascending: false })
@@ -53,17 +53,17 @@ export async function GET() {
     if (qualityError || !qualityMetrics) {
       // Fallback: use count queries instead of fetching all data
       const { count: totalCount } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('id', { count: 'exact', head: true })
       
       // More realistic quality check - records with basic info populated
       const { count: withDescription } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('id', { count: 'exact', head: true })
         .not('description', 'is', null)
       
       const { count: withSubscribers } = await supabase
-        .from('subreddits')
+        .from('reddit_subreddits')
         .select('id', { count: 'exact', head: true })
         .not('subscribers', 'is', null)
         .gt('subscribers', 0)
@@ -82,7 +82,7 @@ export async function GET() {
 
     // Get scraper logs from Supabase - improved query with better error handling
     const { data: logs, error: logsError } = await supabase
-      .from('scraper_logs')
+      .from('reddit_scraper_logs')
       .select('timestamp, level, message, context, source')
       .gte('timestamp', yesterday.toISOString())
       .order('timestamp', { ascending: false })
