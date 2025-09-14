@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+api/.env
+dashboard/.env.local
+dashboard/.env.production.local
 
 # Python
 __pycache__/

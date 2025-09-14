@@ -15,10 +15,11 @@ interface CategorizationStats {
   last_categorization?: string
 }
 
-// Resolve the Render API URL at request time to avoid build-time inlining
+// Resolve the API URL at request time to avoid build-time inlining
 function getRenderApiUrl(): string | undefined {
   // Use bracket notation to prevent Next/webpack from inlining at build time
   return (
+    process.env['NEXT_PUBLIC_API_URL'] ||
     process.env['RENDER_API_URL'] ||
     process.env['NEXT_PUBLIC_RENDER_API_URL'] ||
     undefined
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     if (!RENDER_API_URL) {
       return NextResponse.json({
         success: false,
-        error: 'AI categorization service not configured. Please set RENDER_API_URL environment variable.',
+        error: 'AI categorization service not configured. Please set NEXT_PUBLIC_API_URL environment variable.',
         configuration_needed: true
       }, { status: 503 })
     }
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return NextResponse.json({
         success: false,
-        error: 'Failed to connect to AI categorization service. Please check the RENDER_API_URL configuration.',
+        error: 'Failed to connect to AI categorization service. Please check the NEXT_PUBLIC_API_URL configuration.',
         connection_error: true
       }, { status: 503 })
     }

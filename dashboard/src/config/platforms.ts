@@ -24,7 +24,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.REDDIT_API_URL || process.env.RENDER_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
     theme: {
       primary: '#FF4500',
       secondary: '#FF5700',
@@ -40,7 +40,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.INSTAGRAM_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
     theme: {
       primary: '#E4405F',
       secondary: '#C13584',
@@ -56,7 +56,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.TIKTOK_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
     theme: {
       primary: '#000000',
       secondary: '#FE2C55',
@@ -72,7 +72,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.TWITTER_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
     theme: {
       primary: '#1DA1F2',
       secondary: '#14171A',
@@ -88,7 +88,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.TRACKING_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
     theme: {
       primary: '#8B5CF6',
       secondary: '#7C3AED',

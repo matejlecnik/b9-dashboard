@@ -54,7 +54,6 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "RENDER_API_URL": "https://b9-dashboard.onrender.com",
-    "NEXT_PUBLIC_RENDER_API_URL": "https://b9-dashboard.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://b9-dashboard.onrender.com"
   }
 }
