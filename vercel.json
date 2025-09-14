@@ -8,6 +8,5 @@
   },
   "installCommand": "cd dashboard && npm ci --prefer-offline --no-audit --legacy-peer-deps",
   "buildCommand": "cd dashboard && npm run build",
-  "outputDirectory": "dashboard/.next",
-  "rootDirectory": "dashboard"
+  "outputDirectory": "dashboard/.next"
 }
