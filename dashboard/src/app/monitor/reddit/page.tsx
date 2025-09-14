@@ -153,8 +153,11 @@ export default function RedditMonitor() {
     try {
       setLoading(true)
 
-      // Fetch detailed status
-      const statusRes = await fetch('/api/scraper/status-detailed')
+      // Fetch detailed status from backend API
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
+        mode: 'cors'
+      })
 
       if (statusRes.ok) {
         const data = await statusRes.json()
@@ -184,11 +187,14 @@ export default function RedditMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Use the render-control endpoint that syncs with Render
-      const res = await fetch('/api/scraper/render-control', {
+      // Call the backend API on Render
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
+
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+        mode: 'cors'
       })
 
       if (res.ok) {
@@ -252,15 +258,19 @@ export default function RedditMonitor() {
 
   // Check scraper status on mount
   useEffect(() => {
-    // Check initial scraper status from Render
+    // Check initial scraper status from backend API
     const checkInitialStatus = async () => {
       try {
-        // First check the Render control endpoint for actual state
-        const renderRes = await fetch('/api/scraper/render-control')
-        if (renderRes.ok) {
-          const renderStatus = await renderRes.json()
-          if (renderStatus.success) {
-            setIsRunning(renderStatus.scraperEnabled)
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+        const statusRes = await fetch(`${API_URL}/api/scraper/status`, {
+          mode: 'cors'
+        })
+        if (statusRes.ok) {
+          const status = await statusRes.json()
+          // Check if scraper is running based on system health
+          const isScraperRunning = status.system_health?.scraper === 'running'
+          if (isScraperRunning !== undefined) {
+            setIsRunning(isScraperRunning)
             setManualOverride(true)
             // Clear override after 5 seconds to allow status updates
             setTimeout(() => setManualOverride(false), 5000)
