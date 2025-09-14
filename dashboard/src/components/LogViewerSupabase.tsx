@@ -197,6 +197,11 @@ export function LogViewerSupabase({
 
   // Function to check if a log message is important
   const isImportantLog = (message: string): boolean => {
+    // Skip logs with the globe emoji
+    if (message.includes('🌐')) {
+      return false
+    }
+
     const lowercaseMsg = message.toLowerCase()
 
     // Skip verbose/unimportant logs
