@@ -227,15 +227,38 @@ Category:"""
             return result
     
     async def _update_subreddit_category(self, subreddit_id: int, category: str) -> bool:
-        """Update the category in the database"""
+        """Update the category in the database for both subreddit and its posts"""
         try:
+            # First, get the subreddit details including name and over18 status
+            subreddit_response = self.supabase.table('reddit_subreddits').select('name, over18').eq('id', subreddit_id).execute()
+
+            if not subreddit_response.data:
+                self.logger.error(f"Subreddit with id {subreddit_id} not found")
+                return False
+
+            subreddit_name = subreddit_response.data[0]['name']
+            over18_status = subreddit_response.data[0]['over18']
+
+            # Update the subreddit category
             self.supabase.table('reddit_subreddits').update({
                 'category_text': category,
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('id', subreddit_id).execute()
+
+            # Update all posts for this subreddit with the category and over18 status
+            self.logger.info(f"Updating posts for r/{subreddit_name} with category '{category}' and over18={over18_status}")
+
+            posts_update_response = self.supabase.table('reddit_posts').update({
+                'sub_category_text': category,
+                'sub_over18': over18_status
+            }).eq('subreddit_name', subreddit_name).execute()
+
+            posts_updated_count = len(posts_update_response.data) if posts_update_response.data else 0
+            self.logger.info(f"✅ Updated {posts_updated_count} posts for r/{subreddit_name}")
+
             return True
         except Exception as e:
-            self.logger.error(f"Error updating category for subreddit {subreddit_id}: {e}")
+            self.logger.error(f"Error updating category for subreddit {subreddit_id} and its posts: {e}")
             return False
     
     async def _log_categorization_result(self, result: CategorizationResult,
