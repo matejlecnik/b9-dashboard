@@ -112,8 +112,20 @@ class ContinuousScraper:
                 self.scraper = ProxyEnabledMultiScraper()
                 await self.scraper.initialize()
 
-            # Run the scraping
-            await self.scraper.test_proxy_scraping()
+            # Create control checker function
+            async def control_checker():
+                """Check if scraper should continue running"""
+                try:
+                    result = self.supabase.table('scraper_control').select('enabled').eq('id', 1).execute()
+                    if result.data and len(result.data) > 0:
+                        return result.data[0].get('enabled', False)
+                    return False
+                except Exception as e:
+                    logger.error(f"Error checking control status: {e}")
+                    return False
+
+            # Run the scraping with control checker
+            await self.scraper.test_proxy_scraping(control_checker=control_checker)
 
             # Log cycle completion
             self.supabase.table('reddit_scraper_logs').insert({

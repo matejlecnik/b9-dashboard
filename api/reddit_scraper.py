@@ -63,7 +63,7 @@ class SupabaseLogHandler(logging.Handler):
         self.supabase = supabase_client
         self.source = source
         self.log_buffer = []
-        self.buffer_size = 10
+        self.buffer_size = 5  # Reduced from 10 to flush more frequently
         self.last_flush = time.time()
         self.flush_interval = 30  # Flush every 30 seconds
         
@@ -222,7 +222,8 @@ class PublicRedditAPI:
         
         # Use static pool fallback (25% of the time or when fake-useragent fails)
         ua = random.choice(user_agents)
-        logger.info(f"🌐 Using fallback user agent: {ua[:60]}...")
+        # logger.info(f"🌐 Using fallback user agent: {ua[:60]}...")  # Reduced verbosity
+        pass
         return ua
     
     def request_with_retry(self, url: str, proxy_config: Optional[Dict] = None) -> Optional[Dict]:
@@ -890,9 +891,12 @@ class ProxyEnabledMultiScraper:
             logger.error(f"❌ Failed to fetch target subreddits: {e}")
             return ['SFWAmIHot']
     
-    async def test_proxy_scraping(self):
+    async def test_proxy_scraping(self, control_checker=None):
         """3-Thread discovery pipeline with proxy rotation"""
         logger.info("🚀 Starting 3-thread discovery pipeline...")
+
+        # Track if we should stop
+        self.should_stop = False
         
         # Initialize local memory for processed users (prevents reprocessing)
         if not hasattr(self, 'processed_users_memory'):
@@ -924,6 +928,13 @@ class ProxyEnabledMultiScraper:
             logger.warning("⚠️ No target subreddits found")
             return
         
+        # Check if we should stop before processing
+        if control_checker:
+            should_continue = await control_checker()
+            if not should_continue:
+                logger.info("⏹️ Scraper disabled, stopping before processing")
+                return
+
         # STEP 2: Process subreddits with enhanced threading (9 threads, 3 per proxy)
         all_authors = set()
         processing_lock = threading.Lock()
