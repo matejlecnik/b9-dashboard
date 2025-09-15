@@ -31,7 +31,7 @@ interface PostAnalysisToolbarProps {
   onToggleCategoryFilter?: () => void // Deprecated - kept for compatibility
 }
 
-export function PostAnalysisToolbar({
+export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
   searchQuery,
   onSearchChange,
   selectedCategories,
@@ -226,4 +226,4 @@ export function PostAnalysisToolbar({
 
     </div>
   )
-}
+})

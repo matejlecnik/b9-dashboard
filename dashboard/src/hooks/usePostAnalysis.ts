@@ -13,6 +13,7 @@ interface UsePostAnalysisReturn {
   metrics: PostMetrics | null
   sfwCount: number
   nsfwCount: number
+  totalPostCount: number
   topCategories: Array<{ category: string; count: number }>
 
   // Loading states
@@ -51,6 +52,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   const [metrics, setMetrics] = useState<PostMetrics | null>(null)
   const [sfwCount, setSfwCount] = useState(0)
   const [nsfwCount, setNsfwCount] = useState(0)
+  const [totalPostCount, setTotalPostCount] = useState(0)
   const [topCategories] = useState<Array<{ category: string; count: number }>>([])
 
   // Loading states
@@ -83,10 +85,12 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   // Refs for preventing double fetches
   const fetchingRef = useRef(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const okSubredditsCache = useRef<string[]>([])
 
   // Debounced search query
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [debouncedCategories, setDebouncedCategories] = useState<string[]>(allCategories)
 
   useEffect(() => {
     if (searchTimeoutRef.current) {
@@ -104,6 +108,23 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     }
   }, [searchQuery])
 
+  // Debounce category changes
+  useEffect(() => {
+    if (categoryTimeoutRef.current) {
+      clearTimeout(categoryTimeoutRef.current)
+    }
+
+    categoryTimeoutRef.current = setTimeout(() => {
+      setDebouncedCategories(selectedCategories)
+    }, 200)
+
+    return () => {
+      if (categoryTimeoutRef.current) {
+        clearTimeout(categoryTimeoutRef.current)
+      }
+    }
+  }, [selectedCategories])
+
   // Fetch approved subreddit names once and cache them
   const fetchApprovedSubreddits = useCallback(async (currentSortBy: PostSortField) => {
     if (!supabase) return []
@@ -117,14 +138,14 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         .not('name', 'ilike', 'u_%') // Exclude user subreddits
 
       // Apply category filter at subreddit level
-      if (selectedCategories.length === 0) {
+      if (debouncedCategories.length === 0) {
         // Show only uncategorized
         query = query.or('category_text.is.null,category_text.eq.')
-      } else if (selectedCategories.length < allCategories.length) {
-        // Show only selected categories
-        query = query.in('category_text', selectedCategories)
+      } else if (debouncedCategories.length > 0 && debouncedCategories.length < allCategories.length) {
+        // Show only selected categories (but not when all are selected)
+        query = query.in('category_text', debouncedCategories)
       }
-      // If all categories selected, no additional filter needed
+      // If all categories selected (length === allCategories.length), no filter needed
 
       // Order based on the sort option - matching what posts will be sorted by
       // When sorting posts by score (upvotes), get subreddits with highest avg upvotes
@@ -137,9 +158,9 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         query = query.order('avg_upvotes_per_post', { ascending: false, nullsFirst: false })
       }
 
-      // CRITICAL: Limit to prevent URL overflow and timeout
-      // We limit to 50 subreddits to keep the query performant
-      query = query.limit(50)
+      // Fetch more subreddits for better data coverage
+      // Increased limit to show more posts
+      query = query.limit(200)
 
       const { data, error } = await query
 
@@ -157,7 +178,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       console.error('Error fetching approved subreddits:', err)
       return []
     }
-  }, [selectedCategories, allCategories.length])
+  }, [debouncedCategories, allCategories.length])
 
   // Main fetch function - similar to Posting page approach
   const fetchPosts = useCallback(async (page: number = 0, append: boolean = false) => {
@@ -176,7 +197,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       const approvedSubreddits = await fetchApprovedSubreddits(sortBy)
 
       if (approvedSubreddits.length === 0) {
-        setPosts(append ? posts : [])
+        setPosts(append ? (prevPosts) => prevPosts : [])
         setHasMore(false)
         setError(null)
         return
@@ -221,7 +242,36 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         throw new Error(`Failed to fetch posts: ${fetchError.message}`)
       }
 
-      const newPosts = (data || []) as Post[]
+      // Process posts and add category from approved subreddits data
+      const subredditCategoryMap = new Map<string, string | null>()
+
+      // Build a map of subreddit names to categories from our approved list
+      const { data: subredditData } = await supabase
+        .from('reddit_subreddits')
+        .select('name, category_text')
+        .in('name', approvedSubreddits)
+
+      if (subredditData) {
+        subredditData.forEach(sub => {
+          subredditCategoryMap.set(sub.name, sub.category_text)
+        })
+      }
+
+      // Add category to each post and ensure unique by reddit_id
+      const seenRedditIds = new Set<string>()
+      const newPosts = (data || [])
+        .filter((post: any) => {
+          // Filter out duplicates based on reddit_id
+          if (seenRedditIds.has(post.reddit_id)) {
+            return false
+          }
+          seenRedditIds.add(post.reddit_id)
+          return true
+        })
+        .map((post: any) => ({
+          ...post,
+          category_text: subredditCategoryMap.get(post.subreddit_name) || null
+        })) as Post[]
 
       if (append) {
         setPosts(prev => [...prev, ...newPosts])
@@ -244,10 +294,94 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       setLoadingMore(false)
       fetchingRef.current = false
     }
-  }, [sortBy, debouncedSearchQuery, sfwOnly, ageFilter, fetchApprovedSubreddits, initialPostsPerPage, posts])
+  }, [sortBy, debouncedSearchQuery, sfwOnly, ageFilter, fetchApprovedSubreddits, initialPostsPerPage])
+
+  // Fetch actual total post count with all filters applied
+  const fetchTotalCount = useCallback(async () => {
+    if (!supabase) return 0
+
+    try {
+      // Get approved subreddit names (already filtered by categories)
+      const approvedSubreddits = okSubredditsCache.current.length > 0
+        ? okSubredditsCache.current
+        : await fetchApprovedSubreddits(sortBy)
+
+      if (approvedSubreddits.length === 0) {
+        setTotalPostCount(0)
+        setSfwCount(0)
+        setNsfwCount(0)
+        return 0
+      }
+
+      // Build base query for total count
+      let baseQuery = supabase
+        .from('reddit_posts')
+        .select('*', { count: 'exact', head: true })
+        .in('subreddit_name', approvedSubreddits)
+
+      // Apply age filter
+      if (ageFilter !== 'all') {
+        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
+        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
+        baseQuery = baseQuery.gte('created_utc', cutoff)
+      }
+
+      // Apply search filter if present
+      if (debouncedSearchQuery) {
+        baseQuery = baseQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
+      }
+
+      // Get SFW count
+      const sfwQuery = baseQuery.eq('over_18', false)
+      const { count: sfwCountResult, error: sfwError } = await sfwQuery
+
+      if (sfwError) {
+        console.error('Failed to fetch SFW count:', sfwError)
+      }
+
+      // Get NSFW count (rebuild query to avoid mutation)
+      let nsfwBaseQuery = supabase
+        .from('reddit_posts')
+        .select('*', { count: 'exact', head: true })
+        .in('subreddit_name', approvedSubreddits)
+        .eq('over_18', true)
+
+      // Apply same filters to NSFW query
+      if (ageFilter !== 'all') {
+        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
+        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
+        nsfwBaseQuery = nsfwBaseQuery.gte('created_utc', cutoff)
+      }
+
+      if (debouncedSearchQuery) {
+        nsfwBaseQuery = nsfwBaseQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
+      }
+
+      const { count: nsfwCountResult, error: nsfwError } = await nsfwBaseQuery
+
+      if (nsfwError) {
+        console.error('Failed to fetch NSFW count:', nsfwError)
+      }
+
+      // Set the counts
+      const finalSfwCount = sfwCountResult || 0
+      const finalNsfwCount = nsfwCountResult || 0
+      const finalTotalCount = finalSfwCount + finalNsfwCount
+
+      setSfwCount(finalSfwCount)
+      setNsfwCount(finalNsfwCount)
+      setTotalPostCount(finalTotalCount)
+
+      return finalTotalCount
+
+    } catch (err) {
+      console.error('Failed to fetch total count:', err)
+      return 0
+    }
+  }, [sfwOnly, ageFilter, sortBy, fetchApprovedSubreddits, debouncedSearchQuery])
 
   // Fetch metrics
-  const fetchMetrics = useCallback(async () => {
+  const fetchMetrics = useCallback(async (currentTotalCount?: number) => {
     if (!supabase) return
 
     try {
@@ -276,15 +410,14 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         return
       }
 
-      // Use limited subreddit list for metrics to prevent timeout
-      const limitedSubreddits = approvedSubreddits.slice(0, 50)
-      console.log(`Calculating metrics for ${limitedSubreddits.length} subreddits`)
+      // Use all approved subreddits for comprehensive metrics
+      console.log(`Calculating metrics for ${approvedSubreddits.length} subreddits`)
 
-      // Fetch posts for metrics calculation (limited to prevent timeout)
+      // Fetch posts for metrics calculation with all approved subreddits
       let metricsQuery = supabase
         .from('reddit_posts')
         .select('score, num_comments, created_utc, subreddit_name, over_18')
-        .in('subreddit_name', limitedSubreddits)
+        .in('subreddit_name', approvedSubreddits)
 
       // Apply SFW filter for metrics
       if (sfwOnly) {
@@ -298,8 +431,8 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         metricsQuery = metricsQuery.gte('created_utc', cutoff)
       }
 
-      // Limit to prevent timeout
-      metricsQuery = metricsQuery.limit(2000)
+      // Increased limit for more accurate metrics
+      metricsQuery = metricsQuery.limit(5000)
 
       const { data: metricsData, error: metricsError } = await metricsQuery
 
@@ -326,11 +459,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         return
       }
 
-      // Calculate counts
-      const sfwPosts = metricsData.filter(p => !p.over_18)
-      const nsfwPosts = metricsData.filter(p => p.over_18)
-      setSfwCount(sfwPosts.length)
-      setNsfwCount(nsfwPosts.length)
+      // Don't set SFW/NSFW counts here - we get them from fetchTotalCount()
 
       // Calculate metrics from the data
       const subredditStats = new Map<string, { totalScore: number; totalComments: number; count: number }>()
@@ -397,7 +526,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       const avgComments = metricsData.reduce((sum, p) => sum + (p.num_comments || 0), 0) / metricsData.length
 
       setMetrics({
-        total_posts_count: metricsData.length,
+        total_posts_count: currentTotalCount || totalPostCount || metricsData.length,
         total_subreddits_count: uniqueSubreddits,
         avg_score_value: Math.round(avgScore),
         avg_comments_value: Math.round(avgComments),
@@ -427,12 +556,21 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   useEffect(() => {
     setCurrentPage(0)
     fetchPosts(0, false)
-  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, selectedCategories, fetchPosts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, debouncedCategories])
 
-  // Fetch metrics when filters change
+  // Fetch counts and metrics when filters change
   useEffect(() => {
-    fetchMetrics()
-  }, [fetchMetrics])
+    const fetchCountsAndMetrics = async () => {
+      // First fetch total count
+      const totalCount = await fetchTotalCount()
+      // Then fetch metrics with the actual total count
+      await fetchMetrics(totalCount)
+    }
+
+    fetchCountsAndMetrics()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sfwOnly, ageFilter, sortBy, debouncedCategories])
 
   return {
     // Data
@@ -440,6 +578,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     metrics,
     sfwCount,
     nsfwCount,
+    totalPostCount,
     topCategories,
 
     // Loading states

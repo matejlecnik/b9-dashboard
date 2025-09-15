@@ -165,15 +165,14 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
     }
   }
 
-  // Get video URL for Reddit videos
-  const getVideoUrl = () => {
-    if (post.preview_data?.reddit_video?.fallback_url) {
-      return post.preview_data.reddit_video.fallback_url
-    }
-    if (post.url && (post.is_video || post.content_type === 'video')) {
-      return post.url
-    }
-    return null
+  // Check if this is a GIF that should autoplay
+  const isAutoplayGif = () => {
+    if (!post.url) return false
+    // Check for common GIF hosting services
+    const gifDomains = ['i.imgur.com', 'gfycat.com', 'redgifs.com', 'giphy.com']
+    const isGifDomain = gifDomains.some(domain => post.url?.includes(domain))
+    const hasGifExtension = /\.gif$/i.test(post.url)
+    return isGifDomain || hasGifExtension || post.url.includes('.gifv')
   }
 
   // Check if post has multiple images
@@ -212,7 +211,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
   }
 
   const imageUrl = getImageUrl()
-  const videoUrl = getVideoUrl()
+  const isGif = isAutoplayGif()
   const aspectRatio = getAspectRatio()
 
   return (
@@ -287,18 +286,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
         }}
       >
         {/* Main Content */}
-        {videoUrl ? (
-          <video
-            src={videoUrl}
-            poster={imageUrl || undefined}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            muted
-            loop
-            playsInline
-            onMouseEnter={(e) => e.currentTarget.play()}
-            onMouseLeave={(e) => e.currentTarget.pause()}
-          />
-        ) : imageUrl ? (
+        {imageUrl ? (
           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
             {(() => {
               const url = imageUrl
@@ -370,12 +358,19 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
           </>
         )}
 
-        {/* Video Play Button */}
+        {/* Video/GIF Overlay Indicator */}
         {(post.is_video || post.content_type === 'video') && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-black/70 backdrop-blur-sm rounded-full p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Play className="h-8 w-8 text-white ml-1" />
+            <div className="bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 group-hover:scale-110">
+              <Play className="h-6 w-6 text-white ml-0.5" />
             </div>
+          </div>
+        )}
+
+        {/* GIF Badge */}
+        {isGif && (
+          <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded px-2 py-1">
+            <span className="text-white text-xs font-bold">GIF</span>
           </div>
         )}
       </div>

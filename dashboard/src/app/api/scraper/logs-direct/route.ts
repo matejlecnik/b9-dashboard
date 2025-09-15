@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
       throw new Error('Supabase client not initialized')
     }
 
-    // Build query
+    // Build query - filter to show only scraper logs (not user_tracking or ai_categorization)
     let query = supabase
       .from('reddit_scraper_logs')
       .select('id, timestamp, level, message, context, source')
+      .or('source.eq.scraper,source.eq.scraper_operation,source.is.null')  // Only show scraper activity
       .order('timestamp', { ascending: false })
       .limit(limit)
 

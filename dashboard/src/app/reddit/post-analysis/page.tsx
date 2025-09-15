@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { PostAnalysisToolbar } from '@/components/PostAnalysisToolbar'
 import { PostAnalysisStats } from '@/components/PostAnalysisStats'
@@ -16,12 +16,13 @@ export default function PostAnalysisPage() {
     metrics,
     sfwCount,
     nsfwCount,
-    
+    totalPostCount,
+
     // Loading states
     loading,
     metricsLoading,
     hasMore,
-    
+
     // Filter states
     searchQuery,
     selectedCategories,
@@ -29,7 +30,7 @@ export default function PostAnalysisPage() {
     sfwOnly,
     ageFilter,
     sortBy,
-    
+
     // Actions
     setSearchQuery,
     setSelectedCategories,
@@ -38,11 +39,17 @@ export default function PostAnalysisPage() {
     setAgeFilter,
     setSortBy,
     loadMorePosts,
-    
+
     // Error handling
     error,
     setError
   } = usePostAnalysis({ initialPostsPerPage: 20 })
+
+  // Memoize the toggle function
+  const handleToggleCategoryFilter = useMemo(
+    () => () => setIsCategoryFiltering(!isCategoryFiltering),
+    [isCategoryFiltering, setIsCategoryFiltering]
+  )
 
   return (
     <DashboardLayout>
@@ -71,7 +78,7 @@ export default function PostAnalysisPage() {
             selectedCategories={selectedCategories}
             onCategoriesChange={setSelectedCategories}
             isCategoryFiltering={isCategoryFiltering}
-            onToggleCategoryFilter={() => setIsCategoryFiltering(!isCategoryFiltering)}
+            onToggleCategoryFilter={handleToggleCategoryFilter}
             sfwOnly={sfwOnly}
             onSfwChange={setSfwOnly}
             ageFilter={ageFilter}
@@ -80,7 +87,7 @@ export default function PostAnalysisPage() {
             sfwCount={sfwCount}
             nsfwCount={nsfwCount}
             currentPostCount={posts.length}
-            totalAvailablePosts={sfwCount + nsfwCount}
+            totalAvailablePosts={sfwOnly ? sfwCount : totalPostCount}
           />
         </ComponentErrorBoundary>
 

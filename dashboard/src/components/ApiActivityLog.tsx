@@ -57,90 +57,91 @@ export function ApiActivityLog({
   const [activities, setActivities] = useState<ApiActivity[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  // Fetch real activity from appropriate tables
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        // Check if supabase client is available
         if (!supabase) {
           console.error('Supabase client not initialized')
           return
         }
 
-        let data, error
+        let data: RedditCategorizationLog[] | RedditScraperLog[] | null = null
+        let error: unknown = null
 
         if (endpoint === 'categorization') {
-          // Fetch from reddit_categorization_logs for categorization
           const response = await supabase
             .from('reddit_categorization_logs')
             .select('id, timestamp, subreddit_name, category_assigned, success')
             .order('timestamp', { ascending: false })
             .limit(maxLogs)
-
-          data = response.data
+          data = response.data as RedditCategorizationLog[] | null
           error = response.error
         } else {
-          // Fetch from reddit_scraper_logs for other endpoints
           const sourceFilter = endpoint === 'users' ? 'user_tracking' : 'scraper'
-
           const response = await supabase
             .from('reddit_scraper_logs')
             .select('id, timestamp, message, source, level, context')
             .eq('source', sourceFilter)
             .order('timestamp', { ascending: false })
             .limit(maxLogs)
-
-          data = response.data
+          data = response.data as RedditScraperLog[] | null
           error = response.error
         }
 
         if (data && !error) {
-          const mappedActivities = data.map((log: any) => {
+          const mappedActivities: ApiActivity[] = data.map((log) => {
             let displayMessage = ''
             let status: 'success' | 'error' | 'pending' = 'success'
 
             if (endpoint === 'categorization') {
-              // Handle data from reddit_categorization_logs table
-              if ('category_assigned' in log && log.category_assigned) {
-                displayMessage = `r/${log.subreddit_name} → ${log.category_assigned}`
-                status = log.success ? 'success' : 'error'
-              } else if ('subreddit_name' in log) {
-                displayMessage = `Categorizing r/${log.subreddit_name}...`
+              const catLog = log as RedditCategorizationLog
+              if ('category_assigned' in catLog && catLog.category_assigned) {
+                displayMessage = `r/${catLog.subreddit_name} → ${catLog.category_assigned}`
+                status = catLog.success ? 'success' : 'error'
+              } else if ('subreddit_name' in catLog && catLog.subreddit_name) {
+                displayMessage = `Categorizing r/${catLog.subreddit_name}...`
                 status = 'pending'
               } else {
                 displayMessage = 'Processing categorization...'
                 status = 'pending'
               }
+              return {
+                id: catLog.id,
+                timestamp: catLog.timestamp,
+                endpoint,
+                status,
+                message: displayMessage,
+                details: {}
+              }
             } else {
-              // Handle data from reddit_scraper_logs table for users
-              displayMessage = log.message || ''
+              const scrLog = log as RedditScraperLog
+              displayMessage = scrLog.message || ''
 
-              // Format message based on source and context
-              if (log.source === 'user_tracking') {
-                // For user tracking, focus on new users discovered
-                if (log.context?.username) {
-                  const username = log.context.username
+              if (scrLog.source === 'user_tracking') {
+                const context = scrLog.context as Record<string, unknown> | undefined
+                if (context?.username && typeof context.username === 'string') {
+                  const username = context.username
                   displayMessage = `New user discovered: ${username.startsWith('u/') ? username : `u/${username}`}`
-                } else if (log.message?.includes('toggle-creator')) {
-                  const status = log.context?.new_status ? 'marked as creator' : 'unmarked as creator'
-                  const username = log.context?.username || 'User'
-                  displayMessage = `${username.startsWith('u/') ? username : `u/${username}`} ${status}`
-                } else if (log.message?.includes('search')) {
-                  const count = log.context?.results_count || 0
-                  displayMessage = `Search: "${log.context?.query}" → ${count} results`
+                } else if (scrLog.message?.includes('toggle-creator')) {
+                  const newStatus = context?.new_status ? 'marked as creator' : 'unmarked as creator'
+                  const username = typeof context?.username === 'string' ? context.username : 'User'
+                  displayMessage = `${username.startsWith('u/') ? username : `u/${username}`} ${newStatus}`
+                } else if (scrLog.message?.includes('search')) {
+                  const count = typeof context?.results_count === 'number' ? context.results_count : 0
+                  displayMessage = `Search: "${context?.query ?? ''}" → ${count} results`
                 }
               }
 
-              status = log.level === 'ERROR' ? 'error' : 'success'
-            }
+              status = scrLog.level === 'ERROR' ? 'error' : 'success'
 
-            return {
-              id: log.id,
-              timestamp: log.timestamp,
-              endpoint: endpoint,
-              status: status,
-              message: displayMessage,
-              details: log.context || {}
+              return {
+                id: scrLog.id,
+                timestamp: scrLog.timestamp,
+                endpoint,
+                status,
+                message: displayMessage,
+                details: (scrLog.context as ApiActivityDetails) || {}
+              }
             }
           })
           setActivities(mappedActivities)
@@ -151,7 +152,7 @@ export function ApiActivityLog({
     }
 
     fetchActivities()
-    const interval = setInterval(fetchActivities, 10000) // Refresh every 10 seconds
+    const interval = setInterval(fetchActivities, 10000)
     return () => clearInterval(interval)
   }, [endpoint, maxLogs])
 

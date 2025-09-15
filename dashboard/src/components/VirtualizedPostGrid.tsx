@@ -92,9 +92,9 @@ export function VirtualizedPostGrid({
         }}
       >
         {/* All Posts */}
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <PostGalleryCard
-            key={post.id}
+            key={post.reddit_id || `${post.id}-${index}`}
             post={post}
           />
         ))}

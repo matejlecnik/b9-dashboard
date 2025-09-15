@@ -1483,15 +1483,17 @@ class ProxyEnabledMultiScraper:
         hour_performance = defaultdict(list)
         day_performance = defaultdict(list)
         top_posts_to_save = []
-        
+        posts_analyzed_for_timing = 0
+
         async for submission in subreddit.top(time_filter='year', limit=100):
             ts = getattr(submission, 'created_utc', None)
             score = getattr(submission, 'score', 0) or 0
-            if ts is None:
+            if ts is None or score <= 0:  # Skip posts with no timestamp or no score
                 continue
             dt = datetime.fromtimestamp(ts, tz=timezone.utc)
             hour_performance[dt.hour].append(score)
             day_performance[dt.weekday()].append(score)
+            posts_analyzed_for_timing += 1
             
             # Also save top yearly posts to database
             try:
@@ -1518,6 +1520,10 @@ class ProxyEnabledMultiScraper:
         best_day_idx = best_key_by_avg(day_performance)
         day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         best_day = day_names[best_day_idx] if best_day_idx is not None else None
+
+        # Log if we couldn't determine best posting times
+        if best_hour is None or best_day is None:
+            logger.debug(f"⚠️ Could not determine best posting times for r/{name}: analyzed {posts_analyzed_for_timing} posts with timing data")
 
         # Save top yearly posts to database
         if top_posts_to_save:

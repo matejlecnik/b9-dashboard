@@ -147,17 +147,17 @@ async def get_scraper_status(request: Request):
     try:
         supabase = get_supabase()
 
-        # Check scraper control state
+        # Check scraper control state - this is the source of truth
         is_running = False
         last_updated = None
 
         try:
             result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
-            if result.data:
+            if result.data and len(result.data) > 0:
                 is_running = result.data[0].get('enabled', False)
                 last_updated = result.data[0].get('last_updated')
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not get scraper control state: {e}")
 
         # Get last activity from logs
         last_activity = None
@@ -231,10 +231,20 @@ async def get_scraper_status_detailed(request: Request):
     try:
         # Get basic status
         basic_status = await get_scraper_status(request)
-        is_running = basic_status['system_health']['scraper'] == 'running'
 
-        # Get metrics from Supabase
+        # Check the actual scraper_control table for the true state
         supabase = get_supabase()
+        is_running = False
+
+        try:
+            control_result = supabase.table('scraper_control').select('enabled').eq('id', 1).execute()
+            if control_result.data and len(control_result.data) > 0:
+                is_running = control_result.data[0].get('enabled', False)
+        except Exception as e:
+            logger.debug(f"Could not get scraper control state: {e}")
+            # Fallback to basic status check
+            is_running = basic_status['system_health']['scraper'] == 'running'
+
         stats = {}
 
         try:

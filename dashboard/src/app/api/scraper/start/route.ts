@@ -2,27 +2,45 @@ import { NextResponse } from 'next/server'
 
 export async function POST() {
   try {
-    // For now, we'll use Render's environment variable API to control the scraper
-    // The scraper checks SCRAPER_ENABLED environment variable
-    console.log('Starting scraper by updating SCRAPER_ENABLED environment variable')
+    // Get the backend API URL from environment variable or use localhost for development
+    const API_URL = process.env.BACKEND_API_URL || 'http://localhost:8000'
 
-    // Since we can't directly call Render API from here, we'll return success
-    // The scraper on Render checks this variable continuously
+    console.log('Starting scraper via backend API:', API_URL)
+
+    // Call the backend Python API to start the scraper
+    const response = await fetch(`${API_URL}/api/scraper/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(30000) // 30 second timeout
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to start scraper' }))
+      throw new Error(errorData.detail || errorData.message || `HTTP ${response.status} error`)
+    }
+
+    const data = await response.json()
+
+    console.log('Scraper started successfully:', data)
+
     return NextResponse.json({
       success: true,
-      message: 'Scraper start requested. The scraper will begin its next cycle within 30 seconds.',
-      status: 'running',
-      note: 'To fully control the scraper, set SCRAPER_ENABLED=true in Render environment variables'
+      message: data.message || 'Scraper started successfully',
+      status: data.status || 'running',
+      details: data.details || {}
     })
 
   } catch (error) {
     console.error('Error starting scraper:', error)
 
     // Check if it's a network error (API not reachable)
-    if (error instanceof Error && error.message.includes('fetch')) {
+    if (error instanceof Error && (error.message.includes('fetch') || error.name === 'AbortError')) {
       return NextResponse.json({
         success: false,
-        message: 'Cannot connect to scraper service. Please ensure the API is running.',
+        message: 'Cannot connect to scraper service. Please ensure the API is running on localhost:8000.',
         error: error.message
       }, { status: 503 })
     }
