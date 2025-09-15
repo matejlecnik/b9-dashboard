@@ -332,6 +332,7 @@ async def get_scraper_status_detailed(request: Request):
             is_running = basic_status['system_health']['scraper'] == 'running'
 
         stats = {}
+        cycle_info = None
 
         try:
             # Get today's metrics
@@ -361,6 +362,73 @@ async def get_scraper_status_detailed(request: Request):
 
             stats['successful_requests'] = success_result.count if success_result.count else 0
             stats['failed_requests'] = error_result.count if error_result.count else 0
+
+            # Get cycle information if scraper is running
+            if is_running:
+                try:
+                    # Get latest cycle start
+                    cycle_start_result = supabase.table('reddit_scraper_logs')\
+                        .select('message, timestamp, context')\
+                        .like('message', '🔄 Starting scraping cycle #%')\
+                        .order('timestamp', desc=True)\
+                        .limit(1)\
+                        .execute()
+
+                    # Get latest cycle completion
+                    cycle_complete_result = supabase.table('reddit_scraper_logs')\
+                        .select('message, context')\
+                        .like('message', '✅ Completed scraping cycle #%')\
+                        .order('timestamp', desc=True)\
+                        .limit(1)\
+                        .execute()
+
+                    current_cycle = None
+                    cycle_start = None
+                    elapsed_seconds = None
+                    elapsed_formatted = None
+                    last_cycle_duration = None
+                    last_cycle_formatted = None
+
+                    # Parse current cycle info
+                    if cycle_start_result.data and len(cycle_start_result.data) > 0:
+                        start_log = cycle_start_result.data[0]
+                        # Extract cycle number from message
+                        import re
+                        match = re.search(r'cycle #(\d+)', start_log['message'])
+                        if match:
+                            current_cycle = int(match.group(1))
+
+                        # Calculate elapsed time
+                        cycle_start = start_log['timestamp']
+                        start_time = datetime.fromisoformat(cycle_start.replace('Z', '+00:00'))
+                        elapsed_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
+                        # Format elapsed time
+                        if elapsed_seconds >= 60:
+                            elapsed_formatted = f"{int(elapsed_seconds // 60)}m {int(elapsed_seconds % 60)}s"
+                        else:
+                            elapsed_formatted = f"{int(elapsed_seconds)}s"
+
+                    # Parse last completed cycle info
+                    if cycle_complete_result.data and len(cycle_complete_result.data) > 0:
+                        complete_log = cycle_complete_result.data[0]
+                        context = complete_log.get('context', {})
+                        if context:
+                            last_cycle_duration = context.get('duration_seconds')
+                            last_cycle_formatted = context.get('duration_formatted')
+
+                    cycle_info = {
+                        "current_cycle": current_cycle,
+                        "cycle_start": cycle_start,
+                        "elapsed_seconds": elapsed_seconds,
+                        "elapsed_formatted": elapsed_formatted,
+                        "last_cycle_duration": last_cycle_duration,
+                        "last_cycle_formatted": last_cycle_formatted,
+                        "items_processed": 0,
+                        "errors": 0
+                    }
+
+                except Exception as e:
+                    logger.debug(f"Could not get cycle info: {e}")
 
         except Exception as e:
             logger.debug(f"Could not get stats: {e}")
@@ -394,7 +462,8 @@ async def get_scraper_status_detailed(request: Request):
                 "batch_size": 10,
                 "delay_between_batches": 30,
                 "max_daily_requests": 10000
-            }
+            },
+            "cycle": cycle_info  # Add cycle information
         }
 
     except Exception as e:

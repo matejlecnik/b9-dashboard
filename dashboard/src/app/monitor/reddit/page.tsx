@@ -75,16 +75,16 @@ export default function RedditMonitor() {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      // Get all logs from today
+      // Get Reddit API success/failure logs from today only
       const { data: logs, error } = await supabase
         .from('reddit_scraper_logs')
-        .select('message, level')
+        .select('message')
         .gte('timestamp', today.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(10000)
+        .or('message.like.%✅ Reddit API request successful%,message.like.%❌ Reddit API request failed%,message.like.%❌ Failed to get info%,message.like.%❌ All % attempts failed%')
 
       if (error) {
         console.error('Error fetching logs:', error)
+        setSuccessRate(null)
         return
       }
 
@@ -93,44 +93,25 @@ export default function RedditMonitor() {
         return
       }
 
-      // Use a Set to track unique Reddit requests and avoid counting duplicates
-      const uniqueRedditRequests = new Set<string>()
-      const uniqueRedditFailures = new Set<string>()
-      let blockedCount = 0
+      // Count successes and failures directly from log messages
+      let successCount = 0
+      let failureCount = 0
 
       logs.forEach(log => {
         const msg = log.message
 
-        // Extract Reddit URL from request logs to deduplicate
-        if (msg.includes('🔍 Request to:') && msg.includes('reddit.com')) {
-          const urlMatch = msg.match(/Request to: (https?:\/\/[^\s]+reddit\.com[^\s]+)/)
-          if (urlMatch) {
-            uniqueRedditRequests.add(urlMatch[1])
-          }
+        // Count successful Reddit API requests
+        if (msg.includes('✅ Reddit API request successful')) {
+          successCount++
         }
-
-        // Track Reddit failures by URL to deduplicate
-        if (msg.includes('reddit.com') && (
-            msg.includes('Failed request for') ||
-            msg.includes('404 Client Error') ||
-            msg.includes('403 Forbidden') ||
-            msg.includes('429 Too Many Requests'))) {
-          const urlMatch = msg.match(/(https?:\/\/[^\s:]+reddit\.com[^\s:]+)/)
-          if (urlMatch) {
-            uniqueRedditFailures.add(urlMatch[1])
-
-            // Count blocked requests specifically
-            if (msg.includes('403 Forbidden') || msg.includes('429 Too Many Requests')) {
-              blockedCount++
-            }
-          }
+        // Count failed Reddit API requests
+        else if (msg.includes('❌')) {
+          failureCount++
         }
       })
 
-      const totalRequests = uniqueRedditRequests.size
-      const failedRequests = uniqueRedditFailures.size
-      // Successful requests = total requests - failed requests (since successes aren't logged)
-      const successfulRequests = Math.max(0, totalRequests - failedRequests)
+      const totalRequests = successCount + failureCount
+      const successfulRequests = successCount
 
       if (totalRequests > 0) {
         setSuccessRate({
@@ -140,7 +121,7 @@ export default function RedditMonitor() {
         })
 
         // Log for debugging
-        console.log(`Success Rate: ${successfulRequests}/${totalRequests} (${failedRequests} failed, ${blockedCount} blocked)`)
+        console.log(`Reddit API Success Rate Today: ${successfulRequests}/${totalRequests} (${(successfulRequests / totalRequests * 100).toFixed(1)}%)`)
       } else {
         setSuccessRate(null)
       }
@@ -164,31 +145,14 @@ export default function RedditMonitor() {
         if (controlStatus.data && !manualOverride) {
           setIsRunning(controlStatus.data.enabled)
         }
-
-        // Get latest activity from logs to determine if scraper is actually running
-        const recentLogs = await supabase
-          .from('reddit_scraper_logs')
-          .select('timestamp, message')
-          .order('timestamp', { ascending: false })
-          .limit(1)
-
-        if (recentLogs.data && recentLogs.data.length > 0) {
-          const lastLogTime = new Date(recentLogs.data[0].timestamp)
-          const minutesAgo = (new Date().getTime() - lastLogTime.getTime()) / 60000
-
-          // If there's activity within last 2 minutes, consider it running
-          if (minutesAgo < 2 && !manualOverride) {
-            setIsRunning(true)
-          }
-        }
       } catch (supabaseError) {
         console.warn('Supabase status check failed:', supabaseError)
       }
 
-      // Then try to fetch detailed metrics from API (with shorter timeout)
+      // Always try to fetch from production API on Render for scraper status
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000) // Reduced to 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for Render cold start
 
       try {
         const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
@@ -204,12 +168,15 @@ export default function RedditMonitor() {
           const data = await statusRes.json()
           setMetrics(data)
 
+          // Debug log to check if cycle data is present
+          if (data.cycle) {
+            console.log('Cycle data received:', data.cycle)
+          }
+
           // Only update running state if we haven't manually overridden it
           if (!manualOverride) {
-            // Consider scraper running if status is 'running' OR if there's recent activity
-            const hasRecentActivity = data.last_activity &&
-              (new Date().getTime() - new Date(data.last_activity).getTime() < 120000) // Active within last 2 minutes
-            setIsRunning(data.status === 'running' || hasRecentActivity)
+            // Use the enabled state from the API which checks Supabase
+            setIsRunning(data.enabled === true)
           }
         }
       } catch (fetchError: any) {
@@ -267,7 +234,7 @@ export default function RedditMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the backend API on Render
+      // Call the backend API on Render (production scraper)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
 
@@ -341,18 +308,23 @@ export default function RedditMonitor() {
     // Check initial scraper status from Supabase first (more reliable)
     const checkInitialStatus = async () => {
       try {
-        // First check Supabase for immediate status
+        // First check Supabase for immediate status - this is the source of truth
         const controlStatus = await supabase
           .from('scraper_control')
           .select('enabled')
           .eq('id', 1)
           .single()
 
-        if (controlStatus.data) {
-          setIsRunning(controlStatus.data.enabled)
+        if (controlStatus.data !== null) {
+          // Always use Supabase as the source of truth for initial state
+          setIsRunning(controlStatus.data.enabled === true)
+          console.log('Scraper initial state from Supabase:', controlStatus.data.enabled ? 'running' : 'stopped')
+        } else {
+          // Default to stopped if no control record exists
+          setIsRunning(false)
         }
 
-        // Then try API with a short timeout
+        // Then try API with a short timeout for additional metrics
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
@@ -366,13 +338,10 @@ export default function RedditMonitor() {
 
           if (statusRes.ok) {
             const status = await statusRes.json()
-            // Check if scraper is running based on system health
-            const isScraperRunning = status.system_health?.scraper === 'running'
-            if (isScraperRunning !== undefined) {
-              setIsRunning(isScraperRunning)
-              setManualOverride(true)
-              // Clear override after 5 seconds to allow status updates
-              setTimeout(() => setManualOverride(false), 5000)
+            // Only use API status if we don't have Supabase data
+            if (controlStatus.data === null) {
+              const isScraperRunning = status.system_health?.scraper === 'running'
+              setIsRunning(isScraperRunning === true)
             }
           }
         } catch (fetchError) {
@@ -382,6 +351,8 @@ export default function RedditMonitor() {
         }
       } catch (error) {
         console.log('Error checking initial status:', error)
+        // Default to stopped on error
+        setIsRunning(false)
       }
     }
 
@@ -390,21 +361,17 @@ export default function RedditMonitor() {
     fetchMetrics()
     calculateSuccessRate()
 
-    // Set up polling with different intervals
+    // Set up polling for metrics only (not success rate)
     const metricsInterval = setInterval(() => {
       fetchMetrics()
-    }, 20000) // Refresh metrics every 20 seconds (less aggressive)
+    }, 20000) // Refresh metrics every 20 seconds
 
-    // Calculate success rate less frequently since it doesn't need to be live
-    const successInterval = setInterval(() => {
-      calculateSuccessRate()
-    }, 60000) // Refresh success rate every minute
+    // Success rate is calculated only once on mount, not refreshed
 
     return () => {
       clearInterval(metricsInterval)
-      clearInterval(successInterval)
     }
-  }, [fetchMetrics, calculateSuccessRate]) // Remove manualOverride from dependencies to prevent infinite loop
+  }, []) // Empty dependency array - only run once on mount
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
@@ -448,20 +415,15 @@ export default function RedditMonitor() {
               />
 
               {/* Success Rate Card */}
-              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 min-w-[150px]">
+              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
                 <div className="text-[10px] text-gray-500 mb-0.5">Success Rate (Today)</div>
                 <div className="text-xl font-bold text-gray-900">
                   {successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
                 </div>
-                <div className="text-[10px] text-gray-600 mt-0.5">
-                  {successRate
-                    ? `${successRate.successful}/${successRate.total} requests`
-                    : 'Calculating...'}
-                </div>
               </div>
 
               {/* Cycle Length Card */}
-              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 min-w-[150px]">
+              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
                 <div className="text-[10px] text-gray-500 mb-0.5">Current Cycle</div>
                 <div className="text-xl font-bold text-gray-900">
                   {metrics?.cycle?.elapsed_formatted || '—'}
