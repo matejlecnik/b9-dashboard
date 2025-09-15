@@ -75,5 +75,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port for API
 EXPOSE $PORT
 
-# Run supervisor to manage both processes
-CMD ["./start.sh"]
+# Run Python startup script to manage both API and scraper
+CMD ["python", "api/start.py"]

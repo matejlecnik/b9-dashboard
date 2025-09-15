@@ -14,12 +14,16 @@ import time
 def run_scraper():
     """Run the continuous scraper in a thread"""
     print("🔄 Starting continuous scraper...")
+    # Change to api directory and run scraper
+    os.chdir('/app/api')
     subprocess.run([sys.executable, "continuous_scraper.py"])
 
 def run_api():
     """Run the FastAPI server"""
     print("🚀 Starting FastAPI server...")
     port = os.environ.get('PORT', '8000')
+    # Change to api directory for API as well
+    os.chdir('/app/api')
     subprocess.run([
         "uvicorn", "main:app",
         "--host", "0.0.0.0",
