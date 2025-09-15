@@ -76,6 +76,7 @@ export default function RedditMonitor() {
       today.setHours(0, 0, 0, 0)
 
       // Get Reddit API success/failure logs from today only
+      if (!supabase) return
       const { data: logs, error } = await supabase
         .from('reddit_scraper_logs')
         .select('message')
@@ -136,14 +137,16 @@ export default function RedditMonitor() {
 
       // First, try to get status from Supabase (faster and more reliable)
       try {
-        const controlStatus = await supabase
-          .from('scraper_control')
-          .select('enabled')
-          .eq('id', 1)
-          .single()
+        if (supabase) {
+          const controlStatus = await supabase
+            .from('scraper_control')
+            .select('enabled')
+            .eq('id', 1)
+            .single()
 
-        if (controlStatus.data && !manualOverride) {
-          setIsRunning(controlStatus.data.enabled)
+          if (controlStatus.data && !manualOverride) {
+            setIsRunning(controlStatus.data.enabled)
+          }
         }
       } catch (supabaseError) {
         console.warn('Supabase status check failed:', supabaseError)
@@ -309,6 +312,7 @@ export default function RedditMonitor() {
     const checkInitialStatus = async () => {
       try {
         // First check Supabase for immediate status - this is the source of truth
+        if (!supabase) return
         const controlStatus = await supabase
           .from('scraper_control')
           .select('enabled')

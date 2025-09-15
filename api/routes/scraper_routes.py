@@ -347,26 +347,68 @@ async def get_scraper_status_detailed(request: Request):
             if result.count:
                 stats['daily_requests'] = result.count
 
-            # Get successful vs failed from logs
-            success_result = supabase.table('reddit_scraper_logs')\
-                .select('id', count='exact')\
+            # Get Reddit API request success/failure from logs
+            # Since we don't have 'success' level, we need to analyze actual log messages
+            # Get recent Reddit-related logs to analyze patterns
+            reddit_logs = supabase.table('reddit_scraper_logs')\
+                .select('message')\
                 .gte('timestamp', today.isoformat())\
-                .eq('level', 'success')\
+                .or_('message.ilike.%reddit%,message.ilike.%r/%,message.ilike.%subreddit%,message.ilike.%429%,message.ilike.%403%,message.ilike.%rate limit%')\
+                .limit(1000)\
                 .execute()
 
-            error_result = supabase.table('reddit_scraper_logs')\
-                .select('id', count='exact')\
-                .gte('timestamp', today.isoformat())\
-                .eq('level', 'error')\
-                .execute()
+            successful_requests = 0
+            failed_requests = 0
 
-            stats['successful_requests'] = success_result.count if success_result.count else 0
-            stats['failed_requests'] = error_result.count if error_result.count else 0
+            if reddit_logs.data:
+                for log in reddit_logs.data:
+                    msg = log.get('message', '').lower()
+
+                    # Count failures (429, 403, timeouts, explicit errors)
+                    if any(error in msg for error in ['429', '403', '401', 'rate limit', 'timeout', 'failed', 'error', '❌']):
+                        failed_requests += 1
+                    # Count successes (successful fetches, processed subreddits)
+                    elif any(success in msg for success in ['successfully', 'found', '✅', 'processed', 'fetched', 'scraped']):
+                        successful_requests += 1
+                    # If it's about processing a subreddit without error indicators, likely success
+                    elif 'r/' in msg and 'processing' in msg and not any(e in msg for e in ['error', 'failed']):
+                        successful_requests += 1
+
+            # If we still have no data, fall back to counting error level logs as failures
+            if successful_requests == 0 and failed_requests == 0:
+                error_count = supabase.table('reddit_scraper_logs')\
+                    .select('id', count='exact')\
+                    .gte('timestamp', today.isoformat())\
+                    .eq('level', 'error')\
+                    .execute()
+
+                info_count = supabase.table('reddit_scraper_logs')\
+                    .select('id', count='exact')\
+                    .gte('timestamp', today.isoformat())\
+                    .eq('level', 'info')\
+                    .execute()
+
+                failed_requests = error_count.count if error_count.count else 0
+                # Estimate successes as a portion of info logs (very rough estimate)
+                successful_requests = max(0, (info_count.count if info_count.count else 0) - failed_requests) // 10
+
+            stats['successful_requests'] = successful_requests
+            stats['failed_requests'] = failed_requests
 
             # Get cycle information if scraper is running
             if is_running:
                 try:
-                    # Get latest cycle start
+                    # Get the earliest scraper start message from today (when scraper was first started)
+                    # This gives us the true runtime, not just the latest cycle
+                    first_start_result = supabase.table('reddit_scraper_logs')\
+                        .select('timestamp')\
+                        .or_('message.like.🚀 Continuous scraper%,message.like.✅ Scraper started via API%,message.like.🔄 Starting scraping cycle #1%')\
+                        .gte('timestamp', today.isoformat())\
+                        .order('timestamp', asc=True)\
+                        .limit(1)\
+                        .execute()
+
+                    # Get latest cycle info for cycle number
                     cycle_start_result = supabase.table('reddit_scraper_logs')\
                         .select('message, timestamp, context')\
                         .like('message', '🔄 Starting scraping cycle #%')\
@@ -389,7 +431,23 @@ async def get_scraper_status_detailed(request: Request):
                     last_cycle_duration = None
                     last_cycle_formatted = None
 
-                    # Parse current cycle info
+                    # Use the earliest start time for elapsed calculation (true runtime)
+                    if first_start_result.data and len(first_start_result.data) > 0:
+                        cycle_start = first_start_result.data[0]['timestamp']
+                        start_time = datetime.fromisoformat(cycle_start.replace('Z', '+00:00'))
+                        elapsed_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+                        # Format elapsed time
+                        if elapsed_seconds >= 3600:  # More than an hour
+                            hours = int(elapsed_seconds // 3600)
+                            minutes = int((elapsed_seconds % 3600) // 60)
+                            elapsed_formatted = f"{hours}h {minutes}m"
+                        elif elapsed_seconds >= 60:
+                            elapsed_formatted = f"{int(elapsed_seconds // 60)}m {int(elapsed_seconds % 60)}s"
+                        else:
+                            elapsed_formatted = f"{int(elapsed_seconds)}s"
+
+                    # Parse current cycle number from latest cycle start
                     if cycle_start_result.data and len(cycle_start_result.data) > 0:
                         start_log = cycle_start_result.data[0]
                         # Extract cycle number from message
@@ -397,16 +455,6 @@ async def get_scraper_status_detailed(request: Request):
                         match = re.search(r'cycle #(\d+)', start_log['message'])
                         if match:
                             current_cycle = int(match.group(1))
-
-                        # Calculate elapsed time
-                        cycle_start = start_log['timestamp']
-                        start_time = datetime.fromisoformat(cycle_start.replace('Z', '+00:00'))
-                        elapsed_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
-                        # Format elapsed time
-                        if elapsed_seconds >= 60:
-                            elapsed_formatted = f"{int(elapsed_seconds // 60)}m {int(elapsed_seconds % 60)}s"
-                        else:
-                            elapsed_formatted = f"{int(elapsed_seconds)}s"
 
                     # Parse last completed cycle info
                     if cycle_complete_result.data and len(cycle_complete_result.data) > 0:
@@ -561,6 +609,85 @@ async def update_scraper_config(request: Request, config: ScraperConfigRequest):
 
     except Exception as e:
         logger.error(f"Failed to update configuration: {e}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+@router.get("/reddit-api-stats")
+async def get_reddit_api_stats():
+    """Get detailed Reddit API request statistics"""
+    try:
+        supabase = get_supabase()
+        from datetime import datetime, timedelta, timezone
+
+        # Get logs from last 24 hours for more accurate stats
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+
+        # Get recent Reddit-related logs
+        reddit_logs = supabase.table('reddit_scraper_logs')\
+            .select('message, level, timestamp')\
+            .gte('timestamp', yesterday)\
+            .or_('message.ilike.%reddit%,message.ilike.%r/%,message.ilike.%subreddit%,message.ilike.%429%,message.ilike.%403%,message.ilike.%rate limit%')\
+            .order('timestamp', desc=True)\
+            .limit(5000)\
+            .execute()
+
+        successful_requests = 0
+        failed_requests = 0
+        rate_limit_errors = 0
+        forbidden_errors = 0
+        timeout_errors = 0
+        other_errors = 0
+
+        if reddit_logs.data:
+            for log in reddit_logs.data:
+                msg = log.get('message', '').lower()
+                level = log.get('level', '')
+
+                # Specific error types
+                if '429' in msg or 'rate limit' in msg:
+                    rate_limit_errors += 1
+                    failed_requests += 1
+                elif '403' in msg or 'forbidden' in msg:
+                    forbidden_errors += 1
+                    failed_requests += 1
+                elif 'timeout' in msg:
+                    timeout_errors += 1
+                    failed_requests += 1
+                elif level == 'error' or any(error in msg for error in ['failed', 'error', '❌', '401', '404', '500', '502', '503']):
+                    other_errors += 1
+                    failed_requests += 1
+                # Count successes
+                elif any(success in msg for success in ['successfully', 'found', '✅', 'fetched', 'scraped', 'collected']):
+                    successful_requests += 1
+                # Processing subreddit without errors is likely success
+                elif ('processing r/' in msg or 'scraping r/' in msg) and not any(e in msg for e in ['error', 'failed']):
+                    successful_requests += 1
+
+        total_requests = successful_requests + failed_requests
+        success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 0
+
+        return {
+            "success": True,
+            "stats": {
+                "total_requests": total_requests,
+                "successful_requests": successful_requests,
+                "failed_requests": failed_requests,
+                "success_rate": round(success_rate, 2),
+                "error_breakdown": {
+                    "rate_limits": rate_limit_errors,
+                    "forbidden": forbidden_errors,
+                    "timeouts": timeout_errors,
+                    "other": other_errors
+                },
+                "time_period": "last_24_hours",
+                "logs_analyzed": len(reddit_logs.data)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get Reddit API stats: {e}")
         return {
             "success": False,
             "message": str(e)
