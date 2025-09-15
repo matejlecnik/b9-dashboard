@@ -224,9 +224,9 @@ export default function RedditMonitor() {
         clearTimeout(timeoutId)
         // Silently handle timeout errors (API might be cold starting)
         if (fetchError.name === 'AbortError') {
-          console.log('API is slow to respond, using Supabase data only')
+          // API is slow to respond, continue silently
         } else {
-          console.log('API fetch failed, using Supabase data:', fetchError.message)
+          // API fetch failed, continue silently
         }
 
         // Set minimal metrics from what we know
@@ -389,7 +389,7 @@ export default function RedditMonitor() {
         } catch (fetchError) {
           clearTimeout(timeoutId)
           // Silently ignore API errors on initial load
-          console.log('API not responding on initial load, using Supabase status')
+          // API not responding on initial load, continue silently
         }
       } catch (error) {
         console.log('Error checking initial status:', error)

@@ -734,36 +734,31 @@ async def update_scraper_config(request: Request, config: ScraperConfigRequest):
 
 @router.get("/reddit-api-stats")
 async def get_reddit_api_stats():
-    """Get detailed Reddit API request statistics - simplified and optimized"""
+    """Get detailed Reddit API request statistics - analyzes last 1000 Reddit API requests only"""
     try:
         supabase = get_supabase()
-        from datetime import datetime, timedelta, timezone
 
-        # Get logs from last 24 hours - simpler, faster query
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-
-        # Single optimized query for Reddit API logs
+        # Query specifically for Reddit API request logs (success and failure patterns)
+        # Get more than 1000 to ensure we have enough after filtering
         result = supabase.table('reddit_scraper_logs')\
-            .select('message, level, timestamp')\
-            .gte('timestamp', yesterday)\
+            .select('message, timestamp')\
+            .or_('message.like.%Reddit API request%,message.like.%Request to: https://www.reddit.com%')\
             .order('timestamp', desc=True)\
-            .limit(1000)\
+            .limit(2000)\
             .execute()
+
+        if not result.data:
+            # Fallback to a broader search if specific patterns don't match
+            result = supabase.table('reddit_scraper_logs')\
+                .select('message, timestamp')\
+                .or_('message.ilike.%reddit%,message.ilike.%/r/%')\
+                .order('timestamp', desc=True)\
+                .limit(2000)\
+                .execute()
 
         reddit_logs = result.data if result.data else []
 
-        # Remove duplicates and sort by timestamp
-        seen = set()
-        unique_logs = []
-        for log in reddit_logs:
-            log_id = f"{log.get('timestamp')}_{log.get('message', '')[:50]}"
-            if log_id not in seen:
-                seen.add(log_id)
-                unique_logs.append(log)
-
-        # Get only the last 1000 unique Reddit API request logs
-        reddit_logs = sorted(unique_logs, key=lambda x: x.get('timestamp', ''), reverse=True)[:1000]
-
+        # Process logs to count successes and failures
         successful_requests = 0
         failed_requests = 0
         rate_limit_errors = 0
@@ -772,49 +767,42 @@ async def get_reddit_api_stats():
         auth_errors = 0
         other_errors = 0
 
-        if reddit_logs:
-            for log in reddit_logs:
-                msg = log.get('message', '')
-                msg_lower = msg.lower()
+        # Track actual Reddit API requests only
+        api_requests_processed = 0
+        max_requests_to_analyze = 1000
 
-                # Check if this is actually a Reddit API request log
-                is_reddit_api_request = any([
-                    'reddit.com' in msg_lower,
-                    'reddit api' in msg_lower,
-                    'status:' in msg_lower,
-                    'http' in msg_lower and ('/r/' in msg_lower or 'subreddit' in msg_lower)
-                ])
+        for log in reddit_logs:
+            if api_requests_processed >= max_requests_to_analyze:
+                break
 
-                if not is_reddit_api_request:
-                    continue  # Skip non-API request logs
+            msg = log.get('message', '')
 
-                # Check for HTTP status codes first (most reliable indicator)
-                if 'status: 200' in msg_lower or 'status: 2' in msg_lower or '200 ok' in msg_lower:
-                    successful_requests += 1
-                elif 'status: 429' in msg_lower or '429' in msg or 'rate limit' in msg_lower:
-                    rate_limit_errors += 1
-                    failed_requests += 1
-                elif 'status: 403' in msg_lower or '403' in msg or 'forbidden' in msg_lower:
+            # Pattern 1: "✅ Reddit API request successful: ... - 200 in Xms"
+            if '✅ Reddit API request successful' in msg:
+                successful_requests += 1
+                api_requests_processed += 1
+
+            # Pattern 2: "⚠️ Reddit API request failed (attempt X/10): ..."
+            elif '⚠️ Reddit API request failed' in msg or '❌ Reddit API request failed' in msg:
+                failed_requests += 1
+                api_requests_processed += 1
+
+                # Parse the error type
+                if '403' in msg:
                     forbidden_errors += 1
-                    failed_requests += 1
-                elif 'status: 401' in msg_lower or '401' in msg or 'unauthorized' in msg_lower:
+                elif '429' in msg:
+                    rate_limit_errors += 1
+                elif '401' in msg:
                     auth_errors += 1
-                    failed_requests += 1
-                elif 'timeout' in msg_lower or 'timed out' in msg_lower:
+                elif 'timed out' in msg or 'timeout' in msg.lower():
                     timeout_errors += 1
-                    failed_requests += 1
-                elif any(status in msg for status in ['status: 4', 'status: 5', '404', '500', '502', '503']):
+                else:
                     other_errors += 1
-                    failed_requests += 1
-                # Look for success indicators in Reddit API context
-                elif 'successfully' in msg_lower and 'reddit' in msg_lower:
-                    successful_requests += 1
-                elif 'fetched' in msg_lower and any(x in msg_lower for x in ['posts', 'subreddit', 'reddit']):
-                    successful_requests += 1
-                # If we see an error message, count as failure
-                elif 'error' in msg_lower or 'failed' in msg_lower or '❌' in msg:
-                    other_errors += 1
-                    failed_requests += 1
+
+            # Pattern 3: Count "Request to:" logs if they have a corresponding success/fail (skip for now as they don't indicate result)
+            # elif '🔍 Request to: https://www.reddit.com' in msg:
+            #     # These are just request initiation logs, not results
+            #     pass
 
         total_requests = successful_requests + failed_requests
         success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 0
@@ -833,8 +821,8 @@ async def get_reddit_api_stats():
                     "timeouts": timeout_errors,
                     "other": other_errors
                 },
-                "time_period": "last_24_hours",
-                "logs_analyzed": len(reddit_logs)
+                "time_period": "last_1000_requests",
+                "logs_analyzed": api_requests_processed
             }
         }
 

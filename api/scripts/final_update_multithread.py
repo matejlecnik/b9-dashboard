@@ -53,9 +53,17 @@ def process_subreddit(sub_data):
 
         # Pass 1: posts with NULL sub_category_text
         while True:  # Process posts missing mirror fields (NULL)
-            posts = supabase.table('reddit_posts').select(
-                'id'
-            ).eq('subreddit_name', sub_name).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
+            # Fetch with simple retry to avoid transient timeouts
+            posts = None
+            for attempt in range(3):
+                try:
+                    posts = supabase.table('reddit_posts').select(
+                        'id'
+                    ).eq('subreddit_name', sub_name).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
+                    break
+                except Exception:
+                    time.sleep(0.3 * (attempt + 1))
+                    continue
 
             if not posts.data:
                 break
@@ -82,9 +90,17 @@ def process_subreddit(sub_data):
         # Pass 2: posts with empty-string sub_category_text
         offset = 0
         while True:  # Process posts missing mirror fields (empty string)
-            posts = supabase.table('reddit_posts').select(
-                'id'
-            ).eq('subreddit_name', sub_name).eq('sub_category_text', '').range(offset, offset + 49).execute()
+            # Fetch with simple retry to avoid transient timeouts
+            posts = None
+            for attempt in range(3):
+                try:
+                    posts = supabase.table('reddit_posts').select(
+                        'id'
+                    ).eq('subreddit_name', sub_name).eq('sub_category_text', '').range(offset, offset + 49).execute()
+                    break
+                except Exception:
+                    time.sleep(0.3 * (attempt + 1))
+                    continue
 
             if not posts.data:
                 break
@@ -135,9 +151,10 @@ def main():
 
     all_subs = []
     offset = 0
-    batch_size = 1000
+    batch_size = 500  # smaller batch to avoid 1000 cap
+    max_to_fetch = 1500
 
-    while True:
+    while len(all_subs) < max_to_fetch:
         try:
             response = supabase.table('reddit_subreddits').select(
                 'name, category_text, over18'
@@ -153,12 +170,13 @@ def main():
 
         all_subs.extend(response.data)
 
-        if len(response.data) < batch_size:
+        if len(all_subs) >= max_to_fetch:
+            all_subs = all_subs[:max_to_fetch]
             break
 
         offset += batch_size
 
-    print(f"Found {len(all_subs)} categorized subreddits", flush=True)
+    print(f"Found {len(all_subs)} categorized subreddits (capped at {max_to_fetch})", flush=True)
 
     if not all_subs:
         print("No subreddits to process")
@@ -168,11 +186,12 @@ def main():
     total_subs = len(all_subs)
     subreddit_data = [(i, total_subs, sub) for i, sub in enumerate(all_subs, 1)]
 
-    print("\nProcessing with 5 threads...\n", flush=True)
+    max_workers = int(os.getenv('UPDATE_THREADS', '3'))
+    print(f"\nProcessing with {max_workers} threads...\n", flush=True)
     start_time = time.time()
 
     # Process subreddits in parallel with 5 threads
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_subreddit, data) for data in subreddit_data]
 
         # Wait for all to complete
