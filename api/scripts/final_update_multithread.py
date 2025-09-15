@@ -5,12 +5,11 @@ import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from supabase import create_client
 
 sys.path.append(str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / '.env')
-
-from supabase import create_client
 
 # Thread-safe counter
 counter_lock = Lock()
@@ -152,7 +151,7 @@ def main():
     total_subs = len(all_subs)
     subreddit_data = [(i, total_subs, sub) for i, sub in enumerate(all_subs, 1)]
 
-    print(f"\nProcessing with 5 threads...\n", flush=True)
+    print("\nProcessing with 5 threads...\n", flush=True)
     start_time = time.time()
 
     # Process subreddits in parallel with 5 threads
