@@ -739,33 +739,15 @@ async def get_reddit_api_stats():
         supabase = get_supabase()
 
         # Query specifically for Reddit API request logs (success and failure patterns)
-        # Since .or_() is not available, use multiple queries
-        reddit_logs = []
-
-        # Query 1: Look for explicit Reddit API request messages
-        result1 = supabase.table('reddit_scraper_logs')\
+        # Only look for actual success/failure messages, not request initiations
+        result = supabase.table('reddit_scraper_logs')\
             .select('message, timestamp')\
             .like('message', '%Reddit API request%')\
             .order('timestamp', desc=True)\
             .limit(1500)\
             .execute()
 
-        if result1.data:
-            reddit_logs.extend(result1.data)
-
-        # Query 2: Look for Request to reddit.com messages
-        result2 = supabase.table('reddit_scraper_logs')\
-            .select('message, timestamp')\
-            .like('message', '%Request to: https://www.reddit.com%')\
-            .order('timestamp', desc=True)\
-            .limit(500)\
-            .execute()
-
-        if result2.data:
-            reddit_logs.extend(result2.data)
-
-        # Sort combined results by timestamp
-        reddit_logs = sorted(reddit_logs, key=lambda x: x['timestamp'], reverse=True)[:2000]
+        reddit_logs = result.data if result.data else []
 
         # Process logs to count successes and failures
         successful_requests = 0

@@ -18,16 +18,9 @@ processed_count = 0
 
 def create_supabase_client():
     """Create a new Supabase client for each thread"""
-    supabase_url = os.getenv('SUPABASE_URL')
-    supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-    if not supabase_url or not supabase_key:
-        print("Missing Supabase environment variables.", flush=True)
-        print(f"SUPABASE_URL present: {bool(supabase_url)}", flush=True)
-        print(f"SERVICE_ROLE_KEY present: {bool(supabase_key)}", flush=True)
-        raise RuntimeError("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set")
     return create_client(
-        supabase_url,
-        supabase_key
+        os.getenv('SUPABASE_URL'),
+        os.getenv('SUPABASE_SERVICE_ROLE_KEY')
     )
 
 def process_subreddit(sub_data):
@@ -139,44 +132,34 @@ def main():
     print("MULTI-THREADED UPDATE (5 threads)", flush=True)
     print("=" * 60, flush=True)
 
-    # Validate env and create client
-    try:
-        supabase = create_supabase_client()
-    except Exception as e:
-        print(f"Environment validation failed: {e}", flush=True)
-        return
+    # Create client (dotenv already loaded above)
+    supabase = create_supabase_client()
 
     # Get all subreddits (fetch in batches to overcome 1000 limit)
     print("\nFetching subreddits...", flush=True)
 
     all_subs = []
     offset = 0
-    batch_size = 500  # smaller batch to avoid 1000 cap
-    max_to_fetch = 1500
+    batch_size = 1000
 
-    while len(all_subs) < max_to_fetch:
-        try:
-            response = supabase.table('reddit_subreddits').select(
-                'name, category_text, over18'
-            ).neq('category_text', '').not_.is_('category_text', 'null').range(
-                offset, offset + batch_size - 1
-            ).execute()
-        except Exception as e:
-            print(f"Error fetching subreddits batch at offset {offset}: {e}", flush=True)
-            break
+    while True:
+        response = supabase.table('reddit_subreddits').select(
+            'name, category_text, over18'
+        ).neq('category_text', '').not_.is_('category_text', 'null').range(
+            offset, offset + batch_size - 1
+        ).execute()
 
         if not response.data:
             break
 
         all_subs.extend(response.data)
 
-        if len(all_subs) >= max_to_fetch:
-            all_subs = all_subs[:max_to_fetch]
+        if len(response.data) < batch_size:
             break
 
         offset += batch_size
 
-    print(f"Found {len(all_subs)} categorized subreddits (capped at {max_to_fetch})", flush=True)
+    print(f"Found {len(all_subs)} categorized subreddits", flush=True)
 
     if not all_subs:
         print("No subreddits to process")
@@ -186,7 +169,7 @@ def main():
     total_subs = len(all_subs)
     subreddit_data = [(i, total_subs, sub) for i, sub in enumerate(all_subs, 1)]
 
-    max_workers = int(os.getenv('UPDATE_THREADS', '3'))
+    max_workers = int(os.getenv('UPDATE_THREADS', '5'))
     print(f"\nProcessing with {max_workers} threads...\n", flush=True)
     start_time = time.time()
 
