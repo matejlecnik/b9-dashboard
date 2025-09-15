@@ -21,7 +21,7 @@ print("Starting update process...", flush=True)
 print("Fetching subreddits...", flush=True)
 subs = supabase.table('reddit_subreddits').select(
     'name, category_text, over18'
-).neq('category_text', '').not_.is_('category_text', None).limit(10000).execute()
+).neq('category_text', '').not_.is_('category_text', 'null').limit(10000).execute()
 
 print(f"Found {len(subs.data)} subreddits", flush=True)
 

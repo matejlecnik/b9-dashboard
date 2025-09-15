@@ -125,11 +125,15 @@ def main():
     batch_size = 1000
 
     while True:
-        response = supabase.table('reddit_subreddits').select(
-            'name, category_text, over18'
-        ).neq('category_text', '').not_.is_('category_text', None).range(
-            offset, offset + batch_size - 1
-        ).execute()
+        try:
+            response = supabase.table('reddit_subreddits').select(
+                'name, category_text, over18'
+            ).neq('category_text', '').not_.is_('category_text', 'null').range(
+                offset, offset + batch_size - 1
+            ).execute()
+        except Exception as e:
+            print(f"Error fetching subreddits batch at offset {offset}: {e}", flush=True)
+            break
 
         if not response.data:
             break

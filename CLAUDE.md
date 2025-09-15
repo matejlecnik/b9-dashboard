@@ -113,9 +113,9 @@ git clone <repo-url> && cd B9-Dashboard
 cd dashboard && npm install && cp .env.example .env.local
 npm run dev  # localhost:3000
 
-# Backend
-cd api && pip3 install -r requirements.txt && cp .env.example .env
-python3 main.py  # localhost:8000
+# Backend - DEPLOYED ON RENDER (DO NOT RUN LOCALLY)
+# API is hosted at: https://b9-dashboard.onrender.com
+# NO LOCAL BACKEND NEEDED - Everything runs on Render
 ```
 
 **Environment Variables**:
@@ -125,7 +125,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_SUPABASE_URL=same-as-above
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-key
-REDIS_URL=redis://localhost:6379
+# Redis is handled by Render, not needed locally
 ```
 
 ---
@@ -288,7 +288,7 @@ Before every commit, ensure:
 
 **New Dashboard Page**: Create in `dashboard/src/app/(dashboard)/your-page/`, add README.md, update navigation
 **New API Endpoint**: Add to `api/main.py`, use error handling + rate limiting, test with curl
-**Categorization**: `curl -X POST localhost:8000/api/categorization/start -d '{"batchSize":30}'`
+**Categorization**: `curl -X POST https://b9-dashboard.onrender.com/api/categorization/start -d '{"batchSize":30}'`
 
 ---
 
@@ -325,7 +325,7 @@ Before every commit, ensure:
 ## 📈 Monitoring
 
 **Metrics**: API <200ms, Reddit <1000req/min, Errors <1%
-**Debug**: `npm run dev`, `LOG_LEVEL=debug python3 main.py`  
+**Debug**: Check Render logs at https://dashboard.render.com/web/srv-d2vv90vdiees738q6mjg/logs  
 **Logs**: Browser console, Render logs, Supabase dashboard
 
 ---
