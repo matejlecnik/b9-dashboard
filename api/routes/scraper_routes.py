@@ -349,19 +349,28 @@ async def get_scraper_status_detailed(request: Request):
 
             # Get Reddit API request success/failure from logs
             # Since we don't have 'success' level, we need to analyze actual log messages
-            # Get recent Reddit-related logs to analyze patterns
-            reddit_logs = supabase.table('reddit_scraper_logs')\
+            # Get recent logs and filter for Reddit-related ones in Python
+            all_recent_logs = supabase.table('reddit_scraper_logs')\
                 .select('message')\
                 .gte('timestamp', today.isoformat())\
-                .or_('message.ilike.%reddit%,message.ilike.%r/%,message.ilike.%subreddit%,message.ilike.%429%,message.ilike.%403%,message.ilike.%rate limit%')\
-                .limit(1000)\
+                .limit(2000)\
                 .execute()
+
+            # Filter for Reddit-related logs
+            reddit_logs = []
+            if all_recent_logs.data:
+                for log in all_recent_logs.data:
+                    msg = log.get('message', '').lower()
+                    if any(keyword in msg for keyword in ['reddit', 'r/', 'subreddit', '429', '403', 'rate limit']):
+                        reddit_logs.append(log)
+                        if len(reddit_logs) >= 1000:  # Limit to 1000 Reddit logs
+                            break
 
             successful_requests = 0
             failed_requests = 0
 
-            if reddit_logs.data:
-                for log in reddit_logs.data:
+            if reddit_logs:
+                for log in reddit_logs:
                     msg = log.get('message', '').lower()
 
                     # Count failures (429, 403, timeouts, explicit errors)
@@ -624,14 +633,22 @@ async def get_reddit_api_stats():
         # Get logs from last 24 hours for more accurate stats
         yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
-        # Get recent Reddit-related logs
-        reddit_logs = supabase.table('reddit_scraper_logs')\
+        # Get recent logs (we'll filter Reddit-related ones in Python)
+        # Using simpler query to avoid or_ compatibility issues
+        all_logs = supabase.table('reddit_scraper_logs')\
             .select('message, level, timestamp')\
             .gte('timestamp', yesterday)\
-            .or_('message.ilike.%reddit%,message.ilike.%r/%,message.ilike.%subreddit%,message.ilike.%429%,message.ilike.%403%,message.ilike.%rate limit%')\
             .order('timestamp', desc=True)\
             .limit(5000)\
             .execute()
+
+        # Filter for Reddit-related logs
+        reddit_logs = []
+        if all_logs.data:
+            for log in all_logs.data:
+                msg = log.get('message', '').lower()
+                if any(keyword in msg for keyword in ['reddit', 'r/', 'subreddit', '429', '403', 'rate limit']):
+                    reddit_logs.append(log)
 
         successful_requests = 0
         failed_requests = 0
@@ -640,8 +657,8 @@ async def get_reddit_api_stats():
         timeout_errors = 0
         other_errors = 0
 
-        if reddit_logs.data:
-            for log in reddit_logs.data:
+        if reddit_logs:
+            for log in reddit_logs:
                 msg = log.get('message', '').lower()
                 level = log.get('level', '')
 
@@ -682,7 +699,7 @@ async def get_reddit_api_stats():
                     "other": other_errors
                 },
                 "time_period": "last_24_hours",
-                "logs_analyzed": len(reddit_logs.data)
+                "logs_analyzed": len(reddit_logs)
             }
         }
 
