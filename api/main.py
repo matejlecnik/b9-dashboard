@@ -94,9 +94,6 @@ async def lifespan(app: FastAPI):
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
     startup_start = time.time()
-
-    # Start continuous scraper as background task
-    scraper_task = None
     
     try:
         # Validate environment variables
@@ -148,15 +145,8 @@ async def lifespan(app: FastAPI):
         health_monitor.register_dependency('redis', health_monitor.check_redis_health)
         health_monitor.register_dependency('openai', health_monitor.check_openai_health)
 
-        # Start continuous scraper as background task
-        try:
-            from core.continuous_scraper import ContinuousScraper
-            continuous_scraper = ContinuousScraper()
-            scraper_task = asyncio.create_task(continuous_scraper.run_continuous())
-            logger.info("🤖 Started continuous scraper background task")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not start continuous scraper: {e}")
-            # Don't fail the API if scraper can't start
+        # Don't auto-start scraper - it can be controlled via API endpoints
+        logger.info("📝 Scraper auto-start disabled - use /api/scraper/start endpoint to control")
 
         startup_time = time.time() - startup_start
         logger.info(f"🎯 B9 Dashboard API ready in {startup_time:.2f}s")
@@ -176,22 +166,13 @@ async def lifespan(app: FastAPI):
     cleanup_start = time.time()
 
     try:
-        # Cancel continuous scraper task if running
-        if scraper_task and not scraper_task.done():
-            logger.info("⏹️ Stopping continuous scraper...")
-            scraper_task.cancel()
-            try:
-                await scraper_task
-            except asyncio.CancelledError:
-                pass
-
         # Close utilities
         await cache_manager.close()
         await rate_limiter.close()
-        
+
         cleanup_time = time.time() - cleanup_start
         logger.info(f"✅ Cleanup completed in {cleanup_time:.2f}s")
-        
+
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
 

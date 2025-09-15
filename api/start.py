@@ -78,18 +78,9 @@ if __name__ == "__main__":
     logger.info(f"📋 Environment: {os.environ.get('ENVIRONMENT', 'unknown')}")
     logger.info(f"🌐 Port: {os.environ.get('PORT', '8000')}")
 
-    # Start continuous scraper in background thread (only one instance)
-    with thread_lock:
-        if active_threads['scraper'] is None or not active_threads['scraper'].is_alive():
-            scraper_thread = threading.Thread(target=run_scraper, daemon=True, name="ScraperThread")
-            active_threads['scraper'] = scraper_thread
-            scraper_thread.start()
-            logger.info("✅ Scraper thread started successfully")
-        else:
-            logger.warning("⚠️ Scraper thread already active, skipping")
-
-    # Give scraper time to initialize
-    time.sleep(3)
+    # Disable automatic scraper startup to avoid blocking API
+    # The scraper can be controlled via the API endpoints instead
+    logger.info("📝 Scraper auto-start disabled - use API endpoints to control scraper")
 
     # Run API server in main thread
     logger.info("🎁 Starting API server in main thread...")
