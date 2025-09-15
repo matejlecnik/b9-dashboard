@@ -419,13 +419,26 @@ async def get_scraper_status_detailed(request: Request):
                 try:
                     # Get the earliest scraper start message from today (when scraper was first started)
                     # This gives us the true runtime, not just the latest cycle
-                    first_start_result = supabase.table('reddit_scraper_logs')\
-                        .select('timestamp')\
-                        .or_('message.like.🚀 Continuous scraper%,message.like.✅ Scraper started via API%,message.like.🔄 Starting scraping cycle #1%')\
-                        .gte('timestamp', today.isoformat())\
-                        .order('timestamp', asc=True)\
-                        .limit(1)\
-                        .execute()
+                    # Use multiple queries since .or_() is not available in production
+                    first_start_result = None
+                    start_patterns = [
+                        '🚀 Continuous scraper%',
+                        '✅ Scraper started via API%',
+                        '🔄 Starting scraping cycle #1%'
+                    ]
+
+                    for pattern in start_patterns:
+                        result = supabase.table('reddit_scraper_logs')\
+                            .select('timestamp')\
+                            .like('message', pattern)\
+                            .gte('timestamp', today.isoformat())\
+                            .order('timestamp', asc=True)\
+                            .limit(1)\
+                            .execute()
+
+                        if result.data and len(result.data) > 0:
+                            if not first_start_result or result.data[0]['timestamp'] < first_start_result.data[0]['timestamp']:
+                                first_start_result = result
 
                     # Get latest cycle info for cycle number
                     cycle_start_result = supabase.table('reddit_scraper_logs')\

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     // Fetch detailed status from the Python API
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const apiUrl = 'https://b9-dashboard.onrender.com'
     const response = await fetch(`${apiUrl}/api/scraper/status-detailed`, {
       method: 'GET',
       headers: {

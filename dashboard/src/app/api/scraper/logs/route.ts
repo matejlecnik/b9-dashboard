@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const lines = parseInt(searchParams.get('lines') || '100')
 
     // Fetch logs from the Python API
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const apiUrl = 'https://b9-dashboard.onrender.com'
     const response = await fetch(`${apiUrl}/api/scraper/logs?lines=${lines}`, {
       method: 'GET',
       headers: {
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'clear') {
       // Clear logs via Python API
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = 'https://b9-dashboard.onrender.com'
       const response = await fetch(`${apiUrl}/api/scraper/logs/clear`, {
         method: 'POST',
         headers: {

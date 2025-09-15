@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 
 export async function POST() {
   try {
-    // Get the backend API URL from environment variable or use localhost for development
-    const API_URL = process.env.BACKEND_API_URL || 'http://localhost:8000'
+    // Always use production API on Render
+    const API_URL = 'https://b9-dashboard.onrender.com'
 
     console.log('Starting scraper via backend API:', API_URL)
 
@@ -40,7 +40,7 @@ export async function POST() {
     if (error instanceof Error && (error.message.includes('fetch') || error.name === 'AbortError')) {
       return NextResponse.json({
         success: false,
-        message: 'Cannot connect to scraper service. Please ensure the API is running on localhost:8000.',
+        message: 'Cannot connect to scraper service on Render. The API might be starting up, please try again.',
         error: error.message
       }, { status: 503 })
     }
