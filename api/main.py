@@ -226,19 +226,14 @@ app.add_middleware(
     ]
 )
 
-# CORS middleware with production settings
+# CORS middleware - allow all origins for now to fix connectivity issues
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://*.vercel.app",
-        "https://*.onrender.com",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        os.getenv("FRONTEND_URL", "")
-    ] if os.getenv("ENVIRONMENT") == "production" else ["*"],
+    allow_origins=["*"],  # Allow all origins temporarily to fix the issue
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Compression middleware
