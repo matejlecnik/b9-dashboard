@@ -2155,7 +2155,6 @@ class ProxyEnabledMultiScraper:
             'furry', 'yiff', 'anthro', 'fursuit', 'anthropomorphic',
             'guro', 'necro', 'gore', 'death', 'snuff',
             'femdom', 'findom', 'financial domination', 'paypig', 'sissy',
-            'feet', 'foot fetish', 'soles', 'toes', 'foot worship',
             'pregnant', 'breeding', 'impregnation', 'preggo',
             'incest', 'fauxcest', 'step fantasy', 'family', 'taboo family',
             'cuckold', 'cuck', 'hotwife', 'bull',
