@@ -30,17 +30,24 @@ def run_scraper():
             logger.warning("⚠️ Scraper thread already running, skipping duplicate")
             return
 
-    logger.info("🔄 Starting continuous scraper thread...")
+    logger.info("🔄 Starting continuous scraper subprocess...")
     try:
-        # Change to api directory and run scraper
-        os.chdir('/app/api')
-        subprocess.run([sys.executable, "core/continuous_scraper.py"])
+        # Start scraper as a completely detached subprocess
+        scraper_process = subprocess.Popen(
+            [sys.executable, "/app/api/core/continuous_scraper.py"],
+            stdout=subprocess.DEVNULL,  # Don't block on output
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True  # Detach from parent
+        )
+        logger.info(f"✅ Scraper subprocess started with PID: {scraper_process.pid}")
+        # Don't wait for it - let it run independently
+
     except Exception as e:
-        logger.error(f"❌ Scraper thread crashed: {e}")
+        logger.error(f"❌ Scraper subprocess failed to start: {e}")
     finally:
         with thread_lock:
             active_threads['scraper'] = None
-            logger.info("🏏 Scraper thread ended")
 
 def run_api():
     """Run the FastAPI server"""
