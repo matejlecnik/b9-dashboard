@@ -68,7 +68,7 @@ export default function RedditMonitor() {
     try {
       const API_URL = 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
         const response = await fetch(`${API_URL}/api/scraper/cycle-status`, {
@@ -122,7 +122,7 @@ export default function RedditMonitor() {
       // Fetch from production API on Render
       const API_URL = 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
         const response = await fetch(`${API_URL}/api/scraper/reddit-api-stats`, {
