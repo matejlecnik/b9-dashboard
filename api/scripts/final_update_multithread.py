@@ -18,9 +18,16 @@ processed_count = 0
 
 def create_supabase_client():
     """Create a new Supabase client for each thread"""
+    supabase_url = os.getenv('SUPABASE_URL')
+    supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    if not supabase_url or not supabase_key:
+        print("Missing Supabase environment variables.", flush=True)
+        print(f"SUPABASE_URL present: {bool(supabase_url)}", flush=True)
+        print(f"SERVICE_ROLE_KEY present: {bool(supabase_key)}", flush=True)
+        raise RuntimeError("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set")
     return create_client(
-        os.getenv('SUPABASE_URL'),
-        os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        supabase_url,
+        supabase_key
     )
 
 def process_subreddit(sub_data):
@@ -116,9 +123,15 @@ def main():
     print("MULTI-THREADED UPDATE (5 threads)", flush=True)
     print("=" * 60, flush=True)
 
+    # Validate env and create client
+    try:
+        supabase = create_supabase_client()
+    except Exception as e:
+        print(f"Environment validation failed: {e}", flush=True)
+        return
+
     # Get all subreddits (fetch in batches to overcome 1000 limit)
     print("\nFetching subreddits...", flush=True)
-    supabase = create_supabase_client()
 
     all_subs = []
     offset = 0

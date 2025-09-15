@@ -10,9 +10,17 @@ load_dotenv(Path(__file__).parent.parent / '.env')
 
 from supabase import create_client
 
+supabase_url = os.getenv('SUPABASE_URL')
+supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+if not supabase_url or not supabase_key:
+    print("Missing Supabase environment variables.", flush=True)
+    print(f"SUPABASE_URL present: {bool(supabase_url)}", flush=True)
+    print(f"SERVICE_ROLE_KEY present: {bool(supabase_key)}", flush=True)
+    sys.exit(1)
+
 supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    supabase_url,
+    supabase_key
 )
 
 print("Starting update process...", flush=True)

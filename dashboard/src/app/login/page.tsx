@@ -112,12 +112,13 @@ export default function LoginPage() {
           <div className="flex justify-center">
             <div className="relative group">
               <div className="absolute -inset-4 bg-gradient-to-r from-b9-pink/30 via-pink-400/20 to-pink-300/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse"></div>
-              <Image 
-                src="/logo/logo.png" 
-                alt="B9 Agency Logo" 
+              <Image
+                src="/logo/logo.png"
+                alt="B9 Agency Logo"
                 width={200}
                 height={100}
-                className="relative h-24 w-auto object-contain drop-shadow-2xl filter brightness-110 contrast-110 hover:scale-105 transition-all duration-500"
+                className="relative drop-shadow-2xl filter brightness-110 contrast-110 hover:scale-105 transition-all duration-500"
+                style={{ width: 'auto', height: '6rem' }}
                 priority
               />
             </div>
