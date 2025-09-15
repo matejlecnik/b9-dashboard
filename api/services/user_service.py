@@ -17,16 +17,14 @@ from typing import Dict, List, Any, Optional
 from supabase import Client
 from fake_useragent import UserAgent
 
-from .logging_service import SupabaseLoggingService
 
 logger = logging.getLogger(__name__)
 
 class UserService:
     """Service for managing Reddit users with proxy support"""
     
-    def __init__(self, supabase_client: Client, logging_service: SupabaseLoggingService):
+    def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
-        self.logging_service = logging_service
         
         # User scoring weights
         self.scoring_weights = {

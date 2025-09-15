@@ -3,17 +3,17 @@
 Continuous Reddit Scraper
 Checks Supabase control table every 30 seconds and runs scraping when enabled
 """
-
-# Version tracking
-SCRAPER_VERSION = "2.1.0"
-
 import asyncio
 import os
 import logging
 from datetime import datetime, timezone
 from supabase import create_client
-from reddit_scraper import ProxyEnabledMultiScraper
+from .reddit_scraper import ProxyEnabledMultiScraper
 from dotenv import load_dotenv
+
+# Version tracking
+SCRAPER_VERSION = "2.1.0"
+
 
 # Load environment variables
 load_dotenv()
@@ -176,18 +176,26 @@ class ContinuousScraper:
         self.initialize_supabase()
 
         # Log startup
-        self.supabase.table('reddit_scraper_logs').insert({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'level': 'info',
-            'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
-            'source': 'continuous_scraper',
-            'version': SCRAPER_VERSION
-        }).execute()
+        try:
+            self.supabase.table('reddit_scraper_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'level': 'info',
+                'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
+                'source': 'continuous_scraper',
+                'version': SCRAPER_VERSION
+            }).execute()
+        except Exception as e:
+            logger.error(f"Error logging startup: {e}")
 
         while True:
             try:
                 # Check if scraper should be running
-                enabled, config = await self.check_scraper_status()
+                check_result = await self.check_scraper_status()
+                if isinstance(check_result, tuple):
+                    enabled, config = check_result
+                else:
+                    # Backward compatibility: if only bool returned
+                    enabled, config = check_result, {}
 
                 if enabled:
                     # Get config values
@@ -216,7 +224,10 @@ class ContinuousScraper:
 
         # Cleanup
         if self.scraper:
-            await self.scraper.close()
+            try:
+                await self.scraper.close()
+            except Exception as e:
+                logger.error(f"Error closing scraper: {e}")
 
         # Log shutdown
         try:
@@ -226,15 +237,23 @@ class ContinuousScraper:
                 'message': '⏹️ Continuous scraper stopped',
                 'source': 'continuous_scraper'
             }).execute()
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Error logging shutdown: {e}")
 
         logger.info("👋 Continuous scraper stopped")
 
 async def main():
     """Main entry point"""
     scraper = ContinuousScraper()
-    await scraper.run_continuous()
+    try:
+        await scraper.run_continuous()
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("👋 Exiting continuous scraper (KeyboardInterrupt)")
+    except Exception as e:
+        logger.error(f"Fatal error on exit: {e}")

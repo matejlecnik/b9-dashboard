@@ -36,9 +36,7 @@ from utils import (
     request_timer, get_cache, rate_limit, check_request_rate_limit
 )
 from services.categorization_service import CategorizationService
-from services.scraper_service import RedditScraperService
 from services.user_service import UserService
-from services.logging_service import SupabaseLoggingService
 from routes.scraper_routes import router as scraper_router
 
 # Configure logging for production
@@ -82,9 +80,7 @@ class BackgroundJobRequest(BaseModel):
 # =============================================================================
 
 categorization_service = None
-scraper_service = None
 user_service = None
-logging_service = None
 supabase = None
 
 # =============================================================================
@@ -94,7 +90,7 @@ supabase = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager with enhanced initialization"""
-    global categorization_service, scraper_service, user_service, logging_service, supabase
+    global categorization_service, user_service, supabase
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
     startup_start = time.time()
@@ -141,11 +137,9 @@ async def lifespan(app: FastAPI):
         
         # Initialize services
         logger.info("⚙️  Initializing services...")
-        logging_service = SupabaseLoggingService(supabase)
-        
-        categorization_service = CategorizationService(supabase, openai_key, logging_service)
-        user_service = UserService(supabase, logging_service)
-        scraper_service = RedditScraperService(supabase, logging_service)
+
+        categorization_service = CategorizationService(supabase, openai_key)
+        user_service = UserService(supabase)
         
         logger.info("✅ All services initialized")
 
@@ -156,7 +150,7 @@ async def lifespan(app: FastAPI):
 
         # Start continuous scraper as background task
         try:
-            from continuous_scraper import ContinuousScraper
+            from core.continuous_scraper import ContinuousScraper
             continuous_scraper = ContinuousScraper()
             scraper_task = asyncio.create_task(continuous_scraper.run_continuous())
             logger.info("🤖 Started continuous scraper background task")
@@ -167,21 +161,9 @@ async def lifespan(app: FastAPI):
         startup_time = time.time() - startup_start
         logger.info(f"🎯 B9 Dashboard API ready in {startup_time:.2f}s")
         
-        # Log startup to database
-        try:
-            await logging_service.log_operation(
-                operation_type="system",
-                operation_name="startup",
-                status="success",
-                details={
-                    "startup_time_seconds": startup_time,
-                    "services_initialized": ["review", "categorization", "scraper", "user"],
-                    "cache_enabled": cache_initialized,
-                    "rate_limiting_enabled": rate_limit_initialized
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log startup: {e}")
+        # Log startup
+        logger.info(f"Services initialized: categorization, user")
+        logger.info(f"Cache enabled: {cache_initialized}, Rate limiting: {rate_limit_initialized}")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize B9 Dashboard API: {e}")
@@ -203,17 +185,9 @@ async def lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 pass
 
-        # Close services
-        if scraper_service and hasattr(scraper_service, 'close'):
-            await scraper_service.close()
-        
         # Close utilities
         await cache_manager.close()
         await rate_limiter.close()
-        
-        # Close logging service
-        if logging_service and hasattr(logging_service, 'close'):
-            logging_service.close()
         
         cleanup_time = time.time() - cleanup_start
         logger.info(f"✅ Cleanup completed in {cleanup_time:.2f}s")
@@ -418,11 +392,8 @@ async def get_system_stats(request: Request, cache: cache_manager = Depends(get_
         if categorization_service:
             stats["categorization"] = await categorization_service.get_categorization_stats()
         
-        if scraper_service:
-            stats["scraper"] = await scraper_service.get_scraper_stats()
-        
-        if logging_service:
-            stats["logging"] = logging_service.get_stats()
+        # Scraper stats can be fetched from Supabase logs directly if needed
+        stats["scraper"] = {"status": "Use /api/scraper/status endpoint for details"}
         
         result = {
             "status": "success",

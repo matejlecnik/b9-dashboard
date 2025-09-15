@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from openai import AsyncOpenAI
 from supabase import Client
 
-from .logging_service import SupabaseLoggingService
 
 
 @dataclass
@@ -55,11 +54,9 @@ class CategorizationService:
         "Interactive & Personalized"
     ]
     
-    def __init__(self, supabase_client: Client, openai_api_key: str, 
-                 logging_service: SupabaseLoggingService):
+    def __init__(self, supabase_client: Client, openai_api_key: str):
         self.supabase = supabase_client
         self.openai = AsyncOpenAI(api_key=openai_api_key)
-        self.logging_service = logging_service
         
         # Configuration
         self.model = "gpt-4-turbo-preview"
@@ -150,13 +147,8 @@ Category:"""
         subreddit_name = subreddit.get('name', 'Unknown')
         subreddit_id = subreddit.get('id', 0)
 
-        # Log to reddit_scraper_logs for visibility in monitor
-        self.logging_service.log_to_scraper(
-            message=f"🤖 Categorizing r/{subreddit_name}",
-            level='INFO',
-            source='ai_categorization',
-            context={'subreddit': subreddit_name, 'batch_number': batch_number}
-        )
+        # Log categorization start
+        self.logger.info(f"🤖 Categorizing r/{subreddit_name}")
         
         try:
             prompt = self._build_categorization_prompt(subreddit)
@@ -246,24 +238,13 @@ Category:"""
             self.logger.error(f"Error updating category for subreddit {subreddit_id}: {e}")
             return False
     
-    async def _log_categorization_result(self, result: CategorizationResult, 
+    async def _log_categorization_result(self, result: CategorizationResult,
                                        batch_number: Optional[int] = None):
-        """Log categorization result to Supabase"""
-        try:
-            self.logging_service.log_categorization(
-                subreddit_name=result.subreddit_name,
-                category=result.category if result.success else None,
-                cost=result.cost or 0.0,
-                prompt_tokens=result.prompt_tokens or 0,
-                completion_tokens=result.completion_tokens or 0,
-                confidence=result.confidence,
-                success=result.success,
-                error_message=result.error_message,
-                batch_number=batch_number,
-                processing_time_ms=result.processing_time_ms
-            )
-        except Exception as e:
-            self.logger.error(f"Error logging categorization result: {e}")
+        """Log categorization result"""
+        if result.success:
+            self.logger.info(f"✅ Categorized r/{result.subreddit_name} as '{result.category}' (confidence: {result.confidence:.2f})")
+        else:
+            self.logger.error(f"❌ Failed to categorize r/{result.subreddit_name}: {result.error_message}")
     
     async def categorize_batch(self, subreddits: List[Dict[str, Any]], 
                              batch_number: int = 1) -> List[CategorizationResult]:

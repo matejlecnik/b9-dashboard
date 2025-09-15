@@ -3,10 +3,6 @@
 Proxy-Enabled Multi-Account Reddit Scraper
 Uses your working Decodo proxy format with custom requestor for AsyncPRAW.
 """
-
-# Version tracking
-SCRAPER_VERSION = "2.1.0"
-
 import asyncio
 import json
 import os
@@ -23,6 +19,10 @@ import asyncprawcore
 from supabase import create_client
 from dotenv import load_dotenv
 from fake_useragent import UserAgent
+
+# Version tracking
+SCRAPER_VERSION = "2.1.0"
+
 
 # Load environment variables
 load_dotenv()

@@ -34,7 +34,7 @@ def run_scraper():
     try:
         # Change to api directory and run scraper
         os.chdir('/app/api')
-        subprocess.run([sys.executable, "continuous_scraper.py"])
+        subprocess.run([sys.executable, "core/continuous_scraper.py"])
     except Exception as e:
         logger.error(f"❌ Scraper thread crashed: {e}")
     finally:
