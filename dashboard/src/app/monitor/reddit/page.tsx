@@ -60,7 +60,61 @@ export default function RedditMonitor() {
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
+  const [cycleData, setCycleData] = useState<{ elapsed_formatted: string; start_time: string | null } | null>(null)
   const { addToast } = useToast()
+
+  // Fetch cycle data from API
+  const fetchCycleData = useCallback(async () => {
+    try {
+      const API_URL = 'https://b9-dashboard.onrender.com'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+      try {
+        const response = await fetch(`${API_URL}/api/scraper/cycle-status`, {
+          mode: 'cors',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.success && data.cycle) {
+            setCycleData({
+              elapsed_formatted: data.cycle.elapsed_formatted || 'Unknown',
+              start_time: data.cycle.start_time
+            })
+            console.log('Cycle data from API:', data.cycle)
+          } else if (data.running) {
+            setCycleData({
+              elapsed_formatted: 'Running',
+              start_time: null
+            })
+          } else {
+            setCycleData(null)
+          }
+        } else {
+          console.error('Failed to fetch cycle data from API')
+          setCycleData(null)
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.log('API timeout fetching cycle data')
+        } else {
+          console.error('Error fetching cycle data:', fetchError)
+        }
+        setCycleData(null)
+      }
+    } catch (error) {
+      console.error('Error fetching cycle data:', error)
+      setCycleData(null)
+    }
+  }, [])
 
   // Calculate success rate from API
   const calculateSuccessRate = useCallback(async () => {
@@ -348,11 +402,13 @@ export default function RedditMonitor() {
     checkInitialStatus()
     fetchMetrics()
     calculateSuccessRate()
+    fetchCycleData()
 
-    // Set up polling for metrics and success rate
+    // Set up polling for metrics, success rate, and cycle data
     const metricsInterval = setInterval(() => {
       fetchMetrics()
       calculateSuccessRate() // Also refresh success rate from API
+      fetchCycleData() // Also refresh cycle data from API
     }, 20000) // Refresh every 20 seconds
 
     return () => {
@@ -413,18 +469,13 @@ export default function RedditMonitor() {
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
                 <div className="text-[10px] text-gray-500 mb-0.5">Current Cycle</div>
                 <div className="text-xl font-bold text-gray-900">
-                  {metrics?.cycle?.elapsed_formatted || '—'}
+                  {cycleData?.elapsed_formatted || '—'}
                 </div>
                 <div className="text-[10px] text-gray-600 mt-0.5">
-                  {metrics?.cycle?.current_cycle
-                    ? `Cycle #${metrics.cycle.current_cycle}`
+                  {isRunning && cycleData
+                    ? 'Scraper Active'
                     : 'Not running'}
                 </div>
-                {metrics?.cycle?.last_cycle_formatted && (
-                  <div className="text-[9px] text-gray-500 mt-1">
-                    Last: {metrics.cycle.last_cycle_formatted}
-                  </div>
-                )}
               </div>
             </div>
 

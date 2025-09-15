@@ -558,6 +558,104 @@ async def get_scraper_status_detailed(request: Request):
             "last_activity": None
         }
 
+@router.get("/cycle-status")
+async def get_cycle_status():
+    """Get current scraper cycle status - simple and reliable"""
+    try:
+        supabase = get_supabase()
+
+        # Check if scraper is running
+        control_result = supabase.table('scraper_control')\
+            .select('enabled')\
+            .eq('id', 1)\
+            .single()\
+            .execute()
+
+        is_running = control_result.data and control_result.data.get('enabled', False)
+
+        if not is_running:
+            return {
+                "success": True,
+                "running": False,
+                "cycle": None
+            }
+
+        # Get the most recent scraper start message
+        # Look for any message that indicates the scraper started
+        from datetime import datetime, timezone, timedelta
+
+        # Search for start messages in the last 24 hours
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+
+        start_patterns = [
+            '🚀 Continuous scraper started%',
+            '✅ Scraper started via API%',
+            '🔄 Starting scraping cycle #1%',
+            '📊 Starting continuous Reddit scraper%'
+        ]
+
+        start_time = None
+        for pattern in start_patterns:
+            result = supabase.table('reddit_scraper_logs')\
+                .select('timestamp')\
+                .like('message', pattern)\
+                .gte('timestamp', yesterday)\
+                .order('timestamp', desc=True)\
+                .limit(1)\
+                .execute()
+
+            if result.data and len(result.data) > 0:
+                log_time = result.data[0]['timestamp']
+                if not start_time or log_time > start_time:
+                    start_time = log_time
+
+        if not start_time:
+            # If no start message found, return running but unknown start time
+            return {
+                "success": True,
+                "running": True,
+                "cycle": {
+                    "start_time": None,
+                    "elapsed_seconds": None,
+                    "elapsed_formatted": "Unknown"
+                }
+            }
+
+        # Calculate elapsed time
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        elapsed_seconds = (datetime.now(timezone.utc) - start_dt).total_seconds()
+
+        # Format elapsed time
+        if elapsed_seconds >= 3600:  # More than an hour
+            hours = int(elapsed_seconds // 3600)
+            minutes = int((elapsed_seconds % 3600) // 60)
+            elapsed_formatted = f"{hours}h {minutes}m"
+        elif elapsed_seconds >= 60:
+            minutes = int(elapsed_seconds // 60)
+            seconds = int(elapsed_seconds % 60)
+            elapsed_formatted = f"{minutes}m {seconds}s"
+        else:
+            elapsed_formatted = f"{int(elapsed_seconds)}s"
+
+        return {
+            "success": True,
+            "running": True,
+            "cycle": {
+                "start_time": start_time,
+                "elapsed_seconds": int(elapsed_seconds),
+                "elapsed_formatted": elapsed_formatted
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get cycle status: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "running": False,
+            "cycle": None
+        }
+
 @router.get("/logs")
 async def get_scraper_logs(request: Request, lines: int = 100, level: Optional[str] = None, search: Optional[str] = None):
     """Get recent scraper logs from Supabase"""

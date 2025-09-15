@@ -35,10 +35,11 @@ for i, sub in enumerate(subs.data, 1):
     offset = 0
     sub_total = 0
 
-    while True:  # Process ALL posts for this subreddit
+    # Pass 1: posts with NULL sub_category_text
+    while True:  # Process posts missing mirror fields (NULL)
         posts = supabase.table('reddit_posts').select(
             'id'
-        ).eq('subreddit_name', sub['name']).range(offset, offset + 49).execute()
+        ).eq('subreddit_name', sub['name']).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
 
         if not posts.data:
             break
@@ -51,12 +52,36 @@ for i, sub in enumerate(subs.data, 1):
                     'sub_over18': sub['over18']
                 }).eq('id', post['id']).execute()
                 sub_total += 1
-            except:
+            except Exception:
                 pass
 
-        print(f"  Batch {offset//50 + 1}: {len(posts.data)} posts", flush=True)
+        print(f"  Batch {offset//50 + 1}: {len(posts.data)} posts (NULL sub_category_text)", flush=True)
         offset += 50
         time.sleep(0.05)  # Small delay
+
+    # Pass 2: posts with empty-string sub_category_text
+    offset = 0
+    while True:  # Process posts missing mirror fields (empty string)
+        posts = supabase.table('reddit_posts').select(
+            'id'
+        ).eq('subreddit_name', sub['name']).eq('sub_category_text', '').range(offset, offset + 49).execute()
+
+        if not posts.data:
+            break
+
+        for post in posts.data:
+            try:
+                supabase.table('reddit_posts').update({
+                    'sub_category_text': sub['category_text'],
+                    'sub_over18': sub['over18']
+                }).eq('id', post['id']).execute()
+                sub_total += 1
+            except Exception:
+                pass
+
+        print(f"  Batch {offset//50 + 1}: {len(posts.data)} posts (empty sub_category_text)", flush=True)
+        offset += 50
+        time.sleep(0.05)
 
     total += sub_total
     print(f"  Total: {sub_total} posts updated", flush=True)

@@ -45,10 +45,11 @@ def process_subreddit(sub_data):
         offset = 0
         sub_total = 0
 
-        while True:  # Process ALL posts for this subreddit
+        # Pass 1: posts with NULL sub_category_text
+        while True:  # Process posts missing mirror fields (NULL)
             posts = supabase.table('reddit_posts').select(
                 'id'
-            ).eq('subreddit_name', sub_name).range(offset, offset + 49).execute()
+            ).eq('subreddit_name', sub_name).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
 
             if not posts.data:
                 break
@@ -61,16 +62,43 @@ def process_subreddit(sub_data):
                         'sub_over18': over18
                     }).eq('id', post['id']).execute()
                     sub_total += 1
-                except:
+                except Exception:
                     pass
 
             offset += 50
 
             # Print progress for subreddits with many posts
             if offset % 500 == 0:
-                print(f"    r/{sub_name}: {offset}+ posts processed...", flush=True)
+                print(f"    r/{sub_name}: {offset}+ posts processed (NULL sub_category_text)...", flush=True)
 
             time.sleep(0.02)  # Small delay between batches
+
+        # Pass 2: posts with empty-string sub_category_text
+        offset = 0
+        while True:  # Process posts missing mirror fields (empty string)
+            posts = supabase.table('reddit_posts').select(
+                'id'
+            ).eq('subreddit_name', sub_name).eq('sub_category_text', '').range(offset, offset + 49).execute()
+
+            if not posts.data:
+                break
+
+            for post in posts.data:
+                try:
+                    supabase.table('reddit_posts').update({
+                        'sub_category_text': category,
+                        'sub_over18': over18
+                    }).eq('id', post['id']).execute()
+                    sub_total += 1
+                except Exception:
+                    pass
+
+            offset += 50
+
+            if offset % 500 == 0:
+                print(f"    r/{sub_name}: {offset}+ posts processed (empty sub_category_text)...", flush=True)
+
+            time.sleep(0.02)
 
         with counter_lock:
             total_updated += sub_total
