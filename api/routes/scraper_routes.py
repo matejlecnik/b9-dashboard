@@ -560,48 +560,52 @@ async def get_scraper_status_detailed(request: Request):
 
 @router.get("/cycle-status")
 async def get_cycle_status():
-    """Get current scraper cycle status - simple and reliable"""
+    """Get current scraper cycle status - properly checks for scraper start log"""
     try:
         supabase = get_supabase()
 
-        # Check if scraper is running
+        # Check if scraper is enabled
         control_result = supabase.table('scraper_control')\
             .select('enabled')\
             .eq('id', 1)\
             .single()\
             .execute()
 
-        is_running = control_result.data and control_result.data.get('enabled', False)
+        is_enabled = control_result.data and control_result.data.get('enabled', False)
 
-        if not is_running:
+        if not is_enabled:
             return {
                 "success": True,
                 "running": False,
-                "cycle": None
+                "status": "Not Active",
+                "cycle": {
+                    "elapsed_formatted": "Not Active",
+                    "start_time": None,
+                    "elapsed_seconds": None
+                }
             }
 
-        # Get the most recent scraper start message
-        # Look for any message that indicates the scraper started
-        from datetime import datetime, timezone, timedelta
+        # Get the most recent scraper start log
+        from datetime import datetime, timezone
 
-        # Get the most recent log to estimate cycle time (much faster query)
+        # Search for the most recent "Scraper started" message
         result = supabase.table('reddit_scraper_logs')\
             .select('timestamp')\
+            .or_('message.like.%Scraper started%,message.like.%Starting scraper%')\
             .order('timestamp', desc=True)\
-            .limit(10)\
+            .limit(1)\
             .execute()
 
-        # Use the oldest of the recent logs as an approximation
         start_time = None
         if result.data and len(result.data) > 0:
-            # Assume scraper started with the oldest of recent logs
-            start_time = result.data[-1]['timestamp']
+            start_time = result.data[0]['timestamp']
 
         if not start_time:
-            # If no start message found, return running but unknown start time
+            # If no start message found but scraper is enabled, show as Unknown
             return {
                 "success": True,
                 "running": True,
+                "status": "Running",
                 "cycle": {
                     "start_time": None,
                     "elapsed_seconds": None,
@@ -609,7 +613,7 @@ async def get_cycle_status():
                 }
             }
 
-        # Calculate elapsed time
+        # Calculate elapsed time from the actual start log
         start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
         elapsed_seconds = (datetime.now(timezone.utc) - start_dt).total_seconds()
 
@@ -628,6 +632,7 @@ async def get_cycle_status():
         return {
             "success": True,
             "running": True,
+            "status": "Running",
             "cycle": {
                 "start_time": start_time,
                 "elapsed_seconds": int(elapsed_seconds),

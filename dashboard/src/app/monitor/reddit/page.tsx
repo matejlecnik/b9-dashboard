@@ -89,9 +89,10 @@ export default function RedditMonitor() {
               start_time: data.cycle.start_time
             })
             console.log('Cycle data from API:', data.cycle)
-          } else if (data.running) {
+          } else if (data.success && !data.running) {
+            // Scraper is disabled
             setCycleData({
-              elapsed_formatted: 'Running',
+              elapsed_formatted: 'Not Active',
               start_time: null
             })
           } else {
@@ -469,12 +470,16 @@ export default function RedditMonitor() {
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
                 <div className="text-[10px] text-gray-500 mb-0.5">Current Cycle</div>
                 <div className="text-xl font-bold text-gray-900">
-                  {cycleData?.elapsed_formatted || '—'}
+                  {cycleData?.elapsed_formatted || 'Not Active'}
                 </div>
                 <div className="text-[10px] text-gray-600 mt-0.5">
-                  {isRunning && cycleData
+                  {cycleData?.elapsed_formatted === 'Not Active'
+                    ? 'Scraper Disabled'
+                    : cycleData?.elapsed_formatted === 'Unknown'
+                    ? 'No Start Log Found'
+                    : cycleData?.elapsed_formatted
                     ? 'Scraper Active'
-                    : 'Not running'}
+                    : 'Loading...'}
                 </div>
               </div>
             </div>
