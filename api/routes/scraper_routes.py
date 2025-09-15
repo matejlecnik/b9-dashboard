@@ -588,10 +588,10 @@ async def get_cycle_status():
         # Get the most recent scraper start log
         from datetime import datetime, timezone
 
-        # Search for the most recent "Scraper started" message
+        # Search for the most recent "Scraper started" or "Continuous scraper started" message
         result = supabase.table('reddit_scraper_logs')\
             .select('timestamp')\
-            .or_('message.like.%Scraper started%,message.like.%Starting scraper%')\
+            .or_('message.like.%Scraper started%,message.like.%Continuous scraper%started%')\
             .order('timestamp', desc=True)\
             .limit(1)\
             .execute()
