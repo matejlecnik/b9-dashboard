@@ -584,30 +584,18 @@ async def get_cycle_status():
         # Look for any message that indicates the scraper started
         from datetime import datetime, timezone, timedelta
 
-        # Search for start messages in the last 24 hours
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        # Get the most recent log to estimate cycle time (much faster query)
+        result = supabase.table('reddit_scraper_logs')\
+            .select('timestamp')\
+            .order('timestamp', desc=True)\
+            .limit(10)\
+            .execute()
 
-        start_patterns = [
-            '🚀 Continuous scraper started%',
-            '✅ Scraper started via API%',
-            '🔄 Starting scraping cycle #1%',
-            '📊 Starting continuous Reddit scraper%'
-        ]
-
+        # Use the oldest of the recent logs as an approximation
         start_time = None
-        for pattern in start_patterns:
-            result = supabase.table('reddit_scraper_logs')\
-                .select('timestamp')\
-                .like('message', pattern)\
-                .gte('timestamp', yesterday)\
-                .order('timestamp', desc=True)\
-                .limit(1)\
-                .execute()
-
-            if result.data and len(result.data) > 0:
-                log_time = result.data[0]['timestamp']
-                if not start_time or log_time > start_time:
-                    start_time = log_time
+        if result.data and len(result.data) > 0:
+            # Assume scraper started with the oldest of recent logs
+            start_time = result.data[-1]['timestamp']
 
         if not start_time:
             # If no start message found, return running but unknown start time
@@ -746,44 +734,23 @@ async def update_scraper_config(request: Request, config: ScraperConfigRequest):
 
 @router.get("/reddit-api-stats")
 async def get_reddit_api_stats():
-    """Get detailed Reddit API request statistics - analyzes last 1000 Reddit API requests only"""
+    """Get detailed Reddit API request statistics - simplified and optimized"""
     try:
         supabase = get_supabase()
         from datetime import datetime, timedelta, timezone
 
-        # Get the last 1000 Reddit API request logs specifically
-        # Focus on actual Reddit API calls, not general processing logs
-        reddit_logs = []
+        # Get logs from last 24 hours - simpler, faster query
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
-        # Search patterns that indicate actual Reddit API requests
-        patterns = [
-            "%Reddit API request%",  # Direct API request logs
-            "%GET https://oauth.reddit.com%",  # OAuth requests
-            "%reddit.com/api%",  # API endpoint calls
-            "%/r/%/about.json%",  # Subreddit info requests
-            "%/r/%/hot.json%",  # Post listing requests
-            "%/r/%/new.json%",
-            "%/r/%/top.json%",
-            "%reddit.com/r/%",  # General Reddit URLs
-            "%Status: 2%",  # HTTP 2xx responses
-            "%Status: 4%",  # HTTP 4xx errors
-            "%Status: 5%",  # HTTP 5xx errors
-            "%429%",  # Rate limit errors
-            "%403%",  # Forbidden errors
-            "%401%"   # Auth errors
-        ]
+        # Single optimized query for Reddit API logs
+        result = supabase.table('reddit_scraper_logs')\
+            .select('message, level, timestamp')\
+            .gte('timestamp', yesterday)\
+            .order('timestamp', desc=True)\
+            .limit(1000)\
+            .execute()
 
-        # First try to get logs with status codes (most reliable for API requests)
-        for pattern in patterns:
-            result = supabase.table('reddit_scraper_logs')\
-                .select('message, level, timestamp')\
-                .like('message', pattern)\
-                .order('timestamp', desc=True)\
-                .limit(500)\
-                .execute()
-
-            if result.data:
-                reddit_logs.extend(result.data)
+        reddit_logs = result.data if result.data else []
 
         # Remove duplicates and sort by timestamp
         seen = set()

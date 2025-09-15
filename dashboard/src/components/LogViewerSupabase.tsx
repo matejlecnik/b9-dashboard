@@ -51,41 +51,64 @@ export function LogViewerSupabase({
   const shouldAutoScroll = useRef(autoScroll)
   const subscriptionRef = useRef<RealtimeChannel | null>(null)
 
-  // Fetch initial logs
+  // Fetch initial logs directly from Supabase
   const fetchLogs = useCallback(async (since?: string) => {
-    if (isPaused) return
+    if (isPaused || !supabase) return
 
     try {
       setError(null)
 
-      const params = new URLSearchParams({
-        limit: since ? '50' : '50', // Fetch 50 logs initially to ensure we get enough after filtering
-        ...(selectedLevel !== 'all' && { level: selectedLevel }),
-        ...(searchQuery && { search: searchQuery }),
-        ...(since && { since })
-      })
+      // Build query
+      let query = supabase
+        .from('reddit_scraper_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(since ? 50 : 100)
 
-      const response = await fetch(`/api/scraper/logs-direct?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch logs')
+      // Add filters
+      if (selectedLevel !== 'all') {
+        query = query.eq('level', selectedLevel)
+      }
 
-      const data = await response.json()
+      if (searchQuery) {
+        query = query.ilike('message', `%${searchQuery}%`)
+      }
 
-      if (data.success && data.logs) {
+      if (since) {
+        query = query.gt('timestamp', since)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        throw error
+      }
+
+      if (data) {
+        const formattedLogs: LogEntry[] = data.map(log => ({
+          id: log.id,
+          timestamp: log.timestamp,
+          level: log.level || 'info',
+          message: formatLogMessage(log.message, log.context),
+          source: log.source || 'scraper',
+          context: log.context
+        }))
+
         if (since) {
           // Append new logs to existing ones
           setLogs(prev => {
-            const newLogs = [...data.logs, ...prev]
+            const newLogs = [...formattedLogs.reverse(), ...prev]
             // Keep only the most recent logs
             return newLogs.slice(0, maxLogs)
           })
         } else {
           // Replace all logs
-          setLogs(data.logs)
+          setLogs(formattedLogs)
         }
 
         // Update last timestamp for next fetch
-        if (data.logs.length > 0) {
-          setLastTimestamp(data.logs[0].timestamp)
+        if (formattedLogs.length > 0) {
+          setLastTimestamp(formattedLogs[0].timestamp)
         }
 
         // Auto-scroll to bottom if enabled
@@ -98,6 +121,7 @@ export function LogViewerSupabase({
         }
       }
     } catch (err) {
+      console.error('Error fetching logs:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     }
   }, [isPaused, selectedLevel, searchQuery, maxLogs])

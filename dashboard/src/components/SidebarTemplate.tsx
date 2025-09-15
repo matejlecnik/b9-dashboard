@@ -13,8 +13,8 @@ export interface SidebarNavigationItem {
   icon: LucideIcon
   badge?: {
     type: 'count' | 'status'
-    value: string | number
-    variant?: 'default' | 'success' | 'warning' | 'error'
+    value: string | number | React.ReactElement
+    variant?: 'default' | 'success' | 'warning' | 'error' | 'custom'
   }
 }
 
@@ -69,15 +69,21 @@ const MemoizedNavigationItem = React.memo<{
 
         {/* Badge rendering */}
         {item.badge && (
-          <div className={`
-            ml-2 px-2 py-0.5 rounded-full text-xs font-medium
-            ${item.badge.variant === 'success' ? 'bg-green-100 text-green-700' :
-              item.badge.variant === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-              item.badge.variant === 'error' ? 'bg-red-100 text-red-700' :
-              'bg-gray-100 text-gray-700'}
-          `}>
-            {item.badge.value}
-          </div>
+          item.badge.variant === 'custom' ? (
+            <div className="ml-2 flex items-center justify-center">
+              {item.badge.value}
+            </div>
+          ) : (
+            <div className={`
+              ml-2 px-2 py-0.5 rounded-full text-xs font-medium
+              ${item.badge.variant === 'success' ? 'bg-green-100 text-green-700' :
+                item.badge.variant === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                item.badge.variant === 'error' ? 'bg-red-100 text-red-700' :
+                'bg-gray-100 text-gray-700'}
+            `}>
+              {item.badge.value}
+            </div>
+          )
         )}
       </div>
     </Link>
