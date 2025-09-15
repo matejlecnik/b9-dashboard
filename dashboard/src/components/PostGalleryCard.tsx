@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Calendar
 } from 'lucide-react'
-import { Card } from '@/components/ui/card'
 
 import { Post } from '@/types/post'
 
@@ -93,6 +92,13 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
   // Force all cards to 3:4 aspect ratio as requested
   const getAspectRatio = () => {
     return '3/4'
+  }
+
+  // Format numbers for better display
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+    return num.toString()
   }
 
   // Memoized time calculation to prevent unnecessary recalculations
@@ -215,7 +221,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
   const aspectRatio = getAspectRatio()
 
   return (
-    <Card className="relative group overflow-hidden rounded-xl shadow-sm hover:shadow-xl hover:shadow-pink-500/20 transition-all duration-500 bg-white transform hover:scale-[1.02] hover:-translate-y-1">
+    <div className="relative group overflow-hidden rounded-xl shadow-sm hover:shadow-xl hover:shadow-gray-400/20 transition-all duration-500 bg-gradient-to-br from-gray-100/50 via-gray-50/40 to-white/30 backdrop-blur-xl backdrop-saturate-150 border border-white/40 transform hover:scale-[1.02] hover:-translate-y-1">
       {/* Quick Action Buttons - Show on Hover */}
       <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
         <div className="flex flex-col gap-2">
@@ -274,8 +280,8 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
       </div>
 
       {/* Media Container */}
-      <div 
-        className="relative overflow-hidden rounded-t-xl cursor-pointer group-hover:rounded-t-lg transition-all duration-300"
+      <div
+        className="relative overflow-hidden cursor-pointer"
         style={{ aspectRatio }}
         onClick={(e) => {
           // Only handle click if not clicking on navigation buttons
@@ -299,7 +305,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
                     src={url}
                     alt={post.title}
                     fill
-                    className="object-contain transition-transform duration-300 group-hover:scale-105"
+                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw"
                     quality={shouldOptimize ? 85 : 75}
                     priority={false}
@@ -316,7 +322,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
                   src={url ? (isAllowedImageHost(url) ? url : toProxiedImageUrl(url)) : ''}
                   alt={post.title}
                   fill
-                  className="object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw"
                   quality={75}
                   priority={false}
@@ -375,73 +381,49 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
         )}
       </div>
 
-      {/* Post Info Section - Enhanced with hover animations */}
-      <div 
-        className="h-32 bg-gradient-to-b from-white/70 to-gray-100/70 group-hover:from-white/80 group-hover:to-gray-50/80 backdrop-blur-md p-3 rounded-b-xl border-t border-white/20 group-hover:border-pink-200/30 transition-all duration-300 cursor-pointer"
+      {/* Post Info Section - Glassmorphism */}
+      <div
+        className="h-28 bg-gradient-to-b from-gray-50/40 to-gray-100/50 backdrop-blur-xl p-2 border-t border-gray-200/20 transition-all duration-300 cursor-pointer flex flex-col"
         onClick={handleClick}
-        style={{
-          backdropFilter: 'blur(10px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(10px) saturate(150%)',
-        }}
       >
-        {/* Subreddit and Age */}
-        <div className="flex items-center justify-between text-xs mb-2">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-800 group-hover:text-pink-600 transition-colors duration-200">r/{post.subreddit_name}</span>
-            <span className="text-gray-500">•</span>
-            <span className="text-gray-600 flex items-center gap-1" suppressHydrationWarning>
-              <Calendar className="h-3 w-3" />
-              {timeAgo}
-            </span>
-          </div>
-          
-          {/* Category Badge */}
-          {post.category_text && (
-            <div className="px-2 py-0.5 bg-pink-100/80 text-pink-700 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-              {post.category_text}
-            </div>
-          )}
-        </div>
-
-        {/* Engagement Stats with Enhanced Display */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-xs group-hover:scale-105 transition-transform duration-200">
-              <TrendingUp className="h-3 w-3 text-gray-600 group-hover:text-gray-700" />
-              <span className="font-semibold text-gray-800">{post.score.toLocaleString('en-US')}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs group-hover:scale-105 transition-transform duration-200">
-              <MessageCircle className="h-3 w-3 text-gray-600 group-hover:text-gray-700" />
-              <span className="font-semibold text-gray-800">{post.num_comments.toLocaleString('en-US')}</span>
-            </div>
-          </div>
-          
-          {/* Engagement Ratio */}
-          {post.upvote_ratio && (
-            <div className="text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              {Math.round((post.upvote_ratio || 0) * 100)}% upvoted
-            </div>
-          )}
-        </div>
-
-        {/* Post Title with Hover Expansion */}
-        <div className="text-xs font-medium text-gray-900 leading-tight group-hover:text-gray-800 transition-colors duration-200">
-          <div className="line-clamp-2 group-hover:line-clamp-3 transition-all duration-300">
+        {/* Post Title - First */}
+        <div className="text-sm font-medium text-gray-900 leading-snug mb-1.5">
+          <div className="line-clamp-2">
             {post.title}
           </div>
         </div>
 
-        {/* Author Info - Enhanced Floating Effect */}
-        {post.author_username && post.author_username !== 'deleted' && (
-          <div className="mt-2 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 rotate-1 group-hover:translate-y-0 group-hover:rotate-0">
-            <div className="flex items-center gap-1 text-xs text-gray-500 px-2 py-1 rounded-full bg-gradient-to-r from-white/60 to-gray-50/60 backdrop-blur-sm border border-white/20">
-              <span>by</span>
-              <span className="font-medium text-gray-700 group-hover:text-pink-600 transition-colors duration-300">u/{post.author_username}</span>
-            </div>
+        {/* Subreddit */}
+        <div className="flex items-center gap-1.5 text-xs mb-1.5">
+          <span className="font-semibold text-gray-800 group-hover:text-pink-600 transition-colors">r/{post.subreddit_name}</span>
+        </div>
+
+        {/* Engagement Stats with Age */}
+        <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1">
+            <TrendingUp className="h-3.5 w-3.5 text-gray-500" />
+            <span className="font-semibold text-gray-700">{formatNumber(post.score)}</span>
           </div>
-        )}
+          <div className="flex items-center gap-1">
+            <MessageCircle className="h-3.5 w-3.5 text-gray-500" />
+            <span className="font-semibold text-gray-700">{formatNumber(post.num_comments)}</span>
+          </div>
+          <span className="text-[11px] text-gray-400 flex items-center gap-0.5 ml-auto" suppressHydrationWarning>
+            <Calendar className="h-2.5 w-2.5" />
+            {timeAgo}
+          </span>
+        </div>
+
+        {/* Author Info - Always at bottom */}
+        <div className="text-[10px] text-gray-500 mt-auto">
+          {post.author_username && post.author_username !== 'deleted' ? (
+            <>by <span className="font-medium text-gray-600 group-hover:text-pink-600 transition-colors">u/{post.author_username}</span></>
+          ) : (
+            <span className="invisible">placeholder</span>
+          )}
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }
 

@@ -47,7 +47,7 @@ type BaseSubreddit = Omit<Subreddit, 'review'> & { review: Subreddit['review'] |
 interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'created_at'> {
   recent_posts?: Post[]
   public_description?: string | null
-  avg_engagement_velocity?: number | null
+  comment_to_upvote_ratio?: number | null
   category_text?: string | null
   min_account_age_days?: number | null
   min_comment_karma?: number | null
@@ -59,7 +59,7 @@ interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'crea
   video_post_avg_score?: number | null
   text_post_avg_score?: number | null
   created_at?: string
-  verification_required_detected?: boolean | null
+  verification_required?: boolean | null
 }
 
 const PAGE_SIZE = 30
@@ -100,6 +100,7 @@ export default function PostingPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(availableCategories)
   // Filters & sorting
   const [sfwOnly, setSfwOnly] = useState<boolean>(false)
+  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<SortField>('avg_upvotes')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   // Pagination
@@ -109,13 +110,14 @@ export default function PostingPage() {
   const [, setCategoryCounts] = useState<Record<string, number>>({})
   const [sfwCount, setSfwCount] = useState(0)
   const [nsfwCount, setNsfwCount] = useState(0)
+  const [verifiedCount, setVerifiedCount] = useState(0)
 
   // Load filter counts for UI
   const loadFilterCounts = useCallback(async () => {
     if (!supabase) return
     try {
       const sb = supabase as NonNullable<typeof supabase>
-      const [sfwResult, nsfwResult] = await Promise.all([
+      const [sfwResult, nsfwResult, verifiedResult] = await Promise.all([
         sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .eq('review', 'Ok')
           .not('name', 'ilike', 'u_%')
@@ -123,10 +125,15 @@ export default function PostingPage() {
         sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .eq('review', 'Ok')
           .not('name', 'ilike', 'u_%')
-          .eq('over18', true)
+          .eq('over18', true),
+        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
+          .eq('review', 'Ok')
+          .not('name', 'ilike', 'u_%')
+          .eq('verification_required', true)
       ])
       setSfwCount(sfwResult.count || 0)
       setNsfwCount(nsfwResult.count || 0)
+      setVerifiedCount(verifiedResult.count || 0)
       const { data: categoryData } = await sb
         .from('reddit_subreddits')
         .select('category_text')
@@ -147,6 +154,7 @@ export default function PostingPage() {
       setCategoryCounts({})
       setSfwCount(0)
       setNsfwCount(0)
+      setVerifiedCount(0)
     }
   }, [])
 
@@ -175,12 +183,11 @@ export default function PostingPage() {
           id, name, display_name_prefixed, title, public_description,
           subscribers, avg_upvotes_per_post, subscriber_engagement_ratio,
           best_posting_hour, best_posting_day, over18, category_text,
-          moderator_activity_score, community_health_score,
           image_post_avg_score, video_post_avg_score, text_post_avg_score,
           last_scraped_at, min_account_age_days, min_comment_karma,
           min_post_karma, allow_images, icon_img, community_icon,
-          top_content_type, avg_engagement_velocity, accounts_active,
-          verification_required_detected
+          top_content_type, comment_to_upvote_ratio, accounts_active,
+          verification_required
         `)
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
@@ -199,14 +206,25 @@ export default function PostingPage() {
       if (sfwOnly) {
         query = query.eq('over18', false)
       }
-      
+
+      // Apply verification filter
+      if (verifiedOnly) {
+        query = query.eq('verification_required', true)
+      }
+
       // Apply sorting and pagination
       const { data: subreddits, error } = await query
         .order(sortColumn, { ascending: sortDirection === 'asc' })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
         
       if (error) {
-        console.error('Supabase query error:', error)
+        console.error('Supabase query error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: JSON.stringify(error, null, 2)
+        })
         throw error
       }
 
@@ -248,7 +266,7 @@ export default function PostingPage() {
     } finally {
       setLoading(false)
     }
-  }, [sortBy, sortDirection, addToast, loadFilterCounts, selectedCategories, availableCategories.length, sfwOnly])
+  }, [sortBy, sortDirection, addToast, loadFilterCounts, selectedCategories, availableCategories.length, sfwOnly, verifiedOnly])
   
   
   
@@ -265,7 +283,7 @@ export default function PostingPage() {
         const { data: posts } = await sb
           .from('reddit_posts')
           .select('score, subreddit_name')
-          .eq('author', username)
+          .eq('author_username', username)
           .order('score', { ascending: false })
           .limit(100)
         
@@ -381,7 +399,7 @@ export default function PostingPage() {
     setCurrentPage(0)
     fetchOkSubreddits(0, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortDirection, selectedCategories, sfwOnly])
+  }, [sortBy, sortDirection, selectedCategories, sfwOnly, verifiedOnly])
 
 
 
@@ -417,6 +435,10 @@ export default function PostingPage() {
   
   const handleSfwChange = useCallback((sfwOnly: boolean) => {
     setSfwOnly(sfwOnly)
+  }, [])
+
+  const handleVerifiedChange = useCallback((verifiedOnly: boolean) => {
+    setVerifiedOnly(verifiedOnly)
   }, [])
   
   // Removed unused handlers - handleSelectAllCategories and handleClearAllFilters
@@ -818,7 +840,40 @@ export default function PostingPage() {
                 </span>
               )}
             </label>
-            
+
+            {/* Verified Filter Checkbox */}
+            <label className="flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={verifiedOnly}
+                  onChange={(e) => handleVerifiedChange(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`
+                  w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center
+                  ${verifiedOnly
+                    ? 'bg-blue-500 border-blue-500'
+                    : 'bg-white border-gray-300 hover:border-blue-500'
+                  }
+                `}>
+                  {verifiedOnly && (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                Verified
+              </span>
+              {verifiedOnly && verifiedCount > 0 && (
+                <span className="text-xs text-blue-500 font-semibold">
+                  ({verifiedCount})
+                </span>
+              )}
+            </label>
+
             <PostingCategoryFilter
               availableCategories={availableCategories}
               selectedCategories={selectedCategories}
@@ -864,6 +919,9 @@ export default function PostingPage() {
           loading={loading && currentPage === 0}
           onLoadMore={handleLoadMore}
           hasMore={hasMore}
+          selectedCategories={selectedCategories}
+          availableCategories={availableCategories}
+          sfwOnly={sfwOnly}
         />
         
         {/* Loading indicator for infinite scroll */}

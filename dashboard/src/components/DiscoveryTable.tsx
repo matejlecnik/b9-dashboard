@@ -17,7 +17,7 @@ import {
   Play,
   Copy,
   Check,
-  CheckCircle2
+  BadgeCheck
 } from 'lucide-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Mousewheel } from 'swiper/modules'
@@ -32,7 +32,7 @@ import { getCategoryStyles } from '@/lib/categoryColors'
 interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_at' | 'review'> {
   recent_posts?: Post[]
   public_description?: string | null
-  avg_engagement_velocity?: number | null
+  comment_to_upvote_ratio?: number | null
   category_text?: string | null
   min_account_age_days?: number | null
   min_comment_karma?: number | null
@@ -55,7 +55,7 @@ interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_
       }
     }>
   }
-  verification_required_detected?: boolean | null
+  verification_required?: boolean | null
 }
 
 interface ExtendedPost extends Post {
@@ -76,6 +76,9 @@ interface DiscoveryTableProps {
   loading?: boolean
   onLoadMore?: () => void
   hasMore?: boolean
+  selectedCategories?: string[]
+  availableCategories?: string[]
+  sfwOnly?: boolean
 }
 
 interface PostGridProps {
@@ -250,7 +253,10 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
 
 export const DiscoveryTable = memo(function DiscoveryTable({
   subreddits,
-  loading = false
+  loading = false,
+  selectedCategories = [],
+  availableCategories = [],
+  sfwOnly = false
 }: DiscoveryTableProps) {
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
@@ -284,11 +290,29 @@ export const DiscoveryTable = memo(function DiscoveryTable({
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-      const { data: posts, error } = await supabase
+      // Build query with filters
+      let query = supabase
         .from('reddit_posts')
         .select('*')
         .eq('subreddit_name', subredditName)
         .gte('created_utc', thirtyDaysAgo.toISOString())
+
+      // Apply category filter using the new sub_category_text field
+      if (selectedCategories.length === 0) {
+        // Show only uncategorized
+        query = query.or('sub_category_text.is.null,sub_category_text.eq.')
+      } else if (selectedCategories.length < availableCategories.length) {
+        // Show only selected categories
+        query = query.in('sub_category_text', selectedCategories)
+      }
+      // If all categories selected, no additional filter needed
+
+      // Apply SFW filter using the new sub_over18 field
+      if (sfwOnly) {
+        query = query.eq('sub_over18', false)
+      }
+
+      const { data: posts, error } = await query
         .order('score', { ascending: false })
         .limit(10)
 
@@ -311,7 +335,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         return newSet
       })
     }
-  }, [postCache, loadingPosts])
+  }, [postCache, loadingPosts, selectedCategories, availableCategories, sfwOnly])
 
   // Auto-load posts on mount for all visible subreddits
   useEffect(() => {
@@ -422,9 +446,9 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           <span className="font-semibold text-sm text-gray-900 group-hover:text-b9-pink transition-colors">
                             r/{subreddit.name}
                           </span>
-                          {subreddit.verification_required_detected && (
+                          {subreddit.verification_required && (
                             <span title="Verification Required">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                              <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                             </span>
                           )}
                           {subreddit.over18 ? (

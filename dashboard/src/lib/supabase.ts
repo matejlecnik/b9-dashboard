@@ -185,6 +185,8 @@ export interface Subreddit {
   category_text: string | null // Legacy category text for categorization page
   category_id?: string | null // New foreign key reference to categories table
   subscriber_engagement_ratio?: number | null
+  avg_engagement_velocity?: number | null // Posts per day velocity
+  comment_to_upvote_ratio?: number | null // Comment to upvote ratio
   avg_upvotes_per_post: number
   best_posting_day?: string | null
   best_posting_hour?: number | null
@@ -194,6 +196,7 @@ export interface Subreddit {
   icon_img?: string | null // Subreddit icon URL
   community_icon?: string | null // Alternative icon field
   over18: boolean | null // NSFW flag
+  verification_required?: boolean | null // Whether the subreddit requires verification
   // Rules data can be stored as plain text, an array of rule objects, or a structured object with a rules array
   rules_data?:
     | string
@@ -282,4 +285,6 @@ export interface Post {
   subreddit_name: string
   author_username: string
   created_utc: string
+  sub_category_text?: string | null
+  sub_over18?: boolean | null
 }

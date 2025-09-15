@@ -54,6 +54,8 @@ const UnifiedFilters = memo(function UnifiedFilters({
     switch (key as FilterId) {
       case 'unreviewed':
         return effectiveCounts.unreviewed ?? 0
+      case 'ok':
+        return effectiveCounts.ok ?? 0
       case 'non_related':
         return effectiveCounts.non_related ?? 0
       case 'no_seller':
@@ -67,23 +69,30 @@ const UnifiedFilters = memo(function UnifiedFilters({
     }
   }
 
-  const allFilters: FilterDef[] = (currentFilter === 'unreviewed' || currentFilter === 'non_related' || currentFilter === 'no_seller') ? [
-    // Subreddit Review Page Filters - Unreviewed, No Seller, Non Related
-    { 
+  const allFilters: FilterDef[] = (currentFilter === 'unreviewed' || currentFilter === 'ok' || currentFilter === 'non_related' || currentFilter === 'no_seller') ? [
+    // Subreddit Review Page Filters - Unreviewed, Ok, No Seller, Non Related
+    {
       id: 'unreviewed',
       label: 'Unreviewed',
       count: countFor('unreviewed'),
       icon: Sparkles,
       activeBg: 'linear-gradient(135deg, #FF6B80, #FF8395)' // Secondary B9 pink
     },
-    { 
+    {
+      id: 'ok',
+      label: 'Ok',
+      count: countFor('ok'),
+      icon: Tag,
+      activeBg: 'linear-gradient(135deg, #4CAF50, #66BB6A)' // Green for approved
+    },
+    {
       id: 'no_seller',
       label: 'No Seller',
       count: countFor('no_seller'),
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #FF99A9, #FFB3C1)' // Light pink for success
     },
-    { 
+    {
       id: 'non_related',
       label: 'Non Related',
       count: countFor('non_related'),

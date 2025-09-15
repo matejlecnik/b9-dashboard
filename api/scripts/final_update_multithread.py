@@ -15,6 +15,7 @@ load_dotenv(Path(__file__).parent.parent / '.env')
 counter_lock = Lock()
 total_updated = 0
 processed_count = 0
+UPDATE_ALL = (os.getenv('UPDATE_MODE', '').upper() == 'ALL') or (len(sys.argv) > 1 and str(sys.argv[1]).upper() == 'ALL')
 
 def create_supabase_client():
     """Create a new Supabase client for each thread"""
@@ -44,76 +45,111 @@ def process_subreddit(sub_data):
         offset = 0
         sub_total = 0
 
-        # Pass 1: posts with NULL sub_category_text
-        while True:  # Process posts missing mirror fields (NULL)
-            # Fetch with simple retry to avoid transient timeouts
-            posts = None
-            for attempt in range(3):
-                try:
-                    posts = supabase.table('reddit_posts').select(
-                        'id'
-                    ).eq('subreddit_name', sub_name).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
+        if UPDATE_ALL:
+            # Update ALL posts for this subreddit, regardless of current values
+            while True:
+                posts = None
+                for attempt in range(3):
+                    try:
+                        posts = supabase.table('reddit_posts').select(
+                            'id'
+                        ).eq('subreddit_name', sub_name).range(offset, offset + 49).execute()
+                        break
+                    except Exception:
+                        time.sleep(0.3 * (attempt + 1))
+                        continue
+
+                if not posts.data:
                     break
-                except Exception:
-                    time.sleep(0.3 * (attempt + 1))
-                    continue
 
-            if not posts.data:
-                break
+                for post in posts.data:
+                    try:
+                        update_payload = {
+                            'sub_over18': over18
+                        }
+                        if category is not None and category != '':
+                            update_payload['sub_category_text'] = category
 
-            # Update each post
-            for post in posts.data:
-                try:
-                    supabase.table('reddit_posts').update({
-                        'sub_category_text': category,
-                        'sub_over18': over18
-                    }).eq('id', post['id']).execute()
-                    sub_total += 1
-                except Exception:
-                    pass
+                        supabase.table('reddit_posts').update(update_payload).eq('id', post['id']).execute()
+                        sub_total += 1
+                    except Exception:
+                        pass
 
-            offset += 50
+                offset += 50
+                if offset % 500 == 0:
+                    print(f"    r/{sub_name}: {offset}+ posts processed (ALL mode)...", flush=True)
+                time.sleep(0.02)
+        else:
+            # Pass 1: posts with NULL sub_category_text
+            while True:  # Process posts missing mirror fields (NULL)
+                # Fetch with simple retry to avoid transient timeouts
+                posts = None
+                for attempt in range(3):
+                    try:
+                        posts = supabase.table('reddit_posts').select(
+                            'id'
+                        ).eq('subreddit_name', sub_name).filter('sub_category_text', 'is', 'null').range(offset, offset + 49).execute()
+                        break
+                    except Exception:
+                        time.sleep(0.3 * (attempt + 1))
+                        continue
 
-            # Print progress for subreddits with many posts
-            if offset % 500 == 0:
-                print(f"    r/{sub_name}: {offset}+ posts processed (NULL sub_category_text)...", flush=True)
-
-            time.sleep(0.02)  # Small delay between batches
-
-        # Pass 2: posts with empty-string sub_category_text
-        offset = 0
-        while True:  # Process posts missing mirror fields (empty string)
-            # Fetch with simple retry to avoid transient timeouts
-            posts = None
-            for attempt in range(3):
-                try:
-                    posts = supabase.table('reddit_posts').select(
-                        'id'
-                    ).eq('subreddit_name', sub_name).eq('sub_category_text', '').range(offset, offset + 49).execute()
+                if not posts.data:
                     break
-                except Exception:
-                    time.sleep(0.3 * (attempt + 1))
-                    continue
 
-            if not posts.data:
-                break
+                # Update each post
+                for post in posts.data:
+                    try:
+                        supabase.table('reddit_posts').update({
+                            'sub_category_text': category,
+                            'sub_over18': over18
+                        }).eq('id', post['id']).execute()
+                        sub_total += 1
+                    except Exception:
+                        pass
 
-            for post in posts.data:
-                try:
-                    supabase.table('reddit_posts').update({
-                        'sub_category_text': category,
-                        'sub_over18': over18
-                    }).eq('id', post['id']).execute()
-                    sub_total += 1
-                except Exception:
-                    pass
+                offset += 50
 
-            offset += 50
+                # Print progress for subreddits with many posts
+                if offset % 500 == 0:
+                    print(f"    r/{sub_name}: {offset}+ posts processed (NULL sub_category_text)...", flush=True)
 
-            if offset % 500 == 0:
-                print(f"    r/{sub_name}: {offset}+ posts processed (empty sub_category_text)...", flush=True)
+                time.sleep(0.02)  # Small delay between batches
 
-            time.sleep(0.02)
+            # Pass 2: posts with empty-string sub_category_text
+            offset = 0
+            while True:  # Process posts missing mirror fields (empty string)
+                # Fetch with simple retry to avoid transient timeouts
+                posts = None
+                for attempt in range(3):
+                    try:
+                        posts = supabase.table('reddit_posts').select(
+                            'id'
+                        ).eq('subreddit_name', sub_name).eq('sub_category_text', '').range(offset, offset + 49).execute()
+                        break
+                    except Exception:
+                        time.sleep(0.3 * (attempt + 1))
+                        continue
+
+                if not posts.data:
+                    break
+
+                for post in posts.data:
+                    try:
+                        supabase.table('reddit_posts').update({
+                            'sub_category_text': category,
+                            'sub_over18': over18
+                        }).eq('id', post['id']).execute()
+                        sub_total += 1
+                    except Exception:
+                        pass
+
+                offset += 50
+
+                if offset % 500 == 0:
+                    print(f"    r/{sub_name}: {offset}+ posts processed (empty sub_category_text)...", flush=True)
+
+                time.sleep(0.02)
 
         with counter_lock:
             total_updated += sub_total
@@ -131,6 +167,7 @@ def main():
     print("=" * 60, flush=True)
     print("MULTI-THREADED UPDATE (5 threads)", flush=True)
     print("=" * 60, flush=True)
+    print(f"Mode: {'ALL' if UPDATE_ALL else 'MISSING_ONLY'}", flush=True)
 
     # Create client (dotenv already loaded above)
     supabase = create_supabase_client()
@@ -139,27 +176,37 @@ def main():
     print("\nFetching subreddits...", flush=True)
 
     all_subs = []
-    offset = 0
     batch_size = 1000
+    last_name = None
 
     while True:
-        response = supabase.table('reddit_subreddits').select(
+        query = supabase.table('reddit_subreddits').select(
             'name, category_text, over18'
-        ).neq('category_text', '').not_.is_('category_text', 'null').range(
-            offset, offset + batch_size - 1
-        ).execute()
+        )
+
+        if UPDATE_ALL:
+            # ALL mode: only subreddits reviewed as Ok and with a selected category
+            query = query.eq('review', 'Ok').not_.is_('category_text', 'null').neq('category_text', '')
+        else:
+            # Default: previous behavior - any subreddit with a selected category
+            query = query.neq('category_text', '').not_.is_('category_text', 'null')
+
+        query = query.order('name')
+        if last_name is not None:
+            query = query.gt('name', last_name)
+
+        response = query.limit(batch_size).execute()
 
         if not response.data:
             break
 
         all_subs.extend(response.data)
+        last_name = response.data[-1]['name']
 
         if len(response.data) < batch_size:
             break
 
-        offset += batch_size
-
-    print(f"Found {len(all_subs)} categorized subreddits", flush=True)
+    print(f"Found {len(all_subs)} subreddits", flush=True)
 
     if not all_subs:
         print("No subreddits to process")

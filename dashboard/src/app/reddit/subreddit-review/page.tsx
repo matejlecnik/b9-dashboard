@@ -270,8 +270,7 @@ export default function SubredditReviewPage() {
         description: 'Reverted the last review change.',
         duration: 3000
       })
-      // Refresh data and counts to reflect changes accurately
-      fetchSubreddits(0, false)
+      // Only refresh counts, not all data - for smoother UX
       fetchCounts()
     } catch (error) {
       console.error('Undo failed:', error)
@@ -282,7 +281,7 @@ export default function SubredditReviewPage() {
         duration: 5000
       })
     }
-  }, [lastAction, fetchSubreddits, fetchCounts, addToast])
+  }, [lastAction, fetchCounts, addToast])
 
   // Update ref to current function
   useEffect(() => {
@@ -606,12 +605,12 @@ export default function SubredditReviewPage() {
         .subscribe()
     }
 
-    // Keep 5-minute interval refresh for catching external changes
+    // Keep longer interval refresh for catching external changes (15 minutes instead of 5)
+    // This reduces jarring refreshes while still catching external updates
     const refreshInterval = setInterval(() => {
-      setCurrentPage(0)
-      setHasMore(true)
-      fetchSubreddits(0, false)
-    }, 300000)  
+      // Only refresh counts, not the whole list
+      fetchCounts()
+    }, 900000)  
 
     return () => {
       if (channel && supabase) {
@@ -619,7 +618,8 @@ export default function SubredditReviewPage() {
       }
       clearInterval(refreshInterval)
     }
-  }, [currentFilter, debouncedSearchQuery, fetchSubreddits, fetchCounts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFilter, debouncedSearchQuery])
 
 
   return (
@@ -679,8 +679,8 @@ export default function SubredditReviewPage() {
             </div>
           </div>
 
-          {/* Filters Section - Right Side - Aligned */}
-          <div className="flex items-center">
+          {/* Filters Section - Right Side - Centered */}
+          <div className="flex items-center justify-end">
             <UnifiedFilters
               currentFilter={currentFilter}
               onFilterChange={(value) => {

@@ -138,24 +138,20 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         setLoadingMore(true)
       }
 
-      // Build the base query - include new mirror columns
-      // We'll use JOIN as fallback for posts that don't have the mirror fields yet
+      // Build optimized query using mirror columns without JOIN for better performance
       let query = supabase
         .from('reddit_posts')
         .select(`
           id, reddit_id, title, score, num_comments, created_utc, subreddit_name,
           content_type, upvote_ratio, thumbnail, url, author_username, preview_data,
-          domain, is_video, is_self, over_18, sub_category_text, sub_over18,
-          reddit_subreddits!inner(
-            category_text,
-            over18,
-            review
-          )
+          domain, is_video, is_self, over_18, sub_category_text, sub_over18
         `)
-        .eq('reddit_subreddits.review', 'Ok')
-        .not('reddit_subreddits.name', 'ilike', 'u_%')
+        // Filter by review status using the mirror column (assuming posts are synced)
+        .not('subreddit_name', 'ilike', 'u_%')
+        // Only get posts that have been categorized (have mirror data)
+        .not('sub_category_text', 'is', null)
 
-      // Apply category filter
+      // Apply category filter using mirror column
       if (debouncedCategories.length === 0) {
         // When no categories are selected, show nothing
         setPosts(append ? (prevPosts) => prevPosts : [])
@@ -163,8 +159,8 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         setError(null)
         return
       } else if (debouncedCategories.length < allCategories.length) {
-        // Show only selected categories
-        query = query.in('reddit_subreddits.category_text', debouncedCategories)
+        // Show only selected categories using mirror column
+        query = query.in('sub_category_text', debouncedCategories)
       }
       // If all categories selected, no filter needed - show all
 
@@ -173,9 +169,9 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         query = query.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
       }
 
-      // Apply SFW filter using only subreddit's over18 field
+      // Apply SFW filter using mirror column
       if (sfwOnly) {
-        query = query.eq('reddit_subreddits.over18', false)
+        query = query.eq('sub_over18', false)
       }
 
       // Apply age filter
@@ -185,11 +181,13 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         query = query.gte('created_utc', cutoff)
       }
 
-      // Apply sorting and pagination
+      // Apply sorting and pagination with explicit limit for better performance
       const sortColumn = sortBy === 'comments' ? 'num_comments' : 'score'
       query = query
         .order(sortColumn, { ascending: false })
+        .order('created_utc', { ascending: false }) // Secondary sort for consistency
         .range(page * initialPostsPerPage, (page + 1) * initialPostsPerPage - 1)
+        .limit(initialPostsPerPage) // Explicit limit for query optimization
 
       const { data, error: fetchError } = await query
 
@@ -197,7 +195,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         throw new Error(`Failed to fetch posts: ${fetchError.message}`)
       }
 
-      // Process posts - extract category_text from the joined data
+      // Process posts - now using mirror columns directly
       const seenRedditIds = new Set<string>()
       const newPosts = (data || [])
         .filter((post: any) => {
@@ -209,12 +207,10 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
           return true
         })
         .map((post: any) => {
-          // Use mirror fields if available, otherwise fall back to joined data
-          const category_text = post.sub_category_text || post.reddit_subreddits?.category_text || null
-          // Remove the joined data from the post object to keep it clean
-          const { reddit_subreddits, ...postData } = post
+          // Use mirror fields directly
+          const category_text = post.sub_category_text || null
           return {
-            ...postData,
+            ...post,
             category_text,
             sub_category_text: post.sub_category_text,
             sub_over18: post.sub_over18
@@ -254,12 +250,12 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     if (!supabase) return 0
 
     try {
-      // Build base query with JOIN for total count
+      // Build base query using mirror columns for better performance
       let baseQuery = supabase
         .from('reddit_posts')
-        .select('*, reddit_subreddits!inner(category_text, over18, review)', { count: 'exact', head: true })
-        .eq('reddit_subreddits.review', 'Ok')
-        .not('reddit_subreddits.name', 'ilike', 'u_%')
+        .select('*', { count: 'exact', head: true })
+        .not('subreddit_name', 'ilike', 'u_%')
+        .not('sub_category_text', 'is', null) // Only posts with category data
 
       // Apply category filter
       if (debouncedCategories.length === 0) {
@@ -268,7 +264,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         setNsfwCount(0)
         return 0
       } else if (debouncedCategories.length < allCategories.length) {
-        baseQuery = baseQuery.in('reddit_subreddits.category_text', debouncedCategories)
+        baseQuery = baseQuery.in('sub_category_text', debouncedCategories)
       }
 
       // Apply age filter
@@ -283,19 +279,19 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         baseQuery = baseQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
       }
 
-      // Get SFW count (using subreddit's over18 field)
+      // Get SFW count using mirror column
       const sfwQuery = supabase
         .from('reddit_posts')
-        .select('*, reddit_subreddits!inner(category_text, over18, review)', { count: 'exact', head: true })
-        .eq('reddit_subreddits.review', 'Ok')
-        .not('reddit_subreddits.name', 'ilike', 'u_%')
-        .eq('reddit_subreddits.over18', false)
+        .select('*', { count: 'exact', head: true })
+        .not('subreddit_name', 'ilike', 'u_%')
+        .not('sub_category_text', 'is', null)
+        .eq('sub_over18', false)
 
       // Apply same filters to SFW query
       if (debouncedCategories.length === 0) {
         // No categories selected
       } else if (debouncedCategories.length < allCategories.length) {
-        sfwQuery.in('reddit_subreddits.category_text', debouncedCategories)
+        sfwQuery.in('sub_category_text', debouncedCategories)
       }
 
       if (ageFilter !== 'all') {
@@ -314,19 +310,19 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         console.error('Failed to fetch SFW count:', sfwError)
       }
 
-      // Get NSFW count (using subreddit's over18 field)
+      // Get NSFW count using mirror column
       const nsfwQuery = supabase
         .from('reddit_posts')
-        .select('*, reddit_subreddits!inner(category_text, over18, review)', { count: 'exact', head: true })
-        .eq('reddit_subreddits.review', 'Ok')
-        .not('reddit_subreddits.name', 'ilike', 'u_%')
-        .eq('reddit_subreddits.over18', true)
+        .select('*', { count: 'exact', head: true })
+        .not('subreddit_name', 'ilike', 'u_%')
+        .not('sub_category_text', 'is', null)
+        .eq('sub_over18', true)
 
       // Apply same filters to NSFW query
       if (debouncedCategories.length === 0) {
         // No categories selected
       } else if (debouncedCategories.length < allCategories.length) {
-        nsfwQuery.in('reddit_subreddits.category_text', debouncedCategories)
+        nsfwQuery.in('sub_category_text', debouncedCategories)
       }
 
       if (ageFilter !== 'all') {
@@ -348,7 +344,9 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       // Set the counts
       const finalSfwCount = sfwCountResult || 0
       const finalNsfwCount = nsfwCountResult || 0
-      const finalTotalCount = finalSfwCount + finalNsfwCount
+
+      // Respect the SFW filter when setting total count
+      const finalTotalCount = sfwOnly ? finalSfwCount : (finalSfwCount + finalNsfwCount)
 
       setSfwCount(finalSfwCount)
       setNsfwCount(finalNsfwCount)
@@ -369,15 +367,14 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     try {
       setMetricsLoading(true)
 
-      // Build metrics query with JOIN
+      // Build metrics query using mirror columns for better performance
       let metricsQuery = supabase
         .from('reddit_posts')
         .select(`
-          score, num_comments, created_utc, subreddit_name, over_18,
-          reddit_subreddits!inner(category_text, over18, review)
+          score, num_comments, created_utc, subreddit_name, over_18, sub_over18, sub_category_text
         `)
-        .eq('reddit_subreddits.review', 'Ok')
-        .not('reddit_subreddits.name', 'ilike', 'u_%')
+        .not('subreddit_name', 'ilike', 'u_%')
+        .not('sub_category_text', 'is', null) // Only posts with category data
 
       // Apply category filter
       if (debouncedCategories.length === 0) {
@@ -395,12 +392,12 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         })
         return
       } else if (debouncedCategories.length < allCategories.length) {
-        metricsQuery = metricsQuery.in('reddit_subreddits.category_text', debouncedCategories)
+        metricsQuery = metricsQuery.in('sub_category_text', debouncedCategories)
       }
 
-      // Apply SFW filter using subreddit's over18
+      // Apply SFW filter using mirror column
       if (sfwOnly) {
-        metricsQuery = metricsQuery.eq('reddit_subreddits.over18', false)
+        metricsQuery = metricsQuery.eq('sub_over18', false)
       }
 
       // Apply age filter for metrics

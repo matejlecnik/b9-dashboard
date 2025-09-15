@@ -66,6 +66,11 @@ export default function CategorizationPage() {
   const [showAIModal, setShowAIModal] = useState(false)
   const [categorizationLogs, setCategorizationLogs] = useState<string[]>([])
   const fetchingPageRef = useRef<number | null>(null)
+  const [lastAction, setLastAction] = useState<{
+    type: 'single' | 'bulk'
+    items: Array<{ id: number, prevReview: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null }>
+  } | null>(null)
+  const recentlyUpdatedIdsRef = useRef<Set<number>>(new Set())
   
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
@@ -249,9 +254,52 @@ export default function CategorizationPage() {
     }
   }, [debouncedSearchQuery, selectedCategories, addToast])
 
-  // Update review for single subreddit
+  // Undo last action (single review update)
+  const undoLastAction = useCallback(async () => {
+    if (!lastAction) return
+
+    try {
+      // Apply reverts sequentially using API
+      for (const item of lastAction.items) {
+        const response = await fetch(`/api/subreddits/${item.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ review: item.prevReview })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || `Failed to undo review for subreddit ${item.id}`)
+        }
+      }
+
+      setLastAction(null)
+      addToast({
+        type: 'success',
+        title: 'Undo Complete',
+        description: 'Reverted the last review change.',
+        duration: 3000
+      })
+
+      // Refresh to show the reverted item back in the list
+      fetchSubreddits(0, false)
+    } catch (error) {
+      console.error('Undo failed:', error)
+      addToast({
+        type: 'error',
+        title: 'Undo Failed',
+        description: 'Could not revert the last change. Please try again.',
+        duration: 5000
+      })
+    }
+  }, [lastAction, addToast, fetchSubreddits])
+
+  // Update review for single subreddit - matching subreddit-review page pattern
   const updateReview = useCallback(async (id: number, reviewText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
+    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related'
 
     await handleAsyncOperation(async () => {
       const response = await fetch(`/api/subreddits/${id}`, {
@@ -259,7 +307,7 @@ export default function CategorizationPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ review: reviewText })
+        body: JSON.stringify({ review })
       })
 
       const result = await response.json()
@@ -268,17 +316,43 @@ export default function CategorizationPage() {
         throw new Error(result.error || 'Failed to update review')
       }
 
-      return { subreddit, reviewText }
+      return { subreddit, review }
     }, {
       context: 'review_update',
       showToast: false,
-      onSuccess: ({ subreddit, reviewText }) => {
+      onSuccess: ({ subreddit, review }) => {
+        // Track this as our own update to avoid reacting to Supabase realtime updates
+        recentlyUpdatedIdsRef.current.add(id)
+        setTimeout(() => {
+          recentlyUpdatedIdsRef.current.delete(id)
+        }, 2000)
+
+        // Store undo information
+        const prevReview = subreddit?.review ?? null
+        setLastAction({ type: 'single', items: [{ id, prevReview }] })
+
         // Check if we should remove item from categorization view
-        const shouldRemove = reviewText !== 'Ok'
+        // In categorization, we only show "Ok" items, so remove if not Ok
+        const shouldRemove = review !== 'Ok'
 
         if (shouldRemove) {
           // Add to removing list for fade effect
           setRemovingIds(prev => new Set([...prev, id]))
+
+          // Update counts immediately for better UX
+          if (selectedCategories.length === 0) {
+            // We're in uncategorized view
+            setCategoryCounts(prev => ({
+              ...prev,
+              uncategorized: Math.max(0, prev.uncategorized - 1)
+            }))
+          } else {
+            // We're in categorized view
+            setCategoryCounts(prev => ({
+              ...prev,
+              categorized: Math.max(0, prev.categorized - 1)
+            }))
+          }
 
           // Delay actual removal for smooth transition
           setTimeout(() => {
@@ -290,10 +364,10 @@ export default function CategorizationPage() {
             })
           }, 300)
         } else {
-          // Just update in place
+          // Update in place - item stays as Ok
           setSubreddits(prev => prev.map(sub =>
             sub.id === id
-              ? { ...sub, review: reviewText as 'Ok' | 'No Seller' | 'Non Related' }
+              ? { ...sub, review }
               : sub
           ))
         }
@@ -301,15 +375,25 @@ export default function CategorizationPage() {
         addToast({
           type: 'success',
           title: 'Review Updated',
-          description: `${subreddit?.display_name_prefixed} marked as ${reviewText}`,
-          duration: 3000
+          description: `${subreddit?.display_name_prefixed} marked as ${review}`,
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => { void undoLastAction() }
+          }
         })
       },
       onError: () => {
-        fetchSubreddits(0, false)
+        // Don't refetch all data on error - let user retry
+        addToast({
+          type: 'error',
+          title: 'Update Failed',
+          description: `Failed to update ${subreddit?.display_name_prefixed}. Please try again.`,
+          duration: 5000
+        })
       }
     })
-  }, [subreddits, handleAsyncOperation, addToast, fetchSubreddits])
+  }, [subreddits, handleAsyncOperation, addToast, selectedCategories, undoLastAction])
 
   // Update category for single subreddit
   const updateCategory = useCallback(async (id: number, categoryText: string) => {

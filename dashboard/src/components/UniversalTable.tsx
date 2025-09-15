@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CategorySelector } from '@/components/CategorySelector'
 import { cn } from '@/lib/utils'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, BadgeCheck } from 'lucide-react'
 
 // Utility function to abbreviate large numbers
 const abbreviateNumber = (num: number): string => {
@@ -412,6 +412,12 @@ export const UniversalTable = memo(function UniversalTable({
             compactMode ? "text-xs" : "text-sm"
           )}>
             {safeDisplayName}
+            {/* Verification Badge */}
+            {subreddit.verification_required && (
+              <span title="Verification Required">
+                <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+              </span>
+            )}
             {/* NSFW/SFW Badge */}
             {subreddit.over18 !== null && (
               <span className={cn(
@@ -490,13 +496,14 @@ export const UniversalTable = memo(function UniversalTable({
         
         {/* Engagement */}
         <div className="w-24 text-center">
-          {typeof subreddit.subscriber_engagement_ratio === 'number' ? (
+          {typeof subreddit.comment_to_upvote_ratio === 'number' ? (
             <span className={cn(
               "font-medium",
               compactMode ? "text-xs" : "text-sm",
-              subreddit.subscriber_engagement_ratio > 0.10 ? 'text-pink-600' : 'text-gray-500'
+              subreddit.comment_to_upvote_ratio > 0.15 ? 'text-pink-600' :
+              subreddit.comment_to_upvote_ratio > 0.05 ? 'text-gray-700' : 'text-gray-500'
             )}>
-              {(subreddit.subscriber_engagement_ratio * 100).toFixed(2)}%
+              {(subreddit.comment_to_upvote_ratio * 100).toFixed(1)}%
             </span>
           ) : (
             <span className="text-gray-400">—</span>

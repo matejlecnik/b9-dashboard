@@ -21,15 +21,16 @@ export function VirtualizedPostGrid({
   className = ''
 }: VirtualizedPostGridProps) {
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const [columns, setColumns] = useState(4)
+  const [columns, setColumns] = useState(6)
 
-  // Calculate responsive columns - Max 4 columns as requested
+  // Calculate responsive columns - Max 6 columns for better use of space
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth
-      if (width < 640) setColumns(2)      // sm
-      else if (width < 768) setColumns(3)  // md  
-      else setColumns(4)                   // lg and above - max 4 columns
+      if (width < 640) setColumns(2)       // sm
+      else if (width < 768) setColumns(3)  // md
+      else if (width < 1024) setColumns(4) // lg
+      else setColumns(6)                   // xl and above - max 6 columns
     }
 
     updateColumns()
