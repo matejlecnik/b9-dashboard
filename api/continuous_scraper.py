@@ -4,6 +4,9 @@ Continuous Reddit Scraper
 Checks Supabase control table every 30 seconds and runs scraping when enabled
 """
 
+# Version tracking
+SCRAPER_VERSION = "2.1.0"
+
 import asyncio
 import os
 import logging
@@ -93,17 +96,19 @@ class ContinuousScraper:
 
         self.is_scraping = True
         self.cycle_count += 1
+        cycle_start_time = datetime.now(timezone.utc)
 
         try:
             logger.info(f"🔄 Starting scraping cycle #{self.cycle_count}")
 
             # Log cycle start
             self.supabase.table('reddit_scraper_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'timestamp': cycle_start_time.isoformat(),
                 'level': 'info',
                 'message': f'🔄 Starting scraping cycle #{self.cycle_count}',
                 'source': 'continuous_scraper',
-                'context': {'cycle': self.cycle_count}
+                'context': {'cycle': self.cycle_count},
+                'version': SCRAPER_VERSION
             }).execute()
 
             # Initialize scraper if needed
@@ -127,16 +132,26 @@ class ContinuousScraper:
             # Run the scraping with control checker
             await self.scraper.test_proxy_scraping(control_checker=control_checker)
 
-            # Log cycle completion
+            # Calculate cycle duration
+            cycle_end_time = datetime.now(timezone.utc)
+            cycle_duration = (cycle_end_time - cycle_start_time).total_seconds()
+            duration_str = f"{int(cycle_duration // 60)}m {int(cycle_duration % 60)}s" if cycle_duration >= 60 else f"{cycle_duration:.1f}s"
+
+            # Log cycle completion with duration
             self.supabase.table('reddit_scraper_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'timestamp': cycle_end_time.isoformat(),
                 'level': 'success',
-                'message': f'✅ Completed scraping cycle #{self.cycle_count}',
+                'message': f'✅ Completed scraping cycle #{self.cycle_count} in {duration_str}',
                 'source': 'continuous_scraper',
-                'context': {'cycle': self.cycle_count}
+                'context': {
+                    'cycle': self.cycle_count,
+                    'duration_seconds': cycle_duration,
+                    'duration_formatted': duration_str
+                },
+                'version': SCRAPER_VERSION
             }).execute()
 
-            logger.info(f"✅ Completed scraping cycle #{self.cycle_count}")
+            logger.info(f"✅ Completed scraping cycle #{self.cycle_count} in {duration_str}")
 
         except Exception as e:
             logger.error(f"❌ Error in scraping cycle #{self.cycle_count}: {e}")
@@ -155,7 +170,7 @@ class ContinuousScraper:
 
     async def run_continuous(self):
         """Main continuous loop - checks every 30 seconds"""
-        logger.info("🚀 Starting continuous scraper with 30-second check interval")
+        logger.info(f"🚀 Starting continuous scraper v{SCRAPER_VERSION} with 30-second check interval")
 
         # Initialize Supabase
         self.initialize_supabase()
@@ -164,8 +179,9 @@ class ContinuousScraper:
         self.supabase.table('reddit_scraper_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': 'info',
-            'message': '🚀 Continuous scraper started',
-            'source': 'continuous_scraper'
+            'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
+            'source': 'continuous_scraper',
+            'version': SCRAPER_VERSION
         }).execute()
 
         while True:

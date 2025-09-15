@@ -4,6 +4,9 @@ Proxy-Enabled Multi-Account Reddit Scraper
 Uses your working Decodo proxy format with custom requestor for AsyncPRAW.
 """
 
+# Version tracking
+SCRAPER_VERSION = "2.1.0"
+
 import asyncio
 import json
 import os
@@ -99,7 +102,8 @@ class SupabaseLogHandler(logging.Handler):
                 'level': record.levelname.lower(),
                 'message': message,
                 'context': context,
-                'source': self.source
+                'source': self.source,
+                'version': SCRAPER_VERSION
             }
             
             self.log_buffer.append(log_entry)
@@ -244,13 +248,18 @@ class PublicRedditAPI:
         retries = 0
         while retries < self.max_retries:
             try:
+                start_time = time.time()
                 response = requests.get(
                     url,
                     headers={'User-agent': self.generate_user_agent()},
                     proxies=proxies,  # Use the proxy for the request (exactly like your script)
                     timeout=30
                 )
+                response_time_ms = int((time.time() - start_time) * 1000)
                 response.raise_for_status()
+
+                # Log successful request
+                logger.info(f"✅ Reddit API request successful: {url.split('/')[-3]}/{url.split('/')[-2]} - {response.status_code} in {response_time_ms}ms")
 
                 # Check if the response status code is 403 (Forbidden)
                 if response.status_code == 403:
@@ -280,12 +289,13 @@ class PublicRedditAPI:
                 return response.json()
                 
             except requests.RequestException as e:
-                logger.warning(f"Failed request for {url}: {e}")
                 retries += 1
+                entity = '/'.join(url.split('/')[-3:-1]) if '/' in url else url
                 if retries < self.max_retries:
+                    logger.warning(f"⚠️ Reddit API request failed (attempt {retries}/{self.max_retries}): {entity} - {str(e)[:100]}")
                     time.sleep(4.0)  # Fixed delay like your working script
                 else:
-                    logger.error(f"Maximum retries reached for {url}. Skipping.")
+                    logger.error(f"❌ Reddit API request failed after {self.max_retries} retries: {entity} - {str(e)[:100]}")
                     break
         
         # If all retries are exhausted, return None

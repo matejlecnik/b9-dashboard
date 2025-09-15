@@ -153,22 +153,52 @@ export default function RedditMonitor() {
     try {
       setLoading(true)
 
-      // Fetch detailed status from backend API
+      // Fetch detailed status from backend API with timeout and error handling
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
-      const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
-        mode: 'cors'
-      })
 
-      if (statusRes.ok) {
-        const data = await statusRes.json()
-        setMetrics(data)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-        // Only update running state if we haven't manually overridden it
-        if (!manualOverride) {
-          // Consider scraper running if status is 'running' OR if there's recent activity
-          const hasRecentActivity = data.last_activity &&
-            (new Date().getTime() - new Date(data.last_activity).getTime() < 60000) // Active within last minute
-          setIsRunning(data.status === 'running' || hasRecentActivity)
+      try {
+        const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
+          mode: 'cors',
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+
+        if (statusRes.ok) {
+          const data = await statusRes.json()
+          setMetrics(data)
+
+          // Only update running state if we haven't manually overridden it
+          if (!manualOverride) {
+            // Consider scraper running if status is 'running' OR if there's recent activity
+            const hasRecentActivity = data.last_activity &&
+              (new Date().getTime() - new Date(data.last_activity).getTime() < 60000) // Active within last minute
+            setIsRunning(data.status === 'running' || hasRecentActivity)
+          }
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.error('Fetch timeout: API did not respond within 10 seconds')
+        } else {
+          console.error('Fetch error:', fetchError.message)
+        }
+
+        // Fallback: Try to get status directly from Supabase
+        try {
+          const controlStatus = await supabase
+            .from('scraper_control')
+            .select('enabled')
+            .eq('id', 1)
+            .single()
+
+          if (controlStatus.data && !manualOverride) {
+            setIsRunning(controlStatus.data.enabled)
+          }
+        } catch (supabaseError) {
+          console.error('Supabase fallback also failed:', supabaseError)
         }
       }
     } catch (error) {

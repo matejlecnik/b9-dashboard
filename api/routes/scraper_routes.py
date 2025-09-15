@@ -4,6 +4,9 @@ Simple Scraper Control Endpoints
 Uses Supabase to store scraper state - no Render API needed
 """
 
+# Version tracking - should match scraper versions
+API_VERSION = "2.1.0"
+
 import os
 import logging
 from fastapi import APIRouter, HTTPException, Request
@@ -174,6 +177,7 @@ async def get_scraper_status(request: Request):
             pass
 
         return {
+            "version": API_VERSION,
             "discovery": {
                 "subreddits_found_24h": 0,
                 "new_subreddits": [],
@@ -202,6 +206,7 @@ async def get_scraper_status(request: Request):
     except Exception as e:
         logger.error(f"Failed to get status: {e}")
         return {
+            "version": API_VERSION,
             "discovery": {
                 "subreddits_found_24h": 0,
                 "new_subreddits": [],
@@ -231,6 +236,7 @@ async def get_scraper_status_detailed(request: Request):
     try:
         # Get basic status
         basic_status = await get_scraper_status(request)
+        basic_status['version'] = API_VERSION  # Ensure version is included
 
         # Check the actual scraper_control table for the true state
         supabase = get_supabase()
