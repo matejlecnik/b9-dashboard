@@ -62,72 +62,56 @@ export default function RedditMonitor() {
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
   const { addToast } = useToast()
 
-  // Calculate success rate from Supabase logs
+  // Calculate success rate from API
   const calculateSuccessRate = useCallback(async () => {
     try {
-      // Check if supabase client is available
-      if (!supabase) {
-        console.error('Supabase client not initialized')
-        return
-      }
+      // Fetch from production API on Render
+      const API_URL = 'https://b9-dashboard.onrender.com'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-      // Get logs from today
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      // Get Reddit API success/failure logs from today only
-      if (!supabase) return
-      const { data: logs, error } = await supabase
-        .from('reddit_scraper_logs')
-        .select('message')
-        .gte('timestamp', today.toISOString())
-        .or('message.like.%✅ Reddit API request successful%,message.like.%❌ Reddit API request failed%,message.like.%❌ Failed to get info%,message.like.%❌ All % attempts failed%')
-
-      if (error) {
-        console.error('Error fetching logs:', error)
-        setSuccessRate(null)
-        return
-      }
-
-      if (!logs || logs.length === 0) {
-        setSuccessRate(null)
-        return
-      }
-
-      // Count successes and failures directly from log messages
-      let successCount = 0
-      let failureCount = 0
-
-      logs.forEach(log => {
-        const msg = log.message
-
-        // Count successful Reddit API requests
-        if (msg.includes('✅ Reddit API request successful')) {
-          successCount++
-        }
-        // Count failed Reddit API requests
-        else if (msg.includes('❌')) {
-          failureCount++
-        }
-      })
-
-      const totalRequests = successCount + failureCount
-      const successfulRequests = successCount
-
-      if (totalRequests > 0) {
-        setSuccessRate({
-          percentage: (successfulRequests / totalRequests) * 100,
-          successful: successfulRequests,
-          total: totalRequests
+      try {
+        const response = await fetch(`${API_URL}/api/scraper/reddit-api-stats`, {
+          mode: 'cors',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
         })
+        clearTimeout(timeoutId)
 
-        // Log for debugging
-        console.log(`Reddit API Success Rate Today: ${successfulRequests}/${totalRequests} (${(successfulRequests / totalRequests * 100).toFixed(1)}%)`)
-      } else {
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.success && data.stats) {
+            const stats = data.stats
+            setSuccessRate({
+              percentage: stats.success_rate || 0,
+              successful: stats.successful_requests || 0,
+              total: stats.total_requests || 0
+            })
+
+            // Log for debugging
+            console.log(`Reddit API Success Rate from API: ${stats.successful_requests}/${stats.total_requests} (${stats.success_rate}%)`)
+          } else {
+            setSuccessRate(null)
+          }
+        } else {
+          console.error('Failed to fetch success rate from API')
+          setSuccessRate(null)
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.log('API timeout fetching success rate')
+        } else {
+          console.error('Error fetching success rate:', fetchError)
+        }
         setSuccessRate(null)
       }
     } catch (error) {
       console.error('Error calculating success rate:', error)
+      setSuccessRate(null)
     }
   }, [])
 
@@ -365,12 +349,11 @@ export default function RedditMonitor() {
     fetchMetrics()
     calculateSuccessRate()
 
-    // Set up polling for metrics only (not success rate)
+    // Set up polling for metrics and success rate
     const metricsInterval = setInterval(() => {
       fetchMetrics()
-    }, 20000) // Refresh metrics every 20 seconds
-
-    // Success rate is calculated only once on mount, not refreshed
+      calculateSuccessRate() // Also refresh success rate from API
+    }, 20000) // Refresh every 20 seconds
 
     return () => {
       clearInterval(metricsInterval)
