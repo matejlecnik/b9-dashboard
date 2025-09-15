@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
 Startup script for B9 Dashboard API
-Runs both the API server and continuous scraper
+Runs the API server and optionally starts the scraper if enabled in database
 """
 
 import os
 import sys
 import subprocess
-import threading
 import signal
-import time
 import logging
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -19,35 +18,55 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Track active threads to prevent duplicates
-active_threads = {'scraper': None, 'api': None}
-thread_lock = threading.Lock()
+def check_and_start_scraper():
+    """Check database and start scraper if enabled"""
+    try:
+        from supabase import create_client
 
-def run_scraper():
-    """Run the continuous scraper in a thread"""
-    with thread_lock:
-        if active_threads['scraper'] is not None and active_threads['scraper'].is_alive():
-            logger.warning("⚠️ Scraper thread already running, skipping duplicate")
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+        if not supabase_url or not supabase_key:
+            logger.warning("⚠️ Supabase not configured, skipping scraper auto-start check")
             return
 
-    logger.info("🔄 Starting continuous scraper subprocess...")
-    try:
-        # Start scraper as a completely detached subprocess
-        scraper_process = subprocess.Popen(
-            [sys.executable, "/app/api/core/continuous_scraper.py"],
-            stdout=subprocess.DEVNULL,  # Don't block on output
-            stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
-            start_new_session=True  # Detach from parent
-        )
-        logger.info(f"✅ Scraper subprocess started with PID: {scraper_process.pid}")
-        # Don't wait for it - let it run independently
+        supabase = create_client(supabase_url, supabase_key)
+        result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+
+        if result.data and result.data[0].get('enabled'):
+            # Check if there's already a PID recorded
+            existing_pid = result.data[0].get('pid')
+            if existing_pid:
+                try:
+                    # Check if process is still running
+                    os.kill(existing_pid, 0)
+                    logger.info(f"✅ Scraper already running with PID {existing_pid}, skipping auto-start")
+                    return
+                except (OSError, ProcessLookupError):
+                    logger.info(f"🔄 Cleaning up stale PID {existing_pid}")
+
+            logger.info("🔄 Scraper is enabled in database, starting subprocess...")
+            scraper_process = subprocess.Popen(
+                [sys.executable, "-u", "/app/api/core/continuous_scraper.py"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True  # Detach from parent
+            )
+
+            # Update PID in database
+            supabase.table('scraper_control').update({
+                'pid': scraper_process.pid,
+                'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+                'updated_by': 'auto_start'
+            }).eq('id', 1).execute()
+
+            logger.info(f"✅ Scraper auto-started with PID: {scraper_process.pid}")
+        else:
+            logger.info("💤 Scraper is disabled in database, not starting")
 
     except Exception as e:
-        logger.error(f"❌ Scraper subprocess failed to start: {e}")
-    finally:
-        with thread_lock:
-            active_threads['scraper'] = None
+        logger.error(f"❌ Error checking scraper auto-start: {e}")
 
 def run_api():
     """Run the FastAPI server"""
@@ -78,9 +97,9 @@ if __name__ == "__main__":
     logger.info(f"📋 Environment: {os.environ.get('ENVIRONMENT', 'unknown')}")
     logger.info(f"🌐 Port: {os.environ.get('PORT', '8000')}")
 
-    # Disable automatic scraper startup to avoid blocking API
-    # The scraper can be controlled via the API endpoints instead
-    logger.info("📝 Scraper auto-start disabled - use API endpoints to control scraper")
+    # Check if scraper should auto-start based on database state
+    logger.info("🔍 Checking if scraper should auto-start...")
+    check_and_start_scraper()
 
     # Run API server in main thread
     logger.info("🎁 Starting API server in main thread...")

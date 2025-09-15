@@ -153,16 +153,50 @@ export default function RedditMonitor() {
     try {
       setLoading(true)
 
-      // Fetch detailed status from backend API with timeout and error handling
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      // First, try to get status from Supabase (faster and more reliable)
+      try {
+        const controlStatus = await supabase
+          .from('scraper_control')
+          .select('enabled')
+          .eq('id', 1)
+          .single()
 
+        if (controlStatus.data && !manualOverride) {
+          setIsRunning(controlStatus.data.enabled)
+        }
+
+        // Get latest activity from logs to determine if scraper is actually running
+        const recentLogs = await supabase
+          .from('reddit_scraper_logs')
+          .select('timestamp, message')
+          .order('timestamp', { ascending: false })
+          .limit(1)
+
+        if (recentLogs.data && recentLogs.data.length > 0) {
+          const lastLogTime = new Date(recentLogs.data[0].timestamp)
+          const minutesAgo = (new Date().getTime() - lastLogTime.getTime()) / 60000
+
+          // If there's activity within last 2 minutes, consider it running
+          if (minutesAgo < 2 && !manualOverride) {
+            setIsRunning(true)
+          }
+        }
+      } catch (supabaseError) {
+        console.warn('Supabase status check failed:', supabaseError)
+      }
+
+      // Then try to fetch detailed metrics from API (with shorter timeout)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // Reduced to 5 second timeout
 
       try {
         const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
           mode: 'cors',
-          signal: controller.signal
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
         })
         clearTimeout(timeoutId)
 
@@ -174,39 +208,55 @@ export default function RedditMonitor() {
           if (!manualOverride) {
             // Consider scraper running if status is 'running' OR if there's recent activity
             const hasRecentActivity = data.last_activity &&
-              (new Date().getTime() - new Date(data.last_activity).getTime() < 60000) // Active within last minute
+              (new Date().getTime() - new Date(data.last_activity).getTime() < 120000) // Active within last 2 minutes
             setIsRunning(data.status === 'running' || hasRecentActivity)
           }
         }
       } catch (fetchError: any) {
         clearTimeout(timeoutId)
+        // Silently handle timeout errors (API might be cold starting)
         if (fetchError.name === 'AbortError') {
-          console.error('Fetch timeout: API did not respond within 10 seconds')
+          console.log('API is slow to respond, using Supabase data only')
         } else {
-          console.error('Fetch error:', fetchError.message)
+          console.log('API fetch failed, using Supabase data:', fetchError.message)
         }
 
-        // Fallback: Try to get status directly from Supabase
-        try {
-          const controlStatus = await supabase
-            .from('scraper_control')
-            .select('enabled')
-            .eq('id', 1)
-            .single()
-
-          if (controlStatus.data && !manualOverride) {
-            setIsRunning(controlStatus.data.enabled)
+        // Set minimal metrics from what we know
+        setMetrics({
+          enabled: isRunning,
+          status: isRunning ? 'running' : 'stopped',
+          statistics: {
+            total_requests: 0,
+            successful_requests: 0,
+            failed_requests: 0,
+            subreddits_processed: 0,
+            posts_collected: 0,
+            users_discovered: 0,
+            daily_requests: 0,
+            processing_rate_per_hour: 0
+          },
+          queue_depths: {
+            priority: 0,
+            new_discovery: 0,
+            update: 0,
+            user_analysis: 0
+          },
+          total_queue_depth: 0,
+          accounts: { count: 0, proxies: 0 },
+          last_activity: null,
+          config: {
+            batch_size: 0,
+            delay_between_batches: 0,
+            max_daily_requests: 0
           }
-        } catch (supabaseError) {
-          console.error('Supabase fallback also failed:', supabaseError)
-        }
+        })
       }
     } catch (error) {
       console.error('Failed to fetch metrics:', error)
     } finally {
       setLoading(false)
     }
-  }, [manualOverride])
+  }, [manualOverride, isRunning])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -288,23 +338,47 @@ export default function RedditMonitor() {
 
   // Check scraper status on mount
   useEffect(() => {
-    // Check initial scraper status from backend API
+    // Check initial scraper status from Supabase first (more reliable)
     const checkInitialStatus = async () => {
       try {
+        // First check Supabase for immediate status
+        const controlStatus = await supabase
+          .from('scraper_control')
+          .select('enabled')
+          .eq('id', 1)
+          .single()
+
+        if (controlStatus.data) {
+          setIsRunning(controlStatus.data.enabled)
+        }
+
+        // Then try API with a short timeout
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
-        const statusRes = await fetch(`${API_URL}/api/scraper/status`, {
-          mode: 'cors'
-        })
-        if (statusRes.ok) {
-          const status = await statusRes.json()
-          // Check if scraper is running based on system health
-          const isScraperRunning = status.system_health?.scraper === 'running'
-          if (isScraperRunning !== undefined) {
-            setIsRunning(isScraperRunning)
-            setManualOverride(true)
-            // Clear override after 5 seconds to allow status updates
-            setTimeout(() => setManualOverride(false), 5000)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
+
+        try {
+          const statusRes = await fetch(`${API_URL}/api/scraper/status`, {
+            mode: 'cors',
+            signal: controller.signal
+          })
+          clearTimeout(timeoutId)
+
+          if (statusRes.ok) {
+            const status = await statusRes.json()
+            // Check if scraper is running based on system health
+            const isScraperRunning = status.system_health?.scraper === 'running'
+            if (isScraperRunning !== undefined) {
+              setIsRunning(isScraperRunning)
+              setManualOverride(true)
+              // Clear override after 5 seconds to allow status updates
+              setTimeout(() => setManualOverride(false), 5000)
+            }
           }
+        } catch (fetchError) {
+          clearTimeout(timeoutId)
+          // Silently ignore API errors on initial load
+          console.log('API not responding on initial load, using Supabase status')
         }
       } catch (error) {
         console.log('Error checking initial status:', error)
@@ -316,13 +390,10 @@ export default function RedditMonitor() {
     fetchMetrics()
     calculateSuccessRate()
 
-    const interval = setInterval(() => {
+    // Set up polling with different intervals
+    const metricsInterval = setInterval(() => {
       fetchMetrics()
-      // Also check scraper status periodically if not manually overridden
-      if (!manualOverride) {
-        checkInitialStatus()
-      }
-    }, 10000) // Refresh metrics every 10 seconds
+    }, 20000) // Refresh metrics every 20 seconds (less aggressive)
 
     // Calculate success rate less frequently since it doesn't need to be live
     const successInterval = setInterval(() => {
@@ -330,10 +401,10 @@ export default function RedditMonitor() {
     }, 60000) // Refresh success rate every minute
 
     return () => {
-      clearInterval(interval)
+      clearInterval(metricsInterval)
       clearInterval(successInterval)
     }
-  }, [manualOverride, fetchMetrics, calculateSuccessRate]) // Include all dependencies
+  }, [fetchMetrics, calculateSuccessRate]) // Remove manualOverride from dependencies to prevent infinite loop
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">

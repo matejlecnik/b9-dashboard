@@ -8,6 +8,9 @@ Uses Supabase to store scraper state - no Render API needed
 API_VERSION = "2.1.0"
 
 import os
+import sys
+import signal
+import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -40,45 +43,102 @@ class ScraperConfigRequest(BaseModel):
 
 @router.post("/start")
 async def start_scraper(request: Request):
-    """Start the scraper by setting enabled flag in Supabase"""
+    """Start the scraper subprocess and track in Supabase"""
     try:
         supabase = get_supabase()
 
-        # Check if scraper_control record exists
+        # Check if scraper_control record exists and if already running
         result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+
+        if result.data and result.data[0].get('pid'):
+            pid = result.data[0]['pid']
+            # Check if process is actually running
+            try:
+                os.kill(pid, 0)  # Check if process exists (doesn't actually kill)
+                logger.info(f"Scraper already running with PID {pid}")
+                return {
+                    "success": False,
+                    "message": f"Scraper already running with PID {pid}",
+                    "status": "already_running"
+                }
+            except (OSError, ProcessLookupError):
+                # Process doesn't exist, clean up stale PID
+                logger.info(f"Cleaning up stale PID {pid}")
+                pass
+
+        # Launch the scraper subprocess
+        # Determine the correct path for the scraper
+        if os.path.exists("/app/api/core/continuous_scraper.py"):
+            # Production path (Render)
+            scraper_path = "/app/api/core/continuous_scraper.py"
+        else:
+            # Local development path
+            scraper_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "continuous_scraper.py")
+            if not os.path.exists(scraper_path):
+                logger.error(f"Scraper script not found at {scraper_path}")
+                return {
+                    "success": False,
+                    "message": f"Scraper script not found at {scraper_path}",
+                    "status": "error"
+                }
+
+        logger.info(f"Launching scraper from: {scraper_path}")
+
+        # Create log directory if it doesn't exist
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Open log files for scraper output
+        stdout_log = open(os.path.join(log_dir, "scraper_stdout.log"), "a")
+        stderr_log = open(os.path.join(log_dir, "scraper_stderr.log"), "a")
+
+        scraper_process = subprocess.Popen(
+            [sys.executable, "-u", scraper_path],
+            stdout=stdout_log,
+            stderr=stderr_log,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True  # Detach from parent
+        )
+
+        # Close file handles in parent process
+        stdout_log.close()
+        stderr_log.close()
+
+        logger.info(f"✅ Scraper subprocess started with PID {scraper_process.pid}")
+
+        # Update database with PID and enabled status
+        update_data = {
+            'enabled': True,
+            'pid': scraper_process.pid,
+            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+            'updated_by': 'api'
+        }
 
         if result.data:
             # Update existing record
-            supabase.table('scraper_control').update({
-                'enabled': True,
-                'last_updated': datetime.now(timezone.utc).isoformat(),
-                'updated_by': 'api'
-            }).eq('id', 1).execute()
+            supabase.table('scraper_control').update(update_data).eq('id', 1).execute()
         else:
             # Create new record
-            supabase.table('scraper_control').insert({
-                'id': 1,
-                'enabled': True,
-                'last_updated': datetime.now(timezone.utc).isoformat(),
-                'updated_by': 'api'
-            }).execute()
+            update_data['id'] = 1
+            supabase.table('scraper_control').insert(update_data).execute()
 
         # Log the action
         supabase.table('reddit_scraper_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': 'info',
-            'message': '✅ Scraper started via API',
+            'message': f'✅ Scraper started via API with PID {scraper_process.pid}',
             'source': 'api_control'
         }).execute()
-
-        logger.info("✅ Scraper enabled in Supabase")
 
         return {
             "success": True,
             "message": "Scraper started successfully",
+            "pid": scraper_process.pid,
             "status": "running",
             "details": {
-                "method": "supabase_control",
+                "method": "subprocess",
+                "pid": scraper_process.pid,
                 "enabled_at": datetime.now(timezone.utc).isoformat()
             }
         }
@@ -93,28 +153,48 @@ async def start_scraper(request: Request):
 
 @router.post("/stop")
 async def stop_scraper(request: Request):
-    """Stop the scraper by clearing enabled flag in Supabase"""
+    """Stop the scraper by killing the process and updating Supabase"""
     try:
         supabase = get_supabase()
 
-        # Check if scraper_control record exists
+        # Get current PID
         result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
 
+        if result.data and result.data[0].get('pid'):
+            pid = result.data[0]['pid']
+            try:
+                # First try graceful termination with SIGTERM
+                os.kill(pid, signal.SIGTERM)
+                logger.info(f"Sent SIGTERM to scraper PID {pid}")
+
+                # Give it a moment to terminate gracefully
+                import time
+                time.sleep(1)
+
+                # Check if still running and force kill if needed
+                try:
+                    os.kill(pid, 0)  # Check if still exists
+                    os.kill(pid, signal.SIGKILL)  # Force kill
+                    logger.warning(f"Had to force kill scraper PID {pid}")
+                except (OSError, ProcessLookupError):
+                    logger.info(f"Scraper PID {pid} terminated gracefully")
+
+            except (OSError, ProcessLookupError) as e:
+                logger.warning(f"Could not kill PID {pid}: {e} (process may have already stopped)")
+
+        # Update database - clear PID and set enabled to false
+        update_data = {
+            'enabled': False,
+            'pid': None,
+            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'updated_by': 'api'
+        }
+
         if result.data:
-            # Update existing record
-            supabase.table('scraper_control').update({
-                'enabled': False,
-                'last_updated': datetime.now(timezone.utc).isoformat(),
-                'updated_by': 'api'
-            }).eq('id', 1).execute()
+            supabase.table('scraper_control').update(update_data).eq('id', 1).execute()
         else:
-            # Create new record
-            supabase.table('scraper_control').insert({
-                'id': 1,
-                'enabled': False,
-                'last_updated': datetime.now(timezone.utc).isoformat(),
-                'updated_by': 'api'
-            }).execute()
+            update_data['id'] = 1
+            supabase.table('scraper_control').insert(update_data).execute()
 
         # Log the action
         supabase.table('reddit_scraper_logs').insert({
@@ -124,14 +204,14 @@ async def stop_scraper(request: Request):
             'source': 'api_control'
         }).execute()
 
-        logger.info("⏹️ Scraper disabled in Supabase")
+        logger.info("⏹️ Scraper stopped and disabled in Supabase")
 
         return {
             "success": True,
             "message": "Scraper stopped successfully",
             "status": "stopped",
             "details": {
-                "method": "supabase_control",
+                "method": "process_termination",
                 "disabled_at": datetime.now(timezone.utc).isoformat()
             }
         }

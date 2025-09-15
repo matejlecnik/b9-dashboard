@@ -5,11 +5,18 @@ Checks Supabase control table every 30 seconds and runs scraping when enabled
 """
 import asyncio
 import os
+import sys
 import logging
 from datetime import datetime, timezone
 from supabase import create_client
-from .reddit_scraper import ProxyEnabledMultiScraper
 from dotenv import load_dotenv
+
+# Add parent directory to path for imports when running as standalone script
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.reddit_scraper import ProxyEnabledMultiScraper
+else:
+    from .reddit_scraper import ProxyEnabledMultiScraper
 
 # Version tracking
 SCRAPER_VERSION = "2.1.0"
@@ -45,6 +52,15 @@ class ContinuousScraper:
 
         self.supabase = create_client(supabase_url, supabase_key)
         logger.info("✅ Supabase client initialized")
+
+    async def update_heartbeat(self):
+        """Update heartbeat in database to show scraper is alive"""
+        try:
+            self.supabase.table('scraper_control').update({
+                'last_heartbeat': datetime.now(timezone.utc).isoformat()
+            }).eq('id', 1).execute()
+        except Exception as e:
+            logger.error(f"Error updating heartbeat: {e}")
 
     async def check_scraper_status(self):
         """Check if scraper should be running from Supabase control table"""
@@ -198,6 +214,9 @@ class ContinuousScraper:
                     enabled, config = check_result, {}
 
                 if enabled:
+                    # Update heartbeat to show we're alive
+                    await self.update_heartbeat()
+
                     # Get config values
                     batch_size = config.get('batch_size', 10)
                     delay_between_batches = config.get('delay_between_batches', 30)
@@ -229,8 +248,17 @@ class ContinuousScraper:
             except Exception as e:
                 logger.error(f"Error closing scraper: {e}")
 
-        # Log shutdown
+        # Log shutdown and clear PID
         try:
+            # Clear PID from control table since we're shutting down
+            self.supabase.table('scraper_control').update({
+                'pid': None,
+                'enabled': False,
+                'last_updated': datetime.now(timezone.utc).isoformat(),
+                'updated_by': 'shutdown'
+            }).eq('id', 1).execute()
+
+            # Log shutdown
             self.supabase.table('reddit_scraper_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'level': 'info',
