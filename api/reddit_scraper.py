@@ -1371,7 +1371,7 @@ class ProxyEnabledMultiScraper:
                 }
         
         # Detect if verification is required
-        verification_requiered = self.detect_verification_required(
+        verification_required = self.detect_verification_required(
             description=description,
             public_description=public_description,
             rules_text=rules_text
@@ -1553,7 +1553,7 @@ class ProxyEnabledMultiScraper:
                 'created_utc': created_dt.isoformat() if created_dt else None,
                 'over18': over18,
                 'allow_images': allow_images,
-                'verification_required_detected': verification_requiered,
+                'verification_required': verification_required,
                 'allow_videos': allow_videos,
                 'allow_polls': allow_polls,
                 'subreddit_type': subreddit_type,
@@ -2543,7 +2543,7 @@ class ProxyEnabledMultiScraper:
                 }
             
             # Detect if verification is required
-            verification_requiered = self.detect_verification_required(
+            verification_required = self.detect_verification_required(
                 description=description,
                 public_description=public_description,
                 rules_text=rules_text
@@ -2720,7 +2720,7 @@ class ProxyEnabledMultiScraper:
                     'created_utc': created_dt.isoformat() if created_dt else None,
                     'over18': over18,
                     'allow_images': allow_images,
-                    'verification_required_detected': verification_requiered,
+                    'verification_required': verification_required,
                     'allow_videos': allow_videos,
                     'allow_polls': allow_polls,
                     'subreddit_type': subreddit_type,

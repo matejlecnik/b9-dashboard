@@ -360,7 +360,7 @@ curl -X POST http://localhost:3000/api/ai/categorize \
 - **Database Schema**: `/dashboard/database/migrations/` - SQL migration scripts
 - **Frontend Components**: `/dashboard/src/components/README.md` - UI integration
 - **Development Standards**: `/CLAUDE.md` - Coding guidelines and patterns
-- **Categorization System**: `/dashboard/src/app/(dashboard)/categorization/README.md`
+- **Categorization System**: `/dashboard/src/app/reddit/categorization/README.md`
 
 ---
 

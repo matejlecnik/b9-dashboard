@@ -8,7 +8,7 @@ Successfully restructured the dashboard for multi-platform support. The Reddit d
 - ✅ Cleaned up 20+ redundant files (~3,000 lines of dead code)
 - ✅ Restructured directory for multi-platform support
 - ✅ Created platform-specific Supabase configuration
-- ✅ Moved Reddit dashboard from `/(dashboard)` to `/reddit`
+- ✅ Moved Reddit dashboard to `/reddit`
 - ✅ Set up environment variables for multiple platforms
 - ✅ Created placeholder pages for Instagram, TikTok, Twitter, Tracking
 - ✅ Fixed Supabase authentication issues

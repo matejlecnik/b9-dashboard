@@ -23,6 +23,7 @@ venv/
 dashboard/node_modules/
 dashboard/.next/
 dashboard/.vercel/
+dashboard/src/app/(dashboard)/
 dashboard_development/b9-dashboard/node_modules/
 dashboard_development/b9-dashboard/.next/
 dashboard_development/b9-dashboard/.vercel/

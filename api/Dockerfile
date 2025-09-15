@@ -50,5 +50,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Start command - use Python script for proper PORT handling
-CMD ["python", "start.py"]
+# Start command - use shell script to run both API and scraper
+CMD ["/bin/bash", "start.sh"]

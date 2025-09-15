@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo } from 'react'
-import { GlassPanel } from '@/components/ui/glass-panel'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
   FileText, 
@@ -99,11 +99,9 @@ export const PostAnalysisMetrics = memo(function PostAnalysisMetrics({
         {metricsCards.map((metric) => {
           const Icon = metric.icon
           return (
-            <GlassPanel
+            <Card
               key={metric.label}
-              className="p-4 h-full min-h-[100px]"
-              intensity="light"
-              shadow="lg"
+              className="p-4 h-full min-h-[100px] bg-white/50 backdrop-blur-md shadow-lg"
             >
               <div className="flex flex-col h-full">
                 <div className={`w-10 h-10 rounded-xl ${metric.bgColor} ${metric.borderColor} border flex items-center justify-center mb-3`}>
@@ -118,7 +116,7 @@ export const PostAnalysisMetrics = memo(function PostAnalysisMetrics({
                   </p>
                 </div>
               </div>
-            </GlassPanel>
+            </Card>
           )
         })}
       </div>

@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Calendar
 } from 'lucide-react'
-import { AnimatedCard } from '@/components/ui/animated-card'
+import { Card } from '@/components/ui/card'
 
 import { Post } from '@/types/post'
 
@@ -215,7 +215,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
   const aspectRatio = getAspectRatio()
 
   return (
-    <AnimatedCard className="relative group overflow-hidden rounded-xl shadow-sm hover:shadow-xl hover:shadow-pink-500/20 transition-all duration-500 bg-white transform hover:scale-[1.02] hover:-translate-y-1">
+    <Card className="relative group overflow-hidden rounded-xl shadow-sm hover:shadow-xl hover:shadow-pink-500/20 transition-all duration-500 bg-white transform hover:scale-[1.02] hover:-translate-y-1">
       {/* Quick Action Buttons - Show on Hover */}
       <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
         <div className="flex flex-col gap-2">
@@ -441,7 +441,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
           </div>
         )}
       </div>
-    </AnimatedCard>
+    </Card>
   )
 }
 
