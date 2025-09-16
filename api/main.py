@@ -36,8 +36,8 @@ from utils import (
     request_timer, get_cache, rate_limit, check_request_rate_limit
 )
 from services.categorization_service import CategorizationService
-from services.user_service import UserService
 from routes.scraper_routes import router as scraper_router
+from routes.user_routes import router as user_router
 
 # Configure logging for production
 log_level = os.getenv('LOG_LEVEL', 'info').upper()
@@ -80,7 +80,6 @@ class BackgroundJobRequest(BaseModel):
 # =============================================================================
 
 categorization_service = None
-user_service = None
 supabase = None
 
 # =============================================================================
@@ -90,7 +89,7 @@ supabase = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager with enhanced initialization"""
-    global categorization_service, user_service, supabase
+    global categorization_service, supabase
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
     startup_start = time.time()
@@ -136,8 +135,7 @@ async def lifespan(app: FastAPI):
         logger.info("⚙️  Initializing services...")
 
         categorization_service = CategorizationService(supabase, openai_key)
-        user_service = UserService(supabase)
-        
+
         logger.info("✅ All services initialized")
 
         # Register health check dependencies
@@ -195,6 +193,7 @@ app = FastAPI(
 
 # Include routers
 app.include_router(scraper_router)
+app.include_router(user_router)
 
 # Security middleware
 app.add_middleware(

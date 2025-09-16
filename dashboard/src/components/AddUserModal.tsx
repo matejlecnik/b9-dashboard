@@ -117,7 +117,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setIsFetching(true)
 
     try {
-      const response = await fetch('/api/reddit/user', {
+      const response = await fetch('https://b9-dashboard.onrender.com/api/users/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
