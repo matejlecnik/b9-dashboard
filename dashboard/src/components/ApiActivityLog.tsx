@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 
 interface ApiActivityDetails {
   new_status?: boolean
@@ -30,6 +30,16 @@ interface RedditScraperLog {
   source: string
   level?: string
   context?: Record<string, unknown>
+}
+
+interface UserDiscoveryLog {
+  id: string
+  timestamp: string
+  username: string
+  action: string
+  success: boolean
+  details?: Record<string, unknown>
+  error?: string | null
 }
 
 type ApiActivity = {
@@ -65,7 +75,7 @@ export function ApiActivityLog({
           return
         }
 
-        let data: RedditCategorizationLog[] | RedditScraperLog[] | null = null
+        let data: RedditCategorizationLog[] | RedditScraperLog[] | UserDiscoveryLog[] | null = null
         let error: unknown = null
 
         if (endpoint === 'categorization') {
@@ -76,12 +86,20 @@ export function ApiActivityLog({
             .limit(maxLogs)
           data = response.data as RedditCategorizationLog[] | null
           error = response.error
+        } else if (endpoint === 'users') {
+          // Fetch from user_discovery_logs table for user activity
+          const response = await supabase
+            .from('user_discovery_logs')
+            .select('id, timestamp, username, action, success, details, error')
+            .order('timestamp', { ascending: false })
+            .limit(maxLogs)
+          data = response.data as UserDiscoveryLog[] | null
+          error = response.error
         } else {
-          const sourceFilter = endpoint === 'users' ? 'user_tracking' : 'scraper'
           const response = await supabase
             .from('reddit_scraper_logs')
             .select('id, timestamp, message, source, level, context')
-            .eq('source', sourceFilter)
+            .eq('source', 'scraper')
             .order('timestamp', { ascending: false })
             .limit(maxLogs)
           data = response.data as RedditScraperLog[] | null
@@ -113,25 +131,50 @@ export function ApiActivityLog({
                 message: displayMessage,
                 details: {}
               }
+            } else if (endpoint === 'users') {
+              // Handle user discovery logs
+              const userLog = log as UserDiscoveryLog
+              status = userLog.success ? 'success' : 'error'
+
+              // Format message based on action type
+              switch (userLog.action) {
+                case 'fetch_started':
+                  displayMessage = `Fetching user u/${userLog.username}...`
+                  status = 'pending'
+                  break
+                case 'reddit_api_success':
+                  displayMessage = `Successfully fetched u/${userLog.username}`
+                  break
+                case 'quality_calculated':
+                  const score = (userLog.details as any)?.scores?.overall_score
+                  displayMessage = score
+                    ? `u/${userLog.username} scored ${score.toFixed(2)}`
+                    : `u/${userLog.username} quality calculated`
+                  break
+                case 'posts_fetched':
+                  const postCount = (userLog.details as any)?.post_count
+                  displayMessage = `Fetched ${postCount || 0} posts for u/${userLog.username}`
+                  break
+                case 'saved_to_database':
+                  displayMessage = `u/${userLog.username} added to database`
+                  break
+                default:
+                  displayMessage = userLog.error
+                    ? `Failed: ${userLog.error}`
+                    : `u/${userLog.username}: ${userLog.action}`
+              }
+
+              return {
+                id: userLog.id.toString(),
+                timestamp: userLog.timestamp,
+                endpoint,
+                status,
+                message: displayMessage,
+                details: (userLog.details as ApiActivityDetails) || {}
+              }
             } else {
               const scrLog = log as RedditScraperLog
               displayMessage = scrLog.message || ''
-
-              if (scrLog.source === 'user_tracking') {
-                const context = scrLog.context as Record<string, unknown> | undefined
-                if (context?.username && typeof context.username === 'string') {
-                  const username = context.username
-                  displayMessage = `New user discovered: ${username.startsWith('u/') ? username : `u/${username}`}`
-                } else if (scrLog.message?.includes('toggle-creator')) {
-                  const newStatus = context?.new_status ? 'marked as creator' : 'unmarked as creator'
-                  const username = typeof context?.username === 'string' ? context.username : 'User'
-                  displayMessage = `${username.startsWith('u/') ? username : `u/${username}`} ${newStatus}`
-                } else if (scrLog.message?.includes('search')) {
-                  const count = typeof context?.results_count === 'number' ? context.results_count : 0
-                  displayMessage = `Search: "${context?.query ?? ''}" → ${count} results`
-                }
-              }
-
               status = scrLog.level === 'ERROR' ? 'error' : 'success'
 
               return {
