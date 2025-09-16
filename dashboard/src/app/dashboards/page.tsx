@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 
@@ -105,7 +105,7 @@ export default function DashboardsPage() {
     const dashboards: Dashboard[] = [
       {
         id: 'reddit',
-        name: 'Reddit Intelligence',
+        name: 'Reddit Dashboard',
         description: 'Subreddit categorization and OnlyFans marketing strategy optimization',
         icon: RedditIcon,
         href: '/reddit/subreddit-review',

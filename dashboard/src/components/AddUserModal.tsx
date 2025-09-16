@@ -93,23 +93,23 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
         const response = await fetch('/api/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: user.username })
+          body: JSON.stringify({ id: user.id, our_creator: true })
         })
 
         if (!response.ok) throw new Error('Failed to mark as creator')
 
         const updatedUser = { ...user, our_creator: true }
         onUserAdded(updatedUser)
-        showSuccess(`Added ${user.username} as creator`)
+        showSuccess(`Marked ${user.username} as our creator`)
         onClose()
       } catch (error) {
         console.error('Error marking as creator:', error)
         showError('Failed to add user as creator')
       }
     } else {
-      onUserAdded(user)
-      showSuccess(`${user.username} is already a creator`)
-      onClose()
+      // User is already a creator - show message but don't close modal
+      showSuccess(`${user.username} is already an active account`)
+      // Don't close the modal so user can search for other users
     }
   }
 
@@ -218,7 +218,11 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 <button
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
-                  className="w-full rounded-lg border border-pink-200/50 bg-white/40 p-3 text-left hover:bg-pink-50/50 transition-colors"
+                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                    user.our_creator
+                      ? 'border-green-300 bg-green-50/50 hover:bg-green-100/50'
+                      : 'border-pink-200/50 bg-white/40 hover:bg-pink-50/50'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     {user.avatar_url ? (
@@ -238,8 +242,8 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900">{user.username}</span>
                         {user.our_creator && (
-                          <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-xs text-pink-400">
-                            Creator
+                          <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-600 font-medium">
+                            ✓ Active Account
                           </span>
                         )}
                       </div>
