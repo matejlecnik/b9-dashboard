@@ -589,19 +589,28 @@ async def get_cycle_status():
         from datetime import datetime, timezone
 
         # Search for the most recent scraper start message
-        # Try "Scraper started" first
+        # Try "Continuous scraper v2.1.0 started" pattern first (current version)
         result = supabase.table('reddit_scraper_logs')\
             .select('timestamp')\
-            .like('message', '%Scraper started%')\
+            .like('message', '%Continuous scraper%started%')\
             .order('timestamp', desc=True)\
             .limit(1)\
             .execute()
 
-        # If no result, try "Continuous scraper started"
+        # If no result, try "Starting scraping cycle" pattern
         if not result.data or len(result.data) == 0:
             result = supabase.table('reddit_scraper_logs')\
                 .select('timestamp')\
-                .like('message', '%Continuous scraper%started%')\
+                .like('message', '%Starting scraping cycle%')\
+                .order('timestamp', desc=True)\
+                .limit(1)\
+                .execute()
+
+        # If still no result, try generic "scraper started" pattern
+        if not result.data or len(result.data) == 0:
+            result = supabase.table('reddit_scraper_logs')\
+                .select('timestamp')\
+                .like('message', '%scraper%started%')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
                 .execute()
