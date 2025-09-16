@@ -2,9 +2,11 @@
 """
 User Discovery Routes - Reddit User Fetching and Analysis
 Migrated from dashboard API to centralize Reddit access
+Uses the same proxy system as the Reddit scraper for reliability
 """
 
 import os
+import sys
 import logging
 import random
 import asyncio
@@ -13,7 +15,10 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from supabase import create_client
-import httpx
+
+# Add parent directory to path to import from core
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.reddit_scraper import PublicRedditAPI
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -30,26 +35,8 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-# Proxy configurations loaded from environment variables
-PROXY_CONFIGS = [
-    {
-        'service': 'beyondproxy',
-        'proxy': os.getenv('BEYONDPROXY_CREDENTIALS', ''),
-        'display_name': 'BeyondProxy'
-    },
-    {
-        'service': 'nyronproxy',
-        'proxy': os.getenv('NYRONPROXY_CREDENTIALS', ''),
-        'display_name': 'NyronProxy'
-    },
-    {
-        'service': 'rapidproxy',
-        'proxy': os.getenv('RAPIDPROXY_CREDENTIALS', ''),
-        'display_name': 'RapidProxy'
-    }
-]
-# Filter out configs without credentials
-PROXY_CONFIGS = [config for config in PROXY_CONFIGS if config['proxy']]
+# Initialize the PublicRedditAPI client (same as scraper uses)
+public_api = PublicRedditAPI(max_retries=3, base_delay=1.0)
 
 # Request/Response models
 class UserDiscoverRequest(BaseModel):
@@ -60,16 +47,37 @@ class UserDiscoverResponse(BaseModel):
     user: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
-def generate_user_agent() -> str:
-    """Generate a random user agent"""
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
-    ]
-    return random.choice(user_agents)
+async def get_proxy_configs() -> List[Dict[str, str]]:
+    """Load proxy configurations from scraper_accounts table (same as scraper)"""
+    try:
+        # Get enabled accounts with proxy info, ordered by priority and success rate
+        resp = supabase.table('scraper_accounts').select('*').eq(
+            'is_enabled', True
+        ).neq(
+            'status', 'banned'
+        ).order('priority').order('success_rate', desc=True).limit(5).execute()
+
+        configs = []
+        for account in (resp.data or []):
+            if account.get('proxy_host') and account.get('proxy_port'):
+                # Format proxy string exactly like the scraper does
+                proxy_str = f"{account['proxy_username']}:{account['proxy_password']}@{account['proxy_host']}:{account['proxy_port']}"
+                configs.append({
+                    'proxy': proxy_str,
+                    'display_name': account.get('account_name', 'Unknown'),
+                    'account_id': account.get('id')
+                })
+                logger.info(f"Loaded proxy config for {account.get('account_name')}")
+
+        if not configs:
+            logger.warning("No proxy configurations found in scraper_accounts table")
+        else:
+            logger.info(f"Loaded {len(configs)} proxy configurations from database")
+
+        return configs
+    except Exception as e:
+        logger.error(f"Failed to load proxy configs from database: {e}")
+        return []
 
 async def log_user_discovery(username: str, action: str, success: bool,
                             details: Dict[str, Any] = None, error: str = None):
@@ -95,77 +103,101 @@ async def log_user_discovery(username: str, action: str, success: bool,
     except Exception as e:
         logger.error(f"Failed to log user discovery: {e}")
 
-async def fetch_with_proxy(url: str, max_retries: int = 3) -> Dict[str, Any]:
-    """Fetch data from Reddit with proxy support"""
-    user_agent = generate_user_agent()
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Connection': 'keep-alive',
-        'Referer': 'https://www.reddit.com/',
-    }
+async def fetch_reddit_data(url: str) -> Dict[str, Any]:
+    """Fetch data from Reddit using the same system as the scraper"""
+    # Load proxy configs from database (same as scraper)
+    proxy_configs = await get_proxy_configs()
 
+    # Try with each proxy config, then fallback to direct
     last_error = None
 
-    # Try with proxies first if available
-    if PROXY_CONFIGS:
-        proxy_pool = PROXY_CONFIGS.copy()
+    # Shuffle configs for load balancing
+    if proxy_configs:
+        random.shuffle(proxy_configs)
 
-        for attempt in range(1, max_retries + 1):
-            proxy_config = proxy_pool[(attempt - 1) % len(proxy_pool)]
+    # Try each proxy
+    for i, proxy_config in enumerate(proxy_configs):
+        try:
+            logger.info(f"Attempt {i+1}/{len(proxy_configs)} using proxy {proxy_config['display_name']}")
 
-            try:
-                logger.info(f"Attempt {attempt}/{max_retries} using proxy {proxy_config['display_name']}")
+            # Use the same PublicRedditAPI that the scraper uses
+            result = public_api.request_with_retry(url, proxy_config)
 
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    response = await client.get(url, headers=headers)
-
-                    if response.status_code == 404:
-                        raise Exception('User not found on Reddit')
-                    elif response.status_code == 403:
-                        raise Exception('Access forbidden - user may be suspended or private')
-                    elif response.status_code == 429:
-                        logger.info(f"Rate limited by Reddit, waiting {2000 * attempt}ms")
-                        await asyncio.sleep(2 * attempt)
+            if result:
+                # Check for error responses
+                if isinstance(result, dict) and result.get('error'):
+                    if result.get('error') == 'forbidden':
+                        raise Exception('User is suspended, private, or doesn\'t exist')
+                    elif result.get('error') == 'not_found':
+                        raise Exception('User not found')
+                    elif result.get('error') == 'rate_limited':
+                        logger.warning(f"Rate limited with proxy {proxy_config['display_name']}")
                         continue
-                    elif response.status_code in [500, 502, 503, 504]:
-                        logger.info(f"Server error {response.status_code}, retrying")
-                        await asyncio.sleep(attempt)
-                        continue
-                    elif response.status_code != 200:
-                        raise Exception(f"Reddit API error {response.status_code}")
+                    else:
+                        raise Exception(f"Reddit API error: {result.get('error')}")
 
-                    data = response.json()
-                    logger.info("Successfully fetched Reddit user data")
-                    return data
+                # Update proxy success metrics
+                if proxy_config.get('account_id'):
+                    try:
+                        supabase.table('scraper_accounts').update({
+                            'last_success_at': datetime.now(timezone.utc).isoformat(),
+                            'last_used_at': datetime.now(timezone.utc).isoformat()
+                        }).eq('id', proxy_config['account_id']).execute()
+                    except Exception as e:
+                        logger.error(f"Failed to update account metrics: {e}")
 
-            except Exception as e:
-                last_error = str(e)
-                logger.error(f"Reddit API failed on attempt {attempt}: {last_error}")
+                logger.info(f"Successfully fetched data from {url.split('/')[4] if len(url.split('/')) > 4 else 'Reddit'} with proxy {proxy_config['display_name']}")
+                return result
 
-                if attempt < max_retries:
-                    wait_time = attempt  # 1s, 2s, 3s
-                    logger.info(f"Waiting {wait_time}s before retry...")
-                    await asyncio.sleep(wait_time)
+        except Exception as e:
+            last_error = str(e)
+            logger.error(f"Proxy {proxy_config['display_name']} failed: {last_error}")
 
-    # No proxies available or all attempts failed
-    if not PROXY_CONFIGS:
-        logger.info('No proxy configurations available, attempting direct connection')
+            # Update proxy failure metrics
+            if proxy_config.get('account_id'):
+                try:
+                    supabase.table('scraper_accounts').update({
+                        'last_failure_at': datetime.now(timezone.utc).isoformat(),
+                        'last_error_message': last_error,
+                        'last_used_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('id', proxy_config['account_id']).execute()
+                except Exception as e:
+                    logger.error(f"Failed to update account metrics: {e}")
 
+            continue
+
+    # Try direct connection as last resort
+    logger.info("All proxies failed or none available, trying direct connection")
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, headers=headers)
+        result = public_api.request_with_retry(url, None)
+        if result:
+            if isinstance(result, dict) and result.get('error'):
+                if result.get('error') == 'forbidden':
+                    raise Exception('User is suspended, private, or doesn\'t exist')
+                elif result.get('error') == 'not_found':
+                    raise Exception('User not found')
+                else:
+                    raise Exception(f"Reddit API error: {result.get('error')}")
 
-            if response.status_code != 200:
-                raise Exception(f"Reddit API error {response.status_code}")
-
-            return response.json()
+            logger.info(f"Successfully fetched data from {url.split('/')[4] if len(url.split('/')) > 4 else 'Reddit'} with direct connection")
+            return result
     except Exception as e:
-        error_msg = f"All attempts failed. Last error: {last_error or str(e)}"
-        raise Exception(error_msg)
+        last_error = str(e)
+        logger.error(f"Direct connection failed: {last_error}")
+
+    # All attempts failed
+    error_msg = f"All attempts failed. Last error: {last_error or 'Unknown error'}"
+    raise Exception(error_msg)
+
+async def fetch_reddit_user(username: str) -> Dict[str, Any]:
+    """Fetch Reddit user data - wrapper for fetch_reddit_data"""
+    url = f"https://www.reddit.com/user/{username}/about.json"
+    return await fetch_reddit_data(url)
+
+async def fetch_reddit_posts(username: str, limit: int = 30) -> Dict[str, Any]:
+    """Fetch Reddit user posts - wrapper for fetch_reddit_data"""
+    url = f"https://www.reddit.com/user/{username}/submitted.json?limit={limit}"
+    return await fetch_reddit_data(url)
 
 def calculate_user_quality_scores(username: str, account_age_days: int,
                                  post_karma: int, comment_karma: int) -> Dict[str, float]:
@@ -250,9 +282,8 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
         await log_user_discovery(username, 'fetch_started', True,
                                {'source': 'manual_add'})
 
-        # Fetch user data from Reddit
-        user_url = f"https://www.reddit.com/user/{username}/about.json"
-        user_response = await fetch_with_proxy(user_url)
+        # Fetch user data from Reddit using the same system as the scraper
+        user_response = await fetch_reddit_user(username)
 
         if not user_response.get('data'):
             await log_user_discovery(username, 'reddit_api_failed', False,
@@ -285,11 +316,10 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
                                {'scores': quality_scores})
 
         # Fetch user posts for analysis
-        posts_url = f"https://www.reddit.com/user/{username}/submitted.json?limit=30"
         user_posts = []
 
         try:
-            posts_response = await fetch_with_proxy(posts_url)
+            posts_response = await fetch_reddit_posts(username, limit=30)
             if posts_response.get('data', {}).get('children'):
                 user_posts = [child['data'] for child in posts_response['data']['children']]
 
