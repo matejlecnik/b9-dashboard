@@ -32,12 +32,24 @@ load_dotenv()
 
 # Import utilities and services
 from utils import (
-    cache_manager, rate_limiter, health_monitor, 
+    cache_manager, rate_limiter, health_monitor,
     request_timer, get_cache, rate_limit, check_request_rate_limit
 )
 from services.categorization_service import CategorizationService
 from routes.scraper_routes import router as scraper_router
 from routes.user_routes import router as user_router
+
+# Import Instagram scraper task handler
+try:
+    from tasks.instagram_scraper_task import (
+        start_scraper_async,
+        stop_scraper_async,
+        get_status_async
+    )
+    INSTAGRAM_SCRAPER_AVAILABLE = True
+except ImportError as e:
+    print(f"Instagram scraper not available - dependencies may be missing: {e}")
+    INSTAGRAM_SCRAPER_AVAILABLE = False
 
 # Configure logging for production
 log_level = os.getenv('LOG_LEVEL', 'info').upper()
@@ -554,6 +566,185 @@ async def get_job_status(request: Request, job_id: str):
     except Exception as e:
         logger.error(f"Failed to get job status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# INSTAGRAM SCRAPER ENDPOINTS
+# =============================================================================
+
+@app.post("/api/instagram/scraper/start")
+@rate_limit("api")
+async def start_instagram_scraper(request: Request):
+    """Start the Instagram scraper background task"""
+    try:
+        if not INSTAGRAM_SCRAPER_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Instagram scraper not available")
+
+        result = await start_scraper_async()
+
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Failed to start scraper"))
+
+        # Log to Supabase
+        if supabase:
+            supabase.table('instagram_scraper_logs').insert({
+                'log_level': 'info',
+                'message': 'Instagram scraper started',
+                'details': result
+            }).execute()
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start Instagram scraper: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/instagram/scraper/stop")
+@rate_limit("api")
+async def stop_instagram_scraper(request: Request):
+    """Stop the Instagram scraper background task"""
+    try:
+        if not INSTAGRAM_SCRAPER_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Instagram scraper not available")
+
+        result = await stop_scraper_async()
+
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Failed to stop scraper"))
+
+        # Log to Supabase
+        if supabase:
+            supabase.table('instagram_scraper_logs').insert({
+                'log_level': 'info',
+                'message': 'Instagram scraper stopped',
+                'details': result
+            }).execute()
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to stop Instagram scraper: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/instagram/scraper/status")
+@rate_limit("api")
+async def get_instagram_scraper_status(request: Request):
+    """Get the current status of the Instagram scraper"""
+    try:
+        if not INSTAGRAM_SCRAPER_AVAILABLE:
+            return {
+                "running": False,
+                "status": "unavailable",
+                "error": "Instagram scraper not available",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+        status = await get_status_async()
+        return status
+
+    except Exception as e:
+        logger.error(f"Failed to get Instagram scraper status: {e}")
+        return {
+            "running": False,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
+@app.get("/api/instagram/scraper/metrics")
+@rate_limit("api")
+async def get_instagram_scraper_metrics(request: Request, hours: int = Query(default=24, le=168)):
+    """Get Instagram scraper metrics and analytics"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        # Get current status
+        status = await get_status_async() if INSTAGRAM_SCRAPER_AVAILABLE else {"running": False}
+
+        # Get recent logs
+        logs_response = supabase.table('instagram_scraper_logs').select('*').order('created_at', desc=True).limit(100).execute()
+
+        # Get creator stats
+        creator_response = supabase.table('instagram_creators').select('status, count').execute()
+
+        # Calculate metrics
+        total_creators = len(creator_response.data) if creator_response.data else 0
+        ok_creators = sum(1 for c in creator_response.data if c.get('status') == 'OK') if creator_response.data else 0
+
+        # Get recent performance from logs
+        performance_logs = [
+            log for log in (logs_response.data or [])
+            if log.get('details') and isinstance(log['details'], dict) and 'performance' in log['details']
+        ]
+
+        avg_rps = 0
+        total_requests = 0
+        if performance_logs:
+            rps_values = [log['details']['performance'].get('current_rps', 0) for log in performance_logs[:10]]
+            avg_rps = sum(rps_values) / len(rps_values) if rps_values else 0
+
+            request_counts = [log['details']['performance'].get('total_requests', 0) for log in performance_logs[:10]]
+            total_requests = max(request_counts) if request_counts else 0
+
+        return {
+            "status": status,
+            "metrics": {
+                "total_creators": total_creators,
+                "ok_creators": ok_creators,
+                "average_rps": round(avg_rps, 2),
+                "total_requests": total_requests,
+                "logs_count": len(logs_response.data) if logs_response.data else 0
+            },
+            "recent_logs": logs_response.data[:10] if logs_response.data else [],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get Instagram scraper metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/instagram/scraper/logs")
+@rate_limit("api")
+async def get_instagram_scraper_logs(
+    request: Request,
+    limit: int = Query(default=100, le=1000),
+    offset: int = Query(default=0, ge=0),
+    log_level: Optional[str] = Query(default=None)
+):
+    """Get Instagram scraper logs from database"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        query = supabase.table('instagram_scraper_logs').select('*')
+
+        if log_level:
+            query = query.eq('log_level', log_level)
+
+        response = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
+
+        return {
+            "logs": response.data or [],
+            "count": len(response.data) if response.data else 0,
+            "limit": limit,
+            "offset": offset,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get Instagram scraper logs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # =============================================================================
 # MAIN ENTRY POINT
