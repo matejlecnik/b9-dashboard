@@ -9,14 +9,9 @@ import time
 import json
 import logging
 import re
-import threading
-import asyncio
-import aiohttp
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue
 import random
 
 import requests
@@ -24,11 +19,11 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-from .instagram_config import Config
+from config import Config
 
 # Load environment and validate
 load_dotenv()
-# Config.validate()  # Will validate when actually starting the scraper
+Config.validate()
 
 # Configure logging
 logging.basicConfig(
@@ -49,72 +44,17 @@ class RateLimitError(APIError):
     pass
 
 
-class PerformanceMonitor:
-    """Monitor and track scraper performance"""
-
-    def __init__(self):
-        self.requests_per_second = []
-        self.response_times = []
-        self.start_time = time.time()
-        self.lock = threading.Lock()
-
-    def log_request(self, response_time):
-        """Log a request and its response time"""
-        with self.lock:
-            current_time = time.time()
-            self.response_times.append(response_time)
-            self.requests_per_second.append(current_time)
-
-            # Clean old entries (keep last minute)
-            cutoff = current_time - 60
-            self.requests_per_second = [t for t in self.requests_per_second if t > cutoff]
-
-    def get_current_rps(self):
-        """Get current requests per second"""
-        with self.lock:
-            if len(self.requests_per_second) < 2:
-                return 0
-            time_span = self.requests_per_second[-1] - self.requests_per_second[0]
-            if time_span == 0:
-                return 0
-            return len(self.requests_per_second) / time_span
-
-    def get_stats(self):
-        """Get performance statistics"""
-        with self.lock:
-            return {
-                "current_rps": self.get_current_rps(),
-                "avg_response_time": sum(self.response_times) / len(self.response_times) if self.response_times else 0,
-                "total_requests": len(self.response_times),
-                "uptime_seconds": time.time() - self.start_time
-            }
-
-
 class InstagramScraperUnified:
-    """Main scraper class with high-performance concurrency"""
+    """Main scraper class"""
 
     def __init__(self):
-        """Initialize the scraper with enhanced performance features"""
+        """Initialize the scraper"""
         self.supabase = self._get_supabase()
-
-        # Create connection pool for reusing connections
-        self.session = self._create_session_pool()
-
-        # Thread pool for concurrent processing
-        self.executor = ThreadPoolExecutor(max_workers=Config.MAX_WORKERS)
-
-        # Rate limiting
-        self.rate_limiter = threading.Semaphore(Config.REQUESTS_PER_SECOND)
-        self.last_request_time = 0
-        self.request_lock = threading.Lock()
-
-        # Performance monitoring
-        self.performance_monitor = PerformanceMonitor()
+        self.session = requests.Session()
+        self.session.headers.update(Config.get_headers())
 
         # Tracking
         self.api_calls_made = 0
-        self.successful_calls = 0
-        self.failed_calls = 0
         self.creators_processed = 0
         self.errors = []
         self.start_time = time.time()
@@ -122,76 +62,6 @@ class InstagramScraperUnified:
         # Cost tracking
         self.daily_calls = self._get_daily_api_calls()
         self.monthly_calls = self._get_monthly_api_calls()
-
-        # Stop mechanism
-        self.stop_requested = False
-
-        # Cycle tracking
-        self.cycle_number = 0
-        self.cycle_start_time = None
-
-    def should_continue(self) -> bool:
-        """Check if scraper should continue running from Supabase control table"""
-        # First check external control checker if provided (from continuous_scraper.py)
-        if hasattr(self, 'external_control_checker') and self.external_control_checker:
-            try:
-                # If running under continuous_scraper.py, use its control checker
-                import asyncio
-                if asyncio.iscoroutinefunction(self.external_control_checker):
-                    # Handle async control checker
-                    loop = asyncio.new_event_loop()
-                    should_run = loop.run_until_complete(self.external_control_checker())
-                    loop.close()
-                else:
-                    should_run = self.external_control_checker()
-
-                if not should_run:
-                    logger.info("Scraper stop signal received from external control checker")
-                    return False
-            except Exception as e:
-                logger.error(f"Error calling external control checker: {e}")
-
-        # Also check internal control table
-        try:
-            # Check Supabase control table for current status
-            result = self.supabase.table("instagram_scraper_control")\
-                .select("status, enabled")\
-                .eq("id", 1)\
-                .single()\
-                .execute()
-
-            if result.data:
-                # Check both status and enabled fields for compatibility
-                should_run = (result.data.get("status") == "running" or
-                            result.data.get("enabled", False))
-                if not should_run:
-                    logger.info("Scraper stop signal received from control table")
-                return should_run
-            else:
-                # No control record, default to stop
-                logger.warning("No control record found, stopping scraper")
-                return False
-        except Exception as e:
-            logger.error(f"Error checking control table: {e}")
-            # On error, check the stop_requested flag as fallback
-            return not self.stop_requested
-
-    def request_stop(self):
-        """Request the scraper to stop gracefully"""
-        self.stop_requested = True
-        logger.info("Stop requested for Instagram scraper")
-
-    def _create_session_pool(self):
-        """Create connection pool for reusing connections"""
-        adapter = requests.adapters.HTTPAdapter(
-            pool_connections=Config.CONNECTION_POOL_SIZE,
-            pool_maxsize=Config.CONNECTION_POOL_SIZE,
-            max_retries=Config.CONNECTION_MAX_RETRIES
-        )
-        session = requests.Session()
-        session.mount('https://', adapter)
-        session.headers.update(Config.get_headers())
-        return session
 
     def _get_supabase(self) -> Client:
         """Initialize Supabase client"""
@@ -233,17 +103,12 @@ class InstagramScraperUnified:
         """Get today's API call count from database"""
         try:
             today = datetime.now(timezone.utc).date().isoformat()
-            result = self.supabase.table("instagram_scraper_realtime_logs")\
-                .select("context")\
-                .gte("timestamp", f"{today}T00:00:00Z")\
-                .eq("source", "instagram_scraper")\
+            result = self.supabase.table("instagram_scraper_logs")\
+                .select("api_calls_made")\
+                .gte("created_at", f"{today}T00:00:00Z")\
                 .execute()
 
-            return sum(
-                log.get("context", {}).get("api_calls_made", 0)
-                for log in (result.data or [])
-                if log.get("context") and isinstance(log.get("context"), dict)
-            )
+            return sum(log.get("api_calls_made", 0) for log in (result.data or []))
         except Exception as e:
             logger.warning(f"Failed to get daily API calls: {e}")
             return 0
@@ -252,38 +117,15 @@ class InstagramScraperUnified:
         """Get this month's API call count"""
         try:
             first_of_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0)
-            result = self.supabase.table("instagram_scraper_realtime_logs")\
-                .select("context")\
-                .gte("timestamp", first_of_month.isoformat())\
-                .eq("source", "instagram_scraper")\
+            result = self.supabase.table("instagram_scraper_logs")\
+                .select("api_calls_made")\
+                .gte("created_at", first_of_month.isoformat())\
                 .execute()
 
-            return sum(
-                log.get("context", {}).get("api_calls_made", 0)
-                for log in (result.data or [])
-                if log.get("context") and isinstance(log.get("context"), dict)
-            )
+            return sum(log.get("api_calls_made", 0) for log in (result.data or []))
         except Exception as e:
             logger.warning(f"Failed to get monthly API calls: {e}")
             return 0
-
-    def _log_realtime(self, level: str, message: str, context: Optional[Dict] = None):
-        """Log real-time message to instagram_scraper_realtime_logs for monitoring"""
-        if not Config.ENABLE_SUPABASE_LOGGING:
-            return
-
-        try:
-            log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "level": level,
-                "message": message,
-                "source": "instagram_scraper",
-                "context": context or {}
-            }
-            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
-        except Exception as e:
-            # Silently fail to avoid disrupting the scraper
-            logger.debug(f"Failed to log realtime: {e}")
 
     def _log_to_supabase(self, action: str, username: Optional[str] = None,
                         creator_id: Optional[str] = None, success: bool = True,
@@ -298,26 +140,9 @@ class InstagramScraperUnified:
             duration = time.time() - self.start_time
             cost = self.api_calls_made * Config.get_cost_per_request()
 
-            # Build message based on action
-            if action == "process_creator":
-                if success:
-                    new_count = details.get('new_items', 0) if details else 0
-                    updated_count = details.get('updated_items', 0) if details else 0
-                    message = f"✅ Processed {username}: {items_fetched} items ({new_count} new, {updated_count} updated)"
-                else:
-                    message = f"❌ Failed to process {username}: {error}"
-            elif action == "run_complete":
-                message = f"🎆 Scraping complete: {self.creators_processed} creators processed"
-            elif action == "run_failed":
-                message = f"🔴 Scraper run failed: {error}"
-            else:
-                message = f"{action}: {username or 'N/A'}"
-
-            # Determine log level
-            level = "error" if error else ("success" if success else "info")
-
-            # Build context with all the detailed metrics
-            context = {
+            # Build comprehensive log entry
+            log_entry = {
+                "script_name": "unified_scraper",
                 "action": action,
                 "username": username,
                 "creator_id": creator_id,
@@ -337,7 +162,7 @@ class InstagramScraperUnified:
 
             # Add analytics summary if provided
             if analytics:
-                context["analytics_summary"] = {
+                log_entry["analytics_summary"] = {
                     "engagement_rate": round(analytics.get("engagement_rate", 0), 2),
                     "avg_reel_views": int(analytics.get("avg_reel_views", 0)),
                     "avg_post_engagement": int(analytics.get("avg_post_engagement", 0)),
@@ -358,30 +183,9 @@ class InstagramScraperUnified:
                     "total_engagement": int(analytics.get("total_engagement", 0))
                 }
 
-            # Insert into realtime logs table with proper format
-            log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "level": level,
-                "message": message,
-                "source": "instagram_scraper",
-                "context": context
-            }
-
-            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
+            self.supabase.table("instagram_scraper_logs").insert(log_entry).execute()
         except Exception as e:
             logger.warning(f"Failed to log to Supabase: {e}")
-
-    def _apply_rate_limiting(self):
-        """Apply rate limiting to ensure we don't exceed API limits"""
-        with self.request_lock:
-            current_time = time.time()
-            time_since_last = current_time - self.last_request_time
-
-            if time_since_last < Config.RATE_LIMIT_DELAY:
-                sleep_time = Config.RATE_LIMIT_DELAY - time_since_last
-                time.sleep(sleep_time)
-
-            self.last_request_time = time.time()
 
     @retry(
         retry=retry_if_exception_type(RateLimitError),
@@ -389,20 +193,10 @@ class InstagramScraperUnified:
         stop=stop_after_attempt(Config.RETRY_MAX_ATTEMPTS)
     )
     def _make_api_request(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Make API request with rate limiting and performance tracking"""
+        """Make API request with retry logic"""
         if Config.DRY_RUN:
             logger.info(f"[DRY RUN] Would call {endpoint} with params: {params}")
             return {"items": [], "paging_info": {}}
-
-        # Log request details
-        thread_id = threading.current_thread().name
-        self._log_realtime("debug", f"🔍 [{thread_id}] API Request", {
-            "thread": thread_id,
-            "endpoint": endpoint.split('/')[-1],  # Just the endpoint name
-            "params": params,
-            "api_calls_made": self.api_calls_made + 1,
-            "current_rps": self.performance_monitor.get_current_rps() if hasattr(self, 'performance_monitor') else 0
-        })
 
         # Check rate limits
         if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
@@ -411,10 +205,8 @@ class InstagramScraperUnified:
         if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
             raise APIError(f"Monthly API limit reached: {self.monthly_calls}/{Config.MAX_MONTHLY_API_CALLS}")
 
-        # Apply rate limiting
-        self._apply_rate_limiting()
-
-        request_start = time.time()
+        # Rate limiting
+        time.sleep(Config.RATE_LIMIT_DELAY)
 
         try:
             response = self.session.get(
@@ -423,46 +215,17 @@ class InstagramScraperUnified:
                 timeout=Config.REQUEST_TIMEOUT
             )
 
-            request_time = time.time() - request_start
             self.api_calls_made += 1
-            self.successful_calls += 1  # Track successful calls
             self.daily_calls += 1
             self.monthly_calls += 1
-
-            # Track performance
-            self.performance_monitor.log_request(request_time)
-
-            # Check current RPS and slow down if needed
-            current_rps = self.performance_monitor.get_current_rps()
-            if current_rps > Config.REQUESTS_PER_SECOND:
-                logger.warning(f"RPS exceeding limit: {current_rps:.1f}, slowing down")
-                time.sleep(0.5)
 
             if response.status_code == 429:
                 raise RateLimitError("Rate limit exceeded")
 
             response.raise_for_status()
-            data = response.json()
+            return response.json()
 
-            # Log successful response
-            self._log_realtime("debug", f"✅ [{thread_id}] API Response", {
-                "thread": thread_id,
-                "endpoint": endpoint.split('/')[-1],
-                "response_time_ms": int(request_time * 1000),
-                "items_count": len(data.get('items', [])) if isinstance(data, dict) else 0,
-                "current_rps": current_rps
-            })
-
-            return data
-
-        except requests.exceptions.Timeout as e:
-            self.api_calls_made += 1
-            self.failed_calls += 1  # Track failed calls
-            logger.error(f"API request timed out after {Config.REQUEST_TIMEOUT}s: {e}")
-            raise APIError(f"Request timed out: {e}")
         except requests.exceptions.RequestException as e:
-            self.api_calls_made += 1
-            self.failed_calls += 1  # Track failed calls
             logger.error(f"API request failed: {e}")
             raise APIError(f"Request failed: {e}")
 
@@ -500,11 +263,10 @@ class InstagramScraperUnified:
             return None
 
     def _fetch_reels(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
-        """Fetch Instagram reels with retry logic for empty responses"""
+        """Fetch Instagram reels"""
         reels = []
         max_id = None
         total_to_fetch = count
-        empty_retries = 0
 
         while len(reels) < total_to_fetch:
             try:
@@ -519,19 +281,10 @@ class InstagramScraperUnified:
                 data = self._make_api_request(Config.REELS_ENDPOINT, params)
 
                 items = data.get("items", [])
-
-                # Retry if we get an empty response
-                if not items and empty_retries < Config.RETRY_EMPTY_RESPONSE:
-                    empty_retries += 1
-                    logger.warning(f"Empty response for reels, retry {empty_retries}/{Config.RETRY_EMPTY_RESPONSE}")
-                    time.sleep(2)  # Wait 2 seconds before retry
-                    continue
-
                 if not items:
                     break
 
                 reels.extend(items)
-                empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
                 if not paging.get("more_available"):
@@ -546,11 +299,10 @@ class InstagramScraperUnified:
         return reels[:total_to_fetch]
 
     def _fetch_posts(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
-        """Fetch Instagram posts with retry logic for empty responses"""
+        """Fetch Instagram posts"""
         posts = []
         max_id = None
         total_to_fetch = count
-        empty_retries = 0
 
         while len(posts) < total_to_fetch:
             try:
@@ -565,19 +317,10 @@ class InstagramScraperUnified:
                 data = self._make_api_request(Config.POSTS_ENDPOINT, params)
 
                 items = data.get("items", [])
-
-                # Retry if we get an empty response
-                if not items and empty_retries < Config.RETRY_EMPTY_RESPONSE:
-                    empty_retries += 1
-                    logger.warning(f"Empty response for posts, retry {empty_retries}/{Config.RETRY_EMPTY_RESPONSE}")
-                    time.sleep(2)  # Wait 2 seconds before retry
-                    continue
-
                 if not items:
                     break
 
                 posts.extend(items)
-                empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
                 if not paging.get("more_available"):
@@ -827,28 +570,12 @@ class InstagramScraperUnified:
 
         return analytics
 
-    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> tuple[int, int]:
-        """Store reels in database with comprehensive data extraction
-        Returns: (new_count, updated_count)
-        """
+    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> int:
+        """Store reels in database with comprehensive data extraction"""
         if not reels:
-            return 0, 0
+            return 0
 
-        # First check which reels already exist
-        media_pks = [str(reel.get("pk")) for reel in reels if reel.get("pk")]
-        existing_pks = set()
-        if media_pks:
-            try:
-                result = self.supabase.table("instagram_reels")\
-                    .select("media_pk")\
-                    .in_("media_pk", media_pks)\
-                    .execute()
-                existing_pks = {row["media_pk"] for row in (result.data or [])}
-            except Exception as e:
-                logger.debug(f"Failed to check existing reels: {e}")
-
-        new_count = 0
-        updated_count = 0
+        stored = 0
         rows = []
 
         for reel in reels:
@@ -907,11 +634,6 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
-                    # Track if this is new or update
-                    if str(row["media_pk"]) in existing_pks:
-                        updated_count += 1
-                    else:
-                        new_count += 1
 
             except Exception as e:
                 logger.debug(f"Failed to process reel: {e}")
@@ -920,34 +642,19 @@ class InstagramScraperUnified:
         if rows:
             try:
                 self.supabase.table("instagram_reels").upsert(rows, on_conflict="media_pk").execute()
-                logger.info(f"Processed {len(rows)} reels for {username}: {new_count} new, {updated_count} updated")
+                stored = len(rows)
+                logger.info(f"Stored {stored} reels for {username}")
             except Exception as e:
                 logger.error(f"Failed to store reels: {e}")
 
-        return new_count, updated_count
+        return stored
 
-    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> tuple[int, int]:
-        """Store posts in database with comprehensive data extraction
-        Returns: (new_count, updated_count)
-        """
+    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> int:
+        """Store posts in database with comprehensive data extraction"""
         if not posts:
-            return 0, 0
+            return 0
 
-        # First check which posts already exist
-        media_pks = [str(post.get("pk")) for post in posts if post.get("pk")]
-        existing_pks = set()
-        if media_pks:
-            try:
-                result = self.supabase.table("instagram_posts")\
-                    .select("media_pk")\
-                    .in_("media_pk", media_pks)\
-                    .execute()
-                existing_pks = {row["media_pk"] for row in (result.data or [])}
-            except Exception as e:
-                logger.debug(f"Failed to check existing posts: {e}")
-
-        new_count = 0
-        updated_count = 0
+        stored = 0
         rows = []
 
         for post in posts:
@@ -1017,11 +724,6 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
-                # Track if this is new or update
-                if str(row["media_pk"]) in existing_pks:
-                    updated_count += 1
-                else:
-                    new_count += 1
 
             except Exception as e:
                 logger.debug(f"Failed to process post: {e}")
@@ -1030,11 +732,12 @@ class InstagramScraperUnified:
         if rows:
             try:
                 self.supabase.table("instagram_posts").upsert(rows, on_conflict="media_pk").execute()
-                logger.info(f"Processed {len(rows)} posts for {username}: {new_count} new, {updated_count} updated")
+                stored = len(rows)
+                logger.info(f"Stored {stored} posts for {username}")
             except Exception as e:
                 logger.error(f"Failed to store posts: {e}")
 
-        return new_count, updated_count
+        return stored
 
     def _to_iso(self, timestamp: Optional[int]) -> Optional[str]:
         """Convert Unix timestamp to ISO format"""
@@ -1073,15 +776,8 @@ class InstagramScraperUnified:
         """Process a single creator with comprehensive data fetching and analytics"""
         creator_id = str(creator["ig_user_id"])
         username = creator["username"]
-        thread_id = threading.current_thread().name
 
-        logger.info(f"[{thread_id}] Processing {username} ({creator_id})")
-        logger.info(f"[{thread_id}] RAPIDAPI_KEY check: {'SET' if Config.RAPIDAPI_KEY else 'MISSING'}")
-        self._log_realtime("info", f"📊 [{thread_id}] Processing creator: {username}", {
-            "creator_id": creator_id,
-            "username": username,
-            "thread": thread_id
-        })
+        logger.info(f"Processing {username} ({creator_id})")
 
         try:
             # Check existing content
@@ -1092,13 +788,7 @@ class InstagramScraperUnified:
             profile_data = None
 
             # Step 1: Always fetch profile data first (for both new and existing creators)
-            logger.info(f"[{thread_id}] Step 1/3: Fetching profile for {username}")
-            self._log_realtime("info", f"👤 [{thread_id}] Step 1/3: Fetching profile for {username}", {
-                "username": username,
-                "thread": thread_id,
-                "step": "1/3",
-                "action": "profile"
-            })
+            logger.info(f"Step 1/4: Fetching profile for {username}")
             profile_data = self._fetch_profile(username)
 
             if profile_data:
@@ -1119,17 +809,13 @@ class InstagramScraperUnified:
                     "external_url": profile_data.get("external_url"),
                     "full_name": profile_data.get("full_name"),
                     "is_private": profile_data.get("is_private"),
-                    "last_scraped_at": datetime.now(timezone.utc).isoformat()
+                    "last_scraped": datetime.now(timezone.utc).isoformat()
                 }
 
                 self.supabase.table("instagram_creators").update(update_data)\
                     .eq("ig_user_id", creator_id).execute()
 
                 logger.info(f"Profile updated: {profile_data.get('follower_count', 0):,} followers")
-                self._log_realtime("info", f"✅ Profile fetched: {profile_data.get('follower_count', 0):,} followers", {
-                    "username": username,
-                    "followers": profile_data.get('follower_count', 0)
-                })
 
             # Determine fetch counts based on existing content
             if is_new:
@@ -1142,61 +828,27 @@ class InstagramScraperUnified:
                 logger.info(f"Existing creator - fetching {reels_to_fetch} reels, {posts_to_fetch} posts")
 
             # Step 2: Fetch reels
-            logger.info(f"[{thread_id}] Step 2/3: Fetching {reels_to_fetch} reels for {username}")
-            self._log_realtime("info", f"📹 [{thread_id}] Step 2/3: Fetching {reels_to_fetch} reels for {username}", {
-                "username": username,
-                "thread": thread_id,
-                "step": "2/3",
-                "action": "reels",
-                "count": reels_to_fetch
-            })
+            logger.info(f"Step 2/4: Fetching {reels_to_fetch} reels for {username}")
             reels = self._fetch_reels(creator_id, reels_to_fetch)
-            logger.info(f"[{thread_id}] Fetched {len(reels)} reels")
+            logger.info(f"Fetched {len(reels)} reels")
 
             # Step 3: Fetch posts
-            logger.info(f"[{thread_id}] Step 3/3: Fetching {posts_to_fetch} posts for {username}")
-            self._log_realtime("info", f"📸 [{thread_id}] Step 3/3: Fetching {posts_to_fetch} posts for {username}", {
-                "username": username,
-                "thread": thread_id,
-                "step": "3/3",
-                "action": "posts",
-                "count": posts_to_fetch
-            })
+            logger.info(f"Step 3/4: Fetching {posts_to_fetch} posts for {username}")
             posts = self._fetch_posts(creator_id, posts_to_fetch)
-            logger.info(f"[{thread_id}] Fetched {len(posts)} posts")
+            logger.info(f"Fetched {len(posts)} posts")
 
             # Store content
-            reels_new, reels_updated = self._store_reels(creator_id, username, reels)
-            posts_new, posts_updated = self._store_posts(creator_id, username, posts)
-            reels_stored = reels_new + reels_updated
-            posts_stored = posts_new + posts_updated
+            reels_stored = self._store_reels(creator_id, username, reels)
+            posts_stored = self._store_posts(creator_id, username, posts)
 
-            # Calculate comprehensive analytics
-            logger.info(f"[{thread_id}] Calculating analytics for {username}")
-            self._log_realtime("info", f"📈 [{thread_id}] Calculating analytics for {username}", {
-                "username": username,
-                "thread": thread_id
-            })
+            # Step 4: Calculate comprehensive analytics
+            logger.info(f"Step 4/4: Calculating analytics for {username}")
             analytics = self._calculate_analytics(creator_id, reels, posts, profile_data)
             self._update_creator_analytics(creator_id, analytics)
 
             # Log analytics summary
             summary = self._format_analytics_summary(analytics)
             logger.info(f"\n{summary}")
-
-            # Create detailed completion message
-            total_new = reels_new + posts_new
-            total_updated = reels_updated + posts_updated
-            self._log_realtime("success", f"✅ Processed {username}: {len(reels) + len(posts)} items ({total_new} new, {total_updated} updated)", {
-                "username": username,
-                "reels_fetched": len(reels),
-                "posts_fetched": len(posts),
-                "reels_new": reels_new,
-                "reels_updated": reels_updated,
-                "posts_new": posts_new,
-                "posts_updated": posts_updated,
-                "engagement_rate": round(analytics.get('engagement_rate', 0), 2)
-            })
 
             # Log success with comprehensive analytics
             api_calls_used = self.api_calls_made - api_calls_start
@@ -1211,12 +863,8 @@ class InstagramScraperUnified:
                     "is_new": is_new,
                     "reels_fetched": len(reels),
                     "posts_fetched": len(posts),
-                    "reels_new": reels_new,
-                    "reels_updated": reels_updated,
-                    "posts_new": posts_new,
-                    "posts_updated": posts_updated,
-                    "new_items": reels_new + posts_new,
-                    "updated_items": reels_updated + posts_updated,
+                    "reels_stored": reels_stored,
+                    "posts_stored": posts_stored,
                     "api_calls": api_calls_used,
                     "followers_count": profile_data.get("follower_count", 0) if profile_data else 0,
                     "profile_fetched": profile_data is not None
@@ -1225,8 +873,7 @@ class InstagramScraperUnified:
             )
 
             logger.info(f"✓ {username}: {api_calls_used} API calls, "
-                       f"{reels_new} new reels, {reels_updated} updated reels, "
-                       f"{posts_new} new posts, {posts_updated} updated posts")
+                       f"{reels_stored} reels, {posts_stored} posts stored")
 
             self.creators_processed += 1
             return True
@@ -1234,10 +881,6 @@ class InstagramScraperUnified:
         except Exception as e:
             logger.error(f"Failed to process {username}: {e}")
             self.errors.append({"creator": username, "error": str(e)})
-            self._log_realtime("error", f"❌ Failed to process {username}: {str(e)}", {
-                "username": username,
-                "error": str(e)
-            })
 
             self._log_to_supabase(
                 action="process_creator",
@@ -1251,13 +894,11 @@ class InstagramScraperUnified:
 
     def get_creators_to_process(self) -> List[Dict[str, Any]]:
         """Get list of approved creators to process"""
-        import random
-
         try:
             query = self.supabase.table("instagram_creators")\
                 .select("ig_user_id, username")\
                 .eq("review_status", "ok")\
-                .neq("ig_user_id", None)
+                .not_.is_("ig_user_id", None)
 
             if Config.DRY_RUN:
                 query = query.limit(Config.TEST_LIMIT)
@@ -1265,10 +906,7 @@ class InstagramScraperUnified:
             result = query.execute()
             creators = result.data or []
 
-            # Randomize the order of creators to process
-            random.shuffle(creators)
-
-            logger.info(f"Found {len(creators)} approved creators to process (randomized order)")
+            logger.info(f"Found {len(creators)} approved creators to process")
             return creators
 
         except Exception as e:
@@ -1281,41 +919,28 @@ class InstagramScraperUnified:
             # Check if control record exists
             result = self.supabase.table("instagram_scraper_control")\
                 .select("id")\
-                .eq("id", 1)\
+                .limit(1)\
                 .execute()
 
             update_data = {
                 "status": status,
-                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
                 "last_run_at": datetime.now(timezone.utc).isoformat() if status == "running" else None,
-                "metadata": {
-                    "total_creators_processed": self.creators_processed,
-                    "total_api_calls_today": self.daily_calls,
-                    "successful_calls": self.successful_calls,
-                    "failed_calls": self.failed_calls,
-                    "current_cycle": self.cycle_number,
-                    "config": Config.to_dict()
-                }
+                "total_creators_processed": self.creators_processed,
+                "total_api_calls_today": self.daily_calls,
+                "config": Config.to_dict()
             }
 
-            # Add PID when running
-            if status == "running":
-                update_data["pid"] = os.getpid()
-            elif status in ["stopped", "error"]:
-                update_data["pid"] = None
-
             if details:
-                update_data["metadata"]["details"] = details
+                update_data["config"].update(details)
 
             if result.data:
                 # Update existing
                 self.supabase.table("instagram_scraper_control")\
                     .update(update_data)\
-                    .eq("id", 1)\
+                    .eq("id", result.data[0]["id"])\
                     .execute()
             else:
-                # Insert new with id=1
-                update_data["id"] = 1
+                # Insert new
                 self.supabase.table("instagram_scraper_control")\
                     .insert(update_data)\
                     .execute()
@@ -1323,234 +948,104 @@ class InstagramScraperUnified:
         except Exception as e:
             logger.warning(f"Failed to update scraper status: {e}")
 
-    def process_creators_concurrent(self, creators: List[Dict]):
-        """Process multiple creators concurrently with thread pool"""
-        futures = []
-
-        # Log thread distribution
-        self._log_realtime("info", f"🔄 Distributing {len(creators)} creators across {Config.CONCURRENT_CREATORS} threads", {
-            "creators_count": len(creators),
-            "threads": Config.CONCURRENT_CREATORS,
-            "target_rps": Config.REQUESTS_PER_SECOND
-        })
-
-        with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
-            for creator in creators:
-                # Check if scraper should stop
-                if not self.should_continue():
-                    logger.info("Scraper stop signal received")
-                    break
-
-                # Check API limits
-                if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
-                    logger.warning("Daily API limit reached")
-                    break
-
-                if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
-                    logger.warning("Monthly API limit reached")
-                    break
-
-                # Submit creator processing to thread pool
-                future = executor.submit(self.process_creator, creator)
-                futures.append((future, creator))
-
-                # Small delay to avoid thundering herd
-                time.sleep(0.05)
-
-            # Collect results as they complete
-            for future, creator in futures:
-                try:
-                    future.result(timeout=120)  # 2 minute timeout per creator
-                except Exception as e:
-                    logger.error(f"Creator {creator.get('username')} processing failed: {e}")
-                    self.errors.append({"creator": creator.get('username'), "error": str(e)})
-
-    def run(self, control_checker=None):
-        """High-performance main execution method with continuous loop
-
-        Args:
-            control_checker: Optional callable that returns True if scraper should continue
-        """
+    def run(self):
+        """Main execution method"""
         logger.info("=" * 60)
-        logger.info("Instagram Unified Scraper Starting - Continuous Mode")
-        logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
-        logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}, Batch Size: {Config.BATCH_SIZE}")
-        logger.info(f"Cycle Interval: Every 3 hours")
-        logger.info(f"RAPIDAPI_KEY configured: {'YES' if Config.RAPIDAPI_KEY else 'NO'}")
-        logger.info(f"RAPIDAPI_KEY length: {len(Config.RAPIDAPI_KEY) if Config.RAPIDAPI_KEY else 0}")
+        logger.info("Instagram Unified Scraper Starting")
+        logger.info(f"Config: Dry Run={Config.DRY_RUN}, Batch Size={Config.BATCH_SIZE}")
+        logger.info(f"API Limits: Daily={Config.MAX_DAILY_API_CALLS}, Monthly={Config.MAX_MONTHLY_API_CALLS}")
+        logger.info(f"Current Usage: Daily={self.daily_calls}, Monthly={self.monthly_calls}")
         logger.info("=" * 60)
 
         # Update status to running
         self.update_scraper_status("running")
 
-        # Store external control checker
-        self.external_control_checker = control_checker
+        try:
+            # Get creators
+            creators = self.get_creators_to_process()
 
-        # Continuous loop - run every 3 hours
-        while self.should_continue():
-            self.cycle_number += 1
-            self.cycle_start_time = datetime.now(timezone.utc)
+            if not creators:
+                logger.warning("No creators to process")
+                return
 
-            logger.info(f"\n{'='*60}")
-            logger.info(f"Starting Cycle #{self.cycle_number} at {self.cycle_start_time.isoformat()}")
-            logger.info(f"{'='*60}")
+            # Process in batches
+            batch_size = Config.BATCH_SIZE
+            total_batches = (len(creators) + batch_size - 1) // batch_size
 
-            # Log cycle start
-            self._log_realtime("info", f"🔄 Starting Cycle #{self.cycle_number}", {
-                "cycle": self.cycle_number,
-                "start_time": self.cycle_start_time.isoformat(),
-                "workers": Config.MAX_WORKERS,
-                "target_rps": Config.REQUESTS_PER_SECOND
-            })
+            for batch_num in range(total_batches):
+                start_idx = batch_num * batch_size
+                end_idx = min(start_idx + batch_size, len(creators))
+                batch = creators[start_idx:end_idx]
 
-            try:
-                # Get creators and randomize order
-                creators = self.get_creators_to_process()
+                logger.info(f"Processing batch {batch_num + 1}/{total_batches} "
+                           f"({len(batch)} creators)")
 
-                if not creators:
-                    logger.warning("No creators to process in this cycle")
-                    self._log_realtime("warning", f"⚠️ Cycle #{self.cycle_number}: No creators to process")
-                else:
-                    # Randomize creator order
-                    random.shuffle(creators)
-                    total_creators = len(creators)
+                for creator in batch:
+                    # Check limits before each creator
+                    if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
+                        logger.warning("Daily API limit reached, stopping")
+                        break
 
-                    # Calculate optimal processing
-                    estimated_api_calls = total_creators * 2.4  # Average API calls per creator
-                    estimated_time = estimated_api_calls / Config.REQUESTS_PER_SECOND
+                    if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
+                        logger.warning("Monthly API limit reached, stopping")
+                        break
 
-                    logger.info(f"Processing {total_creators} creators (randomized order)")
-                    logger.info(f"Estimated API calls: {estimated_api_calls:.0f}")
-                    logger.info(f"Estimated time: {estimated_time:.1f} seconds ({estimated_time/60:.1f} minutes)")
+                    self.process_creator(creator)
 
-                    self._log_realtime("info", f"📊 Cycle #{self.cycle_number}: Processing {total_creators} creators", {
-                        "cycle": self.cycle_number,
-                        "total_creators": total_creators,
-                        "estimated_api_calls": int(estimated_api_calls),
-                        "estimated_time_minutes": round(estimated_time/60, 1)
-                    })
+                    # Small delay between creators
+                    time.sleep(0.1 + random.random() * 0.2)
 
-                    # Process in concurrent batches
-                    batch_size = Config.CONCURRENT_CREATORS * 5  # Process 50 at a time with 10 concurrent
+            # Final summary
+            duration = time.time() - self.start_time
+            avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
+            total_cost = self.api_calls_made * Config.get_cost_per_request()
 
-                    for i in range(0, total_creators, batch_size):
-                        # Check if we should stop
-                        if not self.should_continue():
-                            logger.info("Stop requested, terminating batch processing")
-                            self._log_realtime("info", "⏹️ Stopping scraper as requested")
-                            break
+            logger.info("=" * 60)
+            logger.info("Scraping Complete")
+            logger.info(f"Creators Processed: {self.creators_processed}/{len(creators)}")
+            logger.info(f"API Calls Made: {self.api_calls_made}")
+            logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
+            logger.info(f"Total Cost: ${total_cost:.2f}")
+            logger.info(f"Duration: {duration:.1f} seconds")
+            logger.info(f"Errors: {len(self.errors)}")
+            logger.info("=" * 60)
 
-                        batch = creators[i:i+batch_size]
-                        batch_num = (i // batch_size) + 1
-                        total_batches = (total_creators + batch_size - 1) // batch_size
-
-                        logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
-                        logger.info(f"DEBUG: About to call process_creators_concurrent with {len(batch)} creators")
-                        logger.info(f"DEBUG: First creator in batch: {batch[0] if batch else 'NO CREATORS'}")
-
-                        # Use thread pool for concurrent processing
-                        self.process_creators_concurrent(batch)
-
-                # Log performance stats
-                stats = self.performance_monitor.get_stats()
-                logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
-                           f"Avg response: {stats['avg_response_time']:.3f}s, "
-                           f"Total requests: {stats['total_requests']}")
-
-                # Check if we need to slow down
-                if stats['current_rps'] > Config.REQUESTS_PER_SECOND:
-                    logger.warning(f"Slowing down - exceeding rate limit: {stats['current_rps']:.1f} req/sec")
-                    self._log_realtime("warning", f"⚠️ Rate limit approached: {stats['current_rps']:.1f} req/sec", {
-                        "current_rps": stats['current_rps'],
-                        "limit": Config.REQUESTS_PER_SECOND
-                    })
-                    time.sleep(2)
-
-                # Log batch progress
-                progress_pct = ((i + len(batch)) / total_creators) * 100
-                logger.info(f"Overall progress: {progress_pct:.1f}% ({self.creators_processed}/{total_creators})")
-                self._log_realtime("info", f"📦 Batch completed: {progress_pct:.1f}% total progress", {
-                    "progress_percentage": round(progress_pct, 1),
-                    "creators_processed": self.creators_processed,
-                    "total_creators": total_creators
-                })
-
-                # Cycle summary
-                cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
-                avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
-                total_cost = self.api_calls_made * Config.get_cost_per_request()
-
-                logger.info("=" * 60)
-                logger.info(f"Cycle #{self.cycle_number} Complete")
-                logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
-                logger.info(f"API Calls Made: {self.api_calls_made}")
-                logger.info(f"Successful Calls: {self.successful_calls}")
-                logger.info(f"Failed Calls: {self.failed_calls}")
-                logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
-                logger.info(f"Total Cost: ${total_cost:.2f}")
-                logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
-                logger.info(f"Errors: {len(self.errors)}")
-                logger.info("=" * 60)
-
-                # Log cycle completion
-                self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {
-                    "cycle": self.cycle_number,
+            # Log final summary
+            self._log_to_supabase(
+                action="run_complete",
+                success=True,
+                details={
+                    "total_creators": len(creators),
                     "creators_processed": self.creators_processed,
                     "api_calls": self.api_calls_made,
-                    "successful_calls": self.successful_calls,
-                    "failed_calls": self.failed_calls,
-                    "total_cost": round(total_cost, 2),
-                    "cycle_duration_minutes": round(cycle_duration/60, 1),
-                    "errors": len(self.errors)
-                })
+                    "avg_calls_per_creator": avg_calls_per_creator,
+                    "total_cost": total_cost,
+                    "errors": len(self.errors),
+                    "error_details": self.errors[:10]  # First 10 errors
+                }
+            )
 
-            except Exception as e:
-                logger.error(f"Cycle #{self.cycle_number} failed: {e}")
-                self._log_realtime("error", f"❌ Cycle #{self.cycle_number} failed: {str(e)}", {
-                    "cycle": self.cycle_number,
-                    "error": str(e)
-                })
+            # Update status to stopped
+            self.update_scraper_status("stopped", {
+                "last_run_summary": {
+                    "creators_processed": self.creators_processed,
+                    "api_calls": self.api_calls_made,
+                    "cost": total_cost,
+                    "duration": duration
+                }
+            })
 
-            # Check if we should continue
-            if not self.should_continue():
-                logger.info("Stop requested, ending continuous loop")
-                self._log_realtime("info", "⏹️ Scraper stopping as requested")
-                break
+        except Exception as e:
+            logger.error(f"Scraper failed: {e}")
 
-            # Wait for next cycle (3 hours)
-            next_cycle_time = self.cycle_start_time + timedelta(hours=3)
-            wait_seconds = (next_cycle_time - datetime.now(timezone.utc)).total_seconds()
+            self._log_to_supabase(
+                action="run_failed",
+                success=False,
+                error=str(e)
+            )
 
-            if wait_seconds > 0:
-                logger.info(f"Waiting {wait_seconds/60:.1f} minutes until next cycle at {next_cycle_time.isoformat()}")
-                self._log_realtime("info", f"⏰ Next cycle in {wait_seconds/60:.1f} minutes", {
-                    "next_cycle_time": next_cycle_time.isoformat(),
-                    "wait_minutes": round(wait_seconds/60, 1)
-                })
-
-                # Check for stop signal periodically during sleep
-                sleep_interval = 60  # Check every minute
-                heartbeat_counter = 0
-                for _ in range(int(wait_seconds / sleep_interval)):
-                    # Update heartbeat every 5 minutes
-                    heartbeat_counter += 1
-                    if heartbeat_counter >= 5:  # 5 minutes
-                        self.update_scraper_status("running", {"waiting_for_next_cycle": True})
-                        heartbeat_counter = 0
-
-                    if not self.should_continue():
-                        logger.info("Stop requested during wait")
-                        break
-                    time.sleep(sleep_interval)
-
-        # Final cleanup when scraper stops
-        logger.info("Instagram scraper stopped")
-        self.update_scraper_status("stopped", {
-            "total_cycles": self.cycle_number,
-            "total_api_calls": self.api_calls_made,
-            "successful_calls": self.successful_calls,
-            "failed_calls": self.failed_calls
-        })
+            self.update_scraper_status("error", {"error": str(e)})
+            raise
 
 
 def main():

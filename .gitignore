@@ -5,6 +5,9 @@
 api/.env
 dashboard/.env.local
 dashboard/.env.production.local
+instagram_dashboard/.env
+instagram_dashboard/.env.*
+!instagram_dashboard/.env.example
 
 # Python
 __pycache__/
