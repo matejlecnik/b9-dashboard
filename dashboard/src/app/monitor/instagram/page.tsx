@@ -57,6 +57,7 @@ export default function InstagramMonitor() {
   const [manualOverride, setManualOverride] = useState(false)
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
   const [costData, setCostData] = useState<{ daily: number; monthly: number } | null>(null)
+  const [cycleData, setCycleData] = useState<{ elapsed_formatted: string; start_time: string | null } | null>(null)
   const manualOverrideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { addToast } = useToast()
 
@@ -131,6 +132,60 @@ export default function InstagramMonitor() {
       }
     } catch (error) {
       console.error('Error fetching cost data:', error)
+    }
+  }, [])
+
+  // Fetch cycle data from API
+  const fetchCycleData = useCallback(async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
+
+      try {
+        const response = await fetch(`${API_URL}/api/instagram/scraper/cycle-status`, {
+          mode: 'cors',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.success && data.cycle) {
+            setCycleData({
+              elapsed_formatted: data.cycle.elapsed_formatted || 'Unknown',
+              start_time: data.cycle.start_time
+            })
+            console.log('Instagram cycle data from API:', data.cycle)
+          } else if (data.success && !data.running) {
+            // Scraper is disabled
+            setCycleData({
+              elapsed_formatted: 'Not Active',
+              start_time: null
+            })
+          } else {
+            setCycleData(null)
+          }
+        } else {
+          console.error('Failed to fetch cycle data from API')
+          setCycleData(null)
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.log('API timeout fetching cycle data')
+        } else {
+          console.error('Error fetching cycle data:', fetchError)
+        }
+        setCycleData(null)
+      }
+    } catch (error) {
+      console.error('Error fetching cycle data:', error)
+      setCycleData(null)
     }
   }, [])
 
@@ -414,12 +469,14 @@ export default function InstagramMonitor() {
     fetchMetrics()
     calculateSuccessRate()
     fetchCostData()
+    fetchCycleData()
 
     // Set up polling for metrics
     const metricsInterval = setInterval(() => {
       fetchMetrics()
       calculateSuccessRate()
       fetchCostData()
+      fetchCycleData()
     }, 20000) // Refresh every 20 seconds
 
     return () => {
@@ -429,7 +486,7 @@ export default function InstagramMonitor() {
         clearTimeout(manualOverrideTimeoutRef.current)
       }
     }
-  }, [fetchMetrics, calculateSuccessRate, fetchCostData, supabase]) // Include all used functions
+  }, [fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData, supabase]) // Include all used functions
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
@@ -477,6 +534,23 @@ export default function InstagramMonitor() {
                 <div className="text-[10px] text-gray-500 mb-0.5">Success Rate</div>
                 <div className="text-xl font-bold text-gray-900">
                   {successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
+                </div>
+              </div>
+
+              {/* Cycle Length Card */}
+              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
+                <div className="text-[10px] text-gray-500 mb-0.5">Current Cycle</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {cycleData?.elapsed_formatted || 'Not Active'}
+                </div>
+                <div className="text-[10px] text-gray-600 mt-0.5">
+                  {cycleData?.elapsed_formatted === 'Not Active'
+                    ? 'Scraper Disabled'
+                    : cycleData?.elapsed_formatted === 'Unknown'
+                    ? 'No Start Log Found'
+                    : cycleData?.elapsed_formatted
+                    ? 'Scraper Active'
+                    : 'Loading...'}
                 </div>
               </div>
 

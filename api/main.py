@@ -39,7 +39,15 @@ from services.categorization_service import CategorizationService
 from routes.scraper_routes import router as scraper_router
 from routes.user_routes import router as user_router
 
-# Import Instagram scraper task handler
+# Import Instagram scraper routes
+try:
+    from routes.instagram_scraper_routes import router as instagram_scraper_router
+    INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = True
+except ImportError as e:
+    print(f"Instagram scraper routes not available: {e}")
+    INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
+
+# Import Instagram scraper task handler (for backward compatibility)
 try:
     from tasks.instagram_scraper_task import (
         start_scraper_async,
@@ -48,7 +56,7 @@ try:
     )
     INSTAGRAM_SCRAPER_AVAILABLE = True
 except ImportError as e:
-    print(f"Instagram scraper not available - dependencies may be missing: {e}")
+    print(f"Instagram scraper task handler not available - dependencies may be missing: {e}")
     INSTAGRAM_SCRAPER_AVAILABLE = False
 
 # Configure logging for production
@@ -206,6 +214,11 @@ app = FastAPI(
 # Include routers
 app.include_router(scraper_router)
 app.include_router(user_router)
+
+# Include Instagram scraper routes if available
+if INSTAGRAM_SCRAPER_ROUTES_AVAILABLE:
+    app.include_router(instagram_scraper_router)
+    logger.info("✅ Instagram scraper routes registered")
 
 # Security middleware
 app.add_middleware(
@@ -568,8 +581,10 @@ async def get_job_status(request: Request, job_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
-# INSTAGRAM SCRAPER ENDPOINTS
+# INSTAGRAM SCRAPER ENDPOINTS (LEGACY)
 # =============================================================================
+# Note: If INSTAGRAM_SCRAPER_ROUTES_AVAILABLE, these are overridden by new subprocess-based endpoints
+# These thread-based endpoints only used when new routes aren't available
 
 @app.post("/api/instagram/scraper/start")
 @rate_limit("api")

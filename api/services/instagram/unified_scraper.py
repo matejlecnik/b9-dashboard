@@ -132,16 +132,38 @@ class InstagramScraperUnified:
 
     def should_continue(self) -> bool:
         """Check if scraper should continue running from Supabase control table"""
+        # First check external control checker if provided (from continuous_scraper.py)
+        if hasattr(self, 'external_control_checker') and self.external_control_checker:
+            try:
+                # If running under continuous_scraper.py, use its control checker
+                import asyncio
+                if asyncio.iscoroutinefunction(self.external_control_checker):
+                    # Handle async control checker
+                    loop = asyncio.new_event_loop()
+                    should_run = loop.run_until_complete(self.external_control_checker())
+                    loop.close()
+                else:
+                    should_run = self.external_control_checker()
+
+                if not should_run:
+                    logger.info("Scraper stop signal received from external control checker")
+                    return False
+            except Exception as e:
+                logger.error(f"Error calling external control checker: {e}")
+
+        # Also check internal control table
         try:
             # Check Supabase control table for current status
             result = self.supabase.table("instagram_scraper_control")\
-                .select("status")\
+                .select("status, enabled")\
                 .eq("id", 1)\
                 .single()\
                 .execute()
 
             if result.data:
-                should_run = result.data.get("status") == "running"
+                # Check both status and enabled fields for compatibility
+                should_run = (result.data.get("status") == "running" or
+                            result.data.get("enabled", False))
                 if not should_run:
                     logger.info("Scraper stop signal received from control table")
                 return should_run
@@ -1342,8 +1364,12 @@ class InstagramScraperUnified:
                     logger.error(f"Creator {creator.get('username')} processing failed: {e}")
                     self.errors.append({"creator": creator.get('username'), "error": str(e)})
 
-    def run(self):
-        """High-performance main execution method with continuous loop"""
+    def run(self, control_checker=None):
+        """High-performance main execution method with continuous loop
+
+        Args:
+            control_checker: Optional callable that returns True if scraper should continue
+        """
         logger.info("=" * 60)
         logger.info("Instagram Unified Scraper Starting - Continuous Mode")
         logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
@@ -1353,6 +1379,9 @@ class InstagramScraperUnified:
 
         # Update status to running
         self.update_scraper_status("running")
+
+        # Store external control checker
+        self.external_control_checker = control_checker
 
         # Continuous loop - run every 3 hours
         while self.should_continue():
