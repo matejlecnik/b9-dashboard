@@ -281,9 +281,17 @@ class InstagramScraperUnified:
             # Build message based on action
             if action == "process_creator":
                 if success:
-                    new_count = details.get('new_items', 0) if details else 0
-                    saved_count = details.get('total_saved', items_saved) if details else items_saved
-                    message = f"✅ Processed {username}: {items_fetched} fetched, {saved_count} saved ({new_count} new records)"
+                    reels_fetched = details.get('reels_fetched', 0) if details else 0
+                    posts_fetched = details.get('posts_fetched', 0) if details else 0
+                    reels_saved = details.get('reels_saved', 0) if details else 0
+                    posts_saved = details.get('posts_saved', 0) if details else 0
+                    reels_new = details.get('reels_new', 0) if details else 0
+                    posts_new = details.get('posts_new', 0) if details else 0
+
+                    if reels_saved == 0 and reels_fetched > 0:
+                        message = f"✅ Processed {username}: Fetched {reels_fetched} reels (0 saved), {posts_fetched} posts ({posts_saved} saved, {posts_new} new)"
+                    else:
+                        message = f"✅ Processed {username}: Fetched {reels_fetched} reels ({reels_saved} saved, {reels_new} new), {posts_fetched} posts ({posts_saved} saved, {posts_new} new)"
                 else:
                     message = f"❌ Failed to process {username}: {error}"
             elif action == "run_complete":
@@ -502,7 +510,15 @@ class InstagramScraperUnified:
                 if not items:
                     break
 
-                reels.extend(items)
+                # Extract media objects from reels response (API nests data in .media)
+                extracted_reels = []
+                for item in items:
+                    if isinstance(item, dict) and "media" in item:
+                        extracted_reels.append(item["media"])
+                    else:
+                        extracted_reels.append(item)
+
+                reels.extend(extracted_reels)
                 empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
@@ -1164,7 +1180,13 @@ class InstagramScraperUnified:
 
             # Create detailed completion message
             total_fetched = len(reels) + len(posts)
-            self._log_realtime("success", f"✅ Processed {username}: {total_fetched} fetched, {total_saved} saved ({total_new} new records)", {
+            # More descriptive logging
+            if reels_saved == 0 and len(reels) > 0:
+                log_msg = f"✅ Processed {username}: Fetched {len(reels)} reels (0 saved), {len(posts)} posts ({posts_saved} saved, {posts_new} new)"
+            else:
+                log_msg = f"✅ Processed {username}: Fetched {len(reels)} reels ({reels_saved} saved, {reels_new} new), {len(posts)} posts ({posts_saved} saved, {posts_new} new)"
+
+            self._log_realtime("success", log_msg, {
                 "username": username,
                 "reels_fetched": len(reels),
                 "posts_fetched": len(posts),
