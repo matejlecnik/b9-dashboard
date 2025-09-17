@@ -647,7 +647,7 @@ export default function SubredditReviewPage() {
         </div>
 
         {/* Combined Toolbar: Search on left, Filters on right - Slim Design */}
-        <div className="flex items-stretch gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
           {/* Search Section - Left Side - Compact */}
           <div className="flex items-center flex-1 min-w-0 max-w-xs">
             <div className="relative w-full">
@@ -679,8 +679,8 @@ export default function SubredditReviewPage() {
             </div>
           </div>
 
-          {/* Filters Section - Right Side - Centered */}
-          <div className="flex items-center justify-end">
+          {/* Filters Section - Right Side */}
+          <div className="flex items-center">
             <UnifiedFilters
               currentFilter={currentFilter}
               onFilterChange={(value) => {
