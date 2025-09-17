@@ -166,32 +166,10 @@ class ContinuousInstagramScraper:
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     raise
 
-            # Create synchronous control checker wrapper
-            def control_checker_sync():
-                """Synchronous wrapper to check if scraper should continue running"""
-                try:
-                    result = self.supabase.table('system_control')\
-                        .select('enabled, status')\
-                        .eq('script_name', 'instagram_scraper')\
-                        .execute()
-
-                    if result.data and len(result.data) > 0:
-                        control = result.data[0]
-                        # Check both fields for backward compatibility
-                        should_continue = control.get('enabled', False) or control.get('status') == 'running'
-                        logger.debug(f"Control checker: enabled={control.get('enabled')}, status={control.get('status')}, should_continue={should_continue}")
-                        return should_continue
-                    logger.warning("No control record found in control_checker_sync")
-                    return False
-                except Exception as e:
-                    logger.error(f"Error checking control status: {e}")
-                    return False
-
-            # Run the scraping with synchronous control checker
-            # Instagram scraper uses synchronous run method
+            # Run the scraping in a thread - let it handle its own control checking
             logger.info("Starting Instagram scraper run() method...")
             try:
-                await asyncio.to_thread(self.scraper.run, control_checker=control_checker_sync)
+                await asyncio.to_thread(self.scraper.run)
                 logger.info("Instagram scraper run() method completed")
             except Exception as e:
                 logger.error(f"❌ Error in scraper run() method: {e}")

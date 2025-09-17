@@ -132,43 +132,8 @@ class InstagramScraperUnified:
 
     def should_continue(self) -> bool:
         """Check if scraper should continue running from Supabase control table"""
-        # First check external control checker if provided (from continuous_scraper.py)
-        if hasattr(self, 'external_control_checker') and self.external_control_checker:
-            try:
-                # If running under continuous_scraper.py, use its control checker
-                import asyncio
-                if asyncio.iscoroutinefunction(self.external_control_checker):
-                    # Handle async control checker - try to get the running loop
-                    try:
-                        loop = asyncio.get_running_loop()
-                        # We're already in an async context, create a task
-                        future = asyncio.run_coroutine_threadsafe(self.external_control_checker(), loop)
-                        should_run = future.result(timeout=5.0)
-                    except RuntimeError:
-                        # No running loop, create one
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            should_run = loop.run_until_complete(self.external_control_checker())
-                        finally:
-                            loop.close()
-                else:
-                    should_run = self.external_control_checker()
-
-                logger.debug(f"External control checker returned: {should_run}")
-                if not should_run:
-                    logger.info("Scraper stop signal received from external control checker")
-                    return False
-            except Exception as e:
-                logger.error(f"Error calling external control checker: {e}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                # On error, continue with internal checks
-                logger.warning("Falling back to internal control check due to error")
-
-        # Also check internal control table
         try:
-            # Check Supabase control table for current status
+            # Simple direct check of the control table
             result = self.supabase.table("system_control")\
                 .select("status, enabled")\
                 .eq("script_name", "instagram_scraper")\
@@ -176,9 +141,8 @@ class InstagramScraperUnified:
                 .execute()
 
             if result.data:
-                # Check both status and enabled fields for compatibility
-                should_run = (result.data.get("status") == "running" or
-                            result.data.get("enabled", False))
+                # Check both status and enabled fields
+                should_run = result.data.get("enabled", False) or result.data.get("status") == "running"
                 if not should_run:
                     logger.info("Scraper stop signal received from control table")
                 return should_run
@@ -1084,8 +1048,6 @@ class InstagramScraperUnified:
 
     def process_creator(self, creator: Dict[str, Any]) -> bool:
         """Process a single creator with comprehensive data fetching and analytics"""
-        logger.info(f"DEBUG: process_creator called with creator keys: {creator.keys()}")
-        logger.info(f"DEBUG: Creator data: {creator}")
 
         # Handle different key formats
         creator_id = str(creator.get("ig_user_id") or creator.get("instagram_id", ""))
@@ -1340,77 +1302,54 @@ class InstagramScraperUnified:
             "target_rps": Config.REQUESTS_PER_SECOND
         })
 
-        logger.info(f"DEBUG: Creating ThreadPoolExecutor with {Config.CONCURRENT_CREATORS} workers")
-
         with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
-            logger.info(f"DEBUG: ThreadPoolExecutor created, submitting {len(creators)} creators")
 
             for i, creator in enumerate(creators):
                 # Check if scraper should stop
-                should_continue_result = self.should_continue()
-                logger.info(f"DEBUG: should_continue() = {should_continue_result}")
-                if not should_continue_result:
+                if not self.should_continue():
                     logger.info("Scraper stop signal received")
                     break
 
-                # API limit checks removed - continue processing all creators
-                logger.info(f"DEBUG: API calls so far - daily: {self.daily_calls}, monthly: {self.monthly_calls}")
-
                 # Submit creator processing to thread pool
-                logger.info(f"DEBUG: Submitting creator {i+1}/{len(creators)}: {creator.get('username')} (ID: {creator.get('ig_user_id')})")
                 future = executor.submit(self.process_creator, creator)
                 futures.append((future, creator))
 
                 # Small delay to avoid thundering herd
                 time.sleep(0.05)
 
-            logger.info(f"DEBUG: All {len(futures)} creators submitted, waiting for results")
 
             # Collect results as they complete
             for i, (future, creator) in enumerate(futures):
                 try:
-                    logger.info(f"DEBUG: Waiting for result {i+1}/{len(futures)}: {creator.get('username')}")
                     result = future.result(timeout=120)  # 2 minute timeout per creator
-                    logger.info(f"DEBUG: Got result for creator {creator.get('username')}")
                 except Exception as e:
                     logger.error(f"Creator {creator.get('username')} processing failed: {e}")
                     import traceback
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     self.errors.append({"creator": creator.get('username'), "error": str(e)})
 
-            logger.info(f"DEBUG: All futures completed for batch")
-
-    def run(self, control_checker=None):
-        """High-performance main execution method with continuous loop
-
-        Args:
-            control_checker: Optional callable that returns True if scraper should continue
-        """
+    def run(self):
+        """Main execution method with continuous loop"""
         logger.info("=" * 60)
-        logger.info("Instagram Unified Scraper Starting - Continuous Mode")
+        logger.info("Instagram Unified Scraper Starting")
         logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
-        logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}, Batch Size: {Config.BATCH_SIZE}")
-        logger.info(f"Cycle Interval: Every 3 hours")
+        logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}")
         logger.info(f"RAPIDAPI_KEY configured: {'YES' if Config.RAPIDAPI_KEY else 'NO'}")
-        logger.info(f"RAPIDAPI_KEY length: {len(Config.RAPIDAPI_KEY) if Config.RAPIDAPI_KEY else 0}")
         logger.info("=" * 60)
 
         # Update status to running
         self.update_scraper_status("running")
 
-        # Store external control checker
-        self.external_control_checker = control_checker
-        logger.info(f"External control checker set: {control_checker is not None}")
-
         # Initial check
         initial_continue = self.should_continue()
         logger.info(f"Initial should_continue() check: {initial_continue}")
 
-        # Continuous loop - run every 3 hours
-        loop_iteration = 0
+        if not initial_continue:
+            logger.warning("Scraper is disabled, exiting")
+            return
+
+        # Main processing loop
         while self.should_continue():
-            loop_iteration += 1
-            logger.info(f"Entering while loop iteration {loop_iteration}")
             self.cycle_number += 1
             self.cycle_start_time = datetime.now(timezone.utc)
 
@@ -1468,8 +1407,6 @@ class InstagramScraperUnified:
                         total_batches = (total_creators + batch_size - 1) // batch_size
 
                         logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
-                        logger.info(f"DEBUG: About to call process_creators_concurrent with {len(batch)} creators")
-                        logger.info(f"DEBUG: First creator in batch: {batch[0] if batch else 'NO CREATORS'}")
 
                         # Use thread pool for concurrent processing
                         self.process_creators_concurrent(batch)
@@ -1567,10 +1504,6 @@ class InstagramScraperUnified:
                     time.sleep(sleep_interval)
 
         # Final cleanup when scraper stops
-        logger.info("Exited while loop - checking final should_continue status")
-        final_continue = self.should_continue()
-        logger.info(f"Final should_continue() check: {final_continue}")
-        logger.info(f"Total loop iterations: {loop_iteration}")
         logger.info("Instagram scraper stopped")
         self.update_scraper_status("stopped", {
             "total_cycles": self.cycle_number,
