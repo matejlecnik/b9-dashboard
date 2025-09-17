@@ -79,11 +79,12 @@ export default function InstagramMonitor() {
     if (metrics) {
       const costPerRequest = 75 / 250000 // $75 per 250k requests = $0.0003 per request
       const dailyCost = (metrics.statistics.daily_api_calls || 0) * costPerRequest
-      const monthlyCost = ((metrics.statistics.daily_api_calls || 0) * 30) * costPerRequest
+      // Project monthly cost based on current daily rate
+      const projectedMonthlyCost = dailyCost * 30
 
       setCostData({
         daily: dailyCost,
-        monthly: monthlyCost
+        monthly: projectedMonthlyCost
       })
     }
   }, [metrics])
@@ -138,7 +139,7 @@ export default function InstagramMonitor() {
               creators_processed: data.progress?.creators_processed || 0,
               content_collected: 0,
               viral_content_detected: 0,
-              daily_api_calls: data.progress?.api_calls_made || 0,
+              daily_api_calls: data.progress?.daily_api_calls || 0,
               processing_rate_per_hour: data.performance?.current_rps ? data.performance.current_rps * 3600 : 0
             },
             performance: data.performance || {
@@ -417,12 +418,12 @@ export default function InstagramMonitor() {
 
               {/* Cost Tracking Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
-                <div className="text-[10px] text-gray-500 mb-0.5">Daily Cost</div>
+                <div className="text-[10px] text-gray-500 mb-0.5">Today's Cost</div>
                 <div className="text-xl font-bold text-gray-900">
                   ${costData?.daily.toFixed(2) || '0.00'}
                 </div>
                 <div className="text-[10px] text-gray-600 mt-0.5">
-                  ${costData?.monthly.toFixed(2) || '0.00'} /month
+                  ~${costData?.monthly.toFixed(2) || '0.00'} projected/mo
                 </div>
               </div>
             </div>

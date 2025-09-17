@@ -253,7 +253,9 @@ class InstagramScraperUnified:
             # Build message based on action
             if action == "process_creator":
                 if success:
-                    message = f"✅ Processed {username}: {items_fetched} items fetched, {items_saved} saved"
+                    new_count = details.get('new_items', 0) if details else 0
+                    updated_count = details.get('updated_items', 0) if details else 0
+                    message = f"✅ Processed {username}: {items_fetched} items ({new_count} new, {updated_count} updated)"
                 else:
                     message = f"❌ Failed to process {username}: {error}"
             elif action == "run_complete":
@@ -728,12 +730,28 @@ class InstagramScraperUnified:
 
         return analytics
 
-    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> int:
-        """Store reels in database with comprehensive data extraction"""
+    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> tuple[int, int]:
+        """Store reels in database with comprehensive data extraction
+        Returns: (new_count, updated_count)
+        """
         if not reels:
-            return 0
+            return 0, 0
 
-        stored = 0
+        # First check which reels already exist
+        media_pks = [str(reel.get("pk")) for reel in reels if reel.get("pk")]
+        existing_pks = set()
+        if media_pks:
+            try:
+                result = self.supabase.table("instagram_reels")\
+                    .select("media_pk")\
+                    .in_("media_pk", media_pks)\
+                    .execute()
+                existing_pks = {row["media_pk"] for row in (result.data or [])}
+            except Exception as e:
+                logger.debug(f"Failed to check existing reels: {e}")
+
+        new_count = 0
+        updated_count = 0
         rows = []
 
         for reel in reels:
@@ -792,6 +810,11 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
+                    # Track if this is new or update
+                    if str(row["media_pk"]) in existing_pks:
+                        updated_count += 1
+                    else:
+                        new_count += 1
 
             except Exception as e:
                 logger.debug(f"Failed to process reel: {e}")
@@ -800,19 +823,34 @@ class InstagramScraperUnified:
         if rows:
             try:
                 self.supabase.table("instagram_reels").upsert(rows, on_conflict="media_pk").execute()
-                stored = len(rows)
-                logger.info(f"Stored {stored} reels for {username}")
+                logger.info(f"Processed {len(rows)} reels for {username}: {new_count} new, {updated_count} updated")
             except Exception as e:
                 logger.error(f"Failed to store reels: {e}")
 
-        return stored
+        return new_count, updated_count
 
-    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> int:
-        """Store posts in database with comprehensive data extraction"""
+    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> tuple[int, int]:
+        """Store posts in database with comprehensive data extraction
+        Returns: (new_count, updated_count)
+        """
         if not posts:
-            return 0
+            return 0, 0
 
-        stored = 0
+        # First check which posts already exist
+        media_pks = [str(post.get("pk")) for post in posts if post.get("pk")]
+        existing_pks = set()
+        if media_pks:
+            try:
+                result = self.supabase.table("instagram_posts")\
+                    .select("media_pk")\
+                    .in_("media_pk", media_pks)\
+                    .execute()
+                existing_pks = {row["media_pk"] for row in (result.data or [])}
+            except Exception as e:
+                logger.debug(f"Failed to check existing posts: {e}")
+
+        new_count = 0
+        updated_count = 0
         rows = []
 
         for post in posts:
@@ -882,6 +920,11 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
+                # Track if this is new or update
+                if str(row["media_pk"]) in existing_pks:
+                    updated_count += 1
+                else:
+                    new_count += 1
 
             except Exception as e:
                 logger.debug(f"Failed to process post: {e}")
@@ -890,12 +933,11 @@ class InstagramScraperUnified:
         if rows:
             try:
                 self.supabase.table("instagram_posts").upsert(rows, on_conflict="media_pk").execute()
-                stored = len(rows)
-                logger.info(f"Stored {stored} posts for {username}")
+                logger.info(f"Processed {len(rows)} posts for {username}: {new_count} new, {updated_count} updated")
             except Exception as e:
                 logger.error(f"Failed to store posts: {e}")
 
-        return stored
+        return new_count, updated_count
 
     def _to_iso(self, timestamp: Optional[int]) -> Optional[str]:
         """Convert Unix timestamp to ISO format"""
@@ -1007,8 +1049,10 @@ class InstagramScraperUnified:
             logger.info(f"Fetched {len(posts)} posts")
 
             # Store content
-            reels_stored = self._store_reels(creator_id, username, reels)
-            posts_stored = self._store_posts(creator_id, username, posts)
+            reels_new, reels_updated = self._store_reels(creator_id, username, reels)
+            posts_new, posts_updated = self._store_posts(creator_id, username, posts)
+            reels_stored = reels_new + reels_updated
+            posts_stored = posts_new + posts_updated
 
             # Step 4: Calculate comprehensive analytics
             logger.info(f"Step 4/4: Calculating analytics for {username}")
@@ -1019,10 +1063,18 @@ class InstagramScraperUnified:
             # Log analytics summary
             summary = self._format_analytics_summary(analytics)
             logger.info(f"\n{summary}")
-            self._log_realtime("success", f"✅ Completed {username}: {len(reels)} reels, {len(posts)} posts", {
+
+            # Create detailed completion message
+            total_new = reels_new + posts_new
+            total_updated = reels_updated + posts_updated
+            self._log_realtime("success", f"✅ Processed {username}: {len(reels) + len(posts)} items ({total_new} new, {total_updated} updated)", {
                 "username": username,
                 "reels_fetched": len(reels),
                 "posts_fetched": len(posts),
+                "reels_new": reels_new,
+                "reels_updated": reels_updated,
+                "posts_new": posts_new,
+                "posts_updated": posts_updated,
                 "engagement_rate": round(analytics.get('engagement_rate', 0), 2)
             })
 
@@ -1039,8 +1091,12 @@ class InstagramScraperUnified:
                     "is_new": is_new,
                     "reels_fetched": len(reels),
                     "posts_fetched": len(posts),
-                    "reels_stored": reels_stored,
-                    "posts_stored": posts_stored,
+                    "reels_new": reels_new,
+                    "reels_updated": reels_updated,
+                    "posts_new": posts_new,
+                    "posts_updated": posts_updated,
+                    "new_items": reels_new + posts_new,
+                    "updated_items": reels_updated + posts_updated,
                     "api_calls": api_calls_used,
                     "followers_count": profile_data.get("follower_count", 0) if profile_data else 0,
                     "profile_fetched": profile_data is not None
@@ -1049,7 +1105,8 @@ class InstagramScraperUnified:
             )
 
             logger.info(f"✓ {username}: {api_calls_used} API calls, "
-                       f"{reels_stored} reels, {posts_stored} posts stored")
+                       f"{reels_new} new reels, {reels_updated} updated reels, "
+                       f"{posts_new} new posts, {posts_updated} updated posts")
 
             self.creators_processed += 1
             return True
@@ -1074,6 +1131,8 @@ class InstagramScraperUnified:
 
     def get_creators_to_process(self) -> List[Dict[str, Any]]:
         """Get list of approved creators to process"""
+        import random
+
         try:
             query = self.supabase.table("instagram_creators")\
                 .select("ig_user_id, username")\
@@ -1086,7 +1145,10 @@ class InstagramScraperUnified:
             result = query.execute()
             creators = result.data or []
 
-            logger.info(f"Found {len(creators)} approved creators to process")
+            # Randomize the order of creators to process
+            random.shuffle(creators)
+
+            logger.info(f"Found {len(creators)} approved creators to process (randomized order)")
             return creators
 
         except Exception as e:
