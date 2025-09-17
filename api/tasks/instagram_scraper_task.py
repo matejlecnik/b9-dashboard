@@ -168,8 +168,8 @@ def get_scraper_status() -> dict:
                 cost = _scraper_instance.api_calls_made * Config.get_cost_per_request()
                 status_data["cost"] = {
                     "current_run": cost,
-                    "daily_budget_used": ((_scraper_instance.daily_calls + _scraper_instance.api_calls_made) / Config.MAX_DAILY_API_CALLS) * 100,
-                    "monthly_budget_used": ((_scraper_instance.monthly_calls + _scraper_instance.api_calls_made) / Config.MAX_MONTHLY_API_CALLS) * 100
+                    "total_daily_calls": _scraper_instance.daily_calls + _scraper_instance.api_calls_made,
+                    "total_monthly_calls": _scraper_instance.monthly_calls + _scraper_instance.api_calls_made
                 }
 
         return status_data

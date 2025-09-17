@@ -35,8 +35,7 @@ class Config:
 
     # Scraper Settings
     UPDATE_FREQUENCY = int(os.getenv("UPDATE_FREQUENCY", "10800"))  # 3 hours
-    MAX_DAILY_API_CALLS = int(os.getenv("MAX_DAILY_API_CALLS", "24000"))
-    MAX_MONTHLY_API_CALLS = int(os.getenv("MAX_MONTHLY_API_CALLS", "1000000"))
+    # API limits removed - using RapidAPI's own limits
 
     # Retry Settings
     REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))  # Reduced from 30 to prevent hanging
@@ -120,8 +119,6 @@ class Config:
         return {
             "batch_size": cls.BATCH_SIZE,
             "update_frequency": cls.UPDATE_FREQUENCY,
-            "max_daily_calls": cls.MAX_DAILY_API_CALLS,
-            "max_monthly_calls": cls.MAX_MONTHLY_API_CALLS,
             "viral_detection": cls.ENABLE_VIRAL_DETECTION,
             "viral_threshold": cls.VIRAL_MIN_VIEWS,
             "viral_multiplier": cls.VIRAL_MULTIPLIER,

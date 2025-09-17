@@ -326,8 +326,9 @@ class InstagramScraperUnified:
                 "items_saved": items_saved,
                 "api_calls_made": self.api_calls_made,
                 "api_cost": cost,
-                "monthly_budget_used": ((self.monthly_calls + self.api_calls_made) / Config.MAX_MONTHLY_API_CALLS) * 100,
-                "daily_budget_used": ((self.daily_calls + self.api_calls_made) / Config.MAX_DAILY_API_CALLS) * 100,
+                # API limits removed - just track calls
+                "total_monthly_calls": self.monthly_calls + self.api_calls_made,
+                "total_daily_calls": self.daily_calls + self.api_calls_made,
                 "details": details or {},
                 "error_message": error,
                 "duration_seconds": duration,
@@ -404,12 +405,7 @@ class InstagramScraperUnified:
             "current_rps": self.performance_monitor.get_current_rps() if hasattr(self, 'performance_monitor') else 0
         })
 
-        # Check rate limits
-        if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
-            raise APIError(f"Daily API limit reached: {self.daily_calls}/{Config.MAX_DAILY_API_CALLS}")
-
-        if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
-            raise APIError(f"Monthly API limit reached: {self.monthly_calls}/{Config.MAX_MONTHLY_API_CALLS}")
+        # API limit checks removed - let RapidAPI handle its own limits
 
         # Apply rate limiting
         self._apply_rate_limiting()
@@ -1351,16 +1347,8 @@ class InstagramScraperUnified:
                     logger.info("Scraper stop signal received")
                     break
 
-                # Check API limits
-                logger.info(f"DEBUG: daily_calls={self.daily_calls}, MAX_DAILY={Config.MAX_DAILY_API_CALLS}")
-                if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
-                    logger.warning("Daily API limit reached")
-                    break
-
-                logger.info(f"DEBUG: monthly_calls={self.monthly_calls}, MAX_MONTHLY={Config.MAX_MONTHLY_API_CALLS}")
-                if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
-                    logger.warning("Monthly API limit reached")
-                    break
+                # API limit checks removed - continue processing all creators
+                logger.info(f"DEBUG: API calls so far - daily: {self.daily_calls}, monthly: {self.monthly_calls}")
 
                 # Submit creator processing to thread pool
                 logger.info(f"DEBUG: Submitting creator {i+1}/{len(creators)}: {creator.get('username')} (ID: {creator.get('ig_user_id')})")
