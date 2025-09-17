@@ -282,8 +282,8 @@ class InstagramScraperUnified:
             if action == "process_creator":
                 if success:
                     new_count = details.get('new_items', 0) if details else 0
-                    updated_count = details.get('updated_items', 0) if details else 0
-                    message = f"✅ Processed {username}: {items_fetched} items ({new_count} new, {updated_count} updated)"
+                    saved_count = details.get('total_saved', items_saved) if details else items_saved
+                    message = f"✅ Processed {username}: {items_fetched} fetched, {saved_count} saved ({new_count} new records)"
                 else:
                     message = f"❌ Failed to process {username}: {error}"
             elif action == "run_complete":
@@ -804,12 +804,12 @@ class InstagramScraperUnified:
 
         return analytics
 
-    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> tuple[int, int]:
+    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> tuple[int, int, int]:
         """Store reels in database with comprehensive data extraction
-        Returns: (new_count, updated_count)
+        Returns: (total_saved, new_count, existing_count)
         """
         if not reels:
-            return 0, 0
+            return 0, 0, 0
 
         # First check which reels already exist
         media_pks = [str(reel.get("pk")) for reel in reels if reel.get("pk")]
@@ -825,7 +825,7 @@ class InstagramScraperUnified:
                 logger.debug(f"Failed to check existing reels: {e}")
 
         new_count = 0
-        updated_count = 0
+        existing_count = 0
         rows = []
 
         for reel in reels:
@@ -884,9 +884,9 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
-                    # Track if this is new or update
+                    # Track if this is new or existing
                     if str(row["media_pk"]) in existing_pks:
-                        updated_count += 1
+                        existing_count += 1
                     else:
                         new_count += 1
 
@@ -894,21 +894,23 @@ class InstagramScraperUnified:
                 logger.debug(f"Failed to process reel: {e}")
                 continue
 
+        total_saved = 0
         if rows:
             try:
                 self.supabase.table("instagram_reels").upsert(rows, on_conflict="media_pk").execute()
-                logger.info(f"Processed {len(rows)} reels for {username}: {new_count} new, {updated_count} updated")
+                total_saved = len(rows)
+                logger.info(f"Saved {total_saved} reels for {username}: {new_count} new records, {existing_count} existing updated")
             except Exception as e:
                 logger.error(f"Failed to store reels: {e}")
 
-        return new_count, updated_count
+        return total_saved, new_count, existing_count
 
-    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> tuple[int, int]:
+    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> tuple[int, int, int]:
         """Store posts in database with comprehensive data extraction
-        Returns: (new_count, updated_count)
+        Returns: (total_saved, new_count, existing_count)
         """
         if not posts:
-            return 0, 0
+            return 0, 0, 0
 
         # First check which posts already exist
         media_pks = [str(post.get("pk")) for post in posts if post.get("pk")]
@@ -924,7 +926,7 @@ class InstagramScraperUnified:
                 logger.debug(f"Failed to check existing posts: {e}")
 
         new_count = 0
-        updated_count = 0
+        existing_count = 0
         rows = []
 
         for post in posts:
@@ -994,24 +996,26 @@ class InstagramScraperUnified:
 
                 if row["media_pk"]:
                     rows.append(row)
-                # Track if this is new or update
-                if str(row["media_pk"]) in existing_pks:
-                    updated_count += 1
-                else:
-                    new_count += 1
+                    # Track if this is new or existing
+                    if str(row["media_pk"]) in existing_pks:
+                        existing_count += 1
+                    else:
+                        new_count += 1
 
             except Exception as e:
                 logger.debug(f"Failed to process post: {e}")
                 continue
 
+        total_saved = 0
         if rows:
             try:
                 self.supabase.table("instagram_posts").upsert(rows, on_conflict="media_pk").execute()
-                logger.info(f"Processed {len(rows)} posts for {username}: {new_count} new, {updated_count} updated")
+                total_saved = len(rows)
+                logger.info(f"Saved {total_saved} posts for {username}: {new_count} new records, {existing_count} existing updated")
             except Exception as e:
                 logger.error(f"Failed to store posts: {e}")
 
-        return new_count, updated_count
+        return total_saved, new_count, existing_count
 
     def _to_iso(self, timestamp: Optional[int]) -> Optional[str]:
         """Convert Unix timestamp to ISO format"""
@@ -1145,10 +1149,10 @@ class InstagramScraperUnified:
             logger.info(f"[{thread_id}] Fetched {len(posts)} posts")
 
             # Store content
-            reels_new, reels_updated = self._store_reels(creator_id, username, reels)
-            posts_new, posts_updated = self._store_posts(creator_id, username, posts)
-            reels_stored = reels_new + reels_updated
-            posts_stored = posts_new + posts_updated
+            reels_saved, reels_new, reels_existing = self._store_reels(creator_id, username, reels)
+            posts_saved, posts_new, posts_existing = self._store_posts(creator_id, username, posts)
+            total_saved = reels_saved + posts_saved
+            total_new = reels_new + posts_new
 
             # Calculate comprehensive analytics
             logger.info(f"[{thread_id}] Calculating analytics for {username}")
@@ -1164,16 +1168,15 @@ class InstagramScraperUnified:
             logger.info(f"\n{summary}")
 
             # Create detailed completion message
-            total_new = reels_new + posts_new
-            total_updated = reels_updated + posts_updated
-            self._log_realtime("success", f"✅ Processed {username}: {len(reels) + len(posts)} items ({total_new} new, {total_updated} updated)", {
+            total_fetched = len(reels) + len(posts)
+            self._log_realtime("success", f"✅ Processed {username}: {total_fetched} fetched, {total_saved} saved ({total_new} new records)", {
                 "username": username,
                 "reels_fetched": len(reels),
                 "posts_fetched": len(posts),
-                "reels_new": reels_new,
-                "reels_updated": reels_updated,
-                "posts_new": posts_new,
-                "posts_updated": posts_updated,
+                "reels_saved": reels_saved,
+                "posts_saved": posts_saved,
+                "total_saved": total_saved,
+                "new_records": total_new,
                 "engagement_rate": round(analytics.get('engagement_rate', 0), 2)
             })
 
@@ -1184,18 +1187,22 @@ class InstagramScraperUnified:
                 username=username,
                 creator_id=creator_id,
                 success=True,
-                items_fetched=len(reels) + len(posts),
-                items_saved=reels_stored + posts_stored,
+                items_fetched=total_fetched,
+                items_saved=total_saved,
                 details={
                     "is_new": is_new,
                     "reels_fetched": len(reels),
                     "posts_fetched": len(posts),
+                    "reels_saved": reels_saved,
+                    "posts_saved": posts_saved,
                     "reels_new": reels_new,
-                    "reels_updated": reels_updated,
+                    "reels_existing": reels_existing,
                     "posts_new": posts_new,
-                    "posts_updated": posts_updated,
-                    "new_items": reels_new + posts_new,
-                    "updated_items": reels_updated + posts_updated,
+                    "posts_existing": posts_existing,
+                    "total_new": total_new,
+                    "total_saved": total_saved,
+                    "new_items": total_new,
+                    "updated_items": reels_existing + posts_existing,
                     "api_calls": api_calls_used,
                     "followers_count": profile_data.get("follower_count", 0) if profile_data else 0,
                     "profile_fetched": profile_data is not None
