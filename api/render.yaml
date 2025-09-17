@@ -4,7 +4,7 @@ services:
     name: b9-dashboard-api
     runtime: python3
     buildCommand: "./build.sh"
-    startCommand: "python main.py"
+    startCommand: "python start.py"
     plan: starter
     region: oregon
     branch: main
