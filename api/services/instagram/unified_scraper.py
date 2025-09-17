@@ -138,18 +138,33 @@ class InstagramScraperUnified:
                 # If running under continuous_scraper.py, use its control checker
                 import asyncio
                 if asyncio.iscoroutinefunction(self.external_control_checker):
-                    # Handle async control checker
-                    loop = asyncio.new_event_loop()
-                    should_run = loop.run_until_complete(self.external_control_checker())
-                    loop.close()
+                    # Handle async control checker - try to get the running loop
+                    try:
+                        loop = asyncio.get_running_loop()
+                        # We're already in an async context, create a task
+                        future = asyncio.run_coroutine_threadsafe(self.external_control_checker(), loop)
+                        should_run = future.result(timeout=5.0)
+                    except RuntimeError:
+                        # No running loop, create one
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            should_run = loop.run_until_complete(self.external_control_checker())
+                        finally:
+                            loop.close()
                 else:
                     should_run = self.external_control_checker()
 
+                logger.debug(f"External control checker returned: {should_run}")
                 if not should_run:
                     logger.info("Scraper stop signal received from external control checker")
                     return False
             except Exception as e:
                 logger.error(f"Error calling external control checker: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                # On error, continue with internal checks
+                logger.warning("Falling back to internal control check due to error")
 
         # Also check internal control table
         try:
@@ -1396,9 +1411,17 @@ class InstagramScraperUnified:
 
         # Store external control checker
         self.external_control_checker = control_checker
+        logger.info(f"External control checker set: {control_checker is not None}")
+
+        # Initial check
+        initial_continue = self.should_continue()
+        logger.info(f"Initial should_continue() check: {initial_continue}")
 
         # Continuous loop - run every 3 hours
+        loop_iteration = 0
         while self.should_continue():
+            loop_iteration += 1
+            logger.info(f"Entering while loop iteration {loop_iteration}")
             self.cycle_number += 1
             self.cycle_start_time = datetime.now(timezone.utc)
 
@@ -1555,6 +1578,10 @@ class InstagramScraperUnified:
                     time.sleep(sleep_interval)
 
         # Final cleanup when scraper stops
+        logger.info("Exited while loop - checking final should_continue status")
+        final_continue = self.should_continue()
+        logger.info(f"Final should_continue() check: {final_continue}")
+        logger.info(f"Total loop iterations: {loop_iteration}")
         logger.info("Instagram scraper stopped")
         self.update_scraper_status("stopped", {
             "total_cycles": self.cycle_number,

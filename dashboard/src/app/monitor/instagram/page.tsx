@@ -58,7 +58,6 @@ export default function InstagramMonitor() {
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
   const [costData, setCostData] = useState<{ daily: number; monthly: number } | null>(null)
   const [cycleData, setCycleData] = useState<{ elapsed_formatted: string; start_time: string | null } | null>(null)
-  const manualOverrideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { addToast } = useToast()
 
   // Calculate success rate from API
@@ -318,35 +317,23 @@ export default function InstagramMonitor() {
   }, [manualOverride, isRunning, supabase])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
-    console.log(`Instagram scraper control: ${action} button clicked`)
     try {
       setLoading(true)
-
-      // Clear any existing manual override timeout
-      if (manualOverrideTimeoutRef.current) {
-        clearTimeout(manualOverrideTimeoutRef.current)
-        manualOverrideTimeoutRef.current = null
-      }
 
       // Optimistically update the UI immediately
       const newRunningState = action === 'start'
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the backend API to trigger the scraper (backend handles all control table updates)
+      // Call the backend API on Render (production scraper)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
-      const fullUrl = `${API_URL}${endpoint}`
 
-      console.log(`Making API call to: ${fullUrl}`)
-
-      const res = await fetch(fullUrl, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'
       })
-
-      console.log(`API response status: ${res.status}`)
 
       if (res.ok) {
         const result = await res.json()
@@ -362,11 +349,10 @@ export default function InstagramMonitor() {
             type: 'success'
           })
 
-          // Clear manual override after 5 seconds to allow status updates again
-          manualOverrideTimeoutRef.current = setTimeout(() => {
+          // Clear manual override after 30 seconds to allow status updates again
+          setTimeout(() => {
             setManualOverride(false)
-            fetchMetrics()  // Immediately fetch fresh status
-          }, 5000)
+          }, 30000)
         } else {
           // Revert optimistic update on failure
           setIsRunning(!newRunningState)
@@ -397,17 +383,13 @@ export default function InstagramMonitor() {
       setIsRunning(action !== 'start')
       setManualOverride(false) // Clear override on error
 
-      console.error('Scraper control error - full details:', error)
-      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
-      console.error('Error message:', error instanceof Error ? error.message : String(error))
-
+      console.error('Scraper control error:', error)
       addToast({
         title: `Failed to ${action} scraper`,
-        description: error instanceof Error ? error.message : 'Network error or server is not responding',
+        description: 'Network error or server is not responding',
         type: 'error'
       })
     } finally {
-      console.log('handleScraperControl finished')
       setLoading(false)
     }
   }
@@ -483,12 +465,8 @@ export default function InstagramMonitor() {
 
     return () => {
       clearInterval(metricsInterval)
-      // Clear manual override timeout on unmount
-      if (manualOverrideTimeoutRef.current) {
-        clearTimeout(manualOverrideTimeoutRef.current)
-      }
     }
-  }, [fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData, supabase]) // Include all used functions
+  }, []) // Empty dependency array - only run once on mount
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
