@@ -85,21 +85,20 @@ async def start_instagram_scraper(request: Request):
         log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
         os.makedirs(log_dir, exist_ok=True)
 
-        # Open log files for scraper output
+        # Open log files for scraper output - but also inherit stderr for debugging
         stdout_log = open(os.path.join(log_dir, "instagram_scraper_stdout.log"), "a")
-        stderr_log = open(os.path.join(log_dir, "instagram_scraper_stderr.log"), "a")
 
+        # For debugging, inherit stderr so we can see logs in Render
         scraper_process = subprocess.Popen(
             [sys.executable, "-u", scraper_path],
             stdout=stdout_log,
-            stderr=stderr_log,
+            stderr=None,  # Inherit stderr to see debug logs in Render
             stdin=subprocess.DEVNULL,
             start_new_session=True  # Detach from parent
         )
 
         # Close file handles in parent process
         stdout_log.close()
-        stderr_log.close()
 
         logger.info(f"✅ Instagram scraper subprocess started with PID {scraper_process.pid}")
 
