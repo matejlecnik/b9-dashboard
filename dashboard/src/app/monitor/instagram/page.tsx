@@ -276,22 +276,7 @@ export default function InstagramMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Update Supabase control table directly (like Reddit scraper does)
-      if (supabase) {
-        const { error } = await supabase
-          .from('instagram_scraper_control')
-          .upsert({
-            id: 1,
-            status: action === 'start' ? 'running' : 'stopped',
-            last_updated: new Date().toISOString()
-          })
-
-        if (error) {
-          throw error
-        }
-      }
-
-      // Also call the backend API to trigger the scraper
+      // Call the backend API to trigger the scraper (backend handles all control table updates)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
 
