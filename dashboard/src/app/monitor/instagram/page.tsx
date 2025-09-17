@@ -60,35 +60,79 @@ export default function InstagramMonitor() {
   const manualOverrideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { addToast } = useToast()
 
-  // Calculate success rate from metrics
-  const calculateSuccessRate = useCallback(() => {
-    if (metrics) {
-      const total = metrics.statistics.total_api_calls || 0
-      const successful = metrics.statistics.successful_calls || 0
-      const percentage = total > 0 ? (successful / total) * 100 : 100
+  // Calculate success rate from API
+  const calculateSuccessRate = useCallback(async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      setSuccessRate({
-        percentage,
-        successful,
-        total
-      })
+      try {
+        const response = await fetch(`${API_URL}/api/instagram/scraper/success-rate`, {
+          mode: 'cors',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.success && data.stats) {
+            const stats = data.stats
+            setSuccessRate({
+              percentage: stats.success_rate || 0,
+              successful: stats.successful_requests || 0,
+              total: stats.total_requests || 0
+            })
+          }
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        console.log('Failed to fetch success rate')
+      }
+    } catch (error) {
+      console.error('Error calculating success rate:', error)
     }
-  }, [metrics])
+  }, [])
 
-  // Calculate cost data
-  const calculateCostData = useCallback(() => {
-    if (metrics) {
-      const costPerRequest = 75 / 250000 // $75 per 250k requests = $0.0003 per request
-      const dailyCost = (metrics.statistics.daily_api_calls || 0) * costPerRequest
-      // Project monthly cost based on current daily rate
-      const projectedMonthlyCost = dailyCost * 30
+  // Fetch cost data from API
+  const fetchCostData = useCallback(async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      setCostData({
-        daily: dailyCost,
-        monthly: projectedMonthlyCost
-      })
+      try {
+        const response = await fetch(`${API_URL}/api/instagram/scraper/cost-metrics`, {
+          mode: 'cors',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.success && data.metrics) {
+            setCostData({
+              daily: data.metrics.daily_cost || 0,
+              monthly: data.metrics.projected_monthly_cost || 0
+            })
+          }
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        console.log('Failed to fetch cost metrics')
+      }
+    } catch (error) {
+      console.error('Error fetching cost data:', error)
     }
-  }, [metrics])
+  }, [])
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -232,7 +276,22 @@ export default function InstagramMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the backend API on Render (production scraper)
+      // Update Supabase control table directly (like Reddit scraper does)
+      if (supabase) {
+        const { error } = await supabase
+          .from('instagram_scraper_control')
+          .upsert({
+            id: 1,
+            status: action === 'start' ? 'running' : 'stopped',
+            last_updated: new Date().toISOString()
+          })
+
+        if (error) {
+          throw error
+        }
+      }
+
+      // Also call the backend API to trigger the scraper
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
 
@@ -358,10 +417,14 @@ export default function InstagramMonitor() {
     // Run initial checks
     checkInitialStatus()
     fetchMetrics()
+    calculateSuccessRate()
+    fetchCostData()
 
     // Set up polling for metrics
     const metricsInterval = setInterval(() => {
       fetchMetrics()
+      calculateSuccessRate()
+      fetchCostData()
     }, 20000) // Refresh every 20 seconds
 
     return () => {
@@ -372,12 +435,6 @@ export default function InstagramMonitor() {
       }
     }
   }, []) // Empty dependency array - only run once on mount
-
-  // Update success rate and cost when metrics change
-  useEffect(() => {
-    calculateSuccessRate()
-    calculateCostData()
-  }, [metrics, calculateSuccessRate, calculateCostData])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">

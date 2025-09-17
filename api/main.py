@@ -661,6 +661,116 @@ async def get_instagram_scraper_status(request: Request):
         }
 
 
+@app.get("/api/instagram/scraper/success-rate")
+@rate_limit("api")
+async def get_instagram_success_rate(request: Request):
+    """Calculate and return Instagram scraper success rate from Supabase logs"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Supabase not available")
+
+        # Get today's date for filtering
+        today = datetime.now(timezone.utc).date().isoformat()
+
+        # Get control record for metadata
+        control_result = supabase.table('instagram_scraper_control')\
+            .select('metadata')\
+            .eq('id', 1)\
+            .single()\
+            .execute()
+
+        if control_result.data and control_result.data.get('metadata'):
+            metadata = control_result.data['metadata']
+            successful = metadata.get('successful_calls', 0)
+            failed = metadata.get('failed_calls', 0)
+            total = successful + failed
+
+            success_rate = (successful / total * 100) if total > 0 else 100.0
+
+            return {
+                "success": True,
+                "stats": {
+                    "success_rate": round(success_rate, 1),
+                    "successful_requests": successful,
+                    "failed_requests": failed,
+                    "total_requests": total,
+                    "date": today
+                }
+            }
+        else:
+            return {
+                "success": True,
+                "stats": {
+                    "success_rate": 100.0,
+                    "successful_requests": 0,
+                    "failed_requests": 0,
+                    "total_requests": 0,
+                    "date": today
+                }
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to calculate Instagram success rate: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "stats": {
+                "success_rate": 0,
+                "successful_requests": 0,
+                "failed_requests": 0,
+                "total_requests": 0
+            }
+        }
+
+
+@app.get("/api/instagram/scraper/cost-metrics")
+@rate_limit("api")
+async def get_instagram_cost_metrics(request: Request):
+    """Calculate and return Instagram scraper cost metrics"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Supabase not available")
+
+        # Get control record for metadata
+        control_result = supabase.table('instagram_scraper_control')\
+            .select('metadata')\
+            .eq('id', 1)\
+            .single()\
+            .execute()
+
+        daily_calls = 0
+        if control_result.data and control_result.data.get('metadata'):
+            daily_calls = control_result.data['metadata'].get('total_api_calls_today', 0)
+
+        # Cost calculation: $75 per 250,000 requests = $0.0003 per request
+        cost_per_request = 75 / 250000
+        daily_cost = daily_calls * cost_per_request
+        projected_monthly_cost = daily_cost * 30
+
+        return {
+            "success": True,
+            "metrics": {
+                "daily_api_calls": daily_calls,
+                "daily_cost": round(daily_cost, 2),
+                "projected_monthly_cost": round(projected_monthly_cost, 2),
+                "cost_per_request": cost_per_request
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to calculate Instagram cost metrics: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "metrics": {
+                "daily_api_calls": 0,
+                "daily_cost": 0,
+                "projected_monthly_cost": 0,
+                "cost_per_request": 0.0003
+            }
+        }
+
+
 @app.get("/api/instagram/scraper/metrics")
 @rate_limit("api")
 async def get_instagram_scraper_metrics(request: Request, hours: int = Query(default=24, le=168)):

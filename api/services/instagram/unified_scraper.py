@@ -131,8 +131,28 @@ class InstagramScraperUnified:
         self.cycle_start_time = None
 
     def should_continue(self) -> bool:
-        """Check if scraper should continue running"""
-        return not self.stop_requested
+        """Check if scraper should continue running from Supabase control table"""
+        try:
+            # Check Supabase control table for current status
+            result = self.supabase.table("instagram_scraper_control")\
+                .select("status")\
+                .eq("id", 1)\
+                .single()\
+                .execute()
+
+            if result.data:
+                should_run = result.data.get("status") == "running"
+                if not should_run:
+                    logger.info("Scraper stop signal received from control table")
+                return should_run
+            else:
+                # No control record, default to stop
+                logger.warning("No control record found, stopping scraper")
+                return False
+        except Exception as e:
+            logger.error(f"Error checking control table: {e}")
+            # On error, check the stop_requested flag as fallback
+            return not self.stop_requested
 
     def request_stop(self):
         """Request the scraper to stop gracefully"""
@@ -1238,18 +1258,28 @@ class InstagramScraperUnified:
             # Check if control record exists
             result = self.supabase.table("instagram_scraper_control")\
                 .select("id")\
-                .limit(1)\
+                .eq("id", 1)\
                 .execute()
 
             update_data = {
                 "status": status,
+                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
                 "last_run_at": datetime.now(timezone.utc).isoformat() if status == "running" else None,
                 "metadata": {
                     "total_creators_processed": self.creators_processed,
                     "total_api_calls_today": self.daily_calls,
+                    "successful_calls": self.successful_calls,
+                    "failed_calls": self.failed_calls,
+                    "current_cycle": self.cycle_number,
                     "config": Config.to_dict()
                 }
             }
+
+            # Add PID when running
+            if status == "running":
+                update_data["pid"] = os.getpid()
+            elif status in ["stopped", "error"]:
+                update_data["pid"] = None
 
             if details:
                 update_data["metadata"]["details"] = details
@@ -1258,10 +1288,11 @@ class InstagramScraperUnified:
                 # Update existing
                 self.supabase.table("instagram_scraper_control")\
                     .update(update_data)\
-                    .eq("id", result.data[0]["id"])\
+                    .eq("id", 1)\
                     .execute()
             else:
-                # Insert new
+                # Insert new with id=1
+                update_data["id"] = 1
                 self.supabase.table("instagram_scraper_control")\
                     .insert(update_data)\
                     .execute()
@@ -1465,7 +1496,14 @@ class InstagramScraperUnified:
 
                 # Check for stop signal periodically during sleep
                 sleep_interval = 60  # Check every minute
+                heartbeat_counter = 0
                 for _ in range(int(wait_seconds / sleep_interval)):
+                    # Update heartbeat every 5 minutes
+                    heartbeat_counter += 1
+                    if heartbeat_counter >= 5:  # 5 minutes
+                        self.update_scraper_status("running", {"waiting_for_next_cycle": True})
+                        heartbeat_counter = 0
+
                     if not self.should_continue():
                         logger.info("Stop requested during wait")
                         break
