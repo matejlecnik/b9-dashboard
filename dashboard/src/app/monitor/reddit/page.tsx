@@ -178,9 +178,9 @@ export default function RedditMonitor() {
       try {
         if (supabase) {
           const controlStatus = await supabase
-            .from('scraper_control')
-            .select('enabled')
-            .eq('id', 1)
+            .from('system_control')
+            .select('enabled, status')
+            .eq('script_name', 'reddit_scraper')
             .single()
 
           if (controlStatus.data && !manualOverride) {
@@ -353,9 +353,9 @@ export default function RedditMonitor() {
         // First check Supabase for immediate status - this is the source of truth
         if (!supabase) return
         const controlStatus = await supabase
-          .from('scraper_control')
-          .select('enabled')
-          .eq('id', 1)
+          .from('system_control')
+          .select('enabled, status')
+          .eq('script_name', 'reddit_scraper')
           .single()
 
         if (controlStatus.data !== null) {
