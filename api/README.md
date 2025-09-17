@@ -1,29 +1,60 @@
-# B9 Dashboard API
+# B9 Dashboard API - Production Ready
 
-Consolidated Reddit Analytics API with comprehensive functionality for OnlyFans marketing optimization.
+## 🚀 STATUS: STABLE - DO NOT MODIFY WITHOUT APPROVAL
 
-## Directory Documentation Block
+FastAPI backend service for B9 Dashboard - Reddit & Instagram analytics for OnlyFans creator discovery.
 
-### Overview
-- FastAPI service deployed on Render. Provides categorization, stats, background jobs, and scraper/user services. Integrates with Supabase and Redis for data, caching, and rate limiting.
+## ✅ Current Status
 
-### TODO List
-✅ All tasks completed - System fully operational
+**All systems operational:**
+- Reddit scraper: Working 24/7 with continuous polling
+- Instagram scraper: Working 24/7 with continuous polling
+- Both scrapers auto-start on deployment if enabled
+- Full API endpoints functional
+- Deployed on Render with automatic GitHub deployments
 
-### Current Errors
-- None - All logging and monitoring systems operational
+## 🏗️ Architecture Overview
 
-### Potential Improvements
-- Add per-endpoint rate limits in docs and align with dashboard usage
-- Expand `/api/stats` payload with category/user/scraper breakdowns used by dashboard
-- Provide typed client examples (TypeScript fetch helpers) for the dashboard
+### Core Components
 
-## 🚀 Features
+1. **Continuous Scrapers** (`/core/`)
+   - `continuous_scraper.py` - Reddit scraper with 30-second database polling
+   - `continuous_instagram_scraper.py` - Instagram scraper with 30-second database polling
+   - Both check `system_control` table every 30 seconds for enable/disable status
+   - Auto-start on API deployment via `start.py`
 
-- **Categorization**: AI-powered subreddit categorization (17 categories)
-- **Scraper**: Multi-account Reddit scraping with proxy support
-- **User Management**: User discovery and quality scoring
-- **Logging**: Comprehensive logging to Supabase tables
+2. **API Routes** (`/routes/`)
+   - `/api/scraper/*` - Reddit scraper control endpoints
+   - `/api/instagram/scraper/*` - Instagram scraper control endpoints
+   - `/api/users/*` - User discovery from Reddit
+   - `/api/categorization/*` - AI-powered subreddit categorization
+
+3. **Services** (`/services/`)
+   - `categorization_service.py` - OpenAI GPT integration
+   - `instagram/unified_scraper.py` - Instagram API logic with rate limiting
+   - `database.py` - Supabase client management
+
+4. **Utilities** (`/utils/`)
+   - `system_logger.py` - Centralized logging to Supabase
+   - `cache.py` - Redis caching (when available)
+   - `rate_limit.py` - API rate limiting
+   - `monitoring.py` - Health checks
+
+### How Scrapers Work
+
+Both scrapers follow the same pattern:
+1. Start once (via `start.py` on deployment or manual trigger)
+2. Run forever in a loop:
+   - Check database every 30 seconds
+   - If enabled=true: run scraping cycle
+   - If enabled=false: wait and check again
+   - Update heartbeat to show alive status
+3. Never exit unless process is killed
+
+### Control Flow
+```
+Dashboard → API Endpoint → Update Database → Scraper sees change in 30s
+```
 
 ## 📋 API Endpoints
 
@@ -31,113 +62,116 @@ Consolidated Reddit Analytics API with comprehensive functionality for OnlyFans 
 - `GET /` - Health check
 - `GET /health` - Detailed health check
 - `GET /api/stats` - System statistics
- - `GET /ready` - Readiness probe
- - `GET /alive` - Liveness probe
- - `GET /metrics` - System and application metrics
+- `GET /ready` - Readiness probe
+- `GET /alive` - Liveness probe
+
+### Reddit Scraper Control
+- `POST /api/scraper/start` - Enable Reddit scraper
+- `POST /api/scraper/stop` - Disable Reddit scraper
+- `GET /api/scraper/status` - Get Reddit scraper status
+- `POST /api/scraper/analyze-subreddit/{name}` - Analyze specific subreddit
+- `POST /api/scraper/discover-subreddits` - Discover subreddits from users
+
+### Instagram Scraper Control
+- `POST /api/instagram/scraper/start` - Enable Instagram scraper (also starts subprocess)
+- `POST /api/instagram/scraper/stop` - Disable Instagram scraper
+- `GET /api/instagram/scraper/status` - Get Instagram scraper status
+- `GET /api/instagram/scraper/cycle-status` - Get current cycle information
+- `GET /api/instagram/scraper/success-rate` - Get success rate metrics
 
 ### Categorization
 - `POST /api/categorization/start` - Start AI categorization for approved subreddits
-- `GET /api/categorization/stats` - Get categorization statistics and progress
+- `GET /api/categorization/stats` - Get categorization statistics
 - `GET /api/categorization/categories` - List all 18 marketing categories
 
-#### Examples
-```bash
-curl -X POST "http://localhost:8000/api/categorization/start" \
-  -H "Content-Type: application/json" \
-  -d '{"batchSize":30, "limit": 200}'
-
-curl "http://localhost:8000/api/categorization/stats"
-
-curl "http://localhost:8000/api/categorization/categories"
-```
-
-### Scraper
-- `POST /api/scraper/analyze-subreddit/{name}` - Analyze specific subreddit
-- `POST /api/scraper/discover-subreddits` - Discover subreddits from users
-- `GET /api/scraper/stats` - Get scraper statistics
-
 ### Users
-- `POST /api/users/discover` - Discover and analyze Reddit user
-- `GET /api/users/{username}` - Get user information
-- `GET /api/users` - Get paginated users list
-- `GET /api/users/stats` - Get user statistics
-
-### Logging
-- `GET /api/logs/stats` - Get logging statistics
-- `POST /api/logs/flush` - Force flush log buffers
-
-### Background Jobs
-- `POST /api/jobs/start` - Queue a background job
-- `GET /api/jobs/{job_id}` - Get job status
-
-#### Examples
-```bash
-curl -X POST "http://localhost:8000/api/jobs/start" \
-  -H "Content-Type: application/json" \
-  -d '{"job_type":"categorization", "parameters": {"batchSize": 30}, "priority":"normal"}'
-
-curl "http://localhost:8000/api/jobs/job_1736739392000"
-```
+- `POST /api/users/discover` - Discover and analyze Reddit user (used by posting page)
+- `GET /api/users/health` - User routes health check
 
 ## 🛠️ Deployment
 
 ### Render (Production)
 
-1. **Environment Variables** (set in Render dashboard):
-   ```
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   OPENAI_API_KEY=your-openai-api-key
-   ENVIRONMENT=production
-   PORT=10000
-   ```
+The API is deployed on Render and automatically deploys from GitHub pushes to main branch.
 
-2. **Deploy**:
-   - Connect GitHub repository to Render
-   - Render will automatically deploy using `render.yaml`
-   - Background workers handle long-running tasks
+**Environment Variables** (set in Render dashboard):
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+OPENAI_API_KEY=your-openai-api-key
+ENVIRONMENT=production
+PORT=10000
+```
+
+**Deployment Process:**
+1. Push changes to GitHub
+2. Render automatically deploys via webhook
+3. `start.py` runs on deployment
+4. Scrapers auto-start if enabled in database
 
 ### Local Development
 
-1. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-2. **Environment Setup**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual values
-   ```
+# Set up environment
+cp .env.example .env
+# Edit .env with your actual values
 
-3. **Run**:
-   ```bash
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
-   ```
+# Run API
+python main.py
+# Or
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
 ## 📊 Database Schema
 
-The API uses a unified Supabase logging system:
-- `system_logs` - Centralized logging table for all operations
-  - Categorization operations (source: `reddit_categorizer`)
-  - User discovery operations (source: `user_discovery`)
-  - Reddit scraping operations (source: `reddit_scraper`)
-  - Instagram scraping operations (source: `instagram_scraper`)
-  - API operations (source: `api`)
+### Main Tables Used
+- `system_control` - Controls scraper enable/disable status
+- `system_logs` - Centralized logging for all operations
+- `reddit_users` - Reddit user data and stats
+- `reddit_posts` - Reddit post data
+- `instagram_creators` - Instagram creator data
+- `categorized_subreddits` - AI categorization results
 
-## 🔧 Architecture
+### Logging Sources
+- `reddit_scraper` - Reddit scraping operations
+- `instagram_scraper` - Instagram scraping operations
+- `reddit_categorizer` - Categorization operations
+- `user_discovery` - User discovery operations
+- `api` - General API operations
+
+## 🔧 File Structure
 
 ```
 api/
-├── services/           # Core business logic
-│   ├── logging_service.py
-│   ├── user_service.py
-│   ├── categorization_service.py
-│   └── scraper_service.py
-├── models/            # Data models
-├── utils/            # Utilities
-├── scripts/          # Database scripts
-└── main.py          # FastAPI application
+├── core/                       # Scraper implementations
+│   ├── continuous_scraper.py      # Reddit 24/7 scraper
+│   ├── continuous_instagram_scraper.py  # Instagram 24/7 scraper
+│   └── reddit_scraper.py          # Reddit API logic
+│
+├── routes/                     # API endpoints
+│   ├── scraper_routes.py          # Reddit scraper control
+│   ├── instagram_scraper_routes.py # Instagram scraper control
+│   └── user_routes.py             # User discovery
+│
+├── services/                   # Business logic
+│   ├── categorization_service.py  # OpenAI integration
+│   ├── database.py                # Supabase client
+│   └── instagram/
+│       └── unified_scraper.py     # Instagram scraping logic
+│
+├── utils/                      # Utilities
+│   ├── system_logger.py           # Centralized logging
+│   ├── cache.py                   # Redis caching
+│   ├── rate_limit.py              # Rate limiting
+│   └── monitoring.py              # Health checks
+│
+├── main.py                     # FastAPI application
+├── start.py                    # Deployment startup script
+├── requirements.txt            # Python dependencies
+└── render.yaml                # Render deployment config
 ```
 
 ## 🔐 Security
@@ -145,30 +179,75 @@ api/
 - All API keys stored as environment variables
 - Supabase service role key for database operations
 - CORS configured for dashboard integration
+- Rate limiting on all endpoints
 - Comprehensive error handling and logging
 
-## 📈 Monitoring
+## 📈 Performance
 
-- Real-time logging to Supabase
-- Health check endpoints
-- Performance metrics tracking
-- Error tracking and reporting
-
-Built for B9 Agency - Optimizing OnlyFans marketing through data-driven Reddit intelligence.
-
-## Performance & Scalability
-
-- **Redis Caching**: Multi-layer caching with TTL management
-- **Rate Limiting**: Advanced rate limiting with Redis backend  
-- **Background Jobs**: Render-native background workers
-- **Response Compression**: GZip compression for optimized delivery
+- **Redis Caching**: When available, caches frequently accessed data
+- **Rate Limiting**: Prevents API abuse
+- **Background Processing**: Long-running tasks handled by workers
 - **Connection Pooling**: Optimized database connections
+- **Concurrent Processing**: Multi-threaded scraping for efficiency
 
-## Security Features
+## 🚨 Important Notes
 
-- **Comprehensive Error Handling**: Structured error responses with monitoring
-- **Rate Limiting**: Prevents API abuse with intelligent throttling
-- **Health Monitoring**: Multi-level health checks for load balancers
-- **Trusted Hosts**: Production host validation
-- **CORS Security**: Environment-specific CORS configuration
-# Deployment trigger Mon Sep 15 17:41:52 CEST 2025
+1. **DO NOT MODIFY** scraper logic without thorough testing
+2. **Scrapers run continuously** - they don't need to be restarted
+3. **Database polling** - 30-second interval is optimal
+4. **Auto-deployment** - Every GitHub push triggers Render deployment
+5. **Logs** - Check `system_logs` table in Supabase for debugging
+
+## ⚠️ Memory Requirements
+
+**Current Issue:** Running both scrapers simultaneously requires >512MB RAM
+
+**Render Plan Requirements:**
+- **Starter (512MB)** - Can run ONE scraper at a time
+- **Standard (2GB)** - Recommended for both scrapers ✅
+- **Pro (4GB)** - For future expansion
+
+**Memory Usage Breakdown:**
+- Reddit scraper: ~200-300MB
+- Instagram scraper: ~150-250MB
+- FastAPI + overhead: ~100-150MB
+- **Total peak**: ~600-700MB
+
+**Temporary Workaround if on Starter:**
+```sql
+-- Disable one scraper to stay under 512MB
+UPDATE system_control SET enabled = false WHERE script_name = 'instagram_scraper';
+```
+
+## 📝 Maintenance
+
+### Common Tasks
+
+**Check scraper status:**
+```bash
+curl https://b9-dashboard.onrender.com/api/scraper/status
+curl https://b9-dashboard.onrender.com/api/instagram/scraper/status
+```
+
+**Enable/disable scrapers:**
+```sql
+-- Via Supabase
+UPDATE system_control SET enabled = true WHERE script_name = 'reddit_scraper';
+UPDATE system_control SET enabled = false WHERE script_name = 'instagram_scraper';
+```
+
+**View logs:**
+```sql
+-- Recent scraper logs
+SELECT * FROM system_logs
+WHERE source IN ('reddit_scraper', 'instagram_scraper')
+ORDER BY timestamp DESC
+LIMIT 100;
+```
+
+---
+
+Built for B9 Agency - Optimizing OnlyFans marketing through data-driven Reddit & Instagram intelligence.
+
+**Last Updated**: September 17, 2025
+**Status**: Production Ready - All Systems Operational
