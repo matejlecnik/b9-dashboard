@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-Instagram Scraper Status Endpoints (Read-Only)
-Control is done via Supabase system_control table only
-No start/stop endpoints - scraper runs 24/7 and checks control table
+Instagram Scraper Control & Status Endpoints
+Manages Instagram scraper via system_control table
 """
 
 # Version tracking - matches Instagram scraper versions
 API_VERSION = "2.0.0"
 
 import os
+import sys
+import signal
+import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 from supabase import create_client
@@ -516,13 +519,228 @@ async def get_cost_metrics():
         }
 
 
+@router.post("/start")
+async def start_instagram_scraper(request: Request):
+    """Start the Instagram scraper subprocess and track in Supabase"""
+    try:
+        supabase = get_supabase()
+
+        # Check if system_control record exists and if already running
+        result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
+
+        if result.data and result.data[0].get('pid'):
+            pid = result.data[0]['pid']
+            # Check if process is actually running
+            try:
+                os.kill(pid, 0)  # Check if process exists (doesn't actually kill)
+                logger.info(f"Instagram scraper already running with PID {pid}")
+                return {
+                    "success": False,
+                    "message": f"Instagram scraper already running with PID {pid}",
+                    "status": "already_running"
+                }
+            except (OSError, ProcessLookupError):
+                # Process doesn't exist, clean up stale PID
+                logger.info(f"Cleaning up stale PID {pid}")
+                pass
+
+        # Launch the Instagram scraper subprocess
+        # Determine the correct path for the scraper
+        if os.path.exists("/app/api/core/continuous_instagram_scraper.py"):
+            # Production path (Render)
+            scraper_path = "/app/api/core/continuous_instagram_scraper.py"
+        else:
+            # Local development path
+            scraper_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "continuous_instagram_scraper.py")
+            if not os.path.exists(scraper_path):
+                logger.error(f"Instagram scraper script not found at {scraper_path}")
+                return {
+                    "success": False,
+                    "message": f"Instagram scraper script not found at {scraper_path}",
+                    "status": "error"
+                }
+
+        logger.info(f"Launching Instagram scraper from: {scraper_path}")
+
+        # Create log directory if it doesn't exist
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Open log files for scraper output
+        stdout_log = open(os.path.join(log_dir, "instagram_scraper_stdout.log"), "a")
+        stderr_log = open(os.path.join(log_dir, "instagram_scraper_stderr.log"), "a")
+
+        scraper_process = subprocess.Popen(
+            [sys.executable, "-u", scraper_path],
+            stdout=stdout_log,
+            stderr=stderr_log,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True  # Detach from parent
+        )
+
+        # Close file handles in parent process
+        stdout_log.close()
+        stderr_log.close()
+
+        logger.info(f"✅ Instagram scraper subprocess started with PID {scraper_process.pid}")
+
+        # Update database with PID and enabled status
+        update_data = {
+            'enabled': True,
+            'status': 'running',
+            'pid': scraper_process.pid,
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+            'updated_by': 'api',
+            'started_at': datetime.now(timezone.utc).isoformat()
+        }
+
+        if result.data:
+            # Update existing record
+            supabase.table('system_control').update(update_data).eq('script_name', 'instagram_scraper').execute()
+        else:
+            # Create new record
+            update_data['script_name'] = 'instagram_scraper'
+            update_data['script_type'] = 'scraper'
+            update_data['config'] = {'scan_interval_hours': 24, 'batch_size': 5}
+            supabase.table('system_control').insert(update_data).execute()
+
+        # Log the action
+        if system_logger:
+            system_logger.info(
+                f'✅ Instagram scraper started via API with PID {scraper_process.pid}',
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={'action': 'start', 'pid': scraper_process.pid}
+            )
+
+        return {
+            "success": True,
+            "message": "Instagram scraper started successfully",
+            "pid": scraper_process.pid,
+            "status": "running",
+            "details": {
+                "method": "subprocess",
+                "pid": scraper_process.pid,
+                "enabled_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error starting Instagram scraper: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to start Instagram scraper: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "start"},
+                sync=True
+            )
+        return {
+            "success": False,
+            "message": f"Failed to start Instagram scraper: {str(e)}",
+            "status": "error"
+        }
+
+
+@router.post("/stop")
+async def stop_instagram_scraper(request: Request):
+    """Stop the Instagram scraper by killing the process and updating Supabase"""
+    try:
+        supabase = get_supabase()
+
+        # Get current PID
+        result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
+
+        if result.data and result.data[0].get('pid'):
+            pid = result.data[0]['pid']
+            try:
+                # First try graceful termination with SIGTERM
+                os.kill(pid, signal.SIGTERM)
+                logger.info(f"Sent SIGTERM to Instagram scraper PID {pid}")
+
+                # Give it a moment to terminate gracefully
+                import time
+                time.sleep(1)
+
+                # Check if still running and force kill if needed
+                try:
+                    os.kill(pid, 0)  # Check if still exists
+                    os.kill(pid, signal.SIGKILL)  # Force kill
+                    logger.warning(f"Had to force kill Instagram scraper PID {pid}")
+                except (OSError, ProcessLookupError):
+                    logger.info(f"Instagram scraper PID {pid} terminated gracefully")
+
+            except (OSError, ProcessLookupError) as e:
+                logger.warning(f"Could not kill PID {pid}: {e} (process may have already stopped)")
+
+        # Update database - clear PID and set enabled to false
+        update_data = {
+            'enabled': False,
+            'status': 'stopped',
+            'pid': None,
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+            'updated_by': 'api',
+            'stopped_at': datetime.now(timezone.utc).isoformat()
+        }
+
+        if result.data:
+            supabase.table('system_control').update(update_data).eq('script_name', 'instagram_scraper').execute()
+        else:
+            update_data['script_name'] = 'instagram_scraper'
+            update_data['script_type'] = 'scraper'
+            update_data['config'] = {'scan_interval_hours': 24, 'batch_size': 5}
+            supabase.table('system_control').insert(update_data).execute()
+
+        # Log the action
+        if system_logger:
+            system_logger.info(
+                '⏹️ Instagram scraper stopped via API',
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={'action': 'stop'}
+            )
+
+        logger.info("⏹️ Instagram scraper stopped and disabled in Supabase")
+
+        return {
+            "success": True,
+            "message": "Instagram scraper stopped successfully",
+            "status": "stopped",
+            "details": {
+                "method": "process_termination",
+                "disabled_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error stopping Instagram scraper: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to stop Instagram scraper: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "stop"},
+                sync=True
+            )
+        return {
+            "success": False,
+            "message": f"Failed to stop Instagram scraper: {str(e)}",
+            "status": "error"
+        }
+
+
 @router.get("/control-info")
 async def get_control_info():
     """Get information about how to control the Instagram scraper"""
     return {
-        "control_method": "Supabase Only",
-        "no_api_endpoints": True,
-        "instructions": {
+        "control_method": "API & Supabase",
+        "api_endpoints": {
+            "start": "POST /api/instagram/scraper/start",
+            "stop": "POST /api/instagram/scraper/stop",
+            "status": "GET /api/instagram/scraper/status"
+        },
+        "database_control": {
             "to_start": "UPDATE system_control SET enabled = true WHERE script_name = 'instagram_scraper';",
             "to_stop": "UPDATE system_control SET enabled = false WHERE script_name = 'instagram_scraper';",
             "to_check_status": "SELECT * FROM system_control WHERE script_name = 'instagram_scraper';",
@@ -535,5 +753,5 @@ async def get_control_info():
             "scraper_file": "api/core/continuous_instagram_scraper.py",
             "logic_file": "api/services/instagram/unified_scraper.py"
         },
-        "note": "The Instagram scraper runs continuously as a subprocess and checks the control table every 30 seconds. There are no API endpoints to start or stop it - control is exclusively through the database."
+        "note": "The Instagram scraper can be controlled via API endpoints or directly through the database. The scraper runs continuously as a subprocess and checks the control table every 30 seconds."
     }

@@ -197,13 +197,14 @@ export default function InstagramMonitor() {
       try {
         if (supabase) {
           const controlStatus = await supabase
-            .from('instagram_scraper_control')
-            .select('status')
-            .eq('id', 1)
+            .from('system_control')
+            .select('enabled, status')
+            .eq('script_name', 'instagram_scraper')
             .single()
 
           if (controlStatus.data && !manualOverride) {
-            setIsRunning(controlStatus.data.status === 'running')
+            const isEnabled = controlStatus.data.enabled === true || controlStatus.data.status === 'running'
+            setIsRunning(isEnabled)
           }
         }
       } catch (supabaseError) {
@@ -419,15 +420,16 @@ export default function InstagramMonitor() {
         // First check Supabase for immediate status - this is the source of truth
         if (!supabase) return
         const controlStatus = await supabase
-          .from('instagram_scraper_control')
-          .select('status')
-          .eq('id', 1)
+          .from('system_control')
+          .select('enabled, status')
+          .eq('script_name', 'instagram_scraper')
           .single()
 
         if (controlStatus.data !== null) {
           // Always use Supabase as the source of truth for initial state
-          setIsRunning(controlStatus.data.status === 'running')
-          console.log('Instagram scraper initial state from Supabase:', controlStatus.data.status)
+          const isEnabled = controlStatus.data.enabled === true || controlStatus.data.status === 'running'
+          setIsRunning(isEnabled)
+          console.log('Instagram scraper initial state from Supabase:', isEnabled ? 'running' : 'stopped')
         } else {
           // Default to stopped if no control record exists
           setIsRunning(false)
