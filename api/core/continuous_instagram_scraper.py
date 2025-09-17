@@ -131,8 +131,30 @@ class ContinuousInstagramScraper:
             # Initialize scraper if needed
             if not self.scraper:
                 logger.info("Initializing Instagram scraper...")
-                Config.validate()  # Validate configuration
-                self.scraper = InstagramScraperUnified()
+                try:
+                    # Validate configuration with detailed error logging
+                    logger.info("Validating Instagram API configuration...")
+                    Config.validate()  # Validate configuration
+                    logger.info(f"✅ Configuration validated - API Key: {'SET' if Config.RAPIDAPI_KEY else 'MISSING'}")
+                    logger.info(f"   RapidAPI Host: {Config.RAPIDAPI_HOST}")
+                    logger.info(f"   Supabase URL: {'SET' if Config.SUPABASE_URL else 'MISSING'}")
+
+                    # Initialize the scraper
+                    logger.info("Creating InstagramScraperUnified instance...")
+                    self.scraper = InstagramScraperUnified()
+                    logger.info("✅ Instagram scraper initialized successfully")
+                except ValueError as e:
+                    logger.error(f"❌ Configuration validation failed: {e}")
+                    # Log specific missing variables
+                    logger.error(f"   RAPIDAPI_KEY: {'SET' if os.getenv('RAPIDAPI_KEY') else 'MISSING'}")
+                    logger.error(f"   SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'MISSING'}")
+                    logger.error(f"   SUPABASE_SERVICE_ROLE_KEY: {'SET' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'MISSING'}")
+                    raise
+                except Exception as e:
+                    logger.error(f"❌ Failed to initialize Instagram scraper: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    raise
 
             # Create control checker function
             async def control_checker():
@@ -154,7 +176,15 @@ class ContinuousInstagramScraper:
 
             # Run the scraping with control checker
             # Instagram scraper uses synchronous run method
-            await asyncio.to_thread(self.scraper.run, control_checker=control_checker)
+            logger.info("Starting Instagram scraper run() method...")
+            try:
+                await asyncio.to_thread(self.scraper.run, control_checker=control_checker)
+                logger.info("Instagram scraper run() method completed")
+            except Exception as e:
+                logger.error(f"❌ Error in scraper run() method: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                raise
 
             # Calculate cycle duration
             cycle_end_time = datetime.now(timezone.utc)
