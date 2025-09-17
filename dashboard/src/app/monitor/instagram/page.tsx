@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Play,
   Square,
@@ -57,6 +57,7 @@ export default function InstagramMonitor() {
   const [manualOverride, setManualOverride] = useState(false)
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
   const [costData, setCostData] = useState<{ daily: number; monthly: number } | null>(null)
+  const manualOverrideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { addToast } = useToast()
 
   // Calculate success rate from metrics
@@ -220,6 +221,12 @@ export default function InstagramMonitor() {
     try {
       setLoading(true)
 
+      // Clear any existing manual override timeout
+      if (manualOverrideTimeoutRef.current) {
+        clearTimeout(manualOverrideTimeoutRef.current)
+        manualOverrideTimeoutRef.current = null
+      }
+
       // Optimistically update the UI immediately
       const newRunningState = action === 'start'
       setIsRunning(newRunningState)
@@ -249,11 +256,11 @@ export default function InstagramMonitor() {
             type: 'success'
           })
 
-          // Clear manual override after 30 seconds to allow status updates again
-          setTimeout(() => {
+          // Clear manual override after 5 seconds to allow status updates again
+          manualOverrideTimeoutRef.current = setTimeout(() => {
             setManualOverride(false)
             fetchMetrics()  // Immediately fetch fresh status
-          }, 30000)
+          }, 5000)
         } else {
           // Revert optimistic update on failure
           setIsRunning(!newRunningState)
@@ -359,6 +366,10 @@ export default function InstagramMonitor() {
 
     return () => {
       clearInterval(metricsInterval)
+      // Clear manual override timeout on unmount
+      if (manualOverrideTimeoutRef.current) {
+        clearTimeout(manualOverrideTimeoutRef.current)
+      }
     }
   }, []) // Empty dependency array - only run once on mount
 
