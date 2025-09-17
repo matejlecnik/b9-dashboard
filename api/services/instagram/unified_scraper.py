@@ -1393,7 +1393,8 @@ class InstagramScraperUnified:
                     })
 
                     # Process in concurrent batches
-                    batch_size = Config.CONCURRENT_CREATORS * 5  # Process 50 at a time with 10 concurrent
+                    # With 60 concurrent creators, we can process larger batches
+                    batch_size = min(Config.CONCURRENT_CREATORS * 2, total_creators)  # Process up to 120 at once
 
                     for i in range(0, total_creators, batch_size):
                         # Check if we should stop
