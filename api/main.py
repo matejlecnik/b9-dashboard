@@ -586,10 +586,12 @@ async def start_instagram_scraper(request: Request):
 
         # Log to Supabase
         if supabase:
-            supabase.table('instagram_scraper_logs').insert({
-                'log_level': 'info',
-                'message': 'Instagram scraper started',
-                'details': result
+            supabase.table('instagram_scraper_realtime_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'level': 'info',
+                'message': 'Instagram scraper started via API',
+                'source': 'instagram_api',
+                'context': result
             }).execute()
 
         return result
@@ -616,10 +618,12 @@ async def stop_instagram_scraper(request: Request):
 
         # Log to Supabase
         if supabase:
-            supabase.table('instagram_scraper_logs').insert({
-                'log_level': 'info',
-                'message': 'Instagram scraper stopped',
-                'details': result
+            supabase.table('instagram_scraper_realtime_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'level': 'info',
+                'message': 'Instagram scraper stopped via API',
+                'source': 'instagram_api',
+                'context': result
             }).execute()
 
         return result
@@ -669,7 +673,7 @@ async def get_instagram_scraper_metrics(request: Request, hours: int = Query(def
         status = await get_status_async() if INSTAGRAM_SCRAPER_AVAILABLE else {"running": False}
 
         # Get recent logs
-        logs_response = supabase.table('instagram_scraper_logs').select('*').order('created_at', desc=True).limit(100).execute()
+        logs_response = supabase.table('instagram_scraper_realtime_logs').select('*').order('timestamp', desc=True).limit(100).execute()
 
         # Get creator stats
         creator_response = supabase.table('instagram_creators').select('status, count').execute()
@@ -681,16 +685,16 @@ async def get_instagram_scraper_metrics(request: Request, hours: int = Query(def
         # Get recent performance from logs
         performance_logs = [
             log for log in (logs_response.data or [])
-            if log.get('details') and isinstance(log['details'], dict) and 'performance' in log['details']
+            if log.get('context') and isinstance(log['context'], dict) and 'performance' in log['context']
         ]
 
         avg_rps = 0
         total_requests = 0
         if performance_logs:
-            rps_values = [log['details']['performance'].get('current_rps', 0) for log in performance_logs[:10]]
+            rps_values = [log['context']['performance'].get('current_rps', 0) for log in performance_logs[:10]]
             avg_rps = sum(rps_values) / len(rps_values) if rps_values else 0
 
-            request_counts = [log['details']['performance'].get('total_requests', 0) for log in performance_logs[:10]]
+            request_counts = [log['context']['performance'].get('total_requests', 0) for log in performance_logs[:10]]
             total_requests = max(request_counts) if request_counts else 0
 
         return {
@@ -726,12 +730,12 @@ async def get_instagram_scraper_logs(
         if not supabase:
             raise HTTPException(status_code=503, detail="Database not available")
 
-        query = supabase.table('instagram_scraper_logs').select('*')
+        query = supabase.table('instagram_scraper_realtime_logs').select('*')
 
         if log_level:
-            query = query.eq('log_level', log_level)
+            query = query.eq('level', log_level)
 
-        response = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
+        response = query.order('timestamp', desc=True).range(offset, offset + limit - 1).execute()
 
         return {
             "logs": response.data or [],

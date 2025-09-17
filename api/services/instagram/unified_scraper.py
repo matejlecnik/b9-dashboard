@@ -173,12 +173,17 @@ class InstagramScraperUnified:
         """Get today's API call count from database"""
         try:
             today = datetime.now(timezone.utc).date().isoformat()
-            result = self.supabase.table("instagram_scraper_logs")\
-                .select("api_calls_made")\
-                .gte("created_at", f"{today}T00:00:00Z")\
+            result = self.supabase.table("instagram_scraper_realtime_logs")\
+                .select("context")\
+                .gte("timestamp", f"{today}T00:00:00Z")\
+                .eq("source", "instagram_scraper")\
                 .execute()
 
-            return sum(log.get("api_calls_made", 0) for log in (result.data or []))
+            return sum(
+                log.get("context", {}).get("api_calls_made", 0)
+                for log in (result.data or [])
+                if log.get("context") and isinstance(log.get("context"), dict)
+            )
         except Exception as e:
             logger.warning(f"Failed to get daily API calls: {e}")
             return 0
@@ -187,12 +192,17 @@ class InstagramScraperUnified:
         """Get this month's API call count"""
         try:
             first_of_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0)
-            result = self.supabase.table("instagram_scraper_logs")\
-                .select("api_calls_made")\
-                .gte("created_at", first_of_month.isoformat())\
+            result = self.supabase.table("instagram_scraper_realtime_logs")\
+                .select("context")\
+                .gte("timestamp", first_of_month.isoformat())\
+                .eq("source", "instagram_scraper")\
                 .execute()
 
-            return sum(log.get("api_calls_made", 0) for log in (result.data or []))
+            return sum(
+                log.get("context", {}).get("api_calls_made", 0)
+                for log in (result.data or [])
+                if log.get("context") and isinstance(log.get("context"), dict)
+            )
         except Exception as e:
             logger.warning(f"Failed to get monthly API calls: {e}")
             return 0
@@ -228,9 +238,24 @@ class InstagramScraperUnified:
             duration = time.time() - self.start_time
             cost = self.api_calls_made * Config.get_cost_per_request()
 
-            # Build comprehensive log entry
-            log_entry = {
-                "script_name": "unified_scraper",
+            # Build message based on action
+            if action == "process_creator":
+                if success:
+                    message = f"✅ Processed {username}: {items_fetched} items fetched, {items_saved} saved"
+                else:
+                    message = f"❌ Failed to process {username}: {error}"
+            elif action == "run_complete":
+                message = f"🎆 Scraping complete: {self.creators_processed} creators processed"
+            elif action == "run_failed":
+                message = f"🔴 Scraper run failed: {error}"
+            else:
+                message = f"{action}: {username or 'N/A'}"
+
+            # Determine log level
+            level = "error" if error else ("success" if success else "info")
+
+            # Build context with all the detailed metrics
+            context = {
                 "action": action,
                 "username": username,
                 "creator_id": creator_id,
@@ -250,7 +275,7 @@ class InstagramScraperUnified:
 
             # Add analytics summary if provided
             if analytics:
-                log_entry["analytics_summary"] = {
+                context["analytics_summary"] = {
                     "engagement_rate": round(analytics.get("engagement_rate", 0), 2),
                     "avg_reel_views": int(analytics.get("avg_reel_views", 0)),
                     "avg_post_engagement": int(analytics.get("avg_post_engagement", 0)),
@@ -271,7 +296,16 @@ class InstagramScraperUnified:
                     "total_engagement": int(analytics.get("total_engagement", 0))
                 }
 
-            self.supabase.table("instagram_scraper_logs").insert(log_entry).execute()
+            # Insert into realtime logs table with proper format
+            log_entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "level": level,
+                "message": message,
+                "source": "instagram_scraper",
+                "context": context
+            }
+
+            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
         except Exception as e:
             logger.warning(f"Failed to log to Supabase: {e}")
 
