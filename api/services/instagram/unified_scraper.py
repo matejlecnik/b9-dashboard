@@ -1071,8 +1071,12 @@ class InstagramScraperUnified:
 
     def process_creator(self, creator: Dict[str, Any]) -> bool:
         """Process a single creator with comprehensive data fetching and analytics"""
-        creator_id = str(creator["ig_user_id"])
-        username = creator["username"]
+        logger.info(f"DEBUG: process_creator called with creator keys: {creator.keys()}")
+        logger.info(f"DEBUG: Creator data: {creator}")
+
+        # Handle different key formats
+        creator_id = str(creator.get("ig_user_id") or creator.get("instagram_id", ""))
+        username = creator.get("username", "")
         thread_id = threading.current_thread().name
 
         logger.info(f"[{thread_id}] Processing {username} ({creator_id})")
@@ -1334,8 +1338,12 @@ class InstagramScraperUnified:
             "target_rps": Config.REQUESTS_PER_SECOND
         })
 
+        logger.info(f"DEBUG: Creating ThreadPoolExecutor with {Config.CONCURRENT_CREATORS} workers")
+
         with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
-            for creator in creators:
+            logger.info(f"DEBUG: ThreadPoolExecutor created, submitting {len(creators)} creators")
+
+            for i, creator in enumerate(creators):
                 # Check if scraper should stop
                 if not self.should_continue():
                     logger.info("Scraper stop signal received")
@@ -1351,19 +1359,28 @@ class InstagramScraperUnified:
                     break
 
                 # Submit creator processing to thread pool
+                logger.info(f"DEBUG: Submitting creator {i+1}/{len(creators)}: {creator.get('username')} (ID: {creator.get('instagram_id')})")
                 future = executor.submit(self.process_creator, creator)
                 futures.append((future, creator))
 
                 # Small delay to avoid thundering herd
                 time.sleep(0.05)
 
+            logger.info(f"DEBUG: All {len(futures)} creators submitted, waiting for results")
+
             # Collect results as they complete
-            for future, creator in futures:
+            for i, (future, creator) in enumerate(futures):
                 try:
-                    future.result(timeout=120)  # 2 minute timeout per creator
+                    logger.info(f"DEBUG: Waiting for result {i+1}/{len(futures)}: {creator.get('username')}")
+                    result = future.result(timeout=120)  # 2 minute timeout per creator
+                    logger.info(f"DEBUG: Got result for creator {creator.get('username')}")
                 except Exception as e:
                     logger.error(f"Creator {creator.get('username')} processing failed: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
                     self.errors.append({"creator": creator.get('username'), "error": str(e)})
+
+            logger.info(f"DEBUG: All futures completed for batch")
 
     def run(self, control_checker=None):
         """High-performance main execution method with continuous loop
