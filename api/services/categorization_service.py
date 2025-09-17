@@ -270,9 +270,36 @@ Category:"""
         else:
             self.logger.error(f"❌ Failed to categorize r/{result.subreddit_name}: {result.error_message}")
 
-        # Log to Supabase categorization_logs table
+        # Log to unified system_logs table
         try:
             log_entry = {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_categorizer',
+                'script_name': 'categorization_service',
+                'level': 'info' if result.success else 'error',
+                'message': f"Categorized r/{result.subreddit_name} as '{result.category}'" if result.success else f"Failed to categorize r/{result.subreddit_name}: {result.error_message}",
+                'context': {
+                    'subreddit_name': result.subreddit_name,
+                    'subreddit_id': result.subreddit_id,
+                    'category_assigned': result.category if result.success else None,
+                    'ai_model': 'gpt-4-turbo-preview',
+                    'prompt_tokens': result.prompt_tokens,
+                    'completion_tokens': result.completion_tokens,
+                    'cost': float(result.cost) if result.cost else 0.00,
+                    'confidence_score': float(result.confidence) if result.confidence else None,
+                    'batch_number': batch_number,
+                    'success': result.success,
+                    'error_message': result.error_message
+                },
+                'duration_ms': result.processing_time_ms,
+                'items_processed': 1
+            }
+
+            self.supabase.table('system_logs').insert(log_entry).execute()
+
+            # Also keep the old table for now during transition (can be removed later)
+            # This maintains backward compatibility for any reporting
+            old_log_entry = {
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'subreddit_name': result.subreddit_name,
                 'subreddit_id': result.subreddit_id,
@@ -292,8 +319,7 @@ Category:"""
                     'confidence': float(result.confidence) if result.confidence else 0
                 }
             }
-
-            self.supabase.table('reddit_categorization_logs').insert(log_entry).execute()
+            self.supabase.table('reddit_categorization_logs').insert(old_log_entry).execute()
 
         except Exception as e:
             self.logger.error(f"Failed to log categorization to Supabase: {e}")

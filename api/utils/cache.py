@@ -12,6 +12,12 @@ import redis.asyncio as redis
 from redis.exceptions import RedisError
 import logging
 
+# Import system logger
+try:
+    from .system_logger import system_logger
+except ImportError:
+    system_logger = None
+
 logger = logging.getLogger(__name__)
 
 class CacheManager:
@@ -45,14 +51,36 @@ class CacheManager:
             await self.redis_client.ping()
             self.is_connected = True
             logger.info("✅ Redis cache initialized successfully")
+            if system_logger:
+                system_logger.info(
+                    "Redis cache initialized successfully",
+                    source="api",
+                    script_name="cache",
+                    context={"redis_url": redis_url.split('@')[-1] if '@' in redis_url else 'localhost'}
+                )
             return True
             
         except (RedisError, ConnectionError) as e:
             logger.warning(f"⚠️  Redis cache unavailable: {e}")
+            if system_logger:
+                system_logger.warning(
+                    f"Redis cache unavailable: {e}",
+                    source="api",
+                    script_name="cache",
+                    context={"error": str(e)}
+                )
             self.is_connected = False
             return False
         except Exception as e:
             logger.error(f"❌ Failed to initialize cache: {e}")
+            if system_logger:
+                system_logger.error(
+                    f"Failed to initialize cache: {e}",
+                    source="api",
+                    script_name="cache",
+                    context={"error": str(e)},
+                    sync=True
+                )
             self.is_connected = False
             return False
     

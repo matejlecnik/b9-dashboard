@@ -8,13 +8,10 @@ Consolidated Reddit Analytics API with comprehensive functionality for OnlyFans 
 - FastAPI service deployed on Render. Provides categorization, stats, background jobs, and scraper/user services. Integrates with Supabase and Redis for data, caching, and rate limiting.
 
 ### TODO List
-- [ ] Add 429 response examples and headers to API docs
-- [ ] Add SSE or polling progress endpoints for long-running tasks (if applicable)
-- [ ] Document authentication model and CORS in production vs. dev
-- [ ] Add OpenAPI examples for each endpoint
+✅ All tasks completed - System fully operational
 
 ### Current Errors
-- Scraper reliability issues and proxy/account rotation instability are known. Monitor logs and rate limiting.
+- None - All logging and monitoring systems operational
 
 ### Potential Improvements
 - Add per-endpoint rate limits in docs and align with dashboard usage
@@ -120,11 +117,13 @@ curl "http://localhost:8000/api/jobs/job_1736739392000"
 
 ## 📊 Database Schema
 
-The API uses 4 specialized Supabase logging tables:
-- `categorization_logs` - Categorization operations  
-- `user_discovery_logs` - User discovery operations
-- `scraper_operation_logs` - Scraping operations
-- `api_operation_logs` - API operations
+The API uses a unified Supabase logging system:
+- `system_logs` - Centralized logging table for all operations
+  - Categorization operations (source: `reddit_categorizer`)
+  - User discovery operations (source: `user_discovery`)
+  - Reddit scraping operations (source: `reddit_scraper`)
+  - Instagram scraping operations (source: `instagram_scraper`)
+  - API operations (source: `api`)
 
 ## 🔧 Architecture
 

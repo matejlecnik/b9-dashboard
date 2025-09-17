@@ -233,10 +233,10 @@ class InstagramScraperUnified:
         """Get today's API call count from database"""
         try:
             today = datetime.now(timezone.utc).date().isoformat()
-            result = self.supabase.table("instagram_scraper_realtime_logs")\
+            result = self.supabase.table("system_logs")\
                 .select("context")\
-                .gte("timestamp", f"{today}T00:00:00Z")\
                 .eq("source", "instagram_scraper")\
+                .gte("timestamp", f"{today}T00:00:00Z")\
                 .execute()
 
             return sum(
@@ -252,10 +252,10 @@ class InstagramScraperUnified:
         """Get this month's API call count"""
         try:
             first_of_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0)
-            result = self.supabase.table("instagram_scraper_realtime_logs")\
+            result = self.supabase.table("system_logs")\
                 .select("context")\
-                .gte("timestamp", first_of_month.isoformat())\
                 .eq("source", "instagram_scraper")\
+                .gte("timestamp", first_of_month.isoformat())\
                 .execute()
 
             return sum(
@@ -268,19 +268,20 @@ class InstagramScraperUnified:
             return 0
 
     def _log_realtime(self, level: str, message: str, context: Optional[Dict] = None):
-        """Log real-time message to instagram_scraper_realtime_logs for monitoring"""
+        """Log real-time message to system_logs for monitoring"""
         if not Config.ENABLE_SUPABASE_LOGGING:
             return
 
         try:
             log_entry = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "instagram_scraper",
+                "script_name": "unified_scraper",
                 "level": level,
                 "message": message,
-                "source": "instagram_scraper",
                 "context": context or {}
             }
-            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
+            self.supabase.table("system_logs").insert(log_entry).execute()
         except Exception as e:
             # Silently fail to avoid disrupting the scraper
             logger.debug(f"Failed to log realtime: {e}")
@@ -362,13 +363,14 @@ class InstagramScraperUnified:
             # Insert into realtime logs table with proper format
             log_entry = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "instagram_scraper",
+                "script_name": "unified_scraper",
                 "level": level,
                 "message": message,
-                "source": "instagram_scraper",
                 "context": context
             }
 
-            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
+            self.supabase.table("system_logs").insert(log_entry).execute()
         except Exception as e:
             logger.warning(f"Failed to log to Supabase: {e}")
 

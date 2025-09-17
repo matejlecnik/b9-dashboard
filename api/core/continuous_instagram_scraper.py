@@ -17,9 +17,14 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from services.instagram.unified_scraper import InstagramScraperUnified
     from services.instagram.instagram_config import Config
+    from utils.system_logger import system_logger
 else:
     from ..services.instagram.unified_scraper import InstagramScraperUnified
     from ..services.instagram.instagram_config import Config
+    try:
+        from ..utils.system_logger import system_logger
+    except ImportError:
+        system_logger = None
 
 # Version tracking
 SCRAPER_VERSION = "2.0.0"
@@ -59,16 +64,16 @@ class ContinuousInstagramScraper:
     async def update_heartbeat(self):
         """Update heartbeat in database to show scraper is alive"""
         try:
-            self.supabase.table('instagram_scraper_control').update({
+            self.supabase.table('system_control').update({
                 'last_heartbeat': datetime.now(timezone.utc).isoformat()
-            }).eq('id', 1).execute()
+            }).eq('script_name', 'instagram_scraper').execute()
         except Exception as e:
             logger.error(f"Error updating heartbeat: {e}")
 
     async def check_scraper_status(self):
         """Check if scraper should be running from Supabase control table"""
         try:
-            result = self.supabase.table('instagram_scraper_control').select('*').eq('id', 1).execute()
+            result = self.supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
 
             if result.data and len(result.data) > 0:
                 control = result.data[0]
@@ -81,11 +86,13 @@ class ContinuousInstagramScraper:
                     logger.info(f"{status_msg} via Supabase control")
 
                     # Log to Supabase
-                    self.supabase.table('instagram_scraper_realtime_logs').insert({
+                    self.supabase.table('system_logs').insert({
                         'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'instagram_scraper',
+                        'script_name': 'continuous_instagram_scraper',
                         'level': 'info',
                         'message': status_msg,
-                        'source': 'continuous_instagram_scraper'
+                        'context': {'status_change': True}
                     }).execute()
 
                 self.last_check = enabled
@@ -93,11 +100,13 @@ class ContinuousInstagramScraper:
             else:
                 # No control record, create default one
                 logger.warning("No Instagram scraper control record found, creating default (disabled)")
-                self.supabase.table('instagram_scraper_control').insert({
-                    'id': 1,
-                    'status': 'stopped',
+                self.supabase.table('system_control').insert({
+                    'script_name': 'instagram_scraper',
+                    'script_type': 'scraper',
                     'enabled': False,
-                    'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at
+                    'status': 'stopped',
+                    'config': {'scan_interval_hours': 24, 'batch_size': 5},
+                    'updated_at': datetime.now(timezone.utc).isoformat(),
                     'updated_by': 'system'
                 }).execute()
                 return False, {}
@@ -120,11 +129,12 @@ class ContinuousInstagramScraper:
             logger.info(f"🔄 Starting Instagram scraping cycle #{self.cycle_count}")
 
             # Log cycle start
-            self.supabase.table('instagram_scraper_realtime_logs').insert({
+            self.supabase.table('system_logs').insert({
                 'timestamp': cycle_start_time.isoformat(),
+                'source': 'instagram_scraper',
+                'script_name': 'continuous_instagram_scraper',
                 'level': 'info',
                 'message': f'🔄 Starting Instagram scraping cycle #{self.cycle_count}',
-                'source': 'continuous_instagram_scraper',
                 'context': {'cycle': self.cycle_count, 'version': SCRAPER_VERSION}
             }).execute()
 
@@ -160,9 +170,9 @@ class ContinuousInstagramScraper:
             async def control_checker():
                 """Check if scraper should continue running"""
                 try:
-                    result = self.supabase.table('instagram_scraper_control')\
+                    result = self.supabase.table('system_control')\
                         .select('enabled, status')\
-                        .eq('id', 1)\
+                        .eq('script_name', 'instagram_scraper')\
                         .execute()
 
                     if result.data and len(result.data) > 0:
@@ -203,11 +213,12 @@ class ContinuousInstagramScraper:
                 duration_formatted = f"{int(duration_seconds)}s"
 
             # Log cycle completion
-            self.supabase.table('instagram_scraper_realtime_logs').insert({
+            self.supabase.table('system_logs').insert({
                 'timestamp': cycle_end_time.isoformat(),
+                'source': 'instagram_scraper',
+                'script_name': 'continuous_instagram_scraper',
                 'level': 'success',
                 'message': f'✅ Completed Instagram scraping cycle #{self.cycle_count}',
-                'source': 'continuous_instagram_scraper',
                 'context': {
                     'cycle': self.cycle_count,
                     'duration_seconds': duration_seconds,
@@ -215,7 +226,8 @@ class ContinuousInstagramScraper:
                     'creators_processed': self.scraper.creators_processed,
                     'api_calls': self.scraper.api_calls_made,
                     'successful_calls': self.scraper.successful_calls if hasattr(self.scraper, 'successful_calls') else 0
-                }
+                },
+                'duration_ms': int(duration_seconds * 1000)
             }).execute()
 
             logger.info(f"✅ Completed cycle #{self.cycle_count} in {duration_formatted}")
@@ -224,11 +236,12 @@ class ContinuousInstagramScraper:
             logger.error(f"Error during scraping cycle: {e}")
 
             # Log error
-            self.supabase.table('instagram_scraper_realtime_logs').insert({
+            self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_scraper',
+                'script_name': 'continuous_instagram_scraper',
                 'level': 'error',
                 'message': f'❌ Error in Instagram scraping cycle #{self.cycle_count}: {str(e)}',
-                'source': 'continuous_instagram_scraper',
                 'context': {'cycle': self.cycle_count, 'error': str(e)}
             }).execute()
 
@@ -240,11 +253,13 @@ class ContinuousInstagramScraper:
         logger.info(f"🚀 Continuous Instagram scraper v{SCRAPER_VERSION} started")
 
         # Log startup
-        self.supabase.table('instagram_scraper_realtime_logs').insert({
+        self.supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'instagram_scraper',
+            'script_name': 'continuous_instagram_scraper',
             'level': 'info',
             'message': f'🚀 Continuous Instagram scraper v{SCRAPER_VERSION} started',
-            'source': 'continuous_instagram_scraper'
+            'context': {'version': SCRAPER_VERSION}
         }).execute()
 
         while not self.stop_requested:

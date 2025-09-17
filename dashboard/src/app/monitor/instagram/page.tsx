@@ -576,7 +576,7 @@ export default function InstagramMonitor() {
                   autoScroll={true}
                   refreshInterval={5000}
                   maxLogs={500}
-                  tableName="instagram_scraper_realtime_logs"
+                  useSystemLogs={true}
                   sourceFilter="instagram_scraper"
                 />
               </div>

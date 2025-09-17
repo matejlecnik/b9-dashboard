@@ -14,6 +14,12 @@ from redis.exceptions import RedisError
 from fastapi import HTTPException, Request
 import logging
 
+# Import system logger
+try:
+    from .system_logger import system_logger
+except ImportError:
+    system_logger = None
+
 logger = logging.getLogger(__name__)
 
 class RateLimiter:
@@ -57,14 +63,36 @@ class RateLimiter:
             await self.redis_client.ping()
             self.is_connected = True
             logger.info("✅ Rate limiter initialized successfully")
+            if system_logger:
+                system_logger.info(
+                    "Rate limiter initialized successfully",
+                    source="api",
+                    script_name="rate_limit",
+                    context={"enabled": self.is_enabled}
+                )
             return True
             
         except (RedisError, ConnectionError) as e:
             logger.warning(f"⚠️  Rate limiter Redis unavailable: {e}")
+            if system_logger:
+                system_logger.warning(
+                    f"Rate limiter Redis unavailable: {e}",
+                    source="api",
+                    script_name="rate_limit",
+                    context={"error": str(e)}
+                )
             self.is_connected = False
             return False
         except Exception as e:
             logger.error(f"❌ Failed to initialize rate limiter: {e}")
+            if system_logger:
+                system_logger.error(
+                    f"Failed to initialize rate limiter: {e}",
+                    source="api",
+                    script_name="rate_limit",
+                    context={"error": str(e)},
+                    sync=True
+                )
             self.is_connected = False
             return False
     

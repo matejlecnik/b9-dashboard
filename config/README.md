@@ -9,8 +9,8 @@ This directory contains essential configuration files for the Reddit analytics s
 
 ### TODO List
 - [ ] Add seed SQL for minimal dev dataset and example accounts
-- [ ] Create migration scripts for dashboard indexes and RLS examples
-- [ ] Document environment variable matrix for dev/staging/prod
+- [ ] Create migration scripts for dashboard  and RLS examples
+- [ ] Document environment variable matrix for dev/staging/prodindexes
 
 ### Current Errors
 - None tracked here; see scraper and API READMEs for runtime issues

@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """
-Instagram Scraper Control Endpoints
-Based on Reddit scraper architecture for subprocess control and 24/7 operation
+Instagram Scraper Status Endpoints (Read-Only)
+Control is done via Supabase system_control table only
+No start/stop endpoints - scraper runs 24/7 and checks control table
 """
 
 # Version tracking - matches Instagram scraper versions
 API_VERSION = "2.0.0"
 
 import os
-import sys
-import signal
-import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 from supabase import create_client
+
+# Import system logger
+try:
+    from ..utils.system_logger import system_logger, log_api_call
+except ImportError:
+    system_logger = None
+    log_api_call = None
 
 logger = logging.getLogger(__name__)
 
@@ -34,193 +38,6 @@ def get_supabase():
 
     return create_client(supabase_url, supabase_key)
 
-# Request models
-class ScraperConfigRequest(BaseModel):
-    enabled: bool = True
-
-@router.post("/start")
-async def start_instagram_scraper(request: Request):
-    """Start the Instagram scraper subprocess and track in Supabase"""
-    try:
-        supabase = get_supabase()
-
-        # Check if scraper_control record exists and if already running
-        result = supabase.table('instagram_scraper_control').select('*').eq('id', 1).execute()
-
-        if result.data and result.data[0].get('pid'):
-            pid = result.data[0]['pid']
-            # Check if process is actually running
-            try:
-                os.kill(pid, 0)  # Check if process exists (doesn't actually kill)
-                logger.info(f"Instagram scraper already running with PID {pid}")
-                return {
-                    "success": False,
-                    "message": f"Instagram scraper already running with PID {pid}",
-                    "status": "already_running"
-                }
-            except (OSError, ProcessLookupError):
-                # Process doesn't exist, clean up stale PID
-                logger.info(f"Cleaning up stale PID {pid}")
-                pass
-
-        # Launch the Instagram scraper subprocess
-        # Determine the correct path for the scraper
-        if os.path.exists("/app/api/core/continuous_instagram_scraper.py"):
-            # Production path (Render)
-            scraper_path = "/app/api/core/continuous_instagram_scraper.py"
-        else:
-            # Local development path
-            scraper_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "continuous_instagram_scraper.py")
-            if not os.path.exists(scraper_path):
-                logger.error(f"Instagram scraper script not found at {scraper_path}")
-                return {
-                    "success": False,
-                    "message": f"Instagram scraper script not found at {scraper_path}",
-                    "status": "error"
-                }
-
-        logger.info(f"Launching Instagram scraper from: {scraper_path}")
-
-        # Create log directory if it doesn't exist
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
-        os.makedirs(log_dir, exist_ok=True)
-
-        # Open log files for scraper output - but also inherit stderr for debugging
-        stdout_log = open(os.path.join(log_dir, "instagram_scraper_stdout.log"), "a")
-
-        # For debugging, inherit stderr so we can see logs in Render
-        scraper_process = subprocess.Popen(
-            [sys.executable, "-u", scraper_path],
-            stdout=stdout_log,
-            stderr=None,  # Inherit stderr to see debug logs in Render
-            stdin=subprocess.DEVNULL,
-            start_new_session=True  # Detach from parent
-        )
-
-        # Close file handles in parent process
-        stdout_log.close()
-
-        logger.info(f"✅ Instagram scraper subprocess started with PID {scraper_process.pid}")
-
-        # Update database with PID and enabled status
-        update_data = {
-            'enabled': True,
-            'status': 'running',  # Keep status field for backward compatibility
-            'pid': scraper_process.pid,
-            'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at instead of last_updated
-            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-            'updated_by': 'api'
-        }
-
-        if result.data:
-            # Update existing record
-            supabase.table('instagram_scraper_control').update(update_data).eq('id', 1).execute()
-        else:
-            # Create new record
-            update_data['id'] = 1
-            supabase.table('instagram_scraper_control').insert(update_data).execute()
-
-        # Log the action
-        supabase.table('instagram_scraper_realtime_logs').insert({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'level': 'info',
-            'message': f'✅ Instagram scraper started via API with PID {scraper_process.pid}',
-            'source': 'api_control'
-        }).execute()
-
-        return {
-            "success": True,
-            "message": "Instagram scraper started successfully",
-            "pid": scraper_process.pid,
-            "status": "running",
-            "details": {
-                "method": "subprocess",
-                "pid": scraper_process.pid,
-                "enabled_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
-
-    except Exception as e:
-        logger.error(f"Error starting Instagram scraper: {e}")
-        return {
-            "success": False,
-            "message": f"Failed to start Instagram scraper: {str(e)}",
-            "status": "error"
-        }
-
-@router.post("/stop")
-async def stop_instagram_scraper(request: Request):
-    """Stop the Instagram scraper by killing the process and updating Supabase"""
-    try:
-        supabase = get_supabase()
-
-        # Get current PID
-        result = supabase.table('instagram_scraper_control').select('*').eq('id', 1).execute()
-
-        if result.data and result.data[0].get('pid'):
-            pid = result.data[0]['pid']
-            try:
-                # First try graceful termination with SIGTERM
-                os.kill(pid, signal.SIGTERM)
-                logger.info(f"Sent SIGTERM to Instagram scraper PID {pid}")
-
-                # Give it a moment to terminate gracefully
-                import time
-                time.sleep(1)
-
-                # Check if still running and force kill if needed
-                try:
-                    os.kill(pid, 0)  # Check if still exists
-                    os.kill(pid, signal.SIGKILL)  # Force kill
-                    logger.warning(f"Had to force kill Instagram scraper PID {pid}")
-                except (OSError, ProcessLookupError):
-                    logger.info(f"Instagram scraper PID {pid} terminated gracefully")
-
-            except (OSError, ProcessLookupError) as e:
-                logger.warning(f"Could not kill PID {pid}: {e} (process may have already stopped)")
-
-        # Update database - clear PID and set enabled to false
-        update_data = {
-            'enabled': False,
-            'status': 'stopped',  # Keep status field for backward compatibility
-            'pid': None,
-            'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at instead of last_updated
-            'updated_by': 'api'
-        }
-
-        if result.data:
-            supabase.table('instagram_scraper_control').update(update_data).eq('id', 1).execute()
-        else:
-            update_data['id'] = 1
-            supabase.table('instagram_scraper_control').insert(update_data).execute()
-
-        # Log the action
-        supabase.table('instagram_scraper_realtime_logs').insert({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'level': 'info',
-            'message': '⏹️ Instagram scraper stopped via API',
-            'source': 'api_control'
-        }).execute()
-
-        logger.info("⏹️ Instagram scraper stopped and disabled in Supabase")
-
-        return {
-            "success": True,
-            "message": "Instagram scraper stopped successfully",
-            "status": "stopped",
-            "details": {
-                "method": "process_termination",
-                "disabled_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
-
-    except Exception as e:
-        logger.error(f"Error stopping Instagram scraper: {e}")
-        return {
-            "success": False,
-            "message": f"Failed to stop Instagram scraper: {str(e)}",
-            "status": "error"
-        }
 
 @router.get("/status")
 async def get_instagram_scraper_status(request: Request):
@@ -228,36 +45,34 @@ async def get_instagram_scraper_status(request: Request):
     try:
         supabase = get_supabase()
 
-        # Check scraper control state - this is the source of truth
+        # Check scraper control state
         is_running = False
         last_updated = None
         pid = None
 
         try:
-            result = supabase.table('instagram_scraper_control').select('*').eq('id', 1).execute()
+            result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
             if result.data and len(result.data) > 0:
                 control = result.data[0]
                 is_running = control.get('enabled', False) or control.get('status') == 'running'
-                last_updated = control.get('updated_at')  # Use the correct column name
+                last_updated = control.get('updated_at')
                 pid = control.get('pid')
-
-                # Check if PID is actually running
-                if pid and is_running:
-                    try:
-                        os.kill(pid, 0)
-                    except (OSError, ProcessLookupError):
-                        # Process not running, update status
-                        is_running = False
-                        logger.warning(f"PID {pid} not running, marking as stopped")
-
         except Exception as e:
-            logger.debug(f"Could not get Instagram scraper control state: {e}")
+            logger.debug(f"Could not get scraper control state: {e}")
+            if system_logger:
+                system_logger.debug(
+                    f"Could not get scraper control state: {e}",
+                    source="instagram_scraper",
+                    script_name="instagram_scraper_routes",
+                    context={"error": str(e)}
+                )
 
         # Get last activity from logs
         last_activity = None
         try:
-            result = supabase.table('instagram_scraper_realtime_logs')\
+            result = supabase.table('system_logs')\
                 .select('timestamp')\
+                .eq('source', 'instagram_scraper')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
                 .execute()
@@ -269,34 +84,71 @@ async def get_instagram_scraper_status(request: Request):
 
         return {
             "version": API_VERSION,
-            "running": is_running,
-            "status": "running" if is_running else "stopped",
-            "pid": pid,
+            "system_health": {
+                "database": "healthy",
+                "scraper": "running" if is_running else "stopped",
+                "instagram_api": "healthy"
+            },
+            "control": {
+                "enabled": is_running,
+                "last_updated": last_updated,
+                "pid": pid,
+                "control_via": "supabase_only",
+                "control_table": "system_control",
+                "control_method": "UPDATE system_control SET enabled = true/false WHERE script_name = 'instagram_scraper'"
+            },
             "last_activity": last_activity,
-            "last_control_update": last_updated,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
         logger.error(f"Failed to get status: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to get Instagram scraper status: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "status"},
+                sync=True
+            )
         return {
             "version": API_VERSION,
-            "running": False,
-            "status": "error",
+            "system_health": {
+                "database": "error",
+                "scraper": "unknown",
+                "instagram_api": "unknown"
+            },
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat()
         }
+
 
 @router.get("/status-detailed")
 async def get_instagram_scraper_status_detailed(request: Request):
-    """Get detailed Instagram scraper status with metrics"""
+    """Get detailed Instagram scraper status"""
     try:
         # Get basic status
         basic_status = await get_instagram_scraper_status(request)
         basic_status['version'] = API_VERSION
 
+        # Check the actual system_control table for the true state
         supabase = get_supabase()
-        is_running = basic_status.get('running', False)
+        is_running = False
+
+        try:
+            control_result = supabase.table('system_control').select('enabled').eq('script_name', 'instagram_scraper').execute()
+            if control_result.data and len(control_result.data) > 0:
+                is_running = control_result.data[0].get('enabled', False)
+        except Exception as e:
+            logger.debug(f"Could not get scraper control state: {e}")
+            if system_logger:
+                system_logger.debug(
+                    f"Could not get scraper control state: {e}",
+                    source="instagram_scraper",
+                    script_name="instagram_scraper_routes",
+                    context={"error": str(e)}
+                )
+            is_running = basic_status['system_health']['scraper'] == 'running'
 
         stats = {}
         cycle_info = None
@@ -306,8 +158,9 @@ async def get_instagram_scraper_status_detailed(request: Request):
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
             # Count logs for today
-            result = supabase.table('instagram_scraper_realtime_logs')\
+            result = supabase.table('system_logs')\
                 .select('id', count='exact')\
+                .eq('source', 'instagram_scraper')\
                 .gte('timestamp', today.isoformat())\
                 .execute()
 
@@ -315,15 +168,17 @@ async def get_instagram_scraper_status_detailed(request: Request):
                 stats['daily_api_calls'] = result.count
 
             # Get success/failure from logs
-            success_logs = supabase.table('instagram_scraper_realtime_logs')\
+            success_logs = supabase.table('system_logs')\
                 .select('message')\
+                .eq('source', 'instagram_scraper')\
                 .gte('timestamp', today.isoformat())\
                 .like('message', '%✅%')\
                 .limit(100)\
                 .execute()
 
-            error_logs = supabase.table('instagram_scraper_realtime_logs')\
+            error_logs = supabase.table('system_logs')\
                 .select('message')\
+                .eq('source', 'instagram_scraper')\
                 .gte('timestamp', today.isoformat())\
                 .eq('level', 'error')\
                 .limit(100)\
@@ -331,26 +186,27 @@ async def get_instagram_scraper_status_detailed(request: Request):
 
             successful_calls = len(success_logs.data) if success_logs.data else 0
             failed_calls = len(error_logs.data) if error_logs.data else 0
-
-            stats['successful_calls'] = successful_calls
-            stats['failed_calls'] = failed_calls
+            stats['successful_requests'] = successful_calls
+            stats['failed_requests'] = failed_calls
 
             # Get cycle information if scraper is running
             if is_running:
                 try:
                     # Get the earliest scraper start message from today
-                    first_start_result = supabase.table('instagram_scraper_realtime_logs')\
+                    first_start_result = supabase.table('system_logs')\
                         .select('timestamp')\
-                        .like('message', '%Continuous Instagram scraper%started%')\
+                        .eq('source', 'instagram_scraper')\
+                        .like('message', '🚀 Continuous Instagram scraper%')\
                         .gte('timestamp', today.isoformat())\
                         .order('timestamp', asc=True)\
                         .limit(1)\
                         .execute()
 
                     # Get latest cycle info
-                    cycle_start_result = supabase.table('instagram_scraper_realtime_logs')\
+                    cycle_start_result = supabase.table('system_logs')\
                         .select('message, timestamp, context')\
-                        .like('message', '%Starting Instagram scraping cycle #%')\
+                        .eq('source', 'instagram_scraper')\
+                        .like('message', '🔄 Starting Instagram scraping cycle #%')\
                         .order('timestamp', desc=True)\
                         .limit(1)\
                         .execute()
@@ -388,62 +244,61 @@ async def get_instagram_scraper_status_detailed(request: Request):
                         "current_cycle": current_cycle,
                         "cycle_start": cycle_start,
                         "elapsed_seconds": elapsed_seconds,
-                        "elapsed_formatted": elapsed_formatted,
-                        "items_processed": 0,
-                        "errors": 0
+                        "elapsed_formatted": elapsed_formatted
                     }
 
                 except Exception as e:
                     logger.debug(f"Could not get cycle info: {e}")
+                    if system_logger:
+                        system_logger.debug(
+                            f"Could not get cycle info: {e}",
+                            source="instagram_scraper",
+                            script_name="instagram_scraper_routes",
+                            context={"error": str(e)}
+                        )
 
         except Exception as e:
             logger.debug(f"Could not get stats: {e}")
+            if system_logger:
+                system_logger.debug(
+                    f"Could not get stats: {e}",
+                    source="instagram_scraper",
+                    script_name="instagram_scraper_routes",
+                    context={"error": str(e)}
+                )
 
         return {
             "enabled": is_running,
             "status": "running" if is_running else "stopped",
             "statistics": {
-                "total_api_calls": stats.get('daily_api_calls', 0),
-                "successful_calls": stats.get('successful_calls', 0),
-                "failed_calls": stats.get('failed_calls', 0),
-                "creators_processed": 0,
-                "content_collected": 0,
-                "viral_content_detected": 0,
                 "daily_api_calls": stats.get('daily_api_calls', 0),
-                "processing_rate_per_hour": 0
+                "successful_requests": stats.get('successful_requests', 0),
+                "failed_requests": stats.get('failed_requests', 0),
             },
-            "performance": {
-                "current_rps": 0,
-                "avg_response_time": 0,
-                "total_requests": stats.get('daily_api_calls', 0),
-                "uptime_seconds": cycle_info['elapsed_seconds'] if cycle_info else 0
-            },
-            "creators": {
-                "total": 0,
-                "active": 0,
-                "pending": 0
-            },
+            "cycle": cycle_info,
             "last_activity": basic_status.get('last_activity'),
-            "config": {
-                "batch_size": 100,
-                "requests_per_second": 55,
-                "max_daily_calls": 24000,
-                "max_monthly_calls": 1000000
-            },
-            "cycle": cycle_info
+            "control_info": basic_status.get('control')
         }
 
     except Exception as e:
         logger.error(f"Failed to get detailed status: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to get detailed Instagram status: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "detailed_status"},
+                sync=True
+            )
         return {
             "enabled": False,
             "status": "error",
             "statistics": {},
-            "performance": {},
-            "creators": {},
+            "cycle": None,
             "last_activity": None,
-            "cycle": None
+            "error": str(e)
         }
+
 
 @router.get("/cycle-status")
 async def get_cycle_status():
@@ -452,15 +307,13 @@ async def get_cycle_status():
         supabase = get_supabase()
 
         # Check if scraper is enabled
-        control_result = supabase.table('instagram_scraper_control')\
+        control_result = supabase.table('system_control')\
             .select('enabled, status')\
-            .eq('id', 1)\
+            .eq('script_name', 'instagram_scraper')\
             .single()\
             .execute()
 
-        is_enabled = (control_result.data and
-                     (control_result.data.get('enabled', False) or
-                      control_result.data.get('status') == 'running'))
+        is_enabled = control_result.data and (control_result.data.get('enabled', False) or control_result.data.get('status') == 'running')
 
         if not is_enabled:
             return {
@@ -475,17 +328,19 @@ async def get_cycle_status():
             }
 
         # Get the most recent scraper start log
-        result = supabase.table('instagram_scraper_realtime_logs')\
+        result = supabase.table('system_logs')\
             .select('timestamp')\
+            .eq('source', 'instagram_scraper')\
             .like('message', '%Continuous Instagram scraper%started%')\
             .order('timestamp', desc=True)\
             .limit(1)\
             .execute()
 
-        # If no result, try cycle start pattern
+        # If no result, try "Starting Instagram scraping cycle" pattern
         if not result.data or len(result.data) == 0:
-            result = supabase.table('instagram_scraper_realtime_logs')\
+            result = supabase.table('system_logs')\
                 .select('timestamp')\
+                .eq('source', 'instagram_scraper')\
                 .like('message', '%Starting Instagram scraping cycle%')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
@@ -536,6 +391,14 @@ async def get_cycle_status():
 
     except Exception as e:
         logger.error(f"Failed to get cycle status: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to get Instagram cycle status: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "cycle_status"},
+                sync=True
+            )
         return {
             "success": False,
             "error": str(e),
@@ -543,47 +406,55 @@ async def get_cycle_status():
             "cycle": None
         }
 
+
 @router.get("/success-rate")
 async def get_instagram_success_rate():
-    """Calculate Instagram scraper success rate from logs"""
+    """Get Instagram API success rate statistics"""
     try:
         supabase = get_supabase()
-        today = datetime.now(timezone.utc).date().isoformat()
 
-        # Get success and error counts
-        success_result = supabase.table('instagram_scraper_realtime_logs')\
+        # Query specifically for Instagram API request logs
+        success_result = supabase.table('system_logs')\
             .select('id', count='exact')\
-            .gte('timestamp', today)\
-            .eq('level', 'success')\
+            .eq('source', 'instagram_scraper')\
+            .like('message', '✅%')\
             .execute()
 
-        error_result = supabase.table('instagram_scraper_realtime_logs')\
+        error_result = supabase.table('system_logs')\
             .select('id', count='exact')\
-            .gte('timestamp', today)\
+            .eq('source', 'instagram_scraper')\
             .eq('level', 'error')\
             .execute()
 
-        successful = success_result.count if success_result.count else 0
-        failed = error_result.count if error_result.count else 0
-        total = successful + failed
+        successful_requests = success_result.count if success_result.count else 0
+        failed_requests = error_result.count if error_result.count else 0
+        total_requests = successful_requests + failed_requests
 
-        success_rate = (successful / total * 100) if total > 0 else 0
+        success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 100.0
 
         return {
             "success": True,
             "stats": {
-                "total_requests": total,
-                "successful_requests": successful,
-                "failed_requests": failed,
+                "total_requests": total_requests,
+                "successful_requests": successful_requests,
+                "failed_requests": failed_requests,
                 "success_rate": round(success_rate, 2)
             }
         }
 
     except Exception as e:
-        logger.error(f"Failed to get success rate: {e}")
+        logger.error(f"Failed to get Instagram success rate: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to get Instagram success rate: {e}",
+                source="instagram_scraper",
+                script_name="instagram_scraper_routes",
+                context={"error": str(e), "endpoint": "success_rate"},
+                sync=True
+            )
         return {
             "success": False,
-            "error": str(e),
+            "message": str(e),
             "stats": {
                 "total_requests": 0,
                 "successful_requests": 0,
@@ -591,3 +462,78 @@ async def get_instagram_success_rate():
                 "success_rate": 0
             }
         }
+
+
+@router.get("/cost-metrics")
+async def get_cost_metrics():
+    """Get Instagram API cost metrics for today and projected monthly"""
+    try:
+        from datetime import datetime, timezone
+        supabase = get_supabase()
+
+        # Get today's start time
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Count RapidAPI calls made today
+        # Look for API Response messages (successful calls to RapidAPI)
+        result = supabase.table('system_logs')\
+            .select('id', count='exact')\
+            .eq('source', 'instagram_scraper')\
+            .like('message', '✅%API Response%')\
+            .gte('timestamp', today_start.isoformat())\
+            .execute()
+
+        api_calls_today = result.count if result.count else 0
+
+        # Calculate costs based on RapidAPI pricing
+        # $75 for 250k requests = $0.0003 per request
+        cost_per_request = 75 / 250_000
+        daily_cost = api_calls_today * cost_per_request
+
+        # Project monthly cost (assume same daily rate for 30 days)
+        projected_monthly_cost = daily_cost * 30
+
+        return {
+            "success": True,
+            "metrics": {
+                "api_calls_today": api_calls_today,
+                "daily_cost": round(daily_cost, 2),
+                "projected_monthly_cost": round(projected_monthly_cost, 2),
+                "cost_per_request": cost_per_request
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get cost metrics: {e}")
+        return {
+            "success": False,
+            "message": str(e),
+            "metrics": {
+                "api_calls_today": 0,
+                "daily_cost": 0,
+                "projected_monthly_cost": 0
+            }
+        }
+
+
+@router.get("/control-info")
+async def get_control_info():
+    """Get information about how to control the Instagram scraper"""
+    return {
+        "control_method": "Supabase Only",
+        "no_api_endpoints": True,
+        "instructions": {
+            "to_start": "UPDATE system_control SET enabled = true WHERE script_name = 'instagram_scraper';",
+            "to_stop": "UPDATE system_control SET enabled = false WHERE script_name = 'instagram_scraper';",
+            "to_check_status": "SELECT * FROM system_control WHERE script_name = 'instagram_scraper';",
+            "to_view_logs": "SELECT * FROM system_logs WHERE source = 'instagram_scraper' ORDER BY timestamp DESC;"
+        },
+        "architecture": {
+            "type": "subprocess",
+            "runs_24_7": True,
+            "check_interval": "30 seconds",
+            "scraper_file": "api/core/continuous_instagram_scraper.py",
+            "logic_file": "api/services/instagram/unified_scraper.py"
+        },
+        "note": "The Instagram scraper runs continuously as a subprocess and checks the control table every 30 seconds. There are no API endpoints to start or stop it - control is exclusively through the database."
+    }

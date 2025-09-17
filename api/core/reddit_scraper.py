@@ -11,6 +11,7 @@ import requests
 import random
 import time
 import threading
+import sys
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from typing import Dict, List, Optional
@@ -19,6 +20,18 @@ import asyncprawcore
 from supabase import create_client
 from dotenv import load_dotenv
 from fake_useragent import UserAgent
+
+# Add parent directory to path for imports when running as standalone script
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.system_logger import system_logger, log_scraper_activity
+else:
+    try:
+        from ..utils.system_logger import system_logger, log_scraper_activity
+    except ImportError:
+        # Fallback if imported differently
+        system_logger = None
+        log_scraper_activity = None
 
 # Version tracking
 SCRAPER_VERSION = "2.1.0"
@@ -59,9 +72,9 @@ logging.getLogger('fake_useragent').setLevel(logging.ERROR)  # Only show errors
 logging.getLogger('httpx').setLevel(logging.INFO)  # Keep HTTP request logs
 
 class SupabaseLogHandler(logging.Handler):
-    """Custom logging handler that sends logs to Supabase"""
-    
-    def __init__(self, supabase_client, source='scraper'):
+    """Custom logging handler that sends logs to system_logs table"""
+
+    def __init__(self, supabase_client, source='reddit_scraper'):
         super().__init__()
         self.supabase = supabase_client
         self.source = source
@@ -99,11 +112,11 @@ class SupabaseLogHandler(logging.Handler):
                 
             log_entry = {
                 'timestamp': datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
-                'level': record.levelname.lower(),
-                'message': message,
-                'context': context,
                 'source': self.source,
-                'version': SCRAPER_VERSION
+                'script_name': 'reddit_scraper',
+                'level': record.levelname.lower(),
+                'message': message[:1000],  # Truncate long messages
+                'context': context
             }
             
             self.log_buffer.append(log_entry)
@@ -125,7 +138,7 @@ class SupabaseLogHandler(logging.Handler):
             
         try:
             # Send logs to Supabase
-            response = self.supabase.table('reddit_scraper_logs').insert(self.log_buffer).execute()
+            response = self.supabase.table('system_logs').insert(self.log_buffer).execute()
             if hasattr(response, 'error') and response.error:
                 print(f"Error sending logs to Supabase: {response.error}")
             else:
@@ -729,7 +742,7 @@ class ProxyEnabledMultiScraper:
             
             # Set up Supabase logging handler
             try:
-                supabase_handler = SupabaseLogHandler(self.supabase, source='scraper')
+                supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper')
                 supabase_handler.setLevel(logging.INFO)  # Only send INFO and above to database
                 logger.addHandler(supabase_handler)
                 logger.info("🔗 Supabase logging handler initialized")
@@ -781,7 +794,7 @@ class ProxyEnabledMultiScraper:
                     # Check if handler already exists
                     handler_exists = any(isinstance(h, SupabaseLogHandler) for h in logger.handlers)
                     if not handler_exists:
-                        supabase_handler = SupabaseLogHandler(self.supabase, source='scraper')
+                        supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper')
                         supabase_handler.setLevel(logging.INFO)
                         logger.addHandler(supabase_handler)
                         logger.info("🔗 Supabase logging handler initialized")

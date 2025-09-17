@@ -83,7 +83,31 @@ async def log_user_discovery(username: str, action: str, success: bool,
                             details: Dict[str, Any] = None, error: str = None):
     """Log user discovery actions to Supabase"""
     try:
+        # Prepare context with all relevant details
+        context = {
+            'username': username,
+            'action': action,
+            'success': success
+        }
+        if details:
+            context.update(details)
+        if error:
+            context['error'] = error
+
+        # Log to unified system_logs table
         log_entry = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'user_discovery',
+            'script_name': 'user_routes',
+            'level': 'info' if success else 'error',
+            'message': f"User discovery: {action} for {username}" + (f" - {error}" if error else ""),
+            'context': context
+        }
+
+        supabase.table('system_logs').insert(log_entry).execute()
+
+        # Also maintain backward compatibility - keep old table for now
+        legacy_entry = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'username': username,
             'action': action,
@@ -92,8 +116,10 @@ async def log_user_discovery(username: str, action: str, success: bool,
             'error': error,
             'source': 'api_user_discovery'
         }
-
-        supabase.table('user_discovery_logs').insert(log_entry).execute()
+        try:
+            supabase.table('user_discovery_logs').insert(legacy_entry).execute()
+        except:
+            pass  # Ignore errors on legacy table
 
         # Also log to Python logger
         if success:

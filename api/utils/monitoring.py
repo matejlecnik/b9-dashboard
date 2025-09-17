@@ -14,6 +14,12 @@ from dataclasses import dataclass, asdict
 from contextlib import asynccontextmanager
 import logging
 
+# Import system logger
+try:
+    from .system_logger import system_logger
+except ImportError:
+    system_logger = None
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -276,6 +282,13 @@ class HealthMonitor:
             
         except Exception as e:
             logger.error(f"Failed to get system metrics: {e}")
+            if system_logger:
+                system_logger.error(
+                    f"Failed to get system metrics: {e}",
+                    source="api",
+                    script_name="monitoring",
+                    context={"error": str(e)}
+                )
             # Return minimal metrics on error
             return SystemMetrics(
                 cpu_percent=0,
@@ -315,6 +328,13 @@ class HealthMonitor:
         for check in health_checks:
             if isinstance(check, Exception):
                 logger.error(f"Health check failed: {check}")
+                if system_logger:
+                    system_logger.error(
+                        f"Health check failed: {check}",
+                        source="api",
+                        script_name="monitoring",
+                        context={"check_error": str(check)}
+                    )
                 continue
                 
             checks_dict[check.name] = asdict(check)

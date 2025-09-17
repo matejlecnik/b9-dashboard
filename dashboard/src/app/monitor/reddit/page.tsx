@@ -494,6 +494,8 @@ export default function RedditMonitor() {
                   autoScroll={true}
                   refreshInterval={5000}
                   maxLogs={500}
+                  useSystemLogs={true}
+                  sourceFilter="reddit_scraper"
                 />
               </div>
 
@@ -505,6 +507,7 @@ export default function RedditMonitor() {
                     endpoint="users"
                     height="120px"
                     maxLogs={20}
+                    useSystemLogs={true}
                   />
                 </div>
                 <div className="flex-1">
@@ -513,6 +516,7 @@ export default function RedditMonitor() {
                     endpoint="categorization"
                     height="120px"
                     maxLogs={20}
+                    useSystemLogs={true}
                   />
                 </div>
               </div>

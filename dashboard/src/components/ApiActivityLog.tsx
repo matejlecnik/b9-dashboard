@@ -56,13 +56,15 @@ interface ApiActivityLogProps {
   endpoint: 'users' | 'categorization'
   height?: string
   maxLogs?: number
+  useSystemLogs?: boolean
 }
 
 export function ApiActivityLog({
   title,
   endpoint,
   height = '120px',
-  maxLogs = 20
+  maxLogs = 20,
+  useSystemLogs = true
 }: ApiActivityLogProps) {
   const [activities, setActivities] = useState<ApiActivity[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -75,35 +77,56 @@ export function ApiActivityLog({
           return
         }
 
-        let data: RedditCategorizationLog[] | RedditScraperLog[] | UserDiscoveryLog[] | null = null
+        let data: any[] | null = null
         let error: unknown = null
 
-        if (endpoint === 'categorization') {
-          const response = await supabase
-            .from('reddit_categorization_logs')
-            .select('id, timestamp, subreddit_name, category_assigned, success')
+        if (useSystemLogs) {
+          // Fetch from system_logs table
+          let query = supabase
+            .from('system_logs')
+            .select('id, timestamp, source, script_name, level, message, context, items_processed, duration_ms')
             .order('timestamp', { ascending: false })
             .limit(maxLogs)
-          data = response.data as RedditCategorizationLog[] | null
-          error = response.error
-        } else if (endpoint === 'users') {
-          // Fetch from user_discovery_logs table for user activity
-          const response = await supabase
-            .from('user_discovery_logs')
-            .select('id, timestamp, username, action, success, details, error')
-            .order('timestamp', { ascending: false })
-            .limit(maxLogs)
-          data = response.data as UserDiscoveryLog[] | null
+
+          // Filter by source based on endpoint
+          if (endpoint === 'categorization') {
+            query = query.eq('source', 'reddit_categorizer')
+          } else if (endpoint === 'users') {
+            query = query.or('source.eq.user_discovery,source.eq.api_user_discovery')
+          }
+
+          const response = await query
+          data = response.data
           error = response.error
         } else {
-          const response = await supabase
-            .from('reddit_scraper_logs')
-            .select('id, timestamp, message, source, level, context')
-            .eq('source', 'scraper')
-            .order('timestamp', { ascending: false })
-            .limit(maxLogs)
-          data = response.data as RedditScraperLog[] | null
-          error = response.error
+          // Use legacy tables
+          if (endpoint === 'categorization') {
+            const response = await supabase
+              .from('reddit_categorization_logs')
+              .select('id, timestamp, subreddit_name, category_assigned, success')
+              .order('timestamp', { ascending: false })
+              .limit(maxLogs)
+            data = response.data as RedditCategorizationLog[] | null
+            error = response.error
+          } else if (endpoint === 'users') {
+            // Fetch from user_discovery_logs table for user activity
+            const response = await supabase
+              .from('user_discovery_logs')
+              .select('id, timestamp, username, action, success, details, error')
+              .order('timestamp', { ascending: false })
+              .limit(maxLogs)
+            data = response.data as UserDiscoveryLog[] | null
+            error = response.error
+          } else {
+            const response = await supabase
+              .from('reddit_scraper_logs')
+              .select('id, timestamp, message, source, level, context')
+              .eq('source', 'scraper')
+              .order('timestamp', { ascending: false })
+              .limit(maxLogs)
+            data = response.data as RedditScraperLog[] | null
+            error = response.error
+          }
         }
 
         if (data && !error) {
@@ -111,7 +134,54 @@ export function ApiActivityLog({
             let displayMessage = ''
             let status: 'success' | 'error' | 'pending' = 'success'
 
-            if (endpoint === 'categorization') {
+            if (useSystemLogs) {
+              // Handle system_logs table structure
+              const sysLog = log as any
+
+              // Determine status from level
+              if (sysLog.level === 'error' || sysLog.level === 'critical') {
+                status = 'error'
+              } else if (sysLog.level === 'warning') {
+                status = 'pending'
+              } else {
+                status = 'success'
+              }
+
+              // Format message based on endpoint and context
+              if (endpoint === 'categorization') {
+                // Extract subreddit and category from message or context
+                const context = sysLog.context || {}
+                if (context.subreddit_name && context.category) {
+                  displayMessage = `r/${context.subreddit_name} → ${context.category}`
+                } else if (sysLog.message.includes('Categorizing')) {
+                  const match = sysLog.message.match(/r\/([\w_]+)/)
+                  displayMessage = match ? `Categorizing r/${match[1]}...` : sysLog.message
+                } else {
+                  displayMessage = sysLog.message
+                }
+              } else if (endpoint === 'users') {
+                // Extract username from message or context
+                const context = sysLog.context || {}
+                if (context.username) {
+                  displayMessage = `u/${context.username}: ${sysLog.message}`
+                } else if (sysLog.message.includes('u/')) {
+                  displayMessage = sysLog.message
+                } else {
+                  displayMessage = sysLog.message
+                }
+              } else {
+                displayMessage = sysLog.message
+              }
+
+              return {
+                id: sysLog.id.toString(),
+                timestamp: sysLog.timestamp,
+                endpoint,
+                status,
+                message: displayMessage.length > 100 ? displayMessage.substring(0, 97) + '...' : displayMessage,
+                details: sysLog.context || {}
+              }
+            } else if (endpoint === 'categorization') {
               const catLog = log as RedditCategorizationLog
               if ('category_assigned' in catLog && catLog.category_assigned) {
                 displayMessage = `r/${catLog.subreddit_name} → ${catLog.category_assigned}`
@@ -197,7 +267,7 @@ export function ApiActivityLog({
     fetchActivities()
     const interval = setInterval(fetchActivities, 10000)
     return () => clearInterval(interval)
-  }, [endpoint, maxLogs])
+  }, [endpoint, maxLogs, useSystemLogs])
 
   const getStatusColor = (status: string) => {
     switch (status) {

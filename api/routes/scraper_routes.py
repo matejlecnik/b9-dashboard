@@ -47,8 +47,8 @@ async def start_scraper(request: Request):
     try:
         supabase = get_supabase()
 
-        # Check if scraper_control record exists and if already running
-        result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+        # Check if system_control record exists and if already running
+        result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
 
         if result.data and result.data[0].get('pid'):
             pid = result.data[0]['pid']
@@ -117,18 +117,21 @@ async def start_scraper(request: Request):
 
         if result.data:
             # Update existing record
-            supabase.table('scraper_control').update(update_data).eq('id', 1).execute()
+            supabase.table('system_control').update(update_data).eq('script_name', 'reddit_scraper').execute()
         else:
             # Create new record
-            update_data['id'] = 1
-            supabase.table('scraper_control').insert(update_data).execute()
+            update_data['script_name'] = 'reddit_scraper'
+            update_data['script_type'] = 'scraper'
+            supabase.table('system_control').insert(update_data).execute()
 
         # Log the action
-        supabase.table('reddit_scraper_logs').insert({
+        supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'reddit_scraper',
+            'script_name': 'scraper_routes',
             'level': 'info',
             'message': f'✅ Scraper started via API with PID {scraper_process.pid}',
-            'source': 'api_control'
+            'context': {'action': 'start', 'pid': scraper_process.pid}
         }).execute()
 
         return {
@@ -158,7 +161,7 @@ async def stop_scraper(request: Request):
         supabase = get_supabase()
 
         # Get current PID
-        result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+        result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
 
         if result.data and result.data[0].get('pid'):
             pid = result.data[0]['pid']
@@ -191,17 +194,20 @@ async def stop_scraper(request: Request):
         }
 
         if result.data:
-            supabase.table('scraper_control').update(update_data).eq('id', 1).execute()
+            supabase.table('system_control').update(update_data).eq('script_name', 'reddit_scraper').execute()
         else:
-            update_data['id'] = 1
-            supabase.table('scraper_control').insert(update_data).execute()
+            update_data['script_name'] = 'reddit_scraper'
+            update_data['script_type'] = 'scraper'
+            supabase.table('system_control').insert(update_data).execute()
 
         # Log the action
-        supabase.table('reddit_scraper_logs').insert({
+        supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'reddit_scraper',
+            'script_name': 'scraper_routes',
             'level': 'info',
             'message': '⏹️ Scraper stopped via API',
-            'source': 'api_control'
+            'context': {'action': 'stop'}
         }).execute()
 
         logger.info("⏹️ Scraper stopped and disabled in Supabase")
@@ -235,7 +241,7 @@ async def get_scraper_status(request: Request):
         last_updated = None
 
         try:
-            result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+            result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
             if result.data and len(result.data) > 0:
                 is_running = result.data[0].get('enabled', False)
                 last_updated = result.data[0].get('last_updated')
@@ -245,8 +251,9 @@ async def get_scraper_status(request: Request):
         # Get last activity from logs
         last_activity = None
         try:
-            result = supabase.table('reddit_scraper_logs')\
+            result = supabase.table('system_logs')\
                 .select('timestamp')\
+                .eq('source', 'reddit_scraper')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
                 .execute()
@@ -323,7 +330,7 @@ async def get_scraper_status_detailed(request: Request):
         is_running = False
 
         try:
-            control_result = supabase.table('scraper_control').select('enabled').eq('id', 1).execute()
+            control_result = supabase.table('system_control').select('enabled').eq('script_name', 'reddit_scraper').execute()
             if control_result.data and len(control_result.data) > 0:
                 is_running = control_result.data[0].get('enabled', False)
         except Exception as e:
@@ -339,8 +346,9 @@ async def get_scraper_status_detailed(request: Request):
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
             # Count logs for today
-            result = supabase.table('reddit_scraper_logs')\
+            result = supabase.table('system_logs')\
                 .select('id', count='exact')\
+                .eq('source', 'reddit_scraper')\
                 .gte('timestamp', today.isoformat())\
                 .execute()
 
@@ -365,8 +373,9 @@ async def get_scraper_status_detailed(request: Request):
             ]
 
             for pattern in patterns[:3]:  # Get main patterns for status
-                result = supabase.table('reddit_scraper_logs')\
+                result = supabase.table('system_logs')\
                     .select('message')\
+                    .eq('source', 'reddit_scraper')\
                     .gte('timestamp', today.isoformat())\
                     .like('message', pattern)\
                     .order('timestamp', desc=True)\
@@ -395,14 +404,16 @@ async def get_scraper_status_detailed(request: Request):
 
             # If we still have no data, fall back to counting error level logs as failures
             if successful_requests == 0 and failed_requests == 0:
-                error_count = supabase.table('reddit_scraper_logs')\
+                error_count = supabase.table('system_logs')\
                     .select('id', count='exact')\
+                    .eq('source', 'reddit_scraper')\
                     .gte('timestamp', today.isoformat())\
                     .eq('level', 'error')\
                     .execute()
 
-                info_count = supabase.table('reddit_scraper_logs')\
+                info_count = supabase.table('system_logs')\
                     .select('id', count='exact')\
+                    .eq('source', 'reddit_scraper')\
                     .gte('timestamp', today.isoformat())\
                     .eq('level', 'info')\
                     .execute()
@@ -428,8 +439,9 @@ async def get_scraper_status_detailed(request: Request):
                     ]
 
                     for pattern in start_patterns:
-                        result = supabase.table('reddit_scraper_logs')\
+                        result = supabase.table('system_logs')\
                             .select('timestamp')\
+                            .eq('source', 'reddit_scraper')\
                             .like('message', pattern)\
                             .gte('timestamp', today.isoformat())\
                             .order('timestamp', asc=True)\
@@ -441,16 +453,18 @@ async def get_scraper_status_detailed(request: Request):
                                 first_start_result = result
 
                     # Get latest cycle info for cycle number
-                    cycle_start_result = supabase.table('reddit_scraper_logs')\
+                    cycle_start_result = supabase.table('system_logs')\
                         .select('message, timestamp, context')\
+                        .eq('source', 'reddit_scraper')\
                         .like('message', '🔄 Starting scraping cycle #%')\
                         .order('timestamp', desc=True)\
                         .limit(1)\
                         .execute()
 
                     # Get latest cycle completion
-                    cycle_complete_result = supabase.table('reddit_scraper_logs')\
+                    cycle_complete_result = supabase.table('system_logs')\
                         .select('message, context')\
+                        .eq('source', 'reddit_scraper')\
                         .like('message', '✅ Completed scraping cycle #%')\
                         .order('timestamp', desc=True)\
                         .limit(1)\
@@ -565,9 +579,9 @@ async def get_cycle_status():
         supabase = get_supabase()
 
         # Check if scraper is enabled
-        control_result = supabase.table('scraper_control')\
+        control_result = supabase.table('system_control')\
             .select('enabled')\
-            .eq('id', 1)\
+            .eq('script_name', 'reddit_scraper')\
             .single()\
             .execute()
 
@@ -590,8 +604,9 @@ async def get_cycle_status():
 
         # Search for the most recent scraper start message
         # Try "Continuous scraper v2.1.0 started" pattern first (current version)
-        result = supabase.table('reddit_scraper_logs')\
+        result = supabase.table('system_logs')\
             .select('timestamp')\
+            .eq('source', 'reddit_scraper')\
             .like('message', '%Continuous scraper%started%')\
             .order('timestamp', desc=True)\
             .limit(1)\
@@ -599,8 +614,9 @@ async def get_cycle_status():
 
         # If no result, try "Starting scraping cycle" pattern
         if not result.data or len(result.data) == 0:
-            result = supabase.table('reddit_scraper_logs')\
+            result = supabase.table('system_logs')\
                 .select('timestamp')\
+                .eq('source', 'reddit_scraper')\
                 .like('message', '%Starting scraping cycle%')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
@@ -608,8 +624,9 @@ async def get_cycle_status():
 
         # If still no result, try generic "scraper started" pattern
         if not result.data or len(result.data) == 0:
-            result = supabase.table('reddit_scraper_logs')\
+            result = supabase.table('system_logs')\
                 .select('timestamp')\
+                .eq('source', 'reddit_scraper')\
                 .like('message', '%scraper%started%')\
                 .order('timestamp', desc=True)\
                 .limit(1)\
@@ -675,8 +692,9 @@ async def get_scraper_logs(request: Request, lines: int = 100, level: Optional[s
         supabase = get_supabase()
 
         # Build query
-        query = supabase.table('reddit_scraper_logs')\
+        query = supabase.table('system_logs')\
             .select('*')\
+            .eq('source', 'reddit_scraper')\
             .order('timestamp', desc=True)\
             .limit(lines)
 
@@ -721,25 +739,29 @@ async def update_scraper_config(request: Request, config: ScraperConfigRequest):
     try:
         supabase = get_supabase()
 
-        # Update or create config in scraper_control table
-        result = supabase.table('scraper_control').select('*').eq('id', 1).execute()
+        # Update or create config in system_control table
+        result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
 
         config_data = {
             'enabled': config.enabled,
-            'batch_size': config.batch_size,
-            'delay_between_batches': config.delay_between_batches,
-            'max_daily_requests': config.max_daily_requests,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'config': {
+                'batch_size': config.batch_size,
+                'delay_between_batches': config.delay_between_batches,
+                'max_daily_requests': config.max_daily_requests
+            },
+            'updated_at': datetime.now(timezone.utc).isoformat(),
             'updated_by': 'api'
         }
 
         if result.data:
             # Update existing record
-            supabase.table('scraper_control').update(config_data).eq('id', 1).execute()
+            supabase.table('system_control').update(config_data).eq('script_name', 'reddit_scraper').execute()
         else:
             # Create new record
-            config_data['id'] = 1
-            supabase.table('scraper_control').insert(config_data).execute()
+            config_data['script_name'] = 'reddit_scraper'
+            config_data['script_type'] = 'scraper'
+            config_data['status'] = 'stopped'
+            supabase.table('system_control').insert(config_data).execute()
 
         logger.info(f"✅ Updated scraper config: {config.dict()}")
 
@@ -764,8 +786,9 @@ async def get_reddit_api_stats():
 
         # Query specifically for Reddit API request logs (success and failure patterns)
         # Only look for actual success/failure messages, not request initiations
-        result = supabase.table('reddit_scraper_logs')\
+        result = supabase.table('system_logs')\
             .select('message, timestamp')\
+            .eq('source', 'reddit_scraper')\
             .like('message', '%Reddit API request%')\
             .order('timestamp', desc=True)\
             .limit(1500)\

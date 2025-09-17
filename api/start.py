@@ -11,6 +11,18 @@ import signal
 import logging
 from datetime import datetime, timezone
 
+# Add parent directory to path for imports
+if '/app/api' in sys.path[0] or os.path.dirname(__file__) == '/app/api':
+    sys.path.insert(0, '/app/api')
+else:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import system logger
+try:
+    from utils.system_logger import system_logger
+except ImportError:
+    system_logger = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -41,6 +53,13 @@ def check_and_start_scraper():
                     # Check if process is still running
                     os.kill(existing_pid, 0)
                     logger.info(f"✅ Scraper already running with PID {existing_pid}, skipping auto-start")
+                    if system_logger:
+                        system_logger.info(
+                            f"Scraper already running with PID {existing_pid}",
+                            source="api",
+                            script_name="start",
+                            context={"pid": existing_pid}
+                        )
                     return
                 except (OSError, ProcessLookupError):
                     logger.info(f"🔄 Cleaning up stale PID {existing_pid}")
@@ -62,15 +81,43 @@ def check_and_start_scraper():
             }).eq('id', 1).execute()
 
             logger.info(f"✅ Scraper auto-started with PID: {scraper_process.pid}")
+            if system_logger:
+                system_logger.info(
+                    f"Scraper auto-started",
+                    source="api",
+                    script_name="start",
+                    context={"pid": scraper_process.pid, "auto_start": True}
+                )
         else:
             logger.info("💤 Scraper is disabled in database, not starting")
+            if system_logger:
+                system_logger.info(
+                    "Scraper disabled, not starting",
+                    source="api",
+                    script_name="start"
+                )
 
     except Exception as e:
         logger.error(f"❌ Error checking scraper auto-start: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Error checking scraper auto-start: {e}",
+                source="api",
+                script_name="start",
+                context={"error": str(e)},
+                sync=True
+            )
 
 def run_api():
     """Run the FastAPI server"""
     logger.info("🚀 Starting FastAPI server...")
+    if system_logger:
+        system_logger.info(
+            "Starting FastAPI server",
+            source="api",
+            script_name="start",
+            context={"port": os.environ.get('PORT', '8000')}
+        )
     port = os.environ.get('PORT', '8000')
     try:
         # Change to api directory for API as well

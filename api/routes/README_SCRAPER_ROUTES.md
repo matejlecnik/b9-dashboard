@@ -12,12 +12,12 @@ Displays the current scraper cycle time - how long the scraper has been running 
 ### How It Works
 
 1. **Checks Scraper Status**
-   - Queries `scraper_control` table for `enabled` field
+   - Queries `system_control` table for `enabled` field where `script_name = 'reddit_scraper'`
    - If `enabled = false`, returns "Not Active" status
 
 2. **Finds Start Time**
-   - Searches for most recent "Scraper started" log message
-   - If not found, searches for "Continuous scraper...started" log
+   - Searches `system_logs` table for most recent "Starting scraping cycle" message
+   - Filters by `source = 'reddit_scraper'`
    - Uses the timestamp from the log entry as start time
 
 3. **Calculates Elapsed Time**
@@ -45,16 +45,16 @@ Displays the current scraper cycle time - how long the scraper has been running 
 - **"Unknown"** - Scraper is enabled but no start log found
 
 ### Database Tables Used
-- `scraper_control` - Checks if scraper is enabled
-- `reddit_scraper_logs` - Finds scraper start messages
+- `system_control` - Checks if scraper is enabled
+- `system_logs` - Finds scraper start messages (filtered by source='reddit_scraper')
 
 ### Log Patterns Matched
-- `"✅ Scraper started via API with PID XX"` - API-initiated starts
-- `"🚀 Continuous scraper v2.1.0 started"` - Continuous scraper starts
+- `"🔄 Starting scraping cycle #X"` - Scraping cycle starts
+- `"🚀 Continuous scraper vX.X.X started"` - Continuous scraper initialization
 
 ## Implementation Notes
 
-The endpoint uses sequential queries instead of `or_()` because the Supabase Python client doesn't support complex OR conditions. It first tries to find "Scraper started" logs, then falls back to "Continuous scraper" logs if none are found.
+The endpoint queries the unified `system_logs` table filtering by `source='reddit_scraper'` to find scraper-related log messages. All scraper operations now log to this centralized table with proper source identification.
 
 ## Testing
 

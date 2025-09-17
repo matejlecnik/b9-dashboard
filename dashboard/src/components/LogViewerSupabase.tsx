@@ -33,6 +33,7 @@ interface LogViewerSupabaseProps {
   maxLogs?: number
   tableName?: string
   sourceFilter?: string
+  useSystemLogs?: boolean
 }
 
 export function LogViewerSupabase({
@@ -42,7 +43,8 @@ export function LogViewerSupabase({
   refreshInterval = 5000,
   maxLogs = 500,
   tableName = 'reddit_scraper_logs',
-  sourceFilter
+  sourceFilter,
+  useSystemLogs = false
 }: LogViewerSupabaseProps) {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isPaused] = useState(false)
@@ -62,24 +64,53 @@ export function LogViewerSupabase({
     try {
       setError(null)
 
+      // Determine which table to use
+      const actualTableName = useSystemLogs ? 'system_logs' : tableName
+
       // Build query
       let query = supabase
-        .from(tableName)
+        .from(actualTableName)
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(since ? 50 : 100)
 
-      // Add filters
-      if (selectedLevel !== 'all') {
-        query = query.eq('level', selectedLevel)
-      }
+      // Add filters based on table type
+      if (useSystemLogs) {
+        // For system_logs table
+        if (sourceFilter) {
+          // Map legacy source filters to new source values
+          const sourceMap: Record<string, string> = {
+            'scraper': 'reddit_scraper',
+            'reddit_scraper': 'reddit_scraper',
+            'instagram_scraper': 'instagram_scraper',
+            'categorization': 'reddit_categorizer',
+            'user_discovery': 'user_discovery',
+            'api_user_discovery': 'api_user_discovery'
+          }
+          const mappedSource = sourceMap[sourceFilter] || sourceFilter
+          query = query.eq('source', mappedSource)
+        }
 
-      if (searchQuery) {
-        query = query.ilike('message', `%${searchQuery}%`)
-      }
+        if (selectedLevel !== 'all') {
+          query = query.eq('level', selectedLevel)
+        }
 
-      if (sourceFilter) {
-        query = query.eq('source', sourceFilter)
+        if (searchQuery) {
+          query = query.ilike('message', `%${searchQuery}%`)
+        }
+      } else {
+        // For legacy tables
+        if (selectedLevel !== 'all') {
+          query = query.eq('level', selectedLevel)
+        }
+
+        if (searchQuery) {
+          query = query.ilike('message', `%${searchQuery}%`)
+        }
+
+        if (sourceFilter) {
+          query = query.eq('source', sourceFilter)
+        }
       }
 
       if (since) {
@@ -93,14 +124,28 @@ export function LogViewerSupabase({
       }
 
       if (data) {
-        const formattedLogs: LogEntry[] = data.map(log => ({
-          id: log.id,
-          timestamp: log.timestamp,
-          level: log.level || 'info',
-          message: formatLogMessage(log.message, log.context),
-          source: log.source || 'scraper',
-          context: log.context
-        }))
+        const formattedLogs: LogEntry[] = data.map(log => {
+          // Handle both table structures
+          if (useSystemLogs) {
+            return {
+              id: log.id.toString(),
+              timestamp: log.timestamp,
+              level: log.level || 'info',
+              message: formatLogMessage(log.message, log.context),
+              source: log.source || log.script_name || 'unknown',
+              context: log.context
+            }
+          } else {
+            return {
+              id: log.id.toString(),
+              timestamp: log.timestamp,
+              level: log.level || 'info',
+              message: formatLogMessage(log.message, log.context),
+              source: log.source || 'scraper',
+              context: log.context
+            }
+          }
+        })
 
         if (since) {
           // Append new logs to existing ones
@@ -132,7 +177,7 @@ export function LogViewerSupabase({
       console.error('Error fetching logs:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     }
-  }, [isPaused, selectedLevel, searchQuery, maxLogs])
+  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])
 
   // Set up Supabase real-time subscription
   useEffect(() => {
@@ -142,20 +187,31 @@ export function LogViewerSupabase({
       return
     }
 
+    // Determine which table to use
+    const actualTableName = useSystemLogs ? 'system_logs' : tableName
+
     // Subscribe to new logs
     const channel = supabase
-      .channel(`${tableName}_changes`)
+      .channel(`${actualTableName}_changes`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: tableName
+          table: actualTableName
         },
         (payload) => {
           if (!isPaused && payload.new) {
-            const newLog: LogEntry = {
-              id: payload.new.id,
+            // Handle both table structures
+            const newLog: LogEntry = useSystemLogs ? {
+              id: payload.new.id.toString(),
+              timestamp: payload.new.timestamp,
+              level: payload.new.level || 'info',
+              message: formatLogMessage(payload.new.message, payload.new.context),
+              source: payload.new.source || payload.new.script_name || 'unknown',
+              context: payload.new.context
+            } : {
+              id: payload.new.id.toString(),
               timestamp: payload.new.timestamp,
               level: payload.new.level || 'info',
               message: formatLogMessage(payload.new.message, payload.new.context),
@@ -163,7 +219,23 @@ export function LogViewerSupabase({
               context: payload.new.context
             }
 
-            // Apply filters
+            // Apply filters based on table type
+            if (useSystemLogs && sourceFilter) {
+              // Map legacy source filters to new source values
+              const sourceMap: Record<string, string> = {
+                'scraper': 'reddit_scraper',
+                'reddit_scraper': 'reddit_scraper',
+                'instagram_scraper': 'instagram_scraper',
+                'categorization': 'reddit_categorizer',
+                'user_discovery': 'user_discovery',
+                'api_user_discovery': 'api_user_discovery'
+              }
+              const mappedSource = sourceMap[sourceFilter] || sourceFilter
+              if (newLog.source !== mappedSource) return
+            } else if (!useSystemLogs && sourceFilter) {
+              if (newLog.source !== sourceFilter) return
+            }
+
             if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
             if (searchQuery && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
 
@@ -198,7 +270,7 @@ export function LogViewerSupabase({
         supabase.removeChannel(subscriptionRef.current)
       }
     }
-  }, [isPaused, selectedLevel, searchQuery, maxLogs])
+  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])
 
   // Initial fetch on mount
   useEffect(() => {

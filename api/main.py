@@ -33,7 +33,8 @@ load_dotenv()
 # Import utilities and services
 from utils import (
     cache_manager, rate_limiter, health_monitor,
-    request_timer, get_cache, rate_limit, check_request_rate_limit
+    request_timer, get_cache, rate_limit, check_request_rate_limit,
+    system_logger, log_api_call, log_exception
 )
 from services.categorization_service import CategorizationService
 from routes.scraper_routes import router as scraper_router
@@ -47,17 +48,9 @@ except ImportError as e:
     print(f"Instagram scraper routes not available: {e}")
     INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
 
-# Import Instagram scraper task handler (for backward compatibility)
-try:
-    from tasks.instagram_scraper_task import (
-        start_scraper_async,
-        stop_scraper_async,
-        get_status_async
-    )
-    INSTAGRAM_SCRAPER_AVAILABLE = True
-except ImportError as e:
-    print(f"Instagram scraper task handler not available - dependencies may be missing: {e}")
-    INSTAGRAM_SCRAPER_AVAILABLE = False
+# Instagram scraper now uses subprocess architecture via instagram_scraper_routes.py
+# Control is done via Supabase system_control table only
+INSTAGRAM_SCRAPER_AVAILABLE = False  # Thread-based scraper disabled
 
 # Configure logging for production
 log_level = os.getenv('LOG_LEVEL', 'info').upper()
@@ -112,6 +105,7 @@ async def lifespan(app: FastAPI):
     global categorization_service, supabase
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
+    system_logger.info("Starting B9 Dashboard API", source="api", script_name="main", context={"environment": os.getenv("ENVIRONMENT", "development")})
     startup_start = time.time()
     
     try:
@@ -130,8 +124,10 @@ async def lifespan(app: FastAPI):
         try:
             supabase = create_client(supabase_url, supabase_key)
             logger.info("✅ Supabase client initialized")
+            system_logger.info("Supabase client initialized", source="api", script_name="main")
         except Exception as e:
             logger.error(f"❌ Supabase initialization failed: {e}")
+            system_logger.error(f"Supabase initialization failed: {e}", source="api", script_name="main", sync=True)
             raise
         
         # Initialize utilities
@@ -168,6 +164,18 @@ async def lifespan(app: FastAPI):
 
         startup_time = time.time() - startup_start
         logger.info(f"🎯 B9 Dashboard API ready in {startup_time:.2f}s")
+        system_logger.info(
+            f"API startup complete",
+            source="api",
+            script_name="main",
+            duration_ms=int(startup_time * 1000),
+            context={
+                "cache_enabled": cache_initialized,
+                "rate_limiting_enabled": rate_limit_initialized,
+                "services": ["categorization", "user"],
+                "startup_time_seconds": startup_time
+            }
+        )
         
         # Log startup
         logger.info(f"Services initialized: categorization, user")
@@ -175,12 +183,20 @@ async def lifespan(app: FastAPI):
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize B9 Dashboard API: {e}")
+        system_logger.error(
+            f"API startup failed: {e}",
+            source="api",
+            script_name="main",
+            context={"error": str(e)},
+            sync=True
+        )
         raise
     
     yield
 
     # Cleanup
     logger.info("🛑 Shutting down B9 Dashboard API...")
+    system_logger.info("API shutdown initiated", source="api", script_name="main")
     cleanup_start = time.time()
 
     try:
@@ -190,9 +206,18 @@ async def lifespan(app: FastAPI):
 
         cleanup_time = time.time() - cleanup_start
         logger.info(f"✅ Cleanup completed in {cleanup_time:.2f}s")
+        system_logger.info(
+            "API shutdown complete",
+            source="api",
+            script_name="main",
+            duration_ms=int(cleanup_time * 1000)
+        )
+        # Flush any remaining logs
+        system_logger.flush()
 
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
+        system_logger.error(f"Cleanup error: {e}", source="api", script_name="main", sync=True)
 
 # =============================================================================
 # FASTAPI APPLICATION
@@ -255,6 +280,16 @@ async def monitor_requests(request: Request, call_next):
         try:
             rate_limit_result = await check_request_rate_limit(request, "api")
             if not rate_limit_result.get("allowed", True):
+                system_logger.warning(
+                    "Rate limit exceeded",
+                    source="api",
+                    script_name="main",
+                    context={
+                        "path": request.url.path,
+                        "client": request.client.host if request.client else "unknown",
+                        "rate_limit_details": rate_limit_result
+                    }
+                )
                 return JSONResponse(
                     status_code=429,
                     content={
@@ -277,6 +312,13 @@ async def monitor_requests(request: Request, call_next):
             response = await call_next(request)
     except Exception as e:
         logger.error(f"Request failed: {e}")
+        log_api_call(
+            source="api",
+            endpoint=request.url.path,
+            method=request.method,
+            status_code=500,
+            error=str(e)
+        )
         return JSONResponse(
             status_code=500,
             content={"error": "Internal server error", "message": str(e)}
@@ -286,7 +328,17 @@ async def monitor_requests(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(round(process_time * 1000, 2))
     response.headers["X-Server"] = "B9-Dashboard-API"
-    
+
+    # Log successful API calls for monitoring
+    if request.url.path.startswith("/api/") and response.status_code < 400:
+        log_api_call(
+            source="api",
+            endpoint=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            response_time_ms=int(process_time * 1000)
+        )
+
     return response
 
 # =============================================================================
@@ -586,68 +638,11 @@ async def get_job_status(request: Request, job_id: str):
 # Note: If INSTAGRAM_SCRAPER_ROUTES_AVAILABLE, these are overridden by new subprocess-based endpoints
 # These thread-based endpoints only used when new routes aren't available
 
-@app.post("/api/instagram/scraper/start")
-@rate_limit("api")
-async def start_instagram_scraper(request: Request):
-    """Start the Instagram scraper background task"""
-    try:
-        if not INSTAGRAM_SCRAPER_AVAILABLE:
-            raise HTTPException(status_code=503, detail="Instagram scraper not available")
-
-        result = await start_scraper_async()
-
-        if not result.get("success"):
-            raise HTTPException(status_code=400, detail=result.get("message", "Failed to start scraper"))
-
-        # Log to Supabase
-        if supabase:
-            supabase.table('instagram_scraper_realtime_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'level': 'info',
-                'message': 'Instagram scraper started via API',
-                'source': 'instagram_api',
-                'context': result
-            }).execute()
-
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to start Instagram scraper: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Instagram scraper start/stop endpoints removed
+# Control via Supabase system_control table only:
+# UPDATE system_control SET enabled = true/false WHERE script_name = 'instagram_scraper'
 
 
-@app.post("/api/instagram/scraper/stop")
-@rate_limit("api")
-async def stop_instagram_scraper(request: Request):
-    """Stop the Instagram scraper background task"""
-    try:
-        if not INSTAGRAM_SCRAPER_AVAILABLE:
-            raise HTTPException(status_code=503, detail="Instagram scraper not available")
-
-        result = await stop_scraper_async()
-
-        if not result.get("success"):
-            raise HTTPException(status_code=400, detail=result.get("message", "Failed to stop scraper"))
-
-        # Log to Supabase
-        if supabase:
-            supabase.table('instagram_scraper_realtime_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'level': 'info',
-                'message': 'Instagram scraper stopped via API',
-                'source': 'instagram_api',
-                'context': result
-            }).execute()
-
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to stop Instagram scraper: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/instagram/scraper/status")
@@ -655,16 +650,30 @@ async def stop_instagram_scraper(request: Request):
 async def get_instagram_scraper_status(request: Request):
     """Get the current status of the Instagram scraper"""
     try:
-        if not INSTAGRAM_SCRAPER_AVAILABLE:
+        # Get status from Supabase control table
+        if not supabase:
             return {
                 "running": False,
                 "status": "unavailable",
-                "error": "Instagram scraper not available",
+                "error": "Database not available",
                 "timestamp": datetime.utcnow().isoformat()
             }
 
-        status = await get_status_async()
-        return status
+        result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
+        if result.data and len(result.data) > 0:
+            control = result.data[0]
+            return {
+                "running": control.get('enabled', False),
+                "status": "running" if control.get('enabled') else "stopped",
+                "last_heartbeat": control.get('last_heartbeat'),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            return {
+                "running": False,
+                "status": "not_initialized",
+                "timestamp": datetime.utcnow().isoformat()
+            }
 
     except Exception as e:
         logger.error(f"Failed to get Instagram scraper status: {e}")
@@ -688,16 +697,16 @@ async def get_instagram_success_rate(request: Request):
         today = datetime.now(timezone.utc).date().isoformat()
 
         # Get control record for metadata
-        control_result = supabase.table('instagram_scraper_control')\
-            .select('metadata')\
-            .eq('id', 1)\
+        control_result = supabase.table('system_control')\
+            .select('config')\
+            .eq('script_name', 'instagram_scraper')\
             .single()\
             .execute()
 
-        if control_result.data and control_result.data.get('metadata'):
-            metadata = control_result.data['metadata']
-            successful = metadata.get('successful_calls', 0)
-            failed = metadata.get('failed_calls', 0)
+        if control_result.data and control_result.data.get('config'):
+            config = control_result.data['config']
+            successful = config.get('successful_calls', 0)
+            failed = config.get('failed_calls', 0)
             total = successful + failed
 
             success_rate = (successful / total * 100) if total > 0 else 100.0
@@ -747,15 +756,15 @@ async def get_instagram_cost_metrics(request: Request):
             raise HTTPException(status_code=503, detail="Supabase not available")
 
         # Get control record for metadata
-        control_result = supabase.table('instagram_scraper_control')\
-            .select('metadata')\
-            .eq('id', 1)\
+        control_result = supabase.table('system_control')\
+            .select('config')\
+            .eq('script_name', 'instagram_scraper')\
             .single()\
             .execute()
 
         daily_calls = 0
-        if control_result.data and control_result.data.get('metadata'):
-            daily_calls = control_result.data['metadata'].get('total_api_calls_today', 0)
+        if control_result.data and control_result.data.get('config'):
+            daily_calls = control_result.data['config'].get('total_api_calls_today', 0)
 
         # Cost calculation: $75 per 250,000 requests = $0.0003 per request
         cost_per_request = 75 / 250000
@@ -794,11 +803,15 @@ async def get_instagram_scraper_metrics(request: Request, hours: int = Query(def
         if not supabase:
             raise HTTPException(status_code=503, detail="Database not available")
 
-        # Get current status
-        status = await get_status_async() if INSTAGRAM_SCRAPER_AVAILABLE else {"running": False}
+        # Get current status from Supabase
+        status = {"running": False}
+        if supabase:
+            control_result = supabase.table('system_control').select('enabled').eq('script_name', 'instagram_scraper').execute()
+            if control_result.data:
+                status = {"running": control_result.data[0].get('enabled', False)}
 
         # Get recent logs
-        logs_response = supabase.table('instagram_scraper_realtime_logs').select('*').order('timestamp', desc=True).limit(100).execute()
+        logs_response = supabase.table('system_logs').select('*').eq('source', 'instagram_scraper').order('timestamp', desc=True).limit(100).execute()
 
         # Get creator stats
         creator_response = supabase.table('instagram_creators').select('status, count').execute()
@@ -855,7 +868,7 @@ async def get_instagram_scraper_logs(
         if not supabase:
             raise HTTPException(status_code=503, detail="Database not available")
 
-        query = supabase.table('instagram_scraper_realtime_logs').select('*')
+        query = supabase.table('system_logs').select('*').eq('source', 'instagram_scraper')
 
         if log_level:
             query = query.eq('level', log_level)
