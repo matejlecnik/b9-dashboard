@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 import { formatDistanceToNow } from 'date-fns'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -31,6 +31,7 @@ interface LogViewerSupabaseProps {
   autoScroll?: boolean
   refreshInterval?: number
   maxLogs?: number
+  tableName?: string
 }
 
 export function LogViewerSupabase({
@@ -38,7 +39,8 @@ export function LogViewerSupabase({
   height = '600px',
   autoScroll = true,
   refreshInterval = 5000,
-  maxLogs = 500
+  maxLogs = 500,
+  tableName = 'reddit_scraper_logs'
 }: LogViewerSupabaseProps) {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isPaused] = useState(false)
@@ -60,7 +62,7 @@ export function LogViewerSupabase({
 
       // Build query
       let query = supabase
-        .from('reddit_scraper_logs')
+        .from(tableName)
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(since ? 50 : 100)
@@ -136,13 +138,13 @@ export function LogViewerSupabase({
 
     // Subscribe to new logs
     const channel = supabase
-      .channel('reddit_scraper_logs_changes')
+      .channel(`${tableName}_changes`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'reddit_scraper_logs'
+          table: tableName
         },
         (payload) => {
           if (!isPaused && payload.new) {

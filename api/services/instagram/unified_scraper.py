@@ -197,6 +197,24 @@ class InstagramScraperUnified:
             logger.warning(f"Failed to get monthly API calls: {e}")
             return 0
 
+    def _log_realtime(self, level: str, message: str, context: Optional[Dict] = None):
+        """Log real-time message to instagram_scraper_realtime_logs for monitoring"""
+        if not Config.ENABLE_SUPABASE_LOGGING:
+            return
+
+        try:
+            log_entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "level": level,
+                "message": message,
+                "source": "instagram_scraper",
+                "context": context or {}
+            }
+            self.supabase.table("instagram_scraper_realtime_logs").insert(log_entry).execute()
+        except Exception as e:
+            # Silently fail to avoid disrupting the scraper
+            logger.debug(f"Failed to log realtime: {e}")
+
     def _log_to_supabase(self, action: str, username: Optional[str] = None,
                         creator_id: Optional[str] = None, success: bool = True,
                         items_fetched: int = 0, items_saved: int = 0,
@@ -872,6 +890,10 @@ class InstagramScraperUnified:
         username = creator["username"]
 
         logger.info(f"Processing {username} ({creator_id})")
+        self._log_realtime("info", f"📊 Processing creator: {username}", {
+            "creator_id": creator_id,
+            "username": username
+        })
 
         try:
             # Check existing content
@@ -883,6 +905,7 @@ class InstagramScraperUnified:
 
             # Step 1: Always fetch profile data first (for both new and existing creators)
             logger.info(f"Step 1/4: Fetching profile for {username}")
+            self._log_realtime("info", f"🔍 Fetching profile for {username}")
             profile_data = self._fetch_profile(username)
 
             if profile_data:
@@ -910,6 +933,10 @@ class InstagramScraperUnified:
                     .eq("ig_user_id", creator_id).execute()
 
                 logger.info(f"Profile updated: {profile_data.get('follower_count', 0):,} followers")
+                self._log_realtime("info", f"✅ Profile fetched: {profile_data.get('follower_count', 0):,} followers", {
+                    "username": username,
+                    "followers": profile_data.get('follower_count', 0)
+                })
 
             # Determine fetch counts based on existing content
             if is_new:
@@ -923,11 +950,13 @@ class InstagramScraperUnified:
 
             # Step 2: Fetch reels
             logger.info(f"Step 2/4: Fetching {reels_to_fetch} reels for {username}")
+            self._log_realtime("info", f"📹 Fetching {reels_to_fetch} reels for {username}")
             reels = self._fetch_reels(creator_id, reels_to_fetch)
             logger.info(f"Fetched {len(reels)} reels")
 
             # Step 3: Fetch posts
             logger.info(f"Step 3/4: Fetching {posts_to_fetch} posts for {username}")
+            self._log_realtime("info", f"📸 Fetching {posts_to_fetch} posts for {username}")
             posts = self._fetch_posts(creator_id, posts_to_fetch)
             logger.info(f"Fetched {len(posts)} posts")
 
@@ -937,12 +966,19 @@ class InstagramScraperUnified:
 
             # Step 4: Calculate comprehensive analytics
             logger.info(f"Step 4/4: Calculating analytics for {username}")
+            self._log_realtime("info", f"📈 Calculating analytics for {username}")
             analytics = self._calculate_analytics(creator_id, reels, posts, profile_data)
             self._update_creator_analytics(creator_id, analytics)
 
             # Log analytics summary
             summary = self._format_analytics_summary(analytics)
             logger.info(f"\n{summary}")
+            self._log_realtime("success", f"✅ Completed {username}: {len(reels)} reels, {len(posts)} posts", {
+                "username": username,
+                "reels_fetched": len(reels),
+                "posts_fetched": len(posts),
+                "engagement_rate": round(analytics.get('engagement_rate', 0), 2)
+            })
 
             # Log success with comprehensive analytics
             api_calls_used = self.api_calls_made - api_calls_start
@@ -975,6 +1011,10 @@ class InstagramScraperUnified:
         except Exception as e:
             logger.error(f"Failed to process {username}: {e}")
             self.errors.append({"creator": username, "error": str(e)})
+            self._log_realtime("error", f"❌ Failed to process {username}: {str(e)}", {
+                "username": username,
+                "error": str(e)
+            })
 
             self._log_to_supabase(
                 action="process_creator",
@@ -1087,6 +1127,14 @@ class InstagramScraperUnified:
         logger.info(f"Current Usage: Daily={self.daily_calls}, Monthly={self.monthly_calls}")
         logger.info("=" * 60)
 
+        # Log to real-time monitor
+        self._log_realtime("info", "🚀 Instagram scraper started", {
+            "workers": Config.MAX_WORKERS,
+            "target_rps": Config.REQUESTS_PER_SECOND,
+            "concurrent_creators": Config.CONCURRENT_CREATORS,
+            "batch_size": Config.BATCH_SIZE
+        })
+
         # Update status to running
         self.update_scraper_status("running")
 
@@ -1096,6 +1144,7 @@ class InstagramScraperUnified:
 
             if not creators:
                 logger.warning("No creators to process")
+                self._log_realtime("warning", "⚠️ No creators to process")
                 return
 
             total_creators = len(creators)
@@ -1130,11 +1179,20 @@ class InstagramScraperUnified:
                 # Check if we need to slow down
                 if stats['current_rps'] > Config.REQUESTS_PER_SECOND:
                     logger.warning(f"Slowing down - exceeding rate limit: {stats['current_rps']:.1f} req/sec")
+                    self._log_realtime("warning", f"⚠️ Rate limit approached: {stats['current_rps']:.1f} req/sec", {
+                        "current_rps": stats['current_rps'],
+                        "limit": Config.REQUESTS_PER_SECOND
+                    })
                     time.sleep(2)
 
                 # Log batch progress
                 progress_pct = ((i + len(batch)) / total_creators) * 100
                 logger.info(f"Overall progress: {progress_pct:.1f}% ({self.creators_processed}/{total_creators})")
+                self._log_realtime("info", f"📦 Batch completed: {progress_pct:.1f}% total progress", {
+                    "progress_percentage": round(progress_pct, 1),
+                    "creators_processed": self.creators_processed,
+                    "total_creators": total_creators
+                })
 
             # Final summary
             duration = time.time() - self.start_time
@@ -1150,6 +1208,15 @@ class InstagramScraperUnified:
             logger.info(f"Duration: {duration:.1f} seconds")
             logger.info(f"Errors: {len(self.errors)}")
             logger.info("=" * 60)
+
+            # Log completion to real-time monitor
+            self._log_realtime("success", f"🎆 Scraping complete: {self.creators_processed} creators processed", {
+                "total_creators": self.creators_processed,
+                "api_calls": self.api_calls_made,
+                "total_cost": round(total_cost, 2),
+                "duration_seconds": round(duration, 1),
+                "errors": len(self.errors)
+            })
 
             # Log final summary
             self._log_to_supabase(
@@ -1178,6 +1245,10 @@ class InstagramScraperUnified:
 
         except Exception as e:
             logger.error(f"Scraper failed: {e}")
+            self._log_realtime("error", f"🔴 Scraper failed: {str(e)}", {
+                "error": str(e),
+                "creators_processed": self.creators_processed
+            })
 
             self._log_to_supabase(
                 action="run_failed",

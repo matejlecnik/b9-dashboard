@@ -79,14 +79,20 @@ class Config:
     @classmethod
     def validate(cls) -> bool:
         """Validate required configuration"""
-        required = [
-            cls.SUPABASE_URL,
-            cls.SUPABASE_KEY,
-            cls.RAPIDAPI_KEY
-        ]
+        required_vars = {
+            "SUPABASE_URL": cls.SUPABASE_URL,
+            "SUPABASE_KEY": cls.SUPABASE_KEY,
+            "RAPIDAPI_KEY": cls.RAPIDAPI_KEY
+        }
 
-        missing = [var for var in required if not var]
+        missing = [name for name, value in required_vars.items() if not value]
         if missing:
+            # Also log the actual values for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Missing environment variables: {missing}")
+            for name, value in required_vars.items():
+                logger.error(f"  {name}: {'SET' if value else 'MISSING'}")
             raise ValueError(f"Missing required configuration: {missing}")
 
         return True
@@ -104,8 +110,8 @@ class Config:
     @classmethod
     def get_cost_per_request(cls) -> float:
         """Calculate cost per API request based on plan"""
-        # $200 for 1M requests (long-term plan)
-        return 200 / 1_000_000
+        # $75 for 250k requests
+        return 75 / 250_000
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
