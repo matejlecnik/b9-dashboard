@@ -259,7 +259,7 @@ export default function InstagramMonitor() {
     } finally {
       setLoading(false)
     }
-  }, [manualOverride, isRunning])
+  }, [manualOverride, isRunning, supabase])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -419,7 +419,7 @@ export default function InstagramMonitor() {
         clearTimeout(manualOverrideTimeoutRef.current)
       }
     }
-  }, []) // Empty dependency array - only run once on mount
+  }, [fetchMetrics, calculateSuccessRate, fetchCostData, supabase]) // Include all used functions
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">

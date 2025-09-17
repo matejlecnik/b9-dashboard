@@ -19,7 +19,7 @@ const RedditIcon = ({ className }: { className?: string }) => (
 
 export function RedditMonitorSidebar() {
 
-  const navigationItems = [
+  const navigationItems: any[] = [
     {
       id: 'reddit-monitor',
       title: 'Reddit Monitor',
