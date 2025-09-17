@@ -121,6 +121,18 @@ class InstagramScraperUnified:
         self.daily_calls = self._get_daily_api_calls()
         self.monthly_calls = self._get_monthly_api_calls()
 
+        # Stop mechanism
+        self.stop_requested = False
+
+    def should_continue(self) -> bool:
+        """Check if scraper should continue running"""
+        return not self.stop_requested
+
+    def request_stop(self):
+        """Request the scraper to stop gracefully"""
+        self.stop_requested = True
+        logger.info("Stop requested for Instagram scraper")
+
     def _create_session_pool(self):
         """Create connection pool for reusing connections"""
         adapter = requests.adapters.HTTPAdapter(

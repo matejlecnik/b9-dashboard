@@ -94,6 +94,7 @@ def stop_instagram_scraper() -> dict:
 
         # Signal scraper to stop
         if _scraper_instance:
+            _scraper_instance.request_stop()
             _scraper_instance.update_scraper_status("stopping")
 
         # Wait for thread to finish (with timeout)
