@@ -160,7 +160,7 @@ export default function InstagramMonitor() {
               start_time: data.cycle.start_time
             })
             console.log('Instagram cycle data from API:', data.cycle)
-          } else if (data.success && !data.running) {
+          } else if (data.success && !data.control?.enabled) {
             // Scraper is disabled
             setCycleData({
               elapsed_formatted: 'Not Active',
@@ -230,8 +230,8 @@ export default function InstagramMonitor() {
 
           // Map the response to our metrics structure
           const mappedMetrics: InstagramMetrics = {
-            enabled: data.running || false,
-            status: data.running ? 'running' : 'stopped',
+            enabled: data.control?.enabled || false,
+            status: data.control?.enabled ? 'running' : 'stopped',
             statistics: {
               total_api_calls: data.progress?.api_calls_made || 0,
               successful_calls: data.progress?.successful_calls || data.progress?.api_calls_made || 0,
@@ -267,7 +267,7 @@ export default function InstagramMonitor() {
 
           // Only update running state if we haven't manually overridden it
           if (!manualOverride) {
-            setIsRunning(data.running === true)
+            setIsRunning(data.control?.enabled === true)
           }
         }
       } catch (fetchError: any) {

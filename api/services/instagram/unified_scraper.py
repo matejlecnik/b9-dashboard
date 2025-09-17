@@ -1436,58 +1436,58 @@ class InstagramScraperUnified:
                         # Use thread pool for concurrent processing
                         self.process_creators_concurrent(batch)
 
-                # Log performance stats
-                stats = self.performance_monitor.get_stats()
-                logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
-                           f"Avg response: {stats['avg_response_time']:.3f}s, "
-                           f"Total requests: {stats['total_requests']}")
+                        # Log performance stats
+                        stats = self.performance_monitor.get_stats()
+                        logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
+                                   f"Avg response: {stats['avg_response_time']:.3f}s, "
+                                   f"Total requests: {stats['total_requests']}")
 
-                # Check if we need to slow down
-                if stats['current_rps'] > Config.REQUESTS_PER_SECOND:
-                    logger.warning(f"Slowing down - exceeding rate limit: {stats['current_rps']:.1f} req/sec")
-                    self._log_realtime("warning", f"⚠️ Rate limit approached: {stats['current_rps']:.1f} req/sec", {
-                        "current_rps": stats['current_rps'],
-                        "limit": Config.REQUESTS_PER_SECOND
+                        # Check if we need to slow down
+                        if stats['current_rps'] > Config.REQUESTS_PER_SECOND:
+                            logger.warning(f"Slowing down - exceeding rate limit: {stats['current_rps']:.1f} req/sec")
+                            self._log_realtime("warning", f"⚠️ Rate limit approached: {stats['current_rps']:.1f} req/sec", {
+                                "current_rps": stats['current_rps'],
+                                "limit": Config.REQUESTS_PER_SECOND
+                            })
+                            time.sleep(2)
+
+                        # Log batch progress
+                        progress_pct = ((i + len(batch)) / total_creators) * 100
+                        logger.info(f"Overall progress: {progress_pct:.1f}% ({self.creators_processed}/{total_creators})")
+                        self._log_realtime("info", f"📦 Batch completed: {progress_pct:.1f}% total progress", {
+                            "progress_percentage": round(progress_pct, 1),
+                            "creators_processed": self.creators_processed,
+                            "total_creators": total_creators
+                        })
+
+                    # Cycle summary (moved outside batch loop)
+                    cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
+                    avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
+                    total_cost = self.api_calls_made * Config.get_cost_per_request()
+
+                    logger.info("=" * 60)
+                    logger.info(f"Cycle #{self.cycle_number} Complete")
+                    logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
+                    logger.info(f"API Calls Made: {self.api_calls_made}")
+                    logger.info(f"Successful Calls: {self.successful_calls}")
+                    logger.info(f"Failed Calls: {self.failed_calls}")
+                    logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
+                    logger.info(f"Total Cost: ${total_cost:.2f}")
+                    logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
+                    logger.info(f"Errors: {len(self.errors)}")
+                    logger.info("=" * 60)
+
+                    # Log cycle completion
+                    self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {
+                        "cycle": self.cycle_number,
+                        "creators_processed": self.creators_processed,
+                        "api_calls": self.api_calls_made,
+                        "successful_calls": self.successful_calls,
+                        "failed_calls": self.failed_calls,
+                        "total_cost": round(total_cost, 2),
+                        "cycle_duration_minutes": round(cycle_duration/60, 1),
+                        "errors": len(self.errors)
                     })
-                    time.sleep(2)
-
-                # Log batch progress
-                progress_pct = ((i + len(batch)) / total_creators) * 100
-                logger.info(f"Overall progress: {progress_pct:.1f}% ({self.creators_processed}/{total_creators})")
-                self._log_realtime("info", f"📦 Batch completed: {progress_pct:.1f}% total progress", {
-                    "progress_percentage": round(progress_pct, 1),
-                    "creators_processed": self.creators_processed,
-                    "total_creators": total_creators
-                })
-
-                # Cycle summary
-                cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
-                avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
-                total_cost = self.api_calls_made * Config.get_cost_per_request()
-
-                logger.info("=" * 60)
-                logger.info(f"Cycle #{self.cycle_number} Complete")
-                logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
-                logger.info(f"API Calls Made: {self.api_calls_made}")
-                logger.info(f"Successful Calls: {self.successful_calls}")
-                logger.info(f"Failed Calls: {self.failed_calls}")
-                logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
-                logger.info(f"Total Cost: ${total_cost:.2f}")
-                logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
-                logger.info(f"Errors: {len(self.errors)}")
-                logger.info("=" * 60)
-
-                # Log cycle completion
-                self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {
-                    "cycle": self.cycle_number,
-                    "creators_processed": self.creators_processed,
-                    "api_calls": self.api_calls_made,
-                    "successful_calls": self.successful_calls,
-                    "failed_calls": self.failed_calls,
-                    "total_cost": round(total_cost, 2),
-                    "cycle_duration_minutes": round(cycle_duration/60, 1),
-                    "errors": len(self.errors)
-                })
 
             except Exception as e:
                 logger.error(f"Cycle #{self.cycle_number} failed: {e}")
