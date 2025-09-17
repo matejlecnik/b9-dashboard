@@ -1065,8 +1065,7 @@ class InstagramScraperUnified:
         try:
             query = self.supabase.table("instagram_creators")\
                 .select("ig_user_id, username")\
-                .eq("review_status", "ok")\
-                .not_.is_("ig_user_id", None)
+                .eq("review_status", "ok")
 
             if Config.DRY_RUN:
                 query = query.limit(Config.TEST_LIMIT)
@@ -1093,13 +1092,15 @@ class InstagramScraperUnified:
             update_data = {
                 "status": status,
                 "last_run_at": datetime.now(timezone.utc).isoformat() if status == "running" else None,
-                "total_creators_processed": self.creators_processed,
-                "total_api_calls_today": self.daily_calls,
-                "config": Config.to_dict()
+                "metadata": {
+                    "total_creators_processed": self.creators_processed,
+                    "total_api_calls_today": self.daily_calls,
+                    "config": Config.to_dict()
+                }
             }
 
             if details:
-                update_data["config"].update(details)
+                update_data["metadata"]["details"] = details
 
             if result.data:
                 # Update existing
