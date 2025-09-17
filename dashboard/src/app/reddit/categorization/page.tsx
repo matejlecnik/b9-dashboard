@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase, type Subreddit } from '@/lib/supabase'
+import { supabase, type Subreddit } from '@/lib/supabase/index'
 import { UniversalTable, createCategorizationTable } from '@/components/UniversalTable'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'

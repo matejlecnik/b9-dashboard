@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/index'
 import type { UpdateCategoryRequest, CategoryResponse } from '@/types/category'
 
 interface RouteParams {

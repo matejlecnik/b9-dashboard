@@ -10,7 +10,7 @@ import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 import { RedditMonitorSidebar } from '@/components/RedditMonitorSidebar'
 import { GlassMorphismButton } from '@/components/GlassMorphismButton'
 import { ApiActivityLog } from '@/components/ApiActivityLog'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 
 interface SystemMetrics {
   enabled: boolean

@@ -1065,7 +1065,8 @@ class InstagramScraperUnified:
         try:
             query = self.supabase.table("instagram_creators")\
                 .select("ig_user_id, username")\
-                .eq("review_status", "ok")
+                .eq("review_status", "ok")\
+                .neq("ig_user_id", None)
 
             if Config.DRY_RUN:
                 query = query.limit(Config.TEST_LIMIT)

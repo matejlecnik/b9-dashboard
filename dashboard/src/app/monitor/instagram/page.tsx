@@ -438,6 +438,7 @@ export default function InstagramMonitor() {
                   refreshInterval={5000}
                   maxLogs={500}
                   tableName="instagram_scraper_realtime_logs"
+                  sourceFilter="instagram_scraper"
                 />
               </div>
 

@@ -1,11 +1,11 @@
   'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase, type Subreddit } from '@/lib/supabase'
+import { supabase, type Subreddit } from '@/lib/supabase/index'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { MetricsCards } from '@/components/MetricsCards'
 import { UniversalTable, createSubredditReviewTable } from '@/components/UniversalTable'
-import { BulkActionsToolbar } from '@/components/BulkActionsToolbar'
+import { UniversalToolbar, createBulkActionsToolbar } from '@/components/UniversalToolbar'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -698,14 +698,17 @@ export default function SubredditReviewPage() {
 
         {/* Bulk Actions Toolbar (only when items selected) */}
         {selectedSubreddits.size > 0 && (
-          <BulkActionsToolbar
-            selectedCount={selectedSubreddits.size}
-            onBulkOk={() => bulkUpdateReview('Ok')}
-            onBulkNoSeller={() => bulkUpdateReview('No Seller')}
-            onBulkNonRelated={() => bulkUpdateReview('Non Related')}
-            onClearSelection={() => setSelectedSubreddits(new Set())}
-            onUndoLastAction={() => undoLastActionRef.current?.()}
-            disabled={loading || loadingMore}
+          <UniversalToolbar
+            {...createBulkActionsToolbar({
+              selectedCount: selectedSubreddits.size,
+              onBulkOk: () => bulkUpdateReview('Ok'),
+              onBulkNoSeller: () => bulkUpdateReview('No Seller'),
+              onBulkNonRelated: () => bulkUpdateReview('Non Related'),
+              onClearSelection: () => setSelectedSubreddits(new Set()),
+              onUndoLastAction: () => undoLastActionRef.current?.(),
+              disabled: loading || loadingMore
+            })}
+            testId="bulk-actions-toolbar"
           />
         )}
 

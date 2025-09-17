@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, User, LogOut, LucideIcon } from 'lucide-react'
-import { supabase as supabaseClient } from '@/lib/supabase'
+import { supabase as supabaseClient } from '@/lib/supabase/index'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface SidebarNavigationItem {

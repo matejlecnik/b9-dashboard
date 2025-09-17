@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase, type Subreddit, type Post } from '@/lib/supabase'
+import { supabase, type Subreddit, type Post } from '@/lib/supabase/index'
 
 // ============================================================================
 // TYPES

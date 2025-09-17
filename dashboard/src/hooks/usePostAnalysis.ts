@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 import type { Post, PostMetrics } from '@/types/post'
 import type { PostSortField, AgeFilter } from '@/components/PostAnalysisToolbar'
 

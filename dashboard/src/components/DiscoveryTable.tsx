@@ -25,9 +25,9 @@ import 'swiper/css'
 import 'swiper/css/free-mode'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast'
-import { supabase } from '@/lib/supabase'
-import type { Subreddit, Post } from '@/lib/supabase'
-import { getCategoryStyles } from '@/lib/categoryColors'
+import { supabase } from '@/lib/supabase/index'
+import type { Subreddit, Post } from '@/lib/supabase/index'
+import { getCategoryStyles } from '@/lib/colors'
 
 interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_at' | 'review'> {
   recent_posts?: Post[]

@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import type { User } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
+import type { User } from '@/lib/supabase/index'
 import { useMemo } from 'react'
 
 export interface UserStats {

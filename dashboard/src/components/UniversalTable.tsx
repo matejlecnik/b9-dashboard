@@ -2,7 +2,7 @@
 
 import React, { memo, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Image from 'next/image'
-import { type Subreddit } from '@/lib/supabase'
+import { type Subreddit } from '@/lib/supabase/index'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CategorySelector } from '@/components/CategorySelector'
@@ -413,7 +413,7 @@ export const UniversalTable = memo(function UniversalTable({
           )}>
             {safeDisplayName}
             {/* Verification Badge */}
-            {subreddit.verification_required && (
+            {subreddit.verification_required_detected && (
               <span title="Verification Required">
                 <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
               </span>

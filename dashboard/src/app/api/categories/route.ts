@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/index'
 import type { CreateCategoryRequest, CategoriesResponse } from '@/types/category'
 
 // Helper: normalize category names to a canonical display form (Title Case, trimmed, single spaces)

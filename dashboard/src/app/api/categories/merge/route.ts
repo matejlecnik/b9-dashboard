@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/index'
 
 interface MergeCategoriesRequest {
   source_category_names: string[]  // Categories to merge (will be deleted)

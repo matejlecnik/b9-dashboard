@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, Subreddit } from '@/lib/supabase'
+import { createClient, Subreddit } from '@/lib/supabase/index'
 
 export async function POST(request: NextRequest) {
   try {

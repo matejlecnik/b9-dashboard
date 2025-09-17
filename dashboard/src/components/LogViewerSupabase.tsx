@@ -32,6 +32,7 @@ interface LogViewerSupabaseProps {
   refreshInterval?: number
   maxLogs?: number
   tableName?: string
+  sourceFilter?: string
 }
 
 export function LogViewerSupabase({
@@ -40,7 +41,8 @@ export function LogViewerSupabase({
   autoScroll = true,
   refreshInterval = 5000,
   maxLogs = 500,
-  tableName = 'reddit_scraper_logs'
+  tableName = 'reddit_scraper_logs',
+  sourceFilter
 }: LogViewerSupabaseProps) {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isPaused] = useState(false)
@@ -74,6 +76,10 @@ export function LogViewerSupabase({
 
       if (searchQuery) {
         query = query.ilike('message', `%${searchQuery}%`)
+      }
+
+      if (sourceFilter) {
+        query = query.eq('source', sourceFilter)
       }
 
       if (since) {

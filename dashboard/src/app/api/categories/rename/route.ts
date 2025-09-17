@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/index'
 
 interface RenameCategoryRequest {
   old_name: string

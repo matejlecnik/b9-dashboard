@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import type { User } from '@/lib/supabase'
+import type { User } from '@/lib/supabase/index'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatNumber as formatNumberUtil } from '@/lib/utils'

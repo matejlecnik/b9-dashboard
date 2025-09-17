@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tag } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/components/ui/toast'
-import { getCategoryStyles } from '@/lib/categoryColors'
+import { getCategoryStyles } from '@/lib/colors'
 
 // Enhanced caching with timestamp
 interface CachedCategories {

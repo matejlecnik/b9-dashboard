@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronLeft, User, LogOut } from 'lucide-react'
 import { navigationConfig, isActiveHref, NavigationItem } from '@/config/navigation'
 import { NavigationBadge } from '@/components/NavigationBadge'
-import { supabase as supabaseClient } from '@/lib/supabase'
+import { supabase as supabaseClient } from '@/lib/supabase/index'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 type SidebarProps = Record<string, never>

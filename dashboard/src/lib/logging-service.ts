@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/index'
 
 export type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'critical'
 export type LogSource = 'user_tracking' | 'ai_categorization' | 'reddit_scraper' | 'api_operation'

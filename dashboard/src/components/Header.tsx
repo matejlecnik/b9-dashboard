@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/index'
 import { useRouter } from 'next/navigation'
 import { 
   User, 

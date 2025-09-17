@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, Check, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { getCategoryStyles } from '@/lib/categoryColors'
+import { getCategoryStyles } from '@/lib/colors'
 import { formatNumber } from '@/lib/utils'
 
 interface CategoryFilterDropdownProps {
