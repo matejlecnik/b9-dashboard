@@ -1402,20 +1402,20 @@ class InstagramScraperUnified:
                     batch_size = Config.CONCURRENT_CREATORS * 5  # Process 50 at a time with 10 concurrent
 
                     for i in range(0, total_creators, batch_size):
-                # Check if we should stop
-                if not self.should_continue():
-                    logger.info("Stop requested, terminating batch processing")
-                    self._log_realtime("info", "⏹️ Stopping scraper as requested")
-                    break
+                        # Check if we should stop
+                        if not self.should_continue():
+                            logger.info("Stop requested, terminating batch processing")
+                            self._log_realtime("info", "⏹️ Stopping scraper as requested")
+                            break
 
-                batch = creators[i:i+batch_size]
-                batch_num = (i // batch_size) + 1
-                total_batches = (total_creators + batch_size - 1) // batch_size
+                        batch = creators[i:i+batch_size]
+                        batch_num = (i // batch_size) + 1
+                        total_batches = (total_creators + batch_size - 1) // batch_size
 
-                logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
+                        logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
 
-                # Use thread pool for concurrent processing
-                self.process_creators_concurrent(batch)
+                        # Use thread pool for concurrent processing
+                        self.process_creators_concurrent(batch)
 
                 # Log performance stats
                 stats = self.performance_monitor.get_stats()
