@@ -110,7 +110,7 @@ async def start_scraper(request: Request):
         update_data = {
             'enabled': True,
             'pid': scraper_process.pid,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
             'last_heartbeat': datetime.now(timezone.utc).isoformat(),
             'updated_by': 'api'
         }
@@ -189,7 +189,7 @@ async def stop_scraper(request: Request):
         update_data = {
             'enabled': False,
             'pid': None,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
             'updated_by': 'api'
         }
 
@@ -244,7 +244,7 @@ async def get_scraper_status(request: Request):
             result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
             if result.data and len(result.data) > 0:
                 is_running = result.data[0].get('enabled', False)
-                last_updated = result.data[0].get('last_updated')
+                last_updated = result.data[0].get('updated_at')
         except Exception as e:
             logger.debug(f"Could not get scraper control state: {e}")
 

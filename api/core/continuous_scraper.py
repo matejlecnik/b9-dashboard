@@ -217,7 +217,7 @@ class ContinuousScraper:
                 'script_name': 'continuous_scraper',
                 'level': 'info',
                 'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
-                'version': SCRAPER_VERSION
+                'context': {'version': SCRAPER_VERSION}
             }).execute()
         except Exception as e:
             logger.error(f"Error logging startup: {e}")
