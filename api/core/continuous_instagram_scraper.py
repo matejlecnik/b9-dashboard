@@ -97,7 +97,7 @@ class ContinuousInstagramScraper:
                     'id': 1,
                     'status': 'stopped',
                     'enabled': False,
-                    'last_updated': datetime.now(timezone.utc).isoformat(),
+                    'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at
                     'updated_by': 'system'
                 }).execute()
                 return False, {}

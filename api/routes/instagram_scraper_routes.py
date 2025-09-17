@@ -108,7 +108,7 @@ async def start_instagram_scraper(request: Request):
             'enabled': True,
             'status': 'running',  # Keep status field for backward compatibility
             'pid': scraper_process.pid,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at instead of last_updated
             'last_heartbeat': datetime.now(timezone.utc).isoformat(),
             'updated_by': 'api'
         }
@@ -185,7 +185,7 @@ async def stop_instagram_scraper(request: Request):
             'enabled': False,
             'status': 'stopped',  # Keep status field for backward compatibility
             'pid': None,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),  # Use updated_at instead of last_updated
             'updated_by': 'api'
         }
 
@@ -239,7 +239,7 @@ async def get_instagram_scraper_status(request: Request):
             if result.data and len(result.data) > 0:
                 control = result.data[0]
                 is_running = control.get('enabled', False) or control.get('status') == 'running'
-                last_updated = control.get('last_updated') or control.get('updated_at')
+                last_updated = control.get('updated_at')  # Use the correct column name
                 pid = control.get('pid')
 
                 # Check if PID is actually running
