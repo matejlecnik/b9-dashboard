@@ -169,10 +169,10 @@ class InstagramScraperUnified:
         # Also check internal control table
         try:
             # Check Supabase control table for current status
-            result = self.supabase.table("instagram_scraper_control")\
+            result = self.supabase.table("system_control")\
                 .select("status, enabled")\
-                .eq("id", 1)\
-                .single()\
+                .eq("script_name", "instagram_scraper")\
+                .maybe_single()\
                 .execute()
 
             if result.data:
@@ -184,7 +184,7 @@ class InstagramScraperUnified:
                 return should_run
             else:
                 # No control record, default to stop
-                logger.warning("No control record found, stopping scraper")
+                logger.warning("No control record found in system_control, stopping scraper")
                 return False
         except Exception as e:
             logger.error(f"Error checking control table: {e}")
@@ -1295,47 +1295,36 @@ class InstagramScraperUnified:
     def update_scraper_status(self, status: str, details: Optional[Dict] = None):
         """Update scraper control status in database"""
         try:
-            # Check if control record exists
-            result = self.supabase.table("instagram_scraper_control")\
-                .select("id")\
-                .eq("id", 1)\
-                .execute()
-
+            # Update system_control table
             update_data = {
                 "status": status,
                 "last_heartbeat": datetime.now(timezone.utc).isoformat(),
-                "last_run_at": datetime.now(timezone.utc).isoformat() if status == "running" else None,
-                "metadata": {
+                "config": {
                     "total_creators_processed": self.creators_processed,
                     "total_api_calls_today": self.daily_calls,
                     "successful_calls": self.successful_calls,
                     "failed_calls": self.failed_calls,
                     "current_cycle": self.cycle_number,
-                    "config": Config.to_dict()
+                    "api_config": Config.to_dict()
                 }
             }
 
             # Add PID when running
             if status == "running":
                 update_data["pid"] = os.getpid()
+                update_data["started_at"] = datetime.now(timezone.utc).isoformat()
             elif status in ["stopped", "error"]:
                 update_data["pid"] = None
+                update_data["stopped_at"] = datetime.now(timezone.utc).isoformat()
 
             if details:
-                update_data["metadata"]["details"] = details
+                update_data["config"]["details"] = details
 
-            if result.data:
-                # Update existing
-                self.supabase.table("instagram_scraper_control")\
-                    .update(update_data)\
-                    .eq("id", 1)\
-                    .execute()
-            else:
-                # Insert new with id=1
-                update_data["id"] = 1
-                self.supabase.table("instagram_scraper_control")\
-                    .insert(update_data)\
-                    .execute()
+            # Update the system_control table
+            self.supabase.table("system_control")\
+                .update(update_data)\
+                .eq("script_name", "instagram_scraper")\
+                .execute()
 
         except Exception as e:
             logger.warning(f"Failed to update scraper status: {e}")
