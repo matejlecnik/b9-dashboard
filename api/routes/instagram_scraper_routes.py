@@ -560,6 +560,43 @@ async def start_instagram_scraper(request: Request):
                 'config': {'scan_interval_hours': 24, 'batch_size': 5}
             }).execute()
 
+        # Start the scraper subprocess
+        try:
+            # Determine the path to the scraper script
+            scraper_path = "/app/api/core/continuous_instagram_scraper.py"
+            if not os.path.exists(scraper_path):
+                # Try local path
+                scraper_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "continuous_instagram_scraper.py")
+
+            if os.path.exists(scraper_path):
+                process = subprocess.Popen(
+                    [sys.executable, "-u", scraper_path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True  # Detach from parent
+                )
+
+                logger.info(f"✅ Instagram scraper subprocess started with PID: {process.pid}")
+
+                # Update heartbeat
+                supabase.table('system_control').update({
+                    'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+                }).eq('script_name', 'instagram_scraper').execute()
+
+                if system_logger:
+                    system_logger.info(
+                        f'✅ Instagram scraper subprocess started with PID: {process.pid}',
+                        source="instagram_scraper",
+                        script_name="instagram_scraper_routes",
+                        context={'action': 'start', 'pid': process.pid}
+                    )
+            else:
+                logger.warning(f"Scraper script not found at {scraper_path}, relying on database control only")
+
+        except Exception as e:
+            logger.warning(f"Could not start subprocess: {e}. Scraper will start if running elsewhere.")
+
         # Log the action
         if system_logger:
             system_logger.info(
