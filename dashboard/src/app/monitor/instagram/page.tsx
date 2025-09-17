@@ -249,11 +249,11 @@ export default function InstagramMonitor() {
             type: 'success'
           })
 
-          // Clear manual override after 5 seconds to allow status updates again
+          // Clear manual override after 30 seconds to allow status updates again
           setTimeout(() => {
             setManualOverride(false)
             fetchMetrics()  // Immediately fetch fresh status
-          }, 5000)
+          }, 30000)
         } else {
           // Revert optimistic update on failure
           setIsRunning(!newRunningState)

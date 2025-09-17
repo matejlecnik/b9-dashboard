@@ -34,7 +34,7 @@ class Config:
     CONNECTION_TIMEOUT = int(os.getenv("INSTAGRAM_CONNECTION_TIMEOUT", "30"))
 
     # Scraper Settings
-    UPDATE_FREQUENCY = int(os.getenv("UPDATE_FREQUENCY", "21600"))  # 6 hours
+    UPDATE_FREQUENCY = int(os.getenv("UPDATE_FREQUENCY", "10800"))  # 3 hours
     MAX_DAILY_API_CALLS = int(os.getenv("MAX_DAILY_API_CALLS", "24000"))
     MAX_MONTHLY_API_CALLS = int(os.getenv("MAX_MONTHLY_API_CALLS", "1000000"))
 
