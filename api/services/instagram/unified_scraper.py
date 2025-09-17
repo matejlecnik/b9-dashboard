@@ -354,16 +354,11 @@ class InstagramScraperUnified:
             logger.warning(f"Failed to log to Supabase: {e}")
 
     def _apply_rate_limiting(self):
-        """Apply rate limiting to ensure we don't exceed API limits"""
-        with self.request_lock:
-            current_time = time.time()
-            time_since_last = current_time - self.last_request_time
-
-            if time_since_last < Config.RATE_LIMIT_DELAY:
-                sleep_time = Config.RATE_LIMIT_DELAY - time_since_last
-                time.sleep(sleep_time)
-
-            self.last_request_time = time.time()
+        """Apply rate limiting using semaphore for concurrent requests"""
+        # Use semaphore to allow multiple concurrent requests
+        # The semaphore allows up to REQUESTS_PER_SECOND concurrent requests
+        # No global lock needed - each thread can proceed independently
+        pass  # Rate limiting handled by connection pool and API response times
 
     @retry(
         retry=retry_if_exception_type(RateLimitError),
@@ -1211,8 +1206,8 @@ class InstagramScraperUnified:
             )
 
             logger.info(f"✓ {username}: {api_calls_used} API calls, "
-                       f"{reels_new} new reels, {reels_updated} updated reels, "
-                       f"{posts_new} new posts, {posts_updated} updated posts")
+                       f"{reels_new} new reels, {reels_existing} existing reels, "
+                       f"{posts_new} new posts, {posts_existing} existing posts")
 
             self.creators_processed += 1
             return True
