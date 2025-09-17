@@ -1345,21 +1345,25 @@ class InstagramScraperUnified:
 
             for i, creator in enumerate(creators):
                 # Check if scraper should stop
-                if not self.should_continue():
+                should_continue_result = self.should_continue()
+                logger.info(f"DEBUG: should_continue() = {should_continue_result}")
+                if not should_continue_result:
                     logger.info("Scraper stop signal received")
                     break
 
                 # Check API limits
+                logger.info(f"DEBUG: daily_calls={self.daily_calls}, MAX_DAILY={Config.MAX_DAILY_API_CALLS}")
                 if self.daily_calls >= Config.MAX_DAILY_API_CALLS:
                     logger.warning("Daily API limit reached")
                     break
 
+                logger.info(f"DEBUG: monthly_calls={self.monthly_calls}, MAX_MONTHLY={Config.MAX_MONTHLY_API_CALLS}")
                 if self.monthly_calls >= Config.MAX_MONTHLY_API_CALLS:
                     logger.warning("Monthly API limit reached")
                     break
 
                 # Submit creator processing to thread pool
-                logger.info(f"DEBUG: Submitting creator {i+1}/{len(creators)}: {creator.get('username')} (ID: {creator.get('instagram_id')})")
+                logger.info(f"DEBUG: Submitting creator {i+1}/{len(creators)}: {creator.get('username')} (ID: {creator.get('ig_user_id')})")
                 future = executor.submit(self.process_creator, creator)
                 futures.append((future, creator))
 
