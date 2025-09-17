@@ -972,7 +972,7 @@ class InstagramScraperUnified:
                     "external_url": profile_data.get("external_url"),
                     "full_name": profile_data.get("full_name"),
                     "is_private": profile_data.get("is_private"),
-                    "last_scraped": datetime.now(timezone.utc).isoformat()
+                    "last_scraped_at": datetime.now(timezone.utc).isoformat()
                 }
 
                 self.supabase.table("instagram_creators").update(update_data)\
