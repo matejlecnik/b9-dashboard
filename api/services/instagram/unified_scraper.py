@@ -1441,34 +1441,34 @@ class InstagramScraperUnified:
                     "total_creators": total_creators
                 })
 
-                    # Cycle summary
-                    cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
-                    avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
-                    total_cost = self.api_calls_made * Config.get_cost_per_request()
+                # Cycle summary
+                cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
+                avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
+                total_cost = self.api_calls_made * Config.get_cost_per_request()
 
-                    logger.info("=" * 60)
-                    logger.info(f"Cycle #{self.cycle_number} Complete")
-                    logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
-                    logger.info(f"API Calls Made: {self.api_calls_made}")
-                    logger.info(f"Successful Calls: {self.successful_calls}")
-                    logger.info(f"Failed Calls: {self.failed_calls}")
-                    logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
-                    logger.info(f"Total Cost: ${total_cost:.2f}")
-                    logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
-                    logger.info(f"Errors: {len(self.errors)}")
-                    logger.info("=" * 60)
+                logger.info("=" * 60)
+                logger.info(f"Cycle #{self.cycle_number} Complete")
+                logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
+                logger.info(f"API Calls Made: {self.api_calls_made}")
+                logger.info(f"Successful Calls: {self.successful_calls}")
+                logger.info(f"Failed Calls: {self.failed_calls}")
+                logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
+                logger.info(f"Total Cost: ${total_cost:.2f}")
+                logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
+                logger.info(f"Errors: {len(self.errors)}")
+                logger.info("=" * 60)
 
-                    # Log cycle completion
-                    self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {
-                        "cycle": self.cycle_number,
-                        "creators_processed": self.creators_processed,
-                        "api_calls": self.api_calls_made,
-                        "successful_calls": self.successful_calls,
-                        "failed_calls": self.failed_calls,
-                        "total_cost": round(total_cost, 2),
-                        "cycle_duration_minutes": round(cycle_duration/60, 1),
-                        "errors": len(self.errors)
-                    })
+                # Log cycle completion
+                self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {
+                    "cycle": self.cycle_number,
+                    "creators_processed": self.creators_processed,
+                    "api_calls": self.api_calls_made,
+                    "successful_calls": self.successful_calls,
+                    "failed_calls": self.failed_calls,
+                    "total_cost": round(total_cost, 2),
+                    "cycle_duration_minutes": round(cycle_duration/60, 1),
+                    "errors": len(self.errors)
+                })
 
             except Exception as e:
                 logger.error(f"Cycle #{self.cycle_number} failed: {e}")
