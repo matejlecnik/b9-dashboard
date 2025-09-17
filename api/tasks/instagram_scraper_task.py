@@ -157,6 +157,8 @@ def get_scraper_status() -> dict:
             status_data["progress"] = {
                 "creators_processed": _scraper_instance.creators_processed,
                 "api_calls_made": _scraper_instance.api_calls_made,
+                "successful_calls": _scraper_instance.successful_calls if hasattr(_scraper_instance, 'successful_calls') else _scraper_instance.api_calls_made,
+                "failed_calls": _scraper_instance.failed_calls if hasattr(_scraper_instance, 'failed_calls') else 0,
                 "daily_api_calls": _scraper_instance.daily_calls if hasattr(_scraper_instance, 'daily_calls') else 0,
                 "errors": len(_scraper_instance.errors) if hasattr(_scraper_instance, 'errors') else 0
             }

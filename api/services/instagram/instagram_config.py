@@ -39,10 +39,11 @@ class Config:
     MAX_MONTHLY_API_CALLS = int(os.getenv("MAX_MONTHLY_API_CALLS", "1000000"))
 
     # Retry Settings
-    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "30"))
+    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))  # Reduced from 30 to prevent hanging
     RETRY_MAX_ATTEMPTS = int(os.getenv("RETRY_MAX_ATTEMPTS", "5"))
     RETRY_WAIT_MIN = float(os.getenv("RETRY_WAIT_MIN", "1"))
     RETRY_WAIT_MAX = float(os.getenv("RETRY_WAIT_MAX", "10"))
+    RETRY_EMPTY_RESPONSE = int(os.getenv("RETRY_EMPTY_RESPONSE", "2"))  # Retry empty responses up to 2 times
 
     # Features
     ENABLE_VIRAL_DETECTION = os.getenv("ENABLE_VIRAL_DETECTION", "true").lower() == "true"

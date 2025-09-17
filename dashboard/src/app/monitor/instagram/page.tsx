@@ -134,8 +134,8 @@ export default function InstagramMonitor() {
             status: data.running ? 'running' : 'stopped',
             statistics: {
               total_api_calls: data.progress?.api_calls_made || 0,
-              successful_calls: data.progress?.api_calls_made || 0,
-              failed_calls: 0,
+              successful_calls: data.progress?.successful_calls || data.progress?.api_calls_made || 0,
+              failed_calls: data.progress?.failed_calls || 0,
               creators_processed: data.progress?.creators_processed || 0,
               content_collected: 0,
               viral_content_detected: 0,
@@ -249,10 +249,11 @@ export default function InstagramMonitor() {
             type: 'success'
           })
 
-          // Clear manual override after 30 seconds to allow status updates again
+          // Clear manual override after 5 seconds to allow status updates again
           setTimeout(() => {
             setManualOverride(false)
-          }, 30000)
+            fetchMetrics()  // Immediately fetch fresh status
+          }, 5000)
         } else {
           // Revert optimistic update on failure
           setIsRunning(!newRunningState)

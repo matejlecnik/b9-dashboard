@@ -113,6 +113,8 @@ class InstagramScraperUnified:
 
         # Tracking
         self.api_calls_made = 0
+        self.successful_calls = 0
+        self.failed_calls = 0
         self.creators_processed = 0
         self.errors = []
         self.start_time = time.time()
@@ -367,6 +369,7 @@ class InstagramScraperUnified:
 
             request_time = time.time() - request_start
             self.api_calls_made += 1
+            self.successful_calls += 1  # Track successful calls
             self.daily_calls += 1
             self.monthly_calls += 1
 
@@ -385,7 +388,14 @@ class InstagramScraperUnified:
             response.raise_for_status()
             return response.json()
 
+        except requests.exceptions.Timeout as e:
+            self.api_calls_made += 1
+            self.failed_calls += 1  # Track failed calls
+            logger.error(f"API request timed out after {Config.REQUEST_TIMEOUT}s: {e}")
+            raise APIError(f"Request timed out: {e}")
         except requests.exceptions.RequestException as e:
+            self.api_calls_made += 1
+            self.failed_calls += 1  # Track failed calls
             logger.error(f"API request failed: {e}")
             raise APIError(f"Request failed: {e}")
 
@@ -423,10 +433,11 @@ class InstagramScraperUnified:
             return None
 
     def _fetch_reels(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
-        """Fetch Instagram reels"""
+        """Fetch Instagram reels with retry logic for empty responses"""
         reels = []
         max_id = None
         total_to_fetch = count
+        empty_retries = 0
 
         while len(reels) < total_to_fetch:
             try:
@@ -441,10 +452,19 @@ class InstagramScraperUnified:
                 data = self._make_api_request(Config.REELS_ENDPOINT, params)
 
                 items = data.get("items", [])
+
+                # Retry if we get an empty response
+                if not items and empty_retries < Config.RETRY_EMPTY_RESPONSE:
+                    empty_retries += 1
+                    logger.warning(f"Empty response for reels, retry {empty_retries}/{Config.RETRY_EMPTY_RESPONSE}")
+                    time.sleep(2)  # Wait 2 seconds before retry
+                    continue
+
                 if not items:
                     break
 
                 reels.extend(items)
+                empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
                 if not paging.get("more_available"):
@@ -459,10 +479,11 @@ class InstagramScraperUnified:
         return reels[:total_to_fetch]
 
     def _fetch_posts(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
-        """Fetch Instagram posts"""
+        """Fetch Instagram posts with retry logic for empty responses"""
         posts = []
         max_id = None
         total_to_fetch = count
+        empty_retries = 0
 
         while len(posts) < total_to_fetch:
             try:
@@ -477,10 +498,19 @@ class InstagramScraperUnified:
                 data = self._make_api_request(Config.POSTS_ENDPOINT, params)
 
                 items = data.get("items", [])
+
+                # Retry if we get an empty response
+                if not items and empty_retries < Config.RETRY_EMPTY_RESPONSE:
+                    empty_retries += 1
+                    logger.warning(f"Empty response for posts, retry {empty_retries}/{Config.RETRY_EMPTY_RESPONSE}")
+                    time.sleep(2)  # Wait 2 seconds before retry
+                    continue
+
                 if not items:
                     break
 
                 posts.extend(items)
+                empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
                 if not paging.get("more_available"):
@@ -1271,6 +1301,12 @@ class InstagramScraperUnified:
             batch_size = Config.CONCURRENT_CREATORS * 5  # Process 50 at a time with 10 concurrent
 
             for i in range(0, total_creators, batch_size):
+                # Check if we should stop
+                if not self.should_continue():
+                    logger.info("Stop requested, terminating batch processing")
+                    self._log_realtime("info", "⏹️ Stopping scraper as requested")
+                    break
+
                 batch = creators[i:i+batch_size]
                 batch_num = (i // batch_size) + 1
                 total_batches = (total_creators + batch_size - 1) // batch_size
