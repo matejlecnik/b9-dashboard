@@ -108,7 +108,7 @@ def check_and_start_scrapers():
                         context={"pid": instagram_process.pid, "auto_start": True}
                     )
             else:
-                logger.info("💤 Instagram scraper is disabled in database, not starting")
+                logger.info("💤 Instagram scraper is disabled in database, not starting at startup")
         except Exception as e:
             logger.error(f"❌ Error checking Instagram scraper: {e}")
 
