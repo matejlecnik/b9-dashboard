@@ -3,11 +3,25 @@
 Instagram Unified Scraper for B9 Agency
 Efficiently fetches reels, posts, and profile data with 2.4 API calls per creator average
 """
-import os
+# Early logging before any imports that might fail
 import sys
+import logging
+
+# Configure logging FIRST before any imports
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True
+)
+logger = logging.getLogger(__name__)
+logger.info("=" * 60)
+logger.info("Instagram Unified Scraper - Module Loading")
+logger.info("=" * 60)
+
+import os
 import time
 import json
-import logging
 import re
 import threading
 import asyncio
@@ -19,24 +33,26 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as
 from queue import Queue
 import random
 
-import requests
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from supabase import create_client, Client
-from dotenv import load_dotenv
+try:
+    import requests
+    from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+    from supabase import create_client, Client
+    from dotenv import load_dotenv
+    logger.info("✅ All external dependencies loaded successfully")
+except ImportError as e:
+    logger.error(f"❌ Failed to import dependency: {e}")
+    raise
 
-from .instagram_config import Config
+try:
+    from .instagram_config import Config
+    logger.info("✅ Config module loaded successfully")
+except ImportError as e:
+    logger.error(f"❌ Failed to import Config: {e}")
+    raise
 
-# Load environment and validate
+# Load environment
 load_dotenv()
-# Config.validate()  # Will validate when actually starting the scraper
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger(__name__)
+logger.info("✅ Environment variables loaded")
 
 
 class APIError(Exception):
@@ -1371,6 +1387,15 @@ class InstagramScraperUnified:
         logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}")
         logger.info(f"RAPIDAPI_KEY configured: {'YES' if Config.RAPIDAPI_KEY else 'NO'}")
         logger.info("=" * 60)
+
+        # Validate configuration
+        try:
+            Config.validate()
+            logger.info("✅ Configuration validated successfully")
+        except Exception as e:
+            logger.error(f"❌ Configuration validation failed: {e}")
+            self.update_scraper_status("error")
+            raise
 
         # Update status to running
         self.update_scraper_status("running")

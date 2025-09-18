@@ -2,6 +2,76 @@
 
 A collection of standardized, reusable components for the B9 Dashboard. These components ensure consistency across all dashboard pages with unified styles, shadows, spacing, and interactions.
 
+## 🚨 MANDATORY: Dashboard Sidebar Requirement
+
+**ALL dashboards in the B9 platform MUST implement a sidebar for navigation.** This is a non-negotiable requirement to ensure consistent user experience across all dashboard modules.
+
+### Sidebar Implementation Guidelines
+
+1. **Create a dedicated sidebar component** for each dashboard module (e.g., `InstagramSidebar`, `RedditMonitorSidebar`)
+2. **Use the `SidebarTemplate` component** as the base for all sidebars
+3. **Include all relevant navigation items** specific to that dashboard
+4. **Maintain consistent styling** using the design system tokens
+5. **Add proper badges and status indicators** where applicable
+
+### Example Implementation
+
+```tsx
+// src/components/InstagramSidebar.tsx
+import { SidebarTemplate } from '@/components/SidebarTemplate'
+import { Users, Hash, TrendingUp, BarChart } from 'lucide-react'
+
+export function InstagramSidebar() {
+  const navigationItems = [
+    {
+      title: 'Creator Review',
+      href: '/instagram/creator-review',
+      icon: Users,
+      badge: { type: 'count', value: '85', variant: 'default' }
+    },
+    // ... more navigation items
+  ]
+
+  return (
+    <SidebarTemplate
+      title="Instagram Dashboard"
+      icon={InstagramIcon}
+      backHref="/dashboards"
+      navigationItems={navigationItems}
+      showTeamSection={true}
+      showLogout={true}
+    />
+  )
+}
+```
+
+### Page Layout with Sidebar
+
+Every dashboard page MUST include the sidebar in its layout:
+
+```tsx
+export default function DashboardPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+      {/* Background texture */}
+      <div className="fixed inset-0 opacity-30 pointer-events-none" />
+
+      {/* Sidebar - REQUIRED */}
+      <div className="relative z-50">
+        <YourDashboardSidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
+          {/* Page content */}
+        </main>
+      </div>
+    </div>
+  )
+}
+```
+
 ## 🎨 Design System
 
 The design system (`/lib/design-system.ts`) provides consistent tokens for:

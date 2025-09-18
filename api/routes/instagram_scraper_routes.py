@@ -649,19 +649,28 @@ async def start_instagram_scraper(request: Request):
 
         # Start the actual subprocess immediately (like Reddit scraper should do)
         try:
-            # Start Instagram scraper subprocess
+            # Open log file for Instagram scraper output
+            log_file_path = '/tmp/instagram_scraper.log'
+            log_file = open(log_file_path, 'a')
+            log_file.write(f"\n\n{'='*60}\n")
+            log_file.write(f"Starting Instagram scraper at {datetime.now(timezone.utc).isoformat()}\n")
+            log_file.write(f"{'='*60}\n")
+            log_file.flush()
+
+            # Start Instagram scraper subprocess with proper logging
             instagram_process = subprocess.Popen(
                 [sys.executable, "-u", "core/continuous_instagram_scraper.py"],
-                stdout=subprocess.PIPE,
+                stdout=log_file,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # API directory
+                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # API directory
+                env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
             )
 
             # Check if process started successfully
             import time
-            time.sleep(0.5)
+            time.sleep(2)  # Give it more time to start
 
             if instagram_process.poll() is None:
                 # Process is running
@@ -671,14 +680,32 @@ async def start_instagram_scraper(request: Request):
                 supabase.table('system_control').update({
                     'pid': instagram_process.pid
                 }).eq('script_name', 'instagram_scraper').execute()
+
+                # Log success to file
+                log_file.write(f"✅ Subprocess started successfully with PID: {instagram_process.pid}\n")
+                log_file.flush()
             else:
-                # Process died immediately
-                logger.error("Instagram scraper subprocess died immediately")
-                # Don't fail the endpoint, as the database flag is still set
+                # Process died immediately - read the error
+                log_file.close()
+                with open(log_file_path, 'r') as f:
+                    error_output = f.read()
+                    last_lines = error_output.split('\n')[-20:]  # Get last 20 lines
+                    error_msg = '\n'.join(last_lines)
+
+                logger.error(f"Instagram scraper subprocess died immediately. Last output:\n{error_msg}")
+
+                # Update database with error
+                supabase.table('system_control').update({
+                    'enabled': False,
+                    'status': 'error',
+                    'last_error': f"Process died on startup: {error_msg[:500]}",
+                    'last_error_at': datetime.now(timezone.utc).isoformat()
+                }).eq('script_name', 'instagram_scraper').execute()
 
         except Exception as subprocess_error:
             logger.error(f"Failed to start subprocess: {subprocess_error}")
-            # Don't fail the endpoint, as the database flag is still set
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Log the action
         if system_logger:

@@ -25,6 +25,8 @@ import { Badge } from "@/components/ui/badge"
 import { Search, Filter, CheckCircle2, XCircle, Clock, ExternalLink, Users, Eye, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { InstagramSidebar } from '@/components/InstagramSidebar'
+import { PageContainer } from '@/components/standard'
 
 interface InstagramCreator {
   id: number
@@ -69,6 +71,7 @@ const getReviewStatusConfig = (status: string | null) => {
 }
 
 export default function CreatorReviewPage() {
+  // Wrap entire component in PageContainer for sidebar layout
   const [creators, setCreators] = useState<InstagramCreator[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -205,7 +208,28 @@ export default function CreatorReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+      {/* Background texture */}
+      <div
+        className="fixed inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
+          `
+        }}
+      />
+
+      {/* Sidebar */}
+      <div className="relative z-50">
+        <InstagramSidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
+          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
+            <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -466,6 +490,10 @@ export default function CreatorReviewPage() {
           )}
         </CardContent>
       </Card>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

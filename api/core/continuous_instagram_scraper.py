@@ -205,19 +205,43 @@ class ContinuousInstagramScraper:
 
                     # Initialize the scraper
                     logger.info("Creating InstagramScraperUnified instance...")
+                    logger.info(f"Current memory usage: {psutil.Process().memory_info().rss / 1024 / 1024:.1f} MB")
+
                     self.scraper = InstagramScraperUnified()
                     logger.info("✅ Instagram scraper initialized successfully")
+
+                    # Log memory after creation
+                    logger.info(f"Memory after scraper creation: {psutil.Process().memory_info().rss / 1024 / 1024:.1f} MB")
+
                 except ValueError as e:
                     logger.error(f"❌ Configuration validation failed: {e}")
                     # Log specific missing variables
                     logger.error(f"   RAPIDAPI_KEY: {'SET' if os.getenv('RAPIDAPI_KEY') else 'MISSING'}")
                     logger.error(f"   SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'MISSING'}")
                     logger.error(f"   SUPABASE_SERVICE_ROLE_KEY: {'SET' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'MISSING'}")
+
+                    # Update database with error
+                    self.supabase.table('system_control').update({
+                        'enabled': False,
+                        'status': 'error',
+                        'last_error': str(e)[:500],
+                        'last_error_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('script_name', 'instagram_scraper').execute()
                     raise
+
                 except Exception as e:
                     logger.error(f"❌ Failed to initialize Instagram scraper: {e}")
                     import traceback
-                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    error_trace = traceback.format_exc()
+                    logger.error(f"Traceback: {error_trace}")
+
+                    # Update database with error
+                    self.supabase.table('system_control').update({
+                        'enabled': False,
+                        'status': 'error',
+                        'last_error': f"Init failed: {str(e)[:400]}",
+                        'last_error_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('script_name', 'instagram_scraper').execute()
                     raise
 
             # Run the scraping in a thread - let it handle its own control checking

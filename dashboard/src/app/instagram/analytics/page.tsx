@@ -3,10 +3,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BarChart, TrendingUp, Users, Activity, Calendar, Target, Award, Zap } from 'lucide-react'
+import { InstagramSidebar } from '@/components/InstagramSidebar'
 
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+      {/* Background texture */}
+      <div
+        className="fixed inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
+          `
+        }}
+      />
+
+      {/* Sidebar */}
+      <div className="relative z-50">
+        <InstagramSidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
+          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
+            <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Creator Analytics</h2>
@@ -155,6 +177,10 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
