@@ -1513,6 +1513,15 @@ class InstagramScraperUnified:
                         raise
                     finally:
                         logger.info(f"📊 Processing completed: Processed {processed_count}/{total_creators} creators")
+                        # Add explicit completion message for the wrapper to detect
+                        logger.info("🎉 CYCLE COMPLETED SUCCESSFULLY - Returning to wrapper")
+                        self._log_realtime("success", "🎉 Processing completed - cycle finished successfully", {
+                            "total_creators": total_creators,
+                            "creators_processed": processed_count,
+                            "api_calls": self.api_calls_made,
+                            "cycle_complete": True,
+                            "returning_to_wrapper": True
+                        })
 
                     # Cycle summary (moved outside batch loop)
                     cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()

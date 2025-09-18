@@ -282,6 +282,24 @@ class ContinuousInstagramScraper:
                 # Don't re-raise, continue to cycle completion logic
                 logger.warning("Continuing to cycle completion despite error...")
 
+            # IMPORTANT: Log that we're entering the cycle completion section
+            logger.info("=" * 60)
+            logger.info("ENTERING CYCLE COMPLETION SECTION")
+            logger.info("=" * 60)
+
+            # Log to Supabase that we're in completion section
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'instagram_scraper',
+                    'script_name': 'continuous_instagram_scraper',
+                    'level': 'info',
+                    'message': '📊 Entering cycle completion section - preparing wait period',
+                    'context': {'cycle': self.cycle_count, 'phase': 'cycle_completion'}
+                }).execute()
+            except Exception as log_error:
+                logger.warning(f"Could not log completion section entry: {log_error}")
+
             # Calculate cycle duration
             cycle_end_time = datetime.now(timezone.utc)
             duration_seconds = (cycle_end_time - cycle_start_time).total_seconds()
@@ -298,9 +316,15 @@ class ContinuousInstagramScraper:
             else:
                 duration_formatted = f"{int(duration_seconds)}s"
 
-            # Get scraper stats
-            creators_processed = self.scraper.creators_processed if self.scraper else 0
-            api_calls_made = self.scraper.api_calls_made if self.scraper else 0
+            # Get scraper stats (with better error handling)
+            try:
+                creators_processed = self.scraper.creators_processed if self.scraper and hasattr(self.scraper, 'creators_processed') else 0
+                api_calls_made = self.scraper.api_calls_made if self.scraper and hasattr(self.scraper, 'api_calls_made') else 0
+                logger.info(f"Retrieved scraper stats: {creators_processed} creators, {api_calls_made} API calls")
+            except Exception as stats_error:
+                logger.warning(f"Could not retrieve scraper stats: {stats_error}")
+                creators_processed = 0
+                api_calls_made = 0
 
             # Log cycle completion
             self.supabase.table('system_logs').insert({
