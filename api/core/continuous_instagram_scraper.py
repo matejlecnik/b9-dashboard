@@ -248,12 +248,39 @@ class ContinuousInstagramScraper:
             logger.info("Starting Instagram scraper run() method...")
             try:
                 await asyncio.to_thread(self.scraper.run)
-                logger.info("Instagram scraper run() method completed")
+                logger.info("✅ Instagram scraper run() method completed successfully")
             except Exception as e:
                 logger.error(f"❌ Error in scraper run() method: {e}")
                 import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                raise
+                error_trace = traceback.format_exc()
+                logger.error(f"Traceback: {error_trace}")
+
+                # Update database with error details
+                try:
+                    self.supabase.table('system_control').update({
+                        'status': 'error',
+                        'last_error': f"Scraper crashed: {str(e)[:400]}",
+                        'last_error_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('script_name', 'instagram_scraper').execute()
+
+                    # Log error to system_logs
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'instagram_scraper',
+                        'script_name': 'continuous_instagram_scraper',
+                        'level': 'error',
+                        'message': f'❌ Scraper crashed during cycle #{self.cycle_count}: {str(e)}',
+                        'context': {
+                            'cycle': self.cycle_count,
+                            'error': str(e),
+                            'traceback': error_trace[:1000]  # Limit traceback size
+                        }
+                    }).execute()
+                except Exception as log_error:
+                    logger.error(f"Failed to log error to database: {log_error}")
+
+                # Don't re-raise, continue to cycle completion logic
+                logger.warning("Continuing to cycle completion despite error...")
 
             # Calculate cycle duration
             cycle_end_time = datetime.now(timezone.utc)

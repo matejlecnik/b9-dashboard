@@ -1380,7 +1380,7 @@ class InstagramScraperUnified:
         logger.info(f"\n📊 Batch Results: {successful} successful, {failed} failed out of {len(creators)} creators")
 
     def run(self):
-        """Main execution method with continuous loop"""
+        """Main execution method - runs a single cycle"""
         logger.info("=" * 60)
         logger.info("Instagram Unified Scraper Starting")
         logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
@@ -1408,8 +1408,8 @@ class InstagramScraperUnified:
             logger.warning("Scraper is disabled, exiting")
             return
 
-        # Main processing loop
-        while self.should_continue():
+        # Process a single cycle (continuous_instagram_scraper.py will handle the loop)
+        if self.should_continue():
             self.cycle_number += 1
             self.cycle_start_time = datetime.now(timezone.utc)
 
@@ -1559,46 +1559,10 @@ class InstagramScraperUnified:
                     "error": str(e)
                 })
 
-            # Check if we should continue
-            if not self.should_continue():
-                logger.info("Stop requested, ending continuous loop")
-                self._log_realtime("info", "⏹️ Scraper stopping as requested")
-                break
-
-            # Wait for next cycle (3 hours)
-            next_cycle_time = self.cycle_start_time + timedelta(hours=3)
-            wait_seconds = (next_cycle_time - datetime.now(timezone.utc)).total_seconds()
-
-            if wait_seconds > 0:
-                logger.info(f"Waiting {wait_seconds/60:.1f} minutes until next cycle at {next_cycle_time.isoformat()}")
-                self._log_realtime("info", f"⏰ Next cycle in {wait_seconds/60:.1f} minutes", {
-                    "next_cycle_time": next_cycle_time.isoformat(),
-                    "wait_minutes": round(wait_seconds/60, 1)
-                })
-
-                # Check for stop signal periodically during sleep
-                sleep_interval = 60  # Check every minute
-                heartbeat_counter = 0
-                for _ in range(int(wait_seconds / sleep_interval)):
-                    # Update heartbeat every 5 minutes
-                    heartbeat_counter += 1
-                    if heartbeat_counter >= 5:  # 5 minutes
-                        self.update_scraper_status("running", {"waiting_for_next_cycle": True})
-                        heartbeat_counter = 0
-
-                    if not self.should_continue():
-                        logger.info("Stop requested during wait")
-                        break
-                    time.sleep(sleep_interval)
-
-        # Final cleanup when scraper stops
-        logger.info("Instagram scraper stopped")
-        self.update_scraper_status("stopped", {
-            "total_cycles": self.cycle_number,
-            "total_api_calls": self.api_calls_made,
-            "successful_calls": self.successful_calls,
-            "failed_calls": self.failed_calls
-        })
+        # Cycle is complete, return control to the wrapper
+        logger.info("Instagram scraper cycle completed successfully")
+        logger.info(f"Total creators processed: {self.creators_processed}")
+        logger.info(f"Total API calls made: {self.api_calls_made}")
 
 
 def main():
