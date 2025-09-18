@@ -8,9 +8,6 @@ Manages Instagram scraper via system_control table
 API_VERSION = "2.0.0"
 
 import os
-import sys
-import signal
-import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -648,42 +645,8 @@ async def start_instagram_scraper(request: Request):
                 'config': {'scan_interval_hours': 24, 'batch_size': 5}
             }).execute()
 
-        # Start the scraper subprocess
-        try:
-            # Determine the path to the scraper script
-            scraper_path = "/app/api/core/continuous_instagram_scraper.py"
-            if not os.path.exists(scraper_path):
-                # Try local path
-                scraper_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "continuous_instagram_scraper.py")
-
-            if os.path.exists(scraper_path):
-                process = subprocess.Popen(
-                    [sys.executable, "-u", scraper_path],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    stdin=subprocess.DEVNULL,
-                    start_new_session=True  # Detach from parent
-                )
-
-                logger.info(f"✅ Instagram scraper subprocess started with PID: {process.pid}")
-
-                # Update heartbeat
-                supabase.table('system_control').update({
-                    'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-                }).eq('script_name', 'instagram_scraper').execute()
-
-                if system_logger:
-                    system_logger.info(
-                        f'✅ Instagram scraper subprocess started with PID: {process.pid}',
-                        source="instagram_scraper",
-                        script_name="instagram_scraper_routes",
-                        context={'action': 'start', 'pid': process.pid}
-                    )
-            else:
-                logger.warning(f"Scraper script not found at {scraper_path}, relying on database control only")
-
-        except Exception as e:
-            logger.warning(f"Could not start subprocess: {e}. Scraper will start if running elsewhere.")
+        # Note: The actual subprocess is started by api/start.py when the container starts
+        # This endpoint only controls the database flag, similar to the Reddit scraper
 
         # Log the action
         if system_logger:
@@ -818,11 +781,12 @@ async def get_control_info():
             "to_view_logs": "SELECT * FROM system_logs WHERE source = 'instagram_scraper' ORDER BY timestamp DESC;"
         },
         "architecture": {
-            "type": "subprocess",
+            "type": "subprocess_managed_by_container",
             "runs_24_7": True,
             "check_interval": "30 seconds",
             "scraper_file": "api/core/continuous_instagram_scraper.py",
-            "logic_file": "api/services/instagram/unified_scraper.py"
+            "logic_file": "api/services/instagram/unified_scraper.py",
+            "startup_handler": "api/start.py"
         },
-        "note": "The Instagram scraper can be controlled via API endpoints or directly through the database. The scraper runs continuously as a subprocess and checks the control table every 30 seconds."
+        "note": "The Instagram scraper is controlled via API endpoints or database. The subprocess is managed by the container's start.py script and checks the control table every 30 seconds."
     }
