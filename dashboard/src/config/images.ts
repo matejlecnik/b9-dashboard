@@ -1,5 +1,3 @@
-'use client'
-
 // Centralized image configuration and helpers
 
 export const ALLOWED_IMAGE_HOSTS: Set<string> = new Set([
@@ -27,6 +25,21 @@ export const ALLOWED_IMAGE_HOSTS: Set<string> = new Set([
   'imageupload.io',
   'ibb.co',
   'i.ibb.co',
+  // Instagram CDN domains
+  'instagram.fbcn2-1.fna.fbcdn.net',
+  'instagram.fmil1-1.fna.fbcdn.net',
+  'scontent-cdg4-1.cdninstagram.com',
+  'scontent-cdg4-2.cdninstagram.com',
+  'scontent-cdg4-3.cdninstagram.com',
+  'scontent.cdninstagram.com',
+  // Add more generic Instagram CDN patterns
+  'scontent-iad3-1.cdninstagram.com',
+  'scontent-lax3-1.cdninstagram.com',
+  'scontent-ord5-1.cdninstagram.com',
+  'scontent-dfw5-1.cdninstagram.com',
+  'instagram.facc1-1.fna.fbcdn.net',
+  'instagram.fcgh1-1.fna.fbcdn.net',
+  'instagram.fdel1-1.fna.fbcdn.net',
 ])
 
 export function sanitizeImageUrl(rawUrl: string | null | undefined): string | null {
@@ -64,7 +77,20 @@ export function sanitizeImageUrl(rawUrl: string | null | undefined): string | nu
 export function isAllowedImageHost(url: string): boolean {
   try {
     const hostname = new URL(url).hostname
-    return ALLOWED_IMAGE_HOSTS.has(hostname)
+
+    // Check exact match first
+    if (ALLOWED_IMAGE_HOSTS.has(hostname)) {
+      return true
+    }
+
+    // Check for Instagram CDN patterns
+    if (hostname.includes('.cdninstagram.com') ||
+        hostname.includes('.fbcdn.net') ||
+        hostname.startsWith('scontent')) {
+      return true
+    }
+
+    return false
   } catch {
     return false
   }

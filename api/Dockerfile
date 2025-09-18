@@ -1,6 +1,6 @@
-# B9 Dashboard API - Custom Dockerfile v2.3
+# B9 Dashboard API - Custom Dockerfile v2.4
 # This Dockerfile ensures exact dependency versions and bypasses Nixpacks issues
-# CACHE BREAK v2.3: Simplified healthcheck and added requests package
+# CACHE BREAK v2.4: Force rebuild to include Instagram scraper batch processing fix
 
 FROM python:3.12-slim
 
@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip to latest version
 RUN pip install --upgrade pip
 
+# Copy BUILD_VERSION file to force cache invalidation
+COPY BUILD_VERSION .
+
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
@@ -37,6 +40,10 @@ RUN pip show supabase postgrest | grep Version
 
 # Copy application code
 COPY . .
+
+# Clear any Python cache to ensure fresh code runs
+RUN find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+RUN find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app \

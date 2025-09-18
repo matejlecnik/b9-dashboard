@@ -21,7 +21,7 @@ import { InstagramMetricsCards } from '@/components/instagram/InstagramMetricsCa
 import { InstagramTable } from '@/components/instagram/InstagramTable'
 import { useDebounce } from '@/hooks/useDebounce'
 
-type FilterType = 'pending' | 'ok' | 'non_related' | 'all'
+type FilterType = 'pending' | 'ok' | 'non_related'
 
 interface InstagramCreator {
   id: number
@@ -43,6 +43,8 @@ interface InstagramCreator {
   avg_views_per_reel_cached: number | null
   engagement_rate_cached: number | null
   viral_content_count_cached: number | null
+  external_url: string | null
+  bio_links: any[] | null
 }
 
 
@@ -58,14 +60,16 @@ export default function CreatorReviewPage() {
     non_related: 0,
     total: 0
   })
+  const [postsMetrics, setPostsMetrics] = useState<Map<string, { avgLikes: number, avgComments: number }>>(new Map())
 
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
-  const supabase = createBrowserClient(
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  ), [])
 
   // Handle search query change with performance optimization
   const handleSearchChange = useCallback((query: string) => {
@@ -74,7 +78,7 @@ export default function CreatorReviewPage() {
     })
   }, [])
 
-  // Fetch counts separately for accurate metrics
+  // Fetch counts separately for accurate metrics - memoized with stable dependency
   const fetchCounts = useCallback(async () => {
     try {
       const [pendingResult, okResult, nonRelatedResult, totalResult] = await Promise.all([
@@ -93,7 +97,7 @@ export default function CreatorReviewPage() {
     } catch (error) {
       console.error('Failed to fetch counts:', error)
     }
-  }, [supabase])
+  }, [supabase]) // Supabase is memoized so this is stable
 
   const fetchCreators = useCallback(async () => {
     setLoading(true)
@@ -104,12 +108,10 @@ export default function CreatorReviewPage() {
         .order('created_at', { ascending: false })
 
       // Apply filter
-      if (currentFilter !== 'all') {
-        if (currentFilter === 'pending') {
-          query = query.or('review_status.is.null,review_status.eq.pending')
-        } else {
-          query = query.eq('review_status', currentFilter)
-        }
+      if (currentFilter === 'pending') {
+        query = query.or('review_status.is.null,review_status.eq.pending')
+      } else {
+        query = query.eq('review_status', currentFilter)
       }
 
       // Apply search
@@ -124,6 +126,10 @@ export default function CreatorReviewPage() {
         toast.error('Failed to fetch creators')
       } else {
         setCreators(data || [])
+        // Fetch post metrics for the creators
+        if (data && data.length > 0) {
+          fetchPostMetrics(data.map(c => c.ig_user_id))
+        }
       }
     } catch (error) {
       console.error('Error:', error)
@@ -131,13 +137,69 @@ export default function CreatorReviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [supabase, currentFilter, debouncedSearchQuery])
+  }, [currentFilter, debouncedSearchQuery, supabase])
 
+  // Fetch creators when filter or search changes
   useEffect(() => {
     fetchCreators()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFilter, debouncedSearchQuery]) // Only depend on actual data changes, not the function
+
+  // Fetch counts only on mount
+  useEffect(() => {
     fetchCounts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFilter, debouncedSearchQuery]) // Only re-fetch when filter or search changes
+  }, []) // Only run once on mount
+
+  // Refetch counts after bulk operations
+  const refetchCounts = useCallback(() => {
+    fetchCounts()
+  }, [fetchCounts])
+
+  // Fetch post metrics for creators
+  const fetchPostMetrics = useCallback(async (creatorIds: string[]) => {
+    try {
+      // Query to get average likes per post for each creator
+      const { data, error } = await supabase
+        .from('instagram_posts')
+        .select('creator_id, like_count, comment_count')
+        .in('creator_id', creatorIds)
+
+      if (error) {
+        console.error('Error fetching post metrics:', error)
+        return
+      }
+
+      // Calculate averages per creator
+      const metricsMap = new Map<string, { avgLikes: number, avgComments: number }>()
+      const creatorData = new Map<string, { likes: number[], comments: number[] }>()
+
+      // Group by creator
+      data?.forEach(post => {
+        if (!creatorData.has(post.creator_id)) {
+          creatorData.set(post.creator_id, { likes: [], comments: [] })
+        }
+        const creator = creatorData.get(post.creator_id)!
+        if (post.like_count !== null) creator.likes.push(post.like_count)
+        if (post.comment_count !== null) creator.comments.push(post.comment_count)
+      })
+
+      // Calculate averages
+      creatorData.forEach((data, creatorId) => {
+        const avgLikes = data.likes.length > 0
+          ? data.likes.reduce((a, b) => a + b, 0) / data.likes.length
+          : 0
+        const avgComments = data.comments.length > 0
+          ? data.comments.reduce((a, b) => a + b, 0) / data.comments.length
+          : 0
+        metricsMap.set(creatorId, { avgLikes, avgComments })
+      })
+
+      setPostsMetrics(metricsMap)
+    } catch (error) {
+      console.error('Error calculating post metrics:', error)
+    }
+  }, [supabase])
 
   const updateCreatorStatus = async (creatorId: number, newStatus: 'ok' | 'non_related' | 'pending') => {
     try {
@@ -161,10 +223,10 @@ export default function CreatorReviewPage() {
         ))
 
         // Refresh counts
-        fetchCounts()
+        refetchCounts()
 
         // If item no longer matches filter, remove it
-        if (currentFilter !== 'all' && currentFilter !== newStatus) {
+        if (currentFilter !== newStatus) {
           setCreators(prev => prev.filter(c => c.id !== creatorId))
         }
       }
@@ -193,7 +255,7 @@ export default function CreatorReviewPage() {
         toast.success(`Updated ${selectedCreators.size} creators`)
         setSelectedCreators(new Set())
         fetchCreators()
-        fetchCounts()
+        refetchCounts()
       }
     } catch (error) {
       console.error('Error:', error)
@@ -224,13 +286,6 @@ export default function CreatorReviewPage() {
       count: reviewCounts.non_related,
       icon: Tag,
       activeBg: 'linear-gradient(135deg, #F59E0B, #FBBF24)', // Amber gradient
-    },
-    {
-      id: 'all',
-      label: 'All',
-      count: reviewCounts.total,
-      icon: Tag,
-      activeBg: 'linear-gradient(135deg, #6366F1, #818CF8)', // Indigo gradient
     }
   ]
 
@@ -387,6 +442,7 @@ export default function CreatorReviewPage() {
                 setSelectedCreators={setSelectedCreators}
                 onUpdateReview={updateCreatorStatus}
                 searchQuery={debouncedSearchQuery}
+                postsMetrics={postsMetrics}
                 className="flex-1"
               />
             </div>

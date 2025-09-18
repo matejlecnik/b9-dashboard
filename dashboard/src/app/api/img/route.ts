@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { ALLOWED_IMAGE_HOSTS } from '@/config/images'
+import { isAllowedImageHost } from '@/config/images'
 
 export const runtime = 'edge'
 
@@ -12,18 +12,23 @@ export async function GET(req: NextRequest) {
     let target: URL
     try {
       target = new URL(raw)
-    } catch {
+    } catch (e) {
+      console.error('Invalid URL:', raw, e)
       return new Response('Invalid url', { status: 400 })
     }
 
     if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+      console.error('Unsupported protocol:', target.protocol)
       return new Response('Unsupported protocol', { status: 400 })
     }
 
     // Restrict to known hosts
-    if (!ALLOWED_IMAGE_HOSTS.has(target.hostname)) {
+    if (!isAllowedImageHost(target.toString())) {
+      console.error('Host not allowed:', target.hostname)
       return new Response('Host not allowed', { status: 403 })
     }
+
+    console.log('Fetching image from:', target.toString())
 
     const resp = await fetch(target.toString(), {
       redirect: 'follow',
@@ -31,12 +36,13 @@ export async function GET(req: NextRequest) {
         // Mimic a browser UA to avoid some CDNs rejecting
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-        'Referer': 'https://'+req.nextUrl.host,
+        'Referer': 'https://instagram.com/',
       },
     })
 
     if (!resp.ok) {
-      return new Response('Upstream error', { status: resp.status })
+      console.error('Upstream error:', resp.status, resp.statusText)
+      return new Response(`Upstream error: ${resp.status}`, { status: resp.status })
     }
 
     const contentType = resp.headers.get('content-type') || 'image/*'
@@ -49,8 +55,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers,
     })
-  } catch {
-    return new Response('Proxy error', { status: 500 })
+  } catch (error) {
+    console.error('Proxy error:', error)
+    return new Response(`Proxy error: ${error}`, { status: 500 })
   }
 }
 

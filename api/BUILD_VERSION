@@ -1,0 +1,7 @@
+BUILD_VERSION=3.0.0-BATCH-FIX
+BUILD_DATE=2025-09-18T14:45:00Z
+DEPLOYMENT=render-production
+FIX_DESCRIPTION=Instagram scraper batch processing fix - processes all creators instead of stopping after first batch
+
+This file forces Docker cache invalidation on each deployment.
+Update the BUILD_DATE before deploying to ensure fresh code is deployed.

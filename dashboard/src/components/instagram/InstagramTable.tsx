@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { ExternalLink, Users, Eye, Heart } from 'lucide-react'
+import { toProxiedImageUrl } from '@/config/images'
 
 interface InstagramCreator {
   id: number
@@ -27,6 +28,9 @@ interface InstagramCreator {
   avg_views_per_reel_cached: number | null
   engagement_rate_cached: number | null
   viral_content_count_cached: number | null
+  external_url: string | null
+  bio_links: any[] | null
+  avg_likes_per_post?: number | null
 }
 
 interface InstagramTableProps {
@@ -40,6 +44,7 @@ interface InstagramTableProps {
   hasMore?: boolean
   loadingMore?: boolean
   className?: string
+  postsMetrics?: Map<string, { avgLikes: number, avgComments: number }>
 }
 
 const formatNumber = (num: number | null | undefined): string => {
@@ -59,7 +64,8 @@ const InstagramTable = memo(function InstagramTable({
   onReachEnd,
   hasMore = false,
   loadingMore = false,
-  className
+  className,
+  postsMetrics
 }: InstagramTableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -106,11 +112,18 @@ const InstagramTable = memo(function InstagramTable({
 
   // Render individual row
   const renderRow = useCallback((creator: InstagramCreator, index: number) => {
+    // Get the external link - prioritize external_url, fallback to first bio_link
+    const externalLink = creator.external_url ||
+                         (creator.bio_links && creator.bio_links.length > 0 ? creator.bio_links[0].url : null)
+
+    // Get post metrics from props
+    const postMetrics = postsMetrics?.get(creator.ig_user_id)
+
     return (
       <div
         key={creator.id}
         className={cn(
-          "flex items-center px-4 py-3 border-b border-gray-100/50 hover:bg-gray-50/30 transition-all duration-200",
+          "flex items-center px-4 py-4 border-b border-gray-100/50 hover:bg-gray-50/30 transition-all duration-200",
           index % 2 === 0 && "bg-gray-50/10"
         )}
       >
@@ -125,89 +138,120 @@ const InstagramTable = memo(function InstagramTable({
           </div>
         )}
 
-        {/* Avatar */}
-        <div className="w-14 flex justify-center pr-3">
-          {creator.profile_pic_url ? (
-            <img
-              src={creator.profile_pic_url}
-              alt={creator.username}
-              className="h-10 w-10 rounded-full object-cover"
-              onError={(e) => {
-                // If image fails to load, show fallback
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-                const fallback = target.nextElementSibling
-                if (fallback) {
-                  (fallback as HTMLElement).style.display = 'flex'
-                }
-              }}
-            />
-          ) : null}
-          <div
-            className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs items-center justify-center font-semibold"
-            style={{ display: creator.profile_pic_url ? 'none' : 'flex' }}
-          >
-            {creator.username.slice(0, 2).toUpperCase()}
+        {/* Profile & Info - All clickable */}
+        <a
+          href={`https://instagram.com/${creator.username}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-start gap-3 w-96 px-3 cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          {/* Avatar */}
+          <div className="flex-shrink-0">
+            {creator.profile_pic_url ? (
+              <img
+                src={toProxiedImageUrl(creator.profile_pic_url)}
+                alt={creator.username}
+                className="h-12 w-12 rounded-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  const fallback = target.nextElementSibling
+                  if (fallback) {
+                    (fallback as HTMLElement).style.display = 'flex'
+                  }
+                }}
+              />
+            ) : null}
+            <div
+              className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm items-center justify-center font-semibold"
+              style={{ display: creator.profile_pic_url ? 'none' : 'flex' }}
+            >
+              {creator.username.slice(0, 2).toUpperCase()}
+            </div>
           </div>
-        </div>
 
-        {/* Creator info */}
-        <div className="w-72 px-3">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-sm text-gray-900">@{creator.username}</span>
-            {creator.is_verified && (
-              <Badge variant="secondary" className="text-xs h-5 px-1.5">✓</Badge>
+          {/* Creator Details */}
+          <div className="flex-1 min-w-0">
+            {/* Full Name */}
+            {creator.full_name && (
+              <div className="text-xs text-gray-500 truncate">{creator.full_name}</div>
             )}
-            {creator.is_private && (
-              <Badge variant="outline" className="text-xs h-5 px-1.5">🔒</Badge>
+
+            {/* Username with badges */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="font-semibold text-sm text-gray-900">@{creator.username}</span>
+              {creator.is_verified && (
+                <Badge variant="secondary" className="text-xs h-4 px-1">✓</Badge>
+              )}
+              {creator.is_private && (
+                <Badge variant="outline" className="text-xs h-4 px-1">🔒</Badge>
+              )}
+            </div>
+
+            {/* Biography */}
+            {creator.biography && (
+              <div className="text-xs text-gray-500 line-clamp-2 mb-1">
+                {creator.biography}
+              </div>
+            )}
+
+            {/* External Link */}
+            {externalLink && (
+              <div className="text-xs text-blue-600 truncate hover:underline" onClick={(e) => e.stopPropagation()}>
+                <a href={externalLink} target="_blank" rel="noopener noreferrer">
+                  🔗 {externalLink.replace(/^https?:\/\//i, '').split('/')[0]}
+                </a>
+              </div>
             )}
           </div>
-          {creator.full_name && (
-            <div className="text-xs text-gray-600 truncate">{creator.full_name}</div>
-          )}
-          {creator.biography && (
-            <div className="text-xs text-gray-400 line-clamp-1 mt-1">{creator.biography}</div>
-          )}
-        </div>
+        </a>
 
         {/* Followers */}
-        <div className="w-24 text-center">
-          <div className="font-medium text-gray-700 text-sm">
+        <div className="w-28 text-center px-2">
+          <div className="font-semibold text-gray-800 text-sm">
             {formatNumber(creator.followers)}
           </div>
-          <div className="text-xs text-gray-400">followers</div>
+          <div className="text-xs text-gray-500">followers</div>
         </div>
 
-        {/* Content */}
-        <div className="w-24 text-center">
-          <div className="font-medium text-gray-700 text-sm">
-            {formatNumber(creator.posts_count || creator.media_count)}
-          </div>
-          {creator.viral_content_count_cached && creator.viral_content_count_cached > 0 ? (
-            <div className="text-xs text-green-600">{creator.viral_content_count_cached} viral</div>
+        {/* Avg Views per Reel */}
+        <div className="w-28 text-center px-2">
+          {creator.avg_views_per_reel_cached ? (
+            <div>
+              <div className="font-semibold text-gray-800 text-sm">
+                {formatNumber(Math.round(creator.avg_views_per_reel_cached))}
+              </div>
+              <div className="text-xs text-gray-500">avg views/reel</div>
+            </div>
           ) : (
-            <div className="text-xs text-gray-400">posts</div>
+            <div>
+              <div className="text-sm text-gray-400">—</div>
+              <div className="text-xs text-gray-500">avg views/reel</div>
+            </div>
           )}
         </div>
 
-        {/* Engagement */}
-        <div className="w-24 text-center">
-          {creator.engagement_rate_cached ? (
+        {/* Avg Likes per Post */}
+        <div className="w-28 text-center px-2">
+          {postMetrics?.avgLikes ? (
             <div>
-              <div className="font-medium text-gray-700 text-sm">
-                {(creator.engagement_rate_cached * 100).toFixed(1)}%
+              <div className="font-semibold text-gray-800 text-sm">
+                {formatNumber(Math.round(postMetrics.avgLikes))}
               </div>
-              <div className="text-xs text-gray-400">engagement</div>
+              <div className="text-xs text-gray-500">avg likes/post</div>
             </div>
-          ) : creator.avg_views_per_reel_cached ? (
+          ) : creator.avg_likes_per_post ? (
             <div>
-              <div className="font-medium text-gray-700 text-sm">
-                {formatNumber(Math.round(creator.avg_views_per_reel_cached))}
+              <div className="font-semibold text-gray-800 text-sm">
+                {formatNumber(Math.round(creator.avg_likes_per_post))}
               </div>
-              <div className="text-xs text-gray-400">avg views</div>
+              <div className="text-xs text-gray-500">avg likes/post</div>
             </div>
           ) : (
-            <div className="text-sm text-gray-400">—</div>
+            <div>
+              <div className="text-sm text-gray-400">—</div>
+              <div className="text-xs text-gray-500">avg likes/post</div>
+            </div>
           )}
         </div>
 
@@ -243,27 +287,9 @@ const InstagramTable = memo(function InstagramTable({
           )}
         </div>
 
-        {/* Link */}
-        <div className="flex-1 flex justify-end pr-4">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0"
-            asChild
-          >
-            <a
-              href={`https://instagram.com/${creator.username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="View on Instagram"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
-        </div>
       </div>
     )
-  }, [selectedCreators, onUpdateReview, setSelectedCreators, toggleSelectCreator])
+  }, [selectedCreators, onUpdateReview, setSelectedCreators, toggleSelectCreator, postsMetrics])
 
   if (loading && creators.length === 0) {
     return (
@@ -298,12 +324,11 @@ const InstagramTable = memo(function InstagramTable({
             />
           </div>
         )}
-        <div className="w-14 flex justify-center font-medium text-gray-700 pr-3">Avatar</div>
-        <div className="w-72 px-3">Creator</div>
-        <div className="w-24 text-center font-medium text-gray-700">Followers</div>
-        <div className="w-24 text-center font-medium text-gray-700">Content</div>
-        <div className="w-24 text-center font-medium text-gray-700">Engagement</div>
-        <div className="w-52 px-2 font-medium text-gray-700">Review</div>
+        <div className="w-96 px-3">Profile & Info</div>
+        <div className="w-28 text-center px-2">Followers</div>
+        <div className="w-28 text-center px-2">Avg Views/Reel</div>
+        <div className="w-28 text-center px-2">Avg Likes/Post</div>
+        <div className="w-52 px-2">Review Status</div>
         <div className="flex-1 flex justify-end pr-4">
           <span className="text-xs text-gray-400">
             {creators.length.toLocaleString()} results
