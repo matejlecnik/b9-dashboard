@@ -114,7 +114,7 @@ export default function CreatorReviewPage() {
     }
   }, [supabase]) // Supabase is memoized so this is stable
 
-  const fetchCreators = useCallback(async () => {
+  const fetchCreators = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       let query = supabase
@@ -134,54 +134,99 @@ export default function CreatorReviewPage() {
         query = query.or(`username.ilike.%${debouncedSearchQuery}%,full_name.ilike.%${debouncedSearchQuery}%,biography.ilike.%${debouncedSearchQuery}%`)
       }
 
+      // Add abort signal if provided
+      if (signal) {
+        query = query.abortSignal(signal)
+      }
+
       const { data, error } = await query
 
+      if (signal?.aborted) return
+
       if (error) {
-        console.error('Error fetching creators:', error)
-        toast.error('Failed to fetch creators')
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching creators:', error)
+          toast.error('Failed to fetch creators')
+        }
       } else {
         setCreators(data || [])
         // Fetch post metrics for the creators
         if (data && data.length > 0) {
-          fetchPostMetrics(data.map(c => c.ig_user_id))
+          fetchPostMetrics(data.map(c => c.ig_user_id), signal)
         }
       }
-    } catch (error) {
-      console.error('Error:', error)
-      toast.error('An error occurred while fetching creators')
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error:', error)
+        toast.error('An error occurred while fetching creators')
+      }
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) {
+        setLoading(false)
+      }
     }
   }, [currentFilter, debouncedSearchQuery, supabase])
 
   // Fetch creators when filter or search changes
   useEffect(() => {
-    fetchCreators()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFilter, debouncedSearchQuery]) // Only depend on actual data changes, not the function
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // Create new controller for this request
+    abortControllerRef.current = new AbortController()
+    const signal = abortControllerRef.current.signal
+
+    fetchCreators(signal)
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [fetchCreators])
 
   // Fetch counts only on mount
   useEffect(() => {
-    fetchCounts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only run once on mount
+    const controller = new AbortController()
+    fetchCounts(controller.signal)
+
+    return () => {
+      controller.abort()
+    }
+  }, [fetchCounts])
 
   // Refetch counts after bulk operations
   const refetchCounts = useCallback(() => {
-    fetchCounts()
+    const controller = new AbortController()
+    fetchCounts(controller.signal)
+    return () => controller.abort()
   }, [fetchCounts])
 
   // Fetch post metrics for creators
-  const fetchPostMetrics = useCallback(async (creatorIds: string[]) => {
+  const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
     try {
       // Query to get average likes per post for each creator
-      const { data, error } = await supabase
+      let query = supabase
         .from('instagram_posts')
         .select('creator_id, like_count, comment_count')
         .in('creator_id', creatorIds)
 
+      // Add abort signal if provided
+      if (signal) {
+        query = query.abortSignal(signal)
+      }
+
+      const { data, error } = await query
+
+      if (signal?.aborted) return
+
       if (error) {
-        console.error('Error fetching post metrics:', error)
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching post metrics:', error)
+        }
         return
       }
 

@@ -1,7 +1,7 @@
-BUILD_VERSION=4.3.0-WAIT-MSG-FINAL-FIX
-BUILD_DATE=2025-09-18T14:55:00Z
+BUILD_VERSION=4.4.0-INSTAGRAM-STARTUP-FIX
+BUILD_DATE=2025-09-18T19:35:00Z
 DEPLOYMENT=render-production
-FIX_DESCRIPTION=Added explicit cycle completion logging and 4-hour wait message visibility improvements
+FIX_DESCRIPTION=Added comprehensive startup logging to diagnose Instagram scraper not running - checks for RAPIDAPI_KEY on startup
 
 This file forces Docker cache invalidation on each deployment.
 Update the BUILD_DATE before deploying to ensure fresh code is deployed.

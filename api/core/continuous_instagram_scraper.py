@@ -198,10 +198,16 @@ class ContinuousInstagramScraper:
                 try:
                     # Validate configuration with detailed error logging
                     logger.info("Validating Instagram API configuration...")
-                    Config.validate()  # Validate configuration
-                    logger.info(f"✅ Configuration validated - API Key: {'SET' if Config.RAPIDAPI_KEY else 'MISSING'}")
+
+                    # First log current configuration state
+                    logger.info(f"   RAPIDAPI_KEY: {'✅ SET' if Config.RAPIDAPI_KEY else '❌ MISSING'}")
                     logger.info(f"   RapidAPI Host: {Config.RAPIDAPI_HOST}")
-                    logger.info(f"   Supabase URL: {'SET' if Config.SUPABASE_URL else 'MISSING'}")
+                    logger.info(f"   Supabase URL: {'✅ SET' if Config.SUPABASE_URL else '❌ MISSING'}")
+                    logger.info(f"   Supabase Key: {'✅ SET' if Config.SUPABASE_KEY else '❌ MISSING'}")
+
+                    # Now validate - this will raise if missing
+                    Config.validate()
+                    logger.info("✅ Configuration validated successfully")
 
                     # Initialize the scraper
                     logger.info("Creating InstagramScraperUnified instance...")
@@ -598,13 +604,85 @@ async def main():
         # Initialize Supabase
         scraper.initialize_supabase()
 
+        # Log startup to Supabase
+        try:
+            scraper.supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_scraper',
+                'script_name': 'continuous_instagram_scraper',
+                'level': 'info',
+                'message': f'🚀 Instagram scraper v{SCRAPER_VERSION} process started',
+                'context': {
+                    'version': SCRAPER_VERSION,
+                    'pid': os.getpid(),
+                    'rapidapi_key_set': bool(Config.RAPIDAPI_KEY),
+                    'supabase_url_set': bool(Config.SUPABASE_URL),
+                    'supabase_key_set': bool(Config.SUPABASE_KEY)
+                }
+            }).execute()
+        except Exception as log_error:
+            logger.warning(f"Could not log startup to Supabase: {log_error}")
+
         # Run the continuous scraper
         await scraper.run()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Traceback: {error_details}")
+
+        # Try to log fatal error to Supabase
+        try:
+            if scraper.supabase:
+                scraper.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'instagram_scraper',
+                    'script_name': 'continuous_instagram_scraper',
+                    'level': 'error',
+                    'message': f'💥 Fatal error in Instagram scraper: {str(e)}',
+                    'context': {
+                        'error': str(e),
+                        'error_type': type(e).__name__,
+                        'traceback': error_details[:1000]
+                    }
+                }).execute()
+
+                # Update status in system_control
+                scraper.supabase.table('system_control').update({
+                    'status': 'stopped',
+                    'last_error': f"Fatal error: {str(e)[:500]}",
+                    'last_error_at': datetime.now(timezone.utc).isoformat(),
+                    'enabled': False
+                }).eq('script_name', 'instagram_scraper').execute()
+        except:
+            pass  # Can't log if Supabase is not available
+
         sys.exit(1)
 
 if __name__ == "__main__":
+    # Log startup immediately
+    print(f"🚀 Instagram scraper starting at {datetime.now(timezone.utc).isoformat()}")
+    print(f"📍 Current directory: {os.getcwd()}")
+    print(f"🐍 Python version: {sys.version}")
+    print(f"📦 Script version: {SCRAPER_VERSION}")
+
+    # Check critical environment variables
+    env_check = {
+        "SUPABASE_URL": os.getenv("SUPABASE_URL"),
+        "SUPABASE_SERVICE_ROLE_KEY": os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+        "RAPIDAPI_KEY": os.getenv("RAPIDAPI_KEY")
+    }
+
+    print("\n🔍 Environment variable check:")
+    for key, value in env_check.items():
+        status = "✅ SET" if value else "❌ MISSING"
+        if key == "RAPIDAPI_KEY" and value:
+            # Show partial key for verification
+            partial = f"{value[:8]}...{value[-4:]}" if len(value) > 12 else "***"
+            print(f"  {key}: {status} ({partial})")
+        else:
+            print(f"  {key}: {status}")
+
     # Run the scraper
     asyncio.run(main())
