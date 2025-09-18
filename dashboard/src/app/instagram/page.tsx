@@ -1,9 +1,17 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  SimplePageContainer,
+  Card,
+  CardContent,
+  CardTitle,
+  StatCard,
+  designSystem
+} from '@/components/standard'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 const InstagramIcon = ({ className = "h-8 w-8" }: { className?: string }) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
@@ -13,50 +21,59 @@ const InstagramIcon = ({ className = "h-8 w-8" }: { className?: string }) => (
 
 export default function InstagramDashboard() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-50">
+    <SimplePageContainer className="bg-gradient-to-br from-pink-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <Link href="/dashboards">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className={designSystem.radius.sm}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Instagram Dashboard</h1>
-              <p className="text-gray-600 mt-1">Coming Soon - Q2 2025</p>
+              <h1 className={designSystem.text.h1}>Instagram Dashboard</h1>
+              <p className={cn(designSystem.text.subtitle, 'mt-1')}>Coming Soon - Q2 2025</p>
             </div>
           </div>
         </div>
 
-        <Card className="max-w-2xl mx-auto mt-20">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 p-4 bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700 rounded-xl">
+        <Card variant="glass" className="max-w-2xl mx-auto mt-20">
+          <CardContent className="text-center py-12">
+            <div className={cn(
+              'mx-auto mb-6 p-4 bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700',
+              designSystem.radius.md,
+              designSystem.shadows.lg
+            )}>
               <InstagramIcon className="h-12 w-12 text-white" />
             </div>
-            <CardTitle className="text-2xl">Instagram Analytics Platform</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
+
+            <CardTitle>Instagram Analytics Platform</CardTitle>
+
+            <p className={cn(designSystem.text.body, 'mt-4 mb-8')}>
               Advanced Instagram engagement tracking, influencer discovery, and content performance analytics.
             </p>
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-pink-600">Q2</p>
-                <p className="text-sm text-gray-600">2025 Launch</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-pink-600">AI</p>
-                <p className="text-sm text-gray-600">Powered</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-pink-600">24/7</p>
-                <p className="text-sm text-gray-600">Monitoring</p>
-              </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <StatCard
+                label="Launch"
+                value="Q2 2025"
+                color="pink"
+              />
+              <StatCard
+                label="Status"
+                value="AI Powered"
+                color="pink"
+              />
+              <StatCard
+                label="Monitoring"
+                value="24/7"
+                color="pink"
+              />
             </div>
-            <div className="pt-6">
+
+            <div className="pt-8">
               <Link href="/dashboards">
-                <Button variant="outline">
+                <Button variant="outline" className={designSystem.radius.sm}>
                   Back to Dashboards
                 </Button>
               </Link>
@@ -64,6 +81,6 @@ export default function InstagramDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </SimplePageContainer>
   )
 }

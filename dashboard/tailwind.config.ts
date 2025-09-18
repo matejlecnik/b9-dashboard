@@ -77,8 +77,21 @@ const config: Config = {
         '88': '22rem',
         '128': '32rem',
       },
-      // Removed backdrop blur extensions for performance
-      // Removed complex box shadows for performance
+      // Standard box shadows for consistency
+      boxShadow: {
+        'xs': '0 1px 3px rgba(0,0,0,0.04)',
+        'sm': '0 2px 8px rgba(0,0,0,0.06)',
+        'md': '0 4px 12px rgba(0,0,0,0.08)',
+        'lg': '0 8px 24px rgba(0,0,0,0.10)',
+        'xl': '0 12px 32px rgba(0,0,0,0.12)',
+        '2xl': '0 24px 48px rgba(0,0,0,0.16)',
+        'card': '0 2px 8px rgba(255,131,149,0.08)',
+        'card-hover': '0 8px 24px rgba(255,131,149,0.15)',
+        'pink': '0 4px 12px rgba(255,131,149,0.20)',
+        'pink-lg': '0 8px 24px rgba(255,131,149,0.25)',
+        'inner': 'inset 0 2px 4px 0 rgba(0,0,0,0.06)',
+        'none': 'none',
+      }
     },
   },
   plugins: [],

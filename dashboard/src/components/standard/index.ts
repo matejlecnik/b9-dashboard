@@ -1,0 +1,31 @@
+/**
+ * Standard Component Library
+ * Export all standardized components from a single entry point
+ */
+
+// Layout components
+export { PageContainer, SimplePageContainer, PageSection } from './PageContainer'
+
+// Card components
+export { Card, CardHeader, CardContent, CardFooter, CardTitle } from './Card'
+
+// Data display components
+export { DataCard, MetricGrid, StatCard } from './DataCard'
+
+// Search components
+export { SearchBar, SearchWithSuggestions } from './SearchBar'
+
+// Filter components
+export { FilterPills, ActiveFilters, FilterGroup } from './FilterPills'
+
+// Empty and loading states
+export {
+  EmptyState,
+  LoadingCard,
+  LoadingTable,
+  LoadingGrid,
+  Spinner
+} from './EmptyState'
+
+// Re-export design system for convenience
+export { designSystem, getDesignClasses, commonStyles } from '@/lib/design-system'

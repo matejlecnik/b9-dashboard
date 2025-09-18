@@ -28,14 +28,6 @@ Provides centralized Supabase client initialization:
 - Handles service role authentication
 - Used by all services and routes
 
-### user_service.py
-**User Management Service (Currently Unused)**
-
-Placeholder for future user management features:
-- Could handle user authentication
-- Profile management
-- Permission systems
-- Currently not imported/used anywhere
 
 ## Instagram Subdirectory
 
