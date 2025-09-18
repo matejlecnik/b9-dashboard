@@ -2,9 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart, TrendingUp, Users, Activity, Calendar, Target, Award, Zap, Play, Hash, Eye } from 'lucide-react'
+import { BarChart, TrendingUp, Users, Activity, Calendar, Target, Award, Zap, BarChart3 } from 'lucide-react'
 import { InstagramSidebar } from '@/components/InstagramSidebar'
-import { InstagramMetricsCards } from '@/components/instagram/InstagramMetricsCards'
 
 export default function AnalyticsPage() {
   // Mock data for metrics - replace with actual data fetch
@@ -51,57 +50,63 @@ export default function AnalyticsPage() {
                 </Badge>
               </div>
 
-              {/* Analytics Metrics Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
-                <div className="rounded-2xl p-5 transition-all duration-300 ease-out min-h-[120px] bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:bg-white/90 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2.5 rounded-xl text-purple-700 bg-white/70 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
-                      <Users className="h-5 w-5" />
+              {/* Analytics Metrics Cards - Matching Reddit Style */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
+                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-purple-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Users className="h-4 w-4" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="text-2xl font-bold text-gray-900">{analyticsData.totalCreators}</div>
-                    <div className="text-sm font-semibold text-gray-700">Tracked Creators</div>
+                    <div className="text-lg font-bold text-gray-900">{analyticsData.totalCreators}</div>
+                    <div className="text-xs font-semibold text-gray-800">Tracked Creators</div>
                     <div className="text-xs text-green-600">All approved</div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-5 transition-all duration-300 ease-out min-h-[120px] bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:bg-white/90 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2.5 rounded-xl text-pink-600 bg-white/70 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
-                      <Activity className="h-5 w-5" />
+                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-[#FF8395] bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Activity className="h-4 w-4" />
                     </div>
+                    <div className="w-1 h-1 rounded-full" style={{ background: 'linear-gradient(135deg, #FFB3C1, #FF99A9)', boxShadow: '0 1px 2px rgba(255, 179, 193, 0.2)' }}></div>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="text-2xl font-bold text-gray-900">3.5M</div>
-                    <div className="text-sm font-semibold text-gray-700">Total Reach</div>
-                    <div className="text-xs text-gray-500">Combined followers</div>
+                    <div className="text-lg font-bold text-gray-900">3.5M</div>
+                    <div className="text-xs font-semibold text-gray-800">Total Reach</div>
+                    <div className="text-xs text-gray-600">Combined followers</div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-5 transition-all duration-300 ease-out min-h-[120px] bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:bg-white/90 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2.5 rounded-xl text-blue-600 bg-white/70 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
-                      <TrendingUp className="h-5 w-5" />
+                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <TrendingUp className="h-4 w-4" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="text-2xl font-bold text-gray-900">4.2%</div>
-                    <div className="text-sm font-semibold text-gray-700">Avg Engagement</div>
-                    <div className="text-xs text-gray-500">Across all creators</div>
+                    <div className="text-lg font-bold text-gray-900">4.2%</div>
+                    <div className="text-xs font-semibold text-gray-800">Avg Engagement</div>
+                    <div className="text-xs text-gray-600">Across all creators</div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-5 transition-all duration-300 ease-out min-h-[120px] bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:bg-white/90 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2.5 rounded-xl text-green-600 bg-white/70 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
-                      <BarChart className="h-5 w-5" />
+                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <BarChart3 className="h-4 w-4" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="text-2xl font-bold text-gray-900">8.9K</div>
-                    <div className="text-sm font-semibold text-gray-700">Content Analyzed</div>
-                    <div className="text-xs text-gray-500">Posts & Reels</div>
+                    <div className="text-lg font-bold text-gray-900">8.9K</div>
+                    <div className="text-xs font-semibold text-gray-800">Content Analyzed</div>
+                    <div className="text-xs text-gray-600">Posts & Reels</div>
+                  </div>
+                  <div className="mt-1.5">
+                    <div className="w-full rounded-full h-1" style={{ background: 'rgba(0, 0, 0, 0.06)' }}>
+                      <div className="h-1 rounded-full transition-all duration-500 ease-out" style={{ width: '72%', background: 'linear-gradient(135deg, #FF8395, #FF7A85)', boxShadow: '0 1px 2px rgba(255, 131, 149, 0.2)' }}></div>
+                    </div>
                   </div>
                 </div>
               </div>

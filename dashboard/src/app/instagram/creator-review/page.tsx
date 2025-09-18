@@ -11,23 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, CheckCircle2, XCircle, Clock, ExternalLink, Users, Eye, Heart, Sparkles, Tag, Check, Ban, Slash } from 'lucide-react'
+import { Search, Sparkles, Tag, Check, Slash, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { InstagramSidebar } from '@/components/InstagramSidebar'
 import { StandardToolbar } from '@/components/standard'
 import { InstagramMetricsCards } from '@/components/instagram/InstagramMetricsCards'
+import { InstagramTable } from '@/components/instagram/InstagramTable'
 import { useDebounce } from '@/hooks/useDebounce'
 
 type FilterType = 'pending' | 'ok' | 'non_related' | 'all'
@@ -54,25 +45,6 @@ interface InstagramCreator {
   viral_content_count_cached: number | null
 }
 
-const formatNumber = (num: number | null | undefined): string => {
-  if (num === null || num === undefined) return '0'
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
-}
-
-const getReviewStatusConfig = (status: string | null) => {
-  switch (status) {
-    case 'ok':
-      return { label: 'Approved', color: 'bg-green-100 text-green-800', icon: CheckCircle2 }
-    case 'non_related':
-      return { label: 'Non Related', color: 'bg-red-100 text-red-800', icon: XCircle }
-    case 'pending':
-      return { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock }
-    default:
-      return { label: 'Unreviewed', color: 'bg-gray-100 text-gray-800', icon: Clock }
-  }
-}
 
 export default function CreatorReviewPage() {
   const [creators, setCreators] = useState<InstagramCreator[]>([])
@@ -228,23 +200,6 @@ export default function CreatorReviewPage() {
     }
   }
 
-  const toggleSelectCreator = (creatorId: number) => {
-    const newSelected = new Set(selectedCreators)
-    if (newSelected.has(creatorId)) {
-      newSelected.delete(creatorId)
-    } else {
-      newSelected.add(creatorId)
-    }
-    setSelectedCreators(newSelected)
-  }
-
-  const toggleSelectAll = () => {
-    if (selectedCreators.size === creators.length) {
-      setSelectedCreators(new Set())
-    } else {
-      setSelectedCreators(new Set(creators.map(c => c.id)))
-    }
-  }
 
   // Filter pills configuration
   const filterOptions = [
@@ -423,159 +378,16 @@ export default function CreatorReviewPage() {
                 />
               )}
 
-              {/* Creators Table */}
-              <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader>
-                  <CardTitle>Creators ({creators.length})</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 overflow-auto">
-                  {loading ? (
-                    <div className="p-8 text-center">Loading creators...</div>
-                  ) : creators.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      {debouncedSearchQuery ? 'No creators found matching your search' : 'No creators in this category'}
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12">
-                              <input
-                                type="checkbox"
-                                checked={selectedCreators.size === creators.length && creators.length > 0}
-                                onChange={toggleSelectAll}
-                                className="rounded border-gray-300"
-                              />
-                            </TableHead>
-                            <TableHead>Creator</TableHead>
-                            <TableHead>Followers</TableHead>
-                            <TableHead>Content</TableHead>
-                            <TableHead>Engagement</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {creators.map((creator) => {
-                            const statusConfig = getReviewStatusConfig(creator.review_status)
-                            const StatusIcon = statusConfig.icon
-
-                            return (
-                              <TableRow key={creator.id}>
-                                <TableCell>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedCreators.has(creator.id)}
-                                    onChange={() => toggleSelectCreator(creator.id)}
-                                    className="rounded border-gray-300"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                      <AvatarImage src={creator.profile_pic_url || ''} alt={creator.username} />
-                                      <AvatarFallback>{creator.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-medium truncate">@{creator.username}</p>
-                                        {creator.is_verified && (
-                                          <Badge variant="secondary" className="text-xs">Verified</Badge>
-                                        )}
-                                        {creator.is_private && (
-                                          <Badge variant="outline" className="text-xs">Private</Badge>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-gray-500 truncate">{creator.full_name || 'No name'}</p>
-                                      {creator.biography && (
-                                        <p className="text-xs text-gray-400 line-clamp-2 mt-1">{creator.biography}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1">
-                                      <Users className="h-3 w-3 text-gray-400" />
-                                      <span className="font-medium">{formatNumber(creator.followers)}</span>
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      Following: {formatNumber(creator.following)}
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm space-y-1">
-                                    <div>{formatNumber(creator.posts_count || creator.media_count)} posts</div>
-                                    {creator.viral_content_count_cached && creator.viral_content_count_cached > 0 && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        {creator.viral_content_count_cached} viral
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-1">
-                                    {creator.avg_views_per_reel_cached && (
-                                      <div className="flex items-center gap-1 text-sm">
-                                        <Eye className="h-3 w-3 text-gray-400" />
-                                        <span>{formatNumber(Math.round(creator.avg_views_per_reel_cached))}</span>
-                                      </div>
-                                    )}
-                                    {creator.engagement_rate_cached && (
-                                      <div className="flex items-center gap-1 text-sm">
-                                        <Heart className="h-3 w-3 text-gray-400" />
-                                        <span>{(creator.engagement_rate_cached * 100).toFixed(1)}%</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className={cn("flex items-center gap-1", statusConfig.color)}>
-                                    <StatusIcon className="h-3 w-3" />
-                                    {statusConfig.label}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Select
-                                      value={creator.review_status || 'pending'}
-                                      onValueChange={(value) => updateCreatorStatus(creator.id, value as 'ok' | 'non_related' | 'pending')}
-                                    >
-                                      <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="pending">Pending</SelectItem>
-                                        <SelectItem value="ok">Approve</SelectItem>
-                                        <SelectItem value="non_related">Non Related</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      asChild
-                                    >
-                                      <a
-                                        href={`https://instagram.com/${creator.username}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <ExternalLink className="h-4 w-4" />
-                                      </a>
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Creators Table - Using Reusable Component */}
+              <InstagramTable
+                creators={creators}
+                loading={loading}
+                selectedCreators={selectedCreators}
+                setSelectedCreators={setSelectedCreators}
+                onUpdateReview={updateCreatorStatus}
+                searchQuery={debouncedSearchQuery}
+                className="flex-1"
+              />
             </div>
           </div>
         </main>

@@ -1461,23 +1461,41 @@ class InstagramScraperUnified:
                     failed_batches = 0
 
                     for i in range(0, total_creators, batch_size):
-                        # Check if we should stop
-                        if not self.should_continue():
-                            logger.info("Stop requested, terminating batch processing")
-                            self._log_realtime("info", "⏹️ Stopping scraper as requested")
-                            break
-
+                        # Process all batches in this cycle without checking should_continue
+                        # We already checked at the start of the cycle
                         batch = creators[i:i+batch_size]
                         batch_num = (i // batch_size) + 1
                         total_batches = (total_creators + batch_size - 1) // batch_size
 
-                        logger.info(f"\n📦 Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
-                        logger.info(f"Progress: {processed_count}/{total_creators} creators completed")
+                        logger.info(f"\n{'='*60}")
+                        logger.info(f"📦 BATCH {batch_num}/{total_batches} STARTING")
+                        logger.info(f"{'='*60}")
+                        logger.info(f"Processing {len(batch)} creators in this batch")
+                        logger.info(f"Overall Progress: {processed_count}/{total_creators} creators completed ({(processed_count/total_creators)*100:.1f}%)")
+
+                        # Log batch details to Supabase for monitoring
+                        self._log_realtime("info", f"📦 Starting Batch {batch_num}/{total_batches}", {
+                            "batch_num": batch_num,
+                            "total_batches": total_batches,
+                            "batch_size": len(batch),
+                            "progress_before": processed_count,
+                            "total_creators": total_creators,
+                            "percentage_complete": round((processed_count/total_creators)*100, 1)
+                        })
 
                         # Use thread pool for concurrent processing with error handling
                         try:
                             self.process_creators_concurrent(batch)
                             processed_count += len(batch)
+
+                            # Log batch completion
+                            logger.info(f"✅ BATCH {batch_num} COMPLETED SUCCESSFULLY")
+                            self._log_realtime("success", f"✅ Batch {batch_num}/{total_batches} completed", {
+                                "batch_num": batch_num,
+                                "creators_processed_in_batch": len(batch),
+                                "total_processed": processed_count,
+                                "percentage_complete": round((processed_count/total_creators)*100, 1)
+                            })
                         except Exception as batch_error:
                             failed_batches += 1
                             logger.error(f"❌ Batch {batch_num} failed: {batch_error}")
