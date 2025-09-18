@@ -58,23 +58,23 @@ export default function ViralContentPage() {
     }
   }, [])
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async (currentFilters: ViralReelsFilters) => {
     try {
       const [statsData, creatorsData] = await Promise.all([
-        getViralReelsStats(),
-        getTopCreators(5)
+        getViralReelsStats(currentFilters),
+        getTopCreators(currentFilters, 5)
       ])
       setStats(statsData)
       setTopCreators(creatorsData)
     } catch (error) {
       console.error('Error loading stats:', error)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadReels(1, filters)
-    loadStats()
-  }, [filters, loadReels])
+    loadStats(filters)
+  }, [filters, loadReels, loadStats])
 
   const handleLoadMore = () => {
     if (page < totalPages) {
@@ -120,96 +120,127 @@ export default function ViralContentPage() {
           <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
             <div className="space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Reels</p>
-                      <p className="text-2xl font-bold">8K+</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-purple-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Film className="h-4 w-4" />
                     </div>
-                    <Film className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                      {loading ? '...' : formatNumber(stats?.total_reels || 8001)}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Total Reels
+                    </div>
+                    <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      In Database
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1 ring-2 ring-pink-200/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-[#FF8395] bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <TrendingUp className="h-4 w-4" />
+                    </div>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'linear-gradient(135deg, #FF8395, #FF7A85)', boxShadow: '0 1px 2px rgba(255, 131, 149, 0.25)' }}></div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                      {loading ? '...' : formatNumber(stats?.total_viral || 6566)}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Viral Reels
+                    </div>
+                    <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      50K+ Views
+                    </div>
                   </div>
                 </div>
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Viral Reels</p>
-                      <p className="text-2xl font-bold text-pink-600">
-                        {formatNumber(stats?.total_viral || 1842)}
-                      </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-purple-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Sparkles className="h-4 w-4" />
                     </div>
-                    <TrendingUp className="h-8 w-8 text-pink-600" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                      {loading ? '...' : formatNumber(stats?.ultra_viral || 3)}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Ultra Viral
+                    </div>
+                    <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      50M+ Views
+                    </div>
                   </div>
                 </div>
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Ultra Viral</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {stats?.ultra_viral || 10}
-                      </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-blue-600 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Eye className="h-4 w-4" />
                     </div>
-                    <Sparkles className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                      {loading ? '...' : formatNumber(stats?.avg_views || 1008541)}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Avg Views
+                    </div>
+                    <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Per Viral Reel
+                    </div>
                   </div>
                 </div>
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Avg Views</p>
-                      <p className="text-2xl font-bold">
-                        {formatNumber(stats?.avg_views || 931673)}
-                      </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl text-green-600 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                      <Play className="h-4 w-4" />
                     </div>
-                    <Eye className="h-8 w-8 text-blue-600" />
+                    <div className="w-1 h-1 rounded-full" style={{ background: 'linear-gradient(135deg, #10B981, #34D399)', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.2)' }}></div>
                   </div>
-                </div>
-                <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Max Views</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {formatNumber(stats?.max_views || 206313251)}
-                      </p>
+                  <div className="space-y-1.5">
+                    <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                      {loading ? '...' : formatNumber(stats?.max_views || 112747183)}
                     </div>
-                    <Play className="h-8 w-8 text-green-600" />
+                    <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Max Views
+                    </div>
+                    <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                      Top Performer
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Top Creators */}
               {topCreators.length > 0 && (
-                <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Top Viral Creators
-                    </h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex flex-wrap gap-4">
-                      {topCreators.map((creator) => (
-                        <div
-                          key={creator.username}
-                          className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 min-w-[200px]"
+                <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-4">
+                  <div className="flex items-center gap-4 overflow-x-auto">
+                    {topCreators.map((creator, index) => (
+                      <div
+                        key={creator.username}
+                        className="flex flex-col items-center group flex-shrink-0"
+                      >
+                        <a
+                          href={`https://instagram.com/${creator.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative cursor-pointer"
                         >
-                          {creator.profile_pic_url ? (
-                            <img
-                              src={`/api/img?url=${encodeURIComponent(creator.profile_pic_url)}`}
-                              alt={creator.username}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
-                          )}
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm">@{creator.username}</p>
-                            <p className="text-xs text-gray-600">
-                              {creator.viral_count} viral reels • {formatNumber(creator.followers)} followers
-                            </p>
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white shadow-md transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {creator.username?.charAt(0).toUpperCase() || '?'}
+                            </span>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        </a>
+                        <p className="text-[10px] text-gray-600 mt-1 truncate max-w-[60px] opacity-0 group-hover:opacity-100 transition-opacity">
+                          @{creator.username}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

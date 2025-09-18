@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,7 +60,9 @@ export default function CreatorReviewPage() {
     non_related: 0,
     total: 0
   })
+  const [countsLoading, setCountsLoading] = useState(true)
   const [postsMetrics, setPostsMetrics] = useState<Map<string, { avgLikes: number, avgComments: number }>>(new Map())
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
@@ -79,14 +81,22 @@ export default function CreatorReviewPage() {
   }, [])
 
   // Fetch counts separately for accurate metrics - memoized with stable dependency
-  const fetchCounts = useCallback(async () => {
+  const fetchCounts = useCallback(async (signal?: AbortSignal) => {
+    setCountsLoading(true)
     try {
-      const [pendingResult, okResult, nonRelatedResult, totalResult] = await Promise.all([
+      const queries = [
         supabase.from('instagram_creators').select('*', { count: 'exact', head: true }).or('review_status.is.null,review_status.eq.pending'),
         supabase.from('instagram_creators').select('*', { count: 'exact', head: true }).eq('review_status', 'ok'),
         supabase.from('instagram_creators').select('*', { count: 'exact', head: true }).eq('review_status', 'non_related'),
         supabase.from('instagram_creators').select('*', { count: 'exact', head: true })
-      ])
+      ]
+
+      // Add abort signal if provided
+      if (signal) {
+        queries.forEach(q => q.abortSignal(signal))
+      }
+
+      const [pendingResult, okResult, nonRelatedResult, totalResult] = await Promise.all(queries)
 
       setReviewCounts({
         pending: pendingResult.count || 0,
@@ -94,8 +104,13 @@ export default function CreatorReviewPage() {
         non_related: nonRelatedResult.count || 0,
         total: totalResult.count || 0
       })
-    } catch (error) {
-      console.error('Failed to fetch counts:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to fetch counts:', error)
+        toast.error('Failed to load creator counts')
+      }
+    } finally {
+      setCountsLoading(false)
     }
   }, [supabase]) // Supabase is memoized so this is stable
 

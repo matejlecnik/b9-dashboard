@@ -1,5 +1,5 @@
-BUILD_VERSION=4.2.0-WAIT-MSG-FIX-V2
-BUILD_DATE=2025-09-18T14:47:00Z
+BUILD_VERSION=4.3.0-WAIT-MSG-FINAL-FIX
+BUILD_DATE=2025-09-18T14:55:00Z
 DEPLOYMENT=render-production
 FIX_DESCRIPTION=Added explicit cycle completion logging and 4-hour wait message visibility improvements
 

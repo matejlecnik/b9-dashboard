@@ -128,45 +128,86 @@ export async function getViralReels(
   }
 }
 
-export async function getViralReelsStats() {
+export async function getViralReelsStats(filters: ViralReelsFilters = {}) {
   if (!supabase) {
     console.error('Supabase client not initialized')
     return null
   }
 
+  const minViews = filters.minViews || 50000
+
+  // Try to use RPC function first
   const { data: stats, error } = await supabase
     .rpc('get_viral_reels_stats', {
-      min_views: 50000
+      min_views: minViews
     })
 
   if (error) {
     // If the function doesn't exist, calculate stats manually
-    const { data, error: queryError } = await supabase
+    let viralQuery = supabase
       .from('instagram_reels')
       .select('play_count, like_count, comment_count')
-      .gte('play_count', 50000)
+      .gte('play_count', minViews)
 
-    if (queryError) {
-      console.error('Error fetching viral stats:', queryError)
+    let totalQuery = supabase
+      .from('instagram_reels')
+      .select('*', { count: 'exact', head: true })
+
+    let maxQuery = supabase
+      .from('instagram_reels')
+      .select('play_count')
+
+    // Apply date filters if present
+    if (filters.dateFrom) {
+      viralQuery = viralQuery.gte('taken_at', filters.dateFrom)
+      maxQuery = maxQuery.gte('taken_at', filters.dateFrom)
+    }
+    if (filters.dateTo) {
+      viralQuery = viralQuery.lte('taken_at', filters.dateTo)
+      maxQuery = maxQuery.lte('taken_at', filters.dateTo)
+    }
+
+    // Apply creator filter if present
+    if (filters.creatorId) {
+      viralQuery = viralQuery.eq('creator_id', filters.creatorId)
+      totalQuery = totalQuery.eq('creator_id', filters.creatorId)
+      maxQuery = maxQuery.eq('creator_id', filters.creatorId)
+    }
+
+    maxQuery = maxQuery.order('play_count', { ascending: false }).limit(1)
+
+    const [viralData, totalCount, maxData] = await Promise.all([
+      viralQuery,
+      totalQuery,
+      maxQuery
+    ])
+
+    if (viralData.error) {
+      console.error('Error fetching viral stats:', viralData.error)
       return null
     }
 
-    if (!data || data.length === 0) {
+    const data = viralData.data || []
+    const totalReels = totalCount.count || 0
+    const maxViews = maxData.data?.[0]?.play_count || 0
+
+    if (data.length === 0) {
       return {
+        total_reels: totalReels,
         total_viral: 0,
         ultra_viral: 0,
         avg_views: 0,
         avg_likes: 0,
-        max_views: 0
+        max_views: maxViews
       }
     }
 
     const ultraViral = data.filter((r: any) => r.play_count >= 50000000).length
     const avgViews = Math.round(data.reduce((sum: number, r: any) => sum + r.play_count, 0) / data.length)
     const avgLikes = Math.round(data.reduce((sum: number, r: any) => sum + r.like_count, 0) / data.length)
-    const maxViews = Math.max(...data.map((r: any) => r.play_count))
 
     return {
+      total_reels: totalReels,
       total_viral: data.length,
       ultra_viral: ultraViral,
       avg_views: avgViews,
@@ -175,16 +216,32 @@ export async function getViralReelsStats() {
     }
   }
 
+  // Add total_reels if not present in RPC response
+  if (stats && !stats.total_reels) {
+    let countQuery = supabase
+      .from('instagram_reels')
+      .select('*', { count: 'exact', head: true })
+
+    if (filters.creatorId) {
+      countQuery = countQuery.eq('creator_id', filters.creatorId)
+    }
+
+    const { count } = await countQuery
+    stats.total_reels = count || 0
+  }
+
   return stats
 }
 
-export async function getTopCreators(limit = 5) {
+export async function getTopCreators(filters: ViralReelsFilters = {}, limit = 5) {
   if (!supabase) {
     console.error('Supabase client not initialized')
     return []
   }
 
-  const { data, error } = await supabase
+  const minViews = filters.minViews || 50000
+
+  let query = supabase
     .from('instagram_reels')
     .select(`
       creator_id,
@@ -196,9 +253,24 @@ export async function getTopCreators(limit = 5) {
         followers
       )
     `)
-    .gte('play_count', 50000)
+    .gte('play_count', minViews)
+
+  // Apply date filters if present
+  if (filters.dateFrom) {
+    query = query.gte('taken_at', filters.dateFrom)
+  }
+  if (filters.dateTo) {
+    query = query.lte('taken_at', filters.dateTo)
+  }
+
+  // Apply creator filter if present
+  if (filters.creatorId) {
+    query = query.eq('creator_id', filters.creatorId)
+  }
+
+  const { data, error } = await query
     .order('play_count', { ascending: false })
-    .limit(100)
+    .limit(500) // Increase limit to get more data for accurate top creators
 
   if (error) {
     console.error('Error fetching top creators:', error)
