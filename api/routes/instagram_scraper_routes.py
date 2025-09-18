@@ -8,6 +8,8 @@ Manages Instagram scraper via system_control table
 API_VERSION = "2.0.0"
 
 import os
+import sys
+import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -645,8 +647,38 @@ async def start_instagram_scraper(request: Request):
                 'config': {'scan_interval_hours': 24, 'batch_size': 5}
             }).execute()
 
-        # Note: The actual subprocess is started by api/start.py when the container starts
-        # This endpoint only controls the database flag, similar to the Reddit scraper
+        # Start the actual subprocess immediately (like Reddit scraper should do)
+        try:
+            # Start Instagram scraper subprocess
+            instagram_process = subprocess.Popen(
+                [sys.executable, "-u", "core/continuous_instagram_scraper.py"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,  # Detach from parent
+                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # API directory
+            )
+
+            # Check if process started successfully
+            import time
+            time.sleep(0.5)
+
+            if instagram_process.poll() is None:
+                # Process is running
+                logger.info(f"✅ Instagram scraper subprocess started with PID: {instagram_process.pid}")
+
+                # Update PID in database
+                supabase.table('system_control').update({
+                    'pid': instagram_process.pid
+                }).eq('script_name', 'instagram_scraper').execute()
+            else:
+                # Process died immediately
+                logger.error("Instagram scraper subprocess died immediately")
+                # Don't fail the endpoint, as the database flag is still set
+
+        except Exception as subprocess_error:
+            logger.error(f"Failed to start subprocess: {subprocess_error}")
+            # Don't fail the endpoint, as the database flag is still set
 
         # Log the action
         if system_logger:
