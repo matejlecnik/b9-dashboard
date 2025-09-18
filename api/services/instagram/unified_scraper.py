@@ -3,6 +3,10 @@
 Instagram Unified Scraper for B9 Agency
 Efficiently fetches reels, posts, and profile data with 2.4 API calls per creator average
 """
+# VERSION TRACKING - UPDATE THIS WHEN MAKING CHANGES
+SCRAPER_VERSION = "3.0.0-BATCH-FIX"  # Fixed batch processing to handle all creators
+DEPLOYMENT_DATE = "2025-09-18"
+
 # Early logging before any imports that might fail
 import sys
 import logging
@@ -16,7 +20,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logger.info("=" * 60)
-logger.info("Instagram Unified Scraper - Module Loading")
+logger.info(f"Instagram Unified Scraper v{SCRAPER_VERSION} - Module Loading")
+logger.info(f"Deployment Date: {DEPLOYMENT_DATE}")
 logger.info("=" * 60)
 
 import os
@@ -1450,7 +1455,15 @@ class InstagramScraperUnified:
 
                     # Process in concurrent batches
                     # With 10 concurrent creators, process in smaller stable batches
+                    logger.info("=" * 60)
+                    logger.info(f"🔧 BATCH CONFIGURATION (v{SCRAPER_VERSION})")
+                    logger.info(f"Config.CONCURRENT_CREATORS = {Config.CONCURRENT_CREATORS}")
+                    logger.info(f"total_creators = {total_creators}")
+                    logger.info(f"batch_size calculation: Config.CONCURRENT_CREATORS = {Config.CONCURRENT_CREATORS}")
                     batch_size = Config.CONCURRENT_CREATORS  # Fixed: Always use configured batch size, not min with total
+                    logger.info(f"✅ FINAL batch_size = {batch_size}")
+                    logger.info(f"✅ Expected batches = {(total_creators + batch_size - 1) // batch_size}")
+                    logger.info("=" * 60)
 
                     # Track processing progress
                     processed_count = 0
