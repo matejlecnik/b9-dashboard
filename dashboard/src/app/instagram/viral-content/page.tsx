@@ -119,17 +119,6 @@ export default function ViralContentPage() {
         <main className="flex-1 overflow-auto bg-transparent flex flex-col">
           <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Viral Content Tracker</h2>
-                  <p className="text-gray-600 mt-1">Monitor high-performing reels from tracked creators</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-600">Live Data</span>
-                </div>
-              </div>
-
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">

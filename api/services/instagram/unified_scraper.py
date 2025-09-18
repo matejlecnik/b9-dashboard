@@ -1485,6 +1485,15 @@ class InstagramScraperUnified:
                                 "total_creators": total_creators,
                                 "percentage_complete": 100
                             })
+
+                            # IMMEDIATELY log cycle completion for wrapper
+                            logger.info("🎉 CYCLE COMPLETED - Returning control to wrapper")
+                            self._log_realtime("success", "🎉 Processing completed - returning to wrapper for 4-hour wait", {
+                                "total_creators": total_creators,
+                                "creators_processed": processed_count,
+                                "cycle_complete": True,
+                                "message": "Scraper finished, wrapper should now log 4-hour wait"
+                            })
                         except Exception as processing_error:
                             logger.error(f"❌ Processing failed: {processing_error}")
                             self._log_realtime("error", f"❌ Processing failed", {
@@ -1512,12 +1521,14 @@ class InstagramScraperUnified:
                         })
                         raise
                     finally:
-                        logger.info(f"📊 Processing completed: Processed {processed_count}/{total_creators} creators")
+                        # Ensure processed_count is defined even if there was an error
+                        final_processed_count = processed_count if 'processed_count' in locals() else 0
+                        logger.info(f"📊 Processing completed: Processed {final_processed_count}/{total_creators} creators")
                         # Add explicit completion message for the wrapper to detect
                         logger.info("🎉 CYCLE COMPLETED SUCCESSFULLY - Returning to wrapper")
                         self._log_realtime("success", "🎉 Processing completed - cycle finished successfully", {
                             "total_creators": total_creators,
-                            "creators_processed": processed_count,
+                            "creators_processed": final_processed_count,
                             "api_calls": self.api_calls_made,
                             "cycle_complete": True,
                             "returning_to_wrapper": True
