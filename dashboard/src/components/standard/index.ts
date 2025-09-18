@@ -31,6 +31,15 @@ export {
 export { StandardTable, createReviewColumns, createPostingColumns } from './StandardTable'
 export type { TableVariant, TableColumn, StandardTableProps } from './StandardTable'
 
+// Toolbar components
+export {
+  StandardToolbar,
+  createReviewToolbar,
+  createFilterToolbar,
+  createSearchToolbar
+} from './StandardToolbar'
+export type { ToolbarVariant, StandardToolbarProps } from './StandardToolbar'
+
 // Placeholder component
 export { StandardPlaceholder } from './StandardPlaceholder'
 export type { StandardPlaceholderProps } from './StandardPlaceholder'
@@ -49,5 +58,29 @@ export {
 } from './IconLibrary'
 export type { IconSize } from './IconLibrary'
 
-// Re-export design system for convenience
+// Modal components
+export { StandardModal, ConfirmDialog, AlertDialog } from './StandardModal'
+export type { StandardModalProps, ModalSize, ModalVariant } from './StandardModal'
+
+// Toast components
+export {
+  ToastProvider,
+  useToast,
+  showToast,
+  toast
+} from './StandardToast'
+export type { Toast, ToastType, ToastPosition } from './StandardToast'
+
+// Error components
+export {
+  StandardError,
+  StandardErrorBoundary,
+  getErrorMessage,
+  isNetworkError,
+  is404Error
+} from './StandardError'
+export type { StandardErrorProps, ErrorVariant, ErrorSeverity } from './StandardError'
+
+// Re-export design system and formatters for convenience
 export { designSystem, getDesignClasses, commonStyles } from '@/lib/design-system'
+export * from '@/lib/formatters'

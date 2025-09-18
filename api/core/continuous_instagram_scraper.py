@@ -283,27 +283,45 @@ class ContinuousInstagramScraper:
                         'last_cycle_completed_at': self.last_cycle_completed_at.isoformat(),
                         'next_cycle_at': self.next_cycle_at.isoformat(),
                         'creators_processed': creators_processed,
-                        'api_calls_today': api_calls_made
+                        'api_calls_today': api_calls_made,
+                        'in_waiting_period': True,
+                        'waiting_until': self.next_cycle_at.isoformat()
                     },
                     'updated_at': datetime.now(timezone.utc).isoformat()
                 }).eq('script_name', 'instagram_scraper').execute()
             except Exception as e:
                 logger.error(f"Failed to update cycle info: {e}")
 
-            # Log the waiting period
-            wait_msg = f"⏰ Cycle #{self.cycle_count} complete! Processed {creators_processed} profiles. Entering {CYCLE_WAIT_HOURS}-hour timeout. Next cycle at {self.next_cycle_at.strftime('%H:%M:%S UTC')}"
-            logger.info(wait_msg)
+            # Create prominent cycle completion message
+            separator = "=" * 60
+            logger.info(separator)
+            logger.info("🎉 INSTAGRAM SCRAPER CYCLE COMPLETE 🎉")
+            logger.info(separator)
+            logger.info(f"✅ Cycle #{self.cycle_count} finished successfully")
+            logger.info(f"👥 Creators Processed: {creators_processed}")
+            logger.info(f"📊 API Calls Made: {api_calls_made}")
+            logger.info(f"⏱️ Duration: {duration_formatted}")
+            logger.info(f"💤 ENTERING {CYCLE_WAIT_HOURS}-HOUR WAITING PERIOD")
+            logger.info(f"⏰ Next Cycle: {self.next_cycle_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            logger.info(separator)
+
+            # Log to Supabase with SUCCESS level for visibility
+            wait_msg = f"🎉 CYCLE #{self.cycle_count} COMPLETE | Processed {creators_processed} profiles | Waiting {CYCLE_WAIT_HOURS} hours | Next: {self.next_cycle_at.strftime('%H:%M:%S UTC')}"
 
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'instagram_scraper',
                 'script_name': 'continuous_instagram_scraper',
-                'level': 'info',
+                'level': 'success',  # Changed to success for better visibility
                 'message': wait_msg,
                 'context': {
                     'cycle_completed': self.cycle_count,
                     'wait_hours': CYCLE_WAIT_HOURS,
-                    'next_cycle_at': self.next_cycle_at.isoformat()
+                    'next_cycle_at': self.next_cycle_at.isoformat(),
+                    'creators_processed': creators_processed,
+                    'api_calls': api_calls_made,
+                    'duration_formatted': duration_formatted,
+                    'in_waiting_period': True
                 }
             }).execute()
 
@@ -403,17 +421,61 @@ class ContinuousInstagramScraper:
                     if self.next_cycle_at and now < self.next_cycle_at:
                         # Still in waiting period
                         wait_seconds = (self.next_cycle_at - now).total_seconds()
-                        if wait_seconds > 3600:  # More than 1 hour
-                            wait_hours = wait_seconds / 3600
-                            logger.debug(f"⏳ In waiting period. {wait_hours:.1f} hours until next cycle")
-                        elif wait_seconds > 60:  # More than 1 minute
-                            wait_minutes = wait_seconds / 60
-                            logger.debug(f"⏳ In waiting period. {wait_minutes:.1f} minutes until next cycle")
-                        else:
-                            logger.info(f"⏳ In waiting period. {wait_seconds:.0f} seconds until next cycle")
+
+                        # Log status every 30 minutes or when getting close
+                        should_log = False
+                        log_level = logger.debug
+
+                        # Determine when to log
+                        if not hasattr(self, 'last_wait_log_time'):
+                            self.last_wait_log_time = now
+                            should_log = True
+                            log_level = logger.info
+                        elif (now - self.last_wait_log_time).total_seconds() >= 1800:  # Every 30 minutes
+                            should_log = True
+                            log_level = logger.info
+                            self.last_wait_log_time = now
+                        elif wait_seconds <= 60:  # Last minute
+                            should_log = True
+                            log_level = logger.info
+
+                        if should_log:
+                            if wait_seconds > 3600:  # More than 1 hour
+                                wait_hours = wait_seconds / 3600
+                                wait_msg = f"⏳ WAITING PERIOD: {wait_hours:.1f} hours remaining until next cycle at {self.next_cycle_at.strftime('%H:%M:%S UTC')}"
+                                log_level(wait_msg)
+
+                                # Log to Supabase for visibility
+                                if log_level == logger.info:
+                                    self.supabase.table('system_logs').insert({
+                                        'timestamp': now.isoformat(),
+                                        'source': 'instagram_scraper',
+                                        'script_name': 'continuous_instagram_scraper',
+                                        'level': 'info',
+                                        'message': f"⏳ Waiting: {wait_hours:.1f}h remaining",
+                                        'context': {
+                                            'in_waiting_period': True,
+                                            'hours_remaining': round(wait_hours, 1),
+                                            'next_cycle_at': self.next_cycle_at.isoformat()
+                                        }
+                                    }).execute()
+                            elif wait_seconds > 60:  # More than 1 minute
+                                wait_minutes = wait_seconds / 60
+                                wait_msg = f"⏳ WAITING PERIOD: {wait_minutes:.1f} minutes remaining until next cycle"
+                                log_level(wait_msg)
+                            else:
+                                wait_msg = f"⏰ CYCLE STARTING SOON: {wait_seconds:.0f} seconds until next cycle!"
+                                logger.info(wait_msg)
                     else:
                         # Time to run a new cycle or no previous cycle
-                        logger.info("✅ Ready to start new scraping cycle")
+                        logger.info("=" * 60)
+                        logger.info("🚀 STARTING NEW INSTAGRAM SCRAPING CYCLE")
+                        logger.info("=" * 60)
+
+                        # Clear the last wait log time
+                        if hasattr(self, 'last_wait_log_time'):
+                            del self.last_wait_log_time
+
                         await self.run_scraping_cycle(config)
                 else:
                     # Reset state when disabled

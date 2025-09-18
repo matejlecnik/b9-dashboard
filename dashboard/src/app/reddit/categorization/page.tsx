@@ -16,7 +16,6 @@ import { Progress } from '@/components/ui/progress'
 import { Sparkles } from 'lucide-react'
 import { AICategorizationModal, type AICategorizationSettings } from '@/components/AICategorizationModal'
 import { formatNumber } from '@/lib/utils'
-import { AIButton } from '@/components/GlassMorphismButton'
 
 
 const PAGE_SIZE = 50 // Standard page size
@@ -748,21 +747,20 @@ export default function CategorizationPage() {
                 </div>
                 
                 {/* AI Review Button using standardized component */}
-                <AIButton
-                  icon={Sparkles}
-                  label="AI Review"
-                  sublabel={
-                    categorizingAll
+                <Button
+                  onClick={handleCategorizeAll}
+                  disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>
+                    {categorizingAll
                       ? 'Processing...'
                       : categoryCounts.uncategorized === 0
                       ? 'All done!'
-                      : `${Math.min(categoryCounts.uncategorized, 500)} items`
-                  }
-                  onClick={handleCategorizeAll}
-                  disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
-                  loading={categorizingAll}
-                  size="md"
-                />
+                      : `AI Review (${Math.min(categoryCounts.uncategorized, 500)} items)`}
+                  </span>
+                </Button>
               </div>
             )}
           </ComponentErrorBoundary>

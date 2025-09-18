@@ -247,7 +247,6 @@ export function StandardTable<T extends Record<string, any>>({
                 <th className="px-4 py-3 w-12">
                   <Checkbox
                     checked={allSelected}
-                    indeterminate={someSelected && !allSelected}
                     onCheckedChange={handleSelectAll}
                     className="data-[state=checked]:bg-b9-pink data-[state=checked]:border-b9-pink"
                   />

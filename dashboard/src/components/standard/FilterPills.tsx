@@ -51,7 +51,7 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
   }
 
   const getColorClasses = (color: string, isSelected: boolean) => {
-    const colors = {
+    const colors: Record<string, string> = {
       gray: isSelected
         ? 'bg-gray-900 text-white border-gray-900'
         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',

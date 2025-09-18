@@ -5,7 +5,7 @@ import { supabase, type Subreddit } from '@/lib/supabase/index'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { MetricsCards } from '@/components/MetricsCards'
 import { UniversalTable, createSubredditReviewTable } from '@/components/UniversalTable'
-import { UniversalToolbar, createBulkActionsToolbar } from '@/components/UniversalToolbar'
+import { StandardToolbar } from '@/components/standard'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -698,17 +698,33 @@ export default function SubredditReviewPage() {
 
         {/* Bulk Actions Toolbar (only when items selected) */}
         {selectedSubreddits.size > 0 && (
-          <UniversalToolbar
-            {...createBulkActionsToolbar({
-              selectedCount: selectedSubreddits.size,
-              onBulkOk: () => bulkUpdateReview('Ok'),
-              onBulkNoSeller: () => bulkUpdateReview('No Seller'),
-              onBulkNonRelated: () => bulkUpdateReview('Non Related'),
-              onClearSelection: () => setSelectedSubreddits(new Set()),
-              onUndoLastAction: () => undoLastActionRef.current?.(),
-              disabled: loading || loadingMore
-            })}
-            testId="bulk-actions-toolbar"
+          <StandardToolbar
+            variant="actions"
+            selectedCount={selectedSubreddits.size}
+            onDeselectAll={() => setSelectedSubreddits(new Set())}
+            actions={[
+              {
+                id: 'ok',
+                label: 'Ok',
+                onClick: () => bulkUpdateReview('Ok'),
+                variant: 'default',
+                disabled: loading || loadingMore
+              },
+              {
+                id: 'no-seller',
+                label: 'No Seller',
+                onClick: () => bulkUpdateReview('No Seller'),
+                variant: 'secondary',
+                disabled: loading || loadingMore
+              },
+              {
+                id: 'non-related',
+                label: 'Non Related',
+                onClick: () => bulkUpdateReview('Non Related'),
+                variant: 'outline',
+                disabled: loading || loadingMore
+              }
+            ]}
           />
         )}
 

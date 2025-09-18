@@ -74,11 +74,32 @@ async def get_instagram_scraper_health(request: Request):
         # Get config info
         config = control.get('config', {})
 
+        # Check if in waiting period
+        in_waiting_period = config.get('in_waiting_period', False)
+        wait_remaining_seconds = None
+        wait_remaining_formatted = None
+
+        if config.get('next_cycle_at'):
+            next_cycle_time = datetime.fromisoformat(config['next_cycle_at'].replace('Z', '+00:00'))
+            if now < next_cycle_time:
+                in_waiting_period = True
+                wait_remaining_seconds = (next_cycle_time - now).total_seconds()
+                hours = int(wait_remaining_seconds // 3600)
+                minutes = int((wait_remaining_seconds % 3600) // 60)
+                seconds = int(wait_remaining_seconds % 60)
+                wait_remaining_formatted = f"{hours}h {minutes}m {seconds}s"
+
+        # Determine effective status
+        effective_status = control.get('status', 'unknown')
+        if in_waiting_period:
+            effective_status = f"waiting ({wait_remaining_formatted})" if wait_remaining_formatted else "waiting"
+
         # Build health response
         health_status = {
             "healthy": is_healthy,
             "enabled": control.get('enabled', False),
             "status": control.get('status', 'unknown'),
+            "effective_status": effective_status,
             "heartbeat_age_seconds": heartbeat_age,
             "last_heartbeat": last_heartbeat,
             "pid": control.get('pid'),
@@ -88,15 +109,10 @@ async def get_instagram_scraper_health(request: Request):
             "total_cycles_completed": config.get('total_cycles_completed', 0),
             "last_cycle_completed_at": config.get('last_cycle_completed_at'),
             "next_cycle_at": config.get('next_cycle_at'),
-            "in_waiting_period": False
+            "in_waiting_period": in_waiting_period,
+            "wait_remaining_seconds": wait_remaining_seconds,
+            "wait_remaining_formatted": wait_remaining_formatted
         }
-
-        # Check if in waiting period
-        if config.get('next_cycle_at'):
-            next_cycle_time = datetime.fromisoformat(config['next_cycle_at'].replace('Z', '+00:00'))
-            if now < next_cycle_time:
-                health_status['in_waiting_period'] = True
-                health_status['wait_remaining_seconds'] = (next_cycle_time - now).total_seconds()
 
         # Log API call
         if log_api_call:

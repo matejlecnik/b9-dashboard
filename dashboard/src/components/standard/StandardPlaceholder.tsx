@@ -189,7 +189,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
           variant="glass"
           className={cn(
             'max-w-2xl mx-auto mt-20',
-            isDark && scheme.cardBg
+            isDark && 'cardBg' in scheme && scheme.cardBg
           )}
         >
           <CardContent className="text-center py-12">
@@ -208,7 +208,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
             )}
 
             {/* Title in card */}
-            <CardTitle className={isDark ? scheme.textColor : ''}>
+            <CardTitle className={isDark && 'textColor' in scheme ? scheme.textColor : ''}>
               {description}
             </CardTitle>
 
@@ -217,7 +217,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
               <p className={cn(
                 designSystem.text.body,
                 'mt-4 mb-8',
-                isDark ? scheme.subtitleColor : ''
+                isDark && 'subtitleColor' in scheme ? scheme.subtitleColor : ''
               )}>
                 Coming Soon - {launchDate}
               </p>
@@ -238,7 +238,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
                       key={index}
                       className={cn(
                         'p-4 rounded-lg',
-                        scheme.statBg
+                        'statBg' in scheme && scheme.statBg
                       )}
                     >
                       <p className="text-2xl font-bold text-white">{stat.value}</p>
@@ -249,8 +249,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
                       key={index}
                       label={stat.label}
                       value={stat.value}
-                      subtitle={stat.subtitle}
-                      color={scheme.statColor}
+                      color={scheme.statColor as 'gray' | 'pink' | 'green' | 'red' | 'blue' | undefined}
                     />
                   )
                 ))}

@@ -9,7 +9,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 import { RedditMonitorSidebar } from '@/components/RedditMonitorSidebar'
-import { GlassMorphismButton } from '@/components/GlassMorphismButton'
+import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase/index'
 
 interface InstagramMetrics {
@@ -499,15 +499,15 @@ export default function InstagramMonitor() {
             {/* Left Column - Button and Success Rate */}
             <div className="flex flex-col gap-3 flex-shrink-0">
               {/* Start/Stop Scraper Button */}
-              <GlassMorphismButton
-                variant={isRunning ? 'stop' : 'start'}
-                icon={isRunning ? Square : Play}
-                label={isRunning ? 'Stop Scraper' : 'Start Scraper'}
-                sublabel={isRunning ? 'Running' : 'Ready'}
+              <Button
+                variant={isRunning ? 'destructive' : 'default'}
                 onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
                 disabled={loading}
-                size="md"
-              />
+                className="flex items-center gap-2"
+              >
+                {isRunning ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isRunning ? 'Stop Scraper' : 'Start Scraper'}
+              </Button>
 
               {/* Success Rate Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
