@@ -20,16 +20,16 @@ class Config:
     RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "instagram-looter2.p.rapidapi.com")
 
     # Performance Settings for 60 req/sec
-    MAX_WORKERS = int(os.getenv("INSTAGRAM_MAX_WORKERS", "60"))  # Concurrent threads - increased from 20
+    MAX_WORKERS = int(os.getenv("INSTAGRAM_MAX_WORKERS", "10"))  # Concurrent threads - reduced for stability
     REQUESTS_PER_SECOND = int(os.getenv("INSTAGRAM_REQUESTS_PER_SECOND", "55"))  # Stay under 60 limit
     RATE_LIMIT_DELAY = 1.0 / REQUESTS_PER_SECOND  # Calculate delay between requests
 
     # Batch Processing
-    BATCH_SIZE = int(os.getenv("INSTAGRAM_BATCH_SIZE", "300"))  # Process 300 creators per batch - increased from 100
-    CONCURRENT_CREATORS = int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "60"))  # Process 60 creators simultaneously - increased from 10
+    BATCH_SIZE = int(os.getenv("INSTAGRAM_BATCH_SIZE", "50"))  # Process 50 creators per batch - reduced for stability
+    CONCURRENT_CREATORS = int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10"))  # Process 10 creators simultaneously - reduced for stability
 
     # Connection Pooling
-    CONNECTION_POOL_SIZE = int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "100"))  # Increased from 50 to support more workers
+    CONNECTION_POOL_SIZE = int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "20"))  # Reduced to match worker count
     CONNECTION_MAX_RETRIES = int(os.getenv("INSTAGRAM_CONNECTION_MAX_RETRIES", "3"))
     CONNECTION_TIMEOUT = int(os.getenv("INSTAGRAM_CONNECTION_TIMEOUT", "30"))
 

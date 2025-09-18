@@ -15,7 +15,7 @@ import aiohttp
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from queue import Queue
 import random
 
@@ -1318,6 +1318,8 @@ class InstagramScraperUnified:
     def process_creators_concurrent(self, creators: List[Dict]):
         """Process multiple creators concurrently with thread pool"""
         futures = []
+        successful = 0
+        failed = 0
 
         # Log thread distribution
         self._log_realtime("info", f"🔄 Distributing {len(creators)} creators across {Config.CONCURRENT_CREATORS} threads", {
@@ -1327,7 +1329,6 @@ class InstagramScraperUnified:
         })
 
         with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
-
             for i, creator in enumerate(creators):
                 # Check if scraper should stop
                 if not self.should_continue():
@@ -1341,16 +1342,26 @@ class InstagramScraperUnified:
                 # Small delay to avoid thundering herd
                 time.sleep(0.05)
 
-
             # Collect results as they complete
             for i, (future, creator) in enumerate(futures):
+                username = creator.get('username', 'Unknown')
                 try:
                     result = future.result(timeout=120)  # 2 minute timeout per creator
+                    if result:
+                        successful += 1
+                        logger.debug(f"✅ Creator {username} processed successfully")
+                except FuturesTimeoutError:
+                    failed += 1
+                    logger.error(f"⏱️ Timeout processing creator {username} (exceeded 120s)")
+                    self.errors.append({"creator": username, "error": "Processing timeout"})
                 except Exception as e:
-                    logger.error(f"Creator {creator.get('username')} processing failed: {e}")
+                    failed += 1
+                    logger.error(f"❌ Creator {username} processing failed: {e}")
                     import traceback
                     logger.error(f"Traceback: {traceback.format_exc()}")
-                    self.errors.append({"creator": creator.get('username'), "error": str(e)})
+                    self.errors.append({"creator": username, "error": str(e)})
+
+        logger.info(f"\n📊 Batch Results: {successful} successful, {failed} failed out of {len(creators)} creators")
 
     def run(self):
         """Main execution method with continuous loop"""
@@ -1417,8 +1428,12 @@ class InstagramScraperUnified:
                     })
 
                     # Process in concurrent batches
-                    # With 60 concurrent creators, we can process larger batches
-                    batch_size = min(Config.CONCURRENT_CREATORS * 2, total_creators)  # Process up to 120 at once
+                    # With 10 concurrent creators, process in smaller stable batches
+                    batch_size = min(Config.CONCURRENT_CREATORS, total_creators)  # Process up to 10 at once for stability
+
+                    # Track processing progress
+                    processed_count = 0
+                    failed_batches = 0
 
                     for i in range(0, total_creators, batch_size):
                         # Check if we should stop
@@ -1431,10 +1446,23 @@ class InstagramScraperUnified:
                         batch_num = (i // batch_size) + 1
                         total_batches = (total_creators + batch_size - 1) // batch_size
 
-                        logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
+                        logger.info(f"\n📦 Processing batch {batch_num}/{total_batches}: {len(batch)} creators")
+                        logger.info(f"Progress: {processed_count}/{total_creators} creators completed")
 
-                        # Use thread pool for concurrent processing
-                        self.process_creators_concurrent(batch)
+                        # Use thread pool for concurrent processing with error handling
+                        try:
+                            self.process_creators_concurrent(batch)
+                            processed_count += len(batch)
+                        except Exception as batch_error:
+                            failed_batches += 1
+                            logger.error(f"❌ Batch {batch_num} failed: {batch_error}")
+                            self._log_realtime("error", f"❌ Batch {batch_num} processing failed", {
+                                "batch_num": batch_num,
+                                "error": str(batch_error),
+                                "creators_in_batch": len(batch)
+                            })
+                            # Continue with next batch instead of crashing
+                            continue
 
                         # Log performance stats
                         stats = self.performance_monitor.get_stats()
@@ -1451,31 +1479,41 @@ class InstagramScraperUnified:
                             })
                             time.sleep(2)
 
-                        # Log batch progress
+                        # Log batch progress with better visibility
                         progress_pct = ((i + len(batch)) / total_creators) * 100
-                        logger.info(f"Overall progress: {progress_pct:.1f}% ({self.creators_processed}/{total_creators})")
-                        self._log_realtime("info", f"📦 Batch completed: {progress_pct:.1f}% total progress", {
+                        remaining = total_creators - processed_count
+                        logger.info(f"✅ Batch {batch_num} completed successfully")
+                        logger.info(f"Overall progress: {progress_pct:.1f}% ({processed_count}/{total_creators})")
+                        logger.info(f"Remaining creators: {remaining}")
+
+                        self._log_realtime("info", f"📊 Progress: {progress_pct:.1f}% complete", {
+                            "batch_num": batch_num,
+                            "total_batches": total_batches,
                             "progress_percentage": round(progress_pct, 1),
-                            "creators_processed": self.creators_processed,
-                            "total_creators": total_creators
+                            "creators_processed": processed_count,
+                            "total_creators": total_creators,
+                            "remaining": remaining
                         })
 
                     # Cycle summary (moved outside batch loop)
                     cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
                     avg_calls_per_creator = self.api_calls_made / max(self.creators_processed, 1)
                     total_cost = self.api_calls_made * Config.get_cost_per_request()
+                    success_rate = (self.successful_calls / max(self.api_calls_made, 1)) * 100
 
+                    logger.info("\n" + "=" * 60)
+                    logger.info(f"🎉 CYCLE #{self.cycle_number} COMPLETE")
                     logger.info("=" * 60)
-                    logger.info(f"Cycle #{self.cycle_number} Complete")
-                    logger.info(f"Creators Processed: {self.creators_processed}/{total_creators}")
+                    logger.info(f"Creators Processed: {self.creators_processed}/{total_creators} ({(self.creators_processed/total_creators)*100:.1f}%)")
                     logger.info(f"API Calls Made: {self.api_calls_made}")
-                    logger.info(f"Successful Calls: {self.successful_calls}")
+                    logger.info(f"Successful Calls: {self.successful_calls} ({success_rate:.1f}% success rate)")
                     logger.info(f"Failed Calls: {self.failed_calls}")
+                    logger.info(f"Failed Batches: {failed_batches}")
                     logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
                     logger.info(f"Total Cost: ${total_cost:.2f}")
                     logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
                     logger.info(f"Errors: {len(self.errors)}")
-                    logger.info("=" * 60)
+                    logger.info("=" * 60 + "\n")
 
                     # Log cycle completion
                     self._log_realtime("success", f"✅ Cycle #{self.cycle_number} complete", {

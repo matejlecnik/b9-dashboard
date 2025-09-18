@@ -140,15 +140,15 @@ export default function DashboardsPage() {
         name: 'Instagram Dashboard',
         description: 'Instagram engagement tracking and influencer discovery platform',
         icon: InstagramIcon,
-        href: '/instagram',
-        status: 'coming-soon',
+        href: '/instagram/creator-review',
+        status: 'active',
         color: 'border-pink-200 hover:border-purple-300',
         gradient: 'from-pink-500/10 via-pink-400/5 to-pink-500/10',
         accent: 'bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700 text-white',
         metrics: [
-          { label: 'Accounts', value: 'TBA' },
-          { label: 'Metrics', value: 'Advanced' },
-          { label: 'Launch', value: 'Q2 2025' }
+          { label: 'Creators', value: '85' },
+          { label: 'Status', value: 'Active' },
+          { label: 'Reviews', value: 'Live' }
         ]
       },
       {
