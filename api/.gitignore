@@ -40,6 +40,8 @@ ENV/
 # Logs
 *.log
 logs/
+core/logs/
+**/*.log
 
 # Railway
 .railway/

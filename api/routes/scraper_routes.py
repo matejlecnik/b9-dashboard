@@ -5,7 +5,7 @@ Uses Supabase to store scraper state - no Render API needed
 """
 
 # Version tracking - should match scraper versions
-API_VERSION = "2.1.0"
+API_VERSION = "3.0.0"
 
 import os
 import sys

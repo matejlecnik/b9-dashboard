@@ -27,5 +27,27 @@ export {
   Spinner
 } from './EmptyState'
 
+// Table components
+export { StandardTable, createReviewColumns, createPostingColumns } from './StandardTable'
+export type { TableVariant, TableColumn, StandardTableProps } from './StandardTable'
+
+// Placeholder component
+export { StandardPlaceholder } from './StandardPlaceholder'
+export type { StandardPlaceholderProps } from './StandardPlaceholder'
+
+// Icon library
+export {
+  SocialIcon,
+  IconWithBackground,
+  InstagramIcon,
+  TikTokIcon,
+  OnlyFansIcon,
+  YouTubeIcon,
+  XTwitterIcon,
+  ThreadsIcon,
+  RedditIcon
+} from './IconLibrary'
+export type { IconSize } from './IconLibrary'
+
 // Re-export design system for convenience
 export { designSystem, getDesignClasses, commonStyles } from '@/lib/design-system'

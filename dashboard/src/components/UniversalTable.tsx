@@ -8,20 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CategorySelector } from '@/components/CategorySelector'
 import { cn } from '@/lib/utils'
 import { BookOpen, BadgeCheck } from 'lucide-react'
-
-// Utility function to abbreviate large numbers
-const abbreviateNumber = (num: number): string => {
-  if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'
-  }
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-  }
-  return num.toLocaleString('en-US')
-}
+import { formatNumber } from '@/lib/formatters'
 
 // Performance constants inline since @/lib/performance was removed
 const PERFORMANCE_CONSTANTS = {
@@ -490,7 +477,7 @@ export const UniversalTable = memo(function UniversalTable({
             "font-medium text-gray-700",
             compactMode ? "text-xs" : "text-sm"
           )}>
-            {typeof subreddit.subscribers === 'number' ? abbreviateNumber(subreddit.subscribers) : '—'}
+            {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
           </div>
         </div>
         
@@ -516,7 +503,7 @@ export const UniversalTable = memo(function UniversalTable({
             "font-medium text-gray-700",
             compactMode ? "text-xs" : "text-sm"
           )}>
-            {typeof subreddit.avg_upvotes_per_post === 'number' ? abbreviateNumber(Math.round(subreddit.avg_upvotes_per_post)) : '—'}
+            {typeof subreddit.avg_upvotes_per_post === 'number' ? formatNumber(Math.round(subreddit.avg_upvotes_per_post)) : '—'}
           </div>
         </div>
         

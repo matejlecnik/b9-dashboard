@@ -9,15 +9,14 @@ High-performance FastAPI application optimized for Render deployment with:
 - Real-time analytics and streaming
 """
 
-import asyncio
 import os
 import logging
 import time
 import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, Query, Request, Depends, BackgroundTasks
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Query, Request, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
