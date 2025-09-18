@@ -1,7 +1,6 @@
 'use client'
 
 import React, { memo, useState, useEffect, useRef, useCallback } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -128,12 +127,28 @@ const InstagramTable = memo(function InstagramTable({
 
         {/* Avatar */}
         <div className="w-14 flex justify-center pr-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={creator.profile_pic_url || ''} alt={creator.username} />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
-              {creator.username.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          {creator.profile_pic_url ? (
+            <img
+              src={creator.profile_pic_url}
+              alt={creator.username}
+              className="h-10 w-10 rounded-full object-cover"
+              onError={(e) => {
+                // If image fails to load, show fallback
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+                const fallback = target.nextElementSibling
+                if (fallback) {
+                  (fallback as HTMLElement).style.display = 'flex'
+                }
+              }}
+            />
+          ) : null}
+          <div
+            className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs items-center justify-center font-semibold"
+            style={{ display: creator.profile_pic_url ? 'none' : 'flex' }}
+          >
+            {creator.username.slice(0, 2).toUpperCase()}
+          </div>
         </div>
 
         {/* Creator info */}
@@ -271,7 +286,7 @@ const InstagramTable = memo(function InstagramTable({
     >
       {/* Header */}
       <div
-        className="flex items-center px-4 py-3 bg-gray-50/80 border-b border-gray-200/50 font-medium text-gray-700 text-sm sticky top-0 z-10"
+        className="flex items-center px-4 py-3 bg-gray-50/80 border-b border-gray-200/50 font-medium text-gray-700 text-sm"
         role="row"
       >
         {setSelectedCreators && (

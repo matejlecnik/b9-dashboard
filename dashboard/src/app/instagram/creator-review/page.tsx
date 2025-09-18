@@ -136,7 +136,8 @@ export default function CreatorReviewPage() {
   useEffect(() => {
     fetchCreators()
     fetchCounts()
-  }, [fetchCreators, fetchCounts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFilter, debouncedSearchQuery]) // Only re-fetch when filter or search changes
 
   const updateCreatorStatus = async (creatorId: number, newStatus: 'ok' | 'non_related' | 'pending') => {
     try {

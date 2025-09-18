@@ -1346,12 +1346,8 @@ class InstagramScraperUnified:
 
         with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
             for i, creator in enumerate(creators):
-                # Check if scraper should stop
-                if not self.should_continue():
-                    logger.info("Scraper stop signal received")
-                    break
-
                 # Submit creator processing to thread pool
+                # No should_continue check here - we process all creators in the batch
                 future = executor.submit(self.process_creator, creator)
                 futures.append((future, creator))
 
