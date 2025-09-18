@@ -4,7 +4,7 @@ Instagram Unified Scraper for B9 Agency
 Efficiently fetches reels, posts, and profile data with 2.4 API calls per creator average
 """
 # VERSION TRACKING - UPDATE THIS WHEN MAKING CHANGES
-SCRAPER_VERSION = "3.0.0-BATCH-FIX"  # Fixed batch processing to handle all creators
+SCRAPER_VERSION = "4.0.0-NO-BATCH"  # Removed batch processing - process all creators at once
 DEPLOYMENT_DATE = "2025-09-18"
 
 # Early logging before any imports that might fail
@@ -1453,143 +1453,66 @@ class InstagramScraperUnified:
                         "estimated_time_minutes": round(estimated_time/60, 1)
                     })
 
-                    # Process in concurrent batches
-                    # With 10 concurrent creators, process in smaller stable batches
+                    # Process all creators at once (removed batch logic)
                     logger.info("=" * 60)
-                    logger.info(f"🔧 BATCH CONFIGURATION (v{SCRAPER_VERSION})")
-                    logger.info(f"Config.CONCURRENT_CREATORS = {Config.CONCURRENT_CREATORS}")
-                    logger.info(f"total_creators = {total_creators}")
-                    logger.info(f"batch_size calculation: Config.CONCURRENT_CREATORS = {Config.CONCURRENT_CREATORS}")
-                    batch_size = Config.CONCURRENT_CREATORS  # Fixed: Always use configured batch size, not min with total
-                    logger.info(f"✅ FINAL batch_size = {batch_size}")
-                    logger.info(f"✅ Expected batches = {(total_creators + batch_size - 1) // batch_size}")
+                    logger.info(f"🔧 PROCESSING CONFIGURATION (v{SCRAPER_VERSION}-NO-BATCH)")
+                    logger.info(f"Processing ALL {total_creators} creators in a single batch")
+                    logger.info(f"Concurrent limit: {Config.CONCURRENT_CREATORS}")
                     logger.info("=" * 60)
 
                     # Track processing progress
                     processed_count = 0
-                    failed_batches = 0
 
-                    # Wrap batch loop with comprehensive error handling
+                    # Process all creators in one go with error handling
                     try:
-                        logger.info(f"🚀 Starting batch processing loop for {total_creators} creators")
-                        logger.info(f"Batch size: {batch_size}, Expected batches: {(total_creators + batch_size - 1) // batch_size}")
+                        logger.info(f"🚀 Starting to process ALL {total_creators} creators")
 
-                        for i in range(0, total_creators, batch_size):
-                            logger.info(f"🔄 Loop iteration: i={i}, batch_size={batch_size}, total={total_creators}")
-                            # Process all batches in this cycle without checking should_continue
-                            # We already checked at the start of the cycle
-                            batch = creators[i:i+batch_size]
-                            batch_num = (i // batch_size) + 1
-                            total_batches = (total_creators + batch_size - 1) // batch_size
+                        # Log start to Supabase
+                        self._log_realtime("info", f"📦 Processing all {total_creators} creators", {
+                            "total_creators": total_creators,
+                            "concurrent_limit": Config.CONCURRENT_CREATORS
+                        })
 
-                            logger.info(f"\n{'='*60}")
-                            logger.info(f"📦 BATCH {batch_num}/{total_batches} STARTING")
-                            logger.info(f"{'='*60}")
-                            logger.info(f"Processing {len(batch)} creators in this batch")
-                            logger.info(f"Overall Progress: {processed_count}/{total_creators} creators completed ({(processed_count/total_creators)*100:.1f}%)")
+                        # Process all creators at once using concurrent processing
+                        try:
+                            self.process_creators_concurrent(creators)
+                            processed_count = len(creators)
 
-                            # Log batch details to Supabase for monitoring
-                            self._log_realtime("info", f"📦 Starting Batch {batch_num}/{total_batches}", {
-                                "batch_num": batch_num,
-                                "total_batches": total_batches,
-                                "batch_size": len(batch),
-                                "progress_before": processed_count,
-                                "total_creators": total_creators,
-                                "percentage_complete": round((processed_count/total_creators)*100, 1)
-                            })
-
-                            # Use thread pool for concurrent processing with error handling
-                            try:
-                                self.process_creators_concurrent(batch)
-                                processed_count += len(batch)
-
-                                # Log batch completion
-                                logger.info(f"✅ BATCH {batch_num} COMPLETED SUCCESSFULLY")
-                                self._log_realtime("success", f"✅ Batch {batch_num}/{total_batches} completed", {
-                                    "batch_num": batch_num,
-                                    "creators_processed_in_batch": len(batch),
-                                    "total_processed": processed_count,
-                                    "percentage_complete": round((processed_count/total_creators)*100, 1)
-                                })
-                            except Exception as batch_error:
-                                failed_batches += 1
-                                logger.error(f"❌ Batch {batch_num} failed: {batch_error}")
-                                self._log_realtime("error", f"❌ Batch {batch_num} processing failed", {
-                                    "batch_num": batch_num,
-                                    "error": str(batch_error),
-                                    "creators_in_batch": len(batch)
-                                })
-                                # Continue with next batch instead of crashing
-                                continue
-
-                            # Log performance stats
-                            stats = self.performance_monitor.get_stats()
-                            logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
-                                       f"Avg response: {stats['avg_response_time']:.3f}s, "
-                                       f"Total requests: {stats['total_requests']}")
-
-                            # Check if we need to slow down
-                            if stats['current_rps'] > Config.REQUESTS_PER_SECOND:
-                                logger.warning(f"Slowing down - exceeding rate limit: {stats['current_rps']:.1f} req/sec")
-                                self._log_realtime("warning", f"⚠️ Rate limit approached: {stats['current_rps']:.1f} req/sec", {
-                                    "current_rps": stats['current_rps'],
-                                    "limit": Config.REQUESTS_PER_SECOND
-                                })
-                                time.sleep(2)
-
-                            # Log batch progress with better visibility
-                            progress_pct = ((i + len(batch)) / total_creators) * 100
-                            remaining = total_creators - processed_count
-                            logger.info(f"✅ Batch {batch_num} completed successfully")
-                            logger.info(f"Overall progress: {progress_pct:.1f}% ({processed_count}/{total_creators})")
-                            logger.info(f"Remaining creators: {remaining}")
-
-                            self._log_realtime("info", f"📊 Progress: {progress_pct:.1f}% complete", {
-                                "batch_num": batch_num,
-                                "total_batches": total_batches,
-                                "progress_percentage": round(progress_pct, 1),
+                            # Log completion
+                            logger.info(f"✅ ALL {total_creators} CREATORS PROCESSED SUCCESSFULLY")
+                            self._log_realtime("success", f"✅ All {total_creators} creators completed", {
                                 "creators_processed": processed_count,
                                 "total_creators": total_creators,
-                                "remaining": remaining
+                                "percentage_complete": 100
                             })
+                        except Exception as processing_error:
+                            logger.error(f"❌ Processing failed: {processing_error}")
+                            self._log_realtime("error", f"❌ Processing failed", {
+                                "error": str(processing_error),
+                                "creators_attempted": total_creators
+                            })
+                            raise
 
-                            # Critical debugging: Log batch loop continuation
-                            logger.info(f"🔄 Batch {batch_num}/{total_batches} fully complete, checking for next batch...")
-                            next_batch_start = i + batch_size
-                            if next_batch_start < total_creators:
-                                next_batch_num = batch_num + 1
-                                logger.info(f"➡️ Moving to batch {next_batch_num}/{total_batches} (starting at creator {next_batch_start})")
-                                self._log_realtime("info", f"➡️ Continuing to batch {next_batch_num}/{total_batches}", {
-                                    "current_batch": batch_num,
-                                    "next_batch": next_batch_num,
-                                    "total_batches": total_batches,
-                                    "creators_so_far": processed_count
-                                })
-                            else:
-                                logger.info(f"✅ All {total_batches} batches processed successfully!")
-                                self._log_realtime("success", f"✅ All {total_batches} batches complete", {
-                                    "total_batches": total_batches,
-                                    "creators_processed": processed_count,
-                                    "total_creators": total_creators
-                                })
+                        # Log performance stats
+                        stats = self.performance_monitor.get_stats()
+                        logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
+                                   f"Avg response: {stats['avg_response_time']:.3f}s, "
+                                   f"Total requests: {stats['total_requests']}")
 
-                        # END OF FOR LOOP BODY
-
-                    except Exception as loop_error:
-                        logger.error(f"❌ FATAL: Batch processing loop crashed: {loop_error}")
+                    except Exception as processing_error:
+                        logger.error(f"❌ FATAL: Processing crashed: {processing_error}")
                         import traceback
                         error_trace = traceback.format_exc()
                         logger.error(f"Traceback:\n{error_trace}")
-                        self._log_realtime("error", f"❌ Batch loop crashed after {processed_count} creators", {
-                            "error": str(loop_error),
+                        self._log_realtime("error", f"❌ Processing crashed after {processed_count} creators", {
+                            "error": str(processing_error),
                             "processed_count": processed_count,
                             "total_creators": total_creators,
                             "traceback": error_trace[:1000]
                         })
                         raise
                     finally:
-                        logger.info(f"📊 Batch loop completed: Processed {processed_count}/{total_creators} creators")
-                        logger.info(f"📊 Failed batches: {failed_batches}")
+                        logger.info(f"📊 Processing completed: Processed {processed_count}/{total_creators} creators")
 
                     # Cycle summary (moved outside batch loop)
                     cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()

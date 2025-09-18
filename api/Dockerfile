@@ -1,6 +1,6 @@
-# B9 Dashboard API - Custom Dockerfile v2.4
+# B9 Dashboard API - Custom Dockerfile v2.5
 # This Dockerfile ensures exact dependency versions and bypasses Nixpacks issues
-# CACHE BREAK v2.4: Force rebuild to include Instagram scraper batch processing fix
+# CACHE BREAK v2.5: Removed batch processing - process all creators at once
 
 FROM python:3.12-slim
 
