@@ -50,29 +50,65 @@ def check_and_start_scrapers():
 
             if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
                 logger.info("🔄 Reddit scraper is enabled in database, starting subprocess...")
-                reddit_process = subprocess.Popen(
-                    [sys.executable, "-u", "/app/api/core/continuous_scraper.py"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    stdin=subprocess.DEVNULL,
-                    start_new_session=True  # Detach from parent
-                )
 
-                # Update heartbeat in database (no PID tracking on Render)
-                supabase.table('system_control').update({
-                    'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-                    'status': 'running',
-                    'updated_by': 'auto_start'
-                }).eq('script_name', 'reddit_scraper').execute()
+                # Change to API directory first (crucial for imports)
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir('/app/api')
 
-                logger.info(f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}")
-                if system_logger:
-                    system_logger.info(
-                        f"Reddit scraper auto-started",
-                        source="api",
-                        script_name="start",
-                        context={"pid": reddit_process.pid, "auto_start": True}
+                    # Open log file for Reddit scraper output
+                    reddit_log = open('/tmp/reddit_scraper.log', 'w')
+
+                    # Start with output to log file so we can see errors
+                    reddit_process = subprocess.Popen(
+                        [sys.executable, "-u", "core/continuous_scraper.py"],
+                        stdout=reddit_log,
+                        stderr=subprocess.STDOUT,
+                        stdin=subprocess.DEVNULL,
+                        start_new_session=True,  # Detach from parent
+                        cwd='/app/api'  # Ensure correct working directory
                     )
+
+                    # Check if process is still running after a brief moment
+                    import time
+                    time.sleep(2)
+
+                    if reddit_process.poll() is None:
+                        # Process is still running
+                        logger.info(f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}")
+
+                        # Update heartbeat in database
+                        supabase.table('system_control').update({
+                            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+                            'status': 'running',
+                            'updated_by': 'auto_start'
+                        }).eq('script_name', 'reddit_scraper').execute()
+
+                        if system_logger:
+                            system_logger.info(
+                                f"Reddit scraper auto-started",
+                                source="api",
+                                script_name="start",
+                                context={"pid": reddit_process.pid, "auto_start": True}
+                            )
+                    else:
+                        # Process died immediately, read error from log
+                        reddit_log.close()
+                        with open('/tmp/reddit_scraper.log', 'r') as f:
+                            error_output = f.read()
+                        logger.error(f"❌ Reddit scraper died immediately. Error: {error_output}")
+
+                        # Mark as stopped in database
+                        supabase.table('system_control').update({
+                            'enabled': False,
+                            'status': 'stopped',
+                            'error_message': f"Failed to start: {error_output[:500]}",
+                            'updated_by': 'auto_start'
+                        }).eq('script_name', 'reddit_scraper').execute()
+
+                finally:
+                    os.chdir(original_cwd)
+
             else:
                 logger.info("💤 Reddit scraper is disabled in database, not starting")
         except Exception as e:
@@ -84,29 +120,65 @@ def check_and_start_scrapers():
 
             if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
                 logger.info("🔄 Instagram scraper is enabled in database, starting subprocess...")
-                instagram_process = subprocess.Popen(
-                    [sys.executable, "-u", "/app/api/core/continuous_instagram_scraper.py"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    stdin=subprocess.DEVNULL,
-                    start_new_session=True  # Detach from parent
-                )
 
-                # Update heartbeat in database (no PID tracking on Render)
-                supabase.table('system_control').update({
-                    'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-                    'status': 'running',
-                    'updated_by': 'auto_start'
-                }).eq('script_name', 'instagram_scraper').execute()
+                # Change to API directory first (crucial for imports)
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir('/app/api')
 
-                logger.info(f"✅ Instagram scraper auto-started with PID: {instagram_process.pid}")
-                if system_logger:
-                    system_logger.info(
-                        f"Instagram scraper auto-started",
-                        source="api",
-                        script_name="start",
-                        context={"pid": instagram_process.pid, "auto_start": True}
+                    # Open log file for Instagram scraper output
+                    instagram_log = open('/tmp/instagram_scraper.log', 'w')
+
+                    # Start with output to log file so we can see errors
+                    instagram_process = subprocess.Popen(
+                        [sys.executable, "-u", "core/continuous_instagram_scraper.py"],
+                        stdout=instagram_log,
+                        stderr=subprocess.STDOUT,
+                        stdin=subprocess.DEVNULL,
+                        start_new_session=True,  # Detach from parent
+                        cwd='/app/api'  # Ensure correct working directory
                     )
+
+                    # Check if process is still running after a brief moment
+                    import time
+                    time.sleep(2)
+
+                    if instagram_process.poll() is None:
+                        # Process is still running
+                        logger.info(f"✅ Instagram scraper auto-started with PID: {instagram_process.pid}")
+
+                        # Update heartbeat in database
+                        supabase.table('system_control').update({
+                            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+                            'status': 'running',
+                            'updated_by': 'auto_start'
+                        }).eq('script_name', 'instagram_scraper').execute()
+
+                        if system_logger:
+                            system_logger.info(
+                                f"Instagram scraper auto-started",
+                                source="api",
+                                script_name="start",
+                                context={"pid": instagram_process.pid, "auto_start": True}
+                            )
+                    else:
+                        # Process died immediately, read error from log
+                        instagram_log.close()
+                        with open('/tmp/instagram_scraper.log', 'r') as f:
+                            error_output = f.read()
+                        logger.error(f"❌ Instagram scraper died immediately. Error: {error_output}")
+
+                        # Mark as stopped in database
+                        supabase.table('system_control').update({
+                            'enabled': False,
+                            'status': 'stopped',
+                            'error_message': f"Failed to start: {error_output[:500]}",
+                            'updated_by': 'auto_start'
+                        }).eq('script_name', 'instagram_scraper').execute()
+
+                finally:
+                    os.chdir(original_cwd)
+
             else:
                 logger.info("💤 Instagram scraper is disabled in database, not starting at startup")
         except Exception as e:
