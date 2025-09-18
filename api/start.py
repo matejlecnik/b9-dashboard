@@ -102,7 +102,7 @@ def check_and_start_scrapers():
                         supabase.table('system_control').update({
                             'enabled': False,
                             'status': 'stopped',
-                            'error_message': f"Failed to start: {error_output[:500]}",
+                            'last_error': f"Failed to start: {error_output[:500]}",
                             'updated_by': 'auto_start'
                         }).eq('script_name', 'reddit_scraper').execute()
 
@@ -172,7 +172,7 @@ def check_and_start_scrapers():
                         supabase.table('system_control').update({
                             'enabled': False,
                             'status': 'stopped',
-                            'error_message': f"Failed to start: {error_output[:500]}",
+                            'last_error': f"Failed to start: {error_output[:500]}",
                             'updated_by': 'auto_start'
                         }).eq('script_name', 'instagram_scraper').execute()
 
