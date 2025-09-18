@@ -42,6 +42,78 @@ def get_supabase():
     return create_client(supabase_url, supabase_key)
 
 
+@router.get("/health")
+async def get_instagram_scraper_health(request: Request):
+    """Get Instagram scraper health status for monitoring"""
+    try:
+        supabase = get_supabase()
+
+        # Get control record
+        result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
+
+        if not result.data or len(result.data) == 0:
+            return {
+                "healthy": False,
+                "status": "not_initialized",
+                "message": "Instagram scraper not found in control table"
+            }
+
+        control = result.data[0]
+        now = datetime.now(timezone.utc)
+
+        # Check heartbeat (consider unhealthy if no heartbeat for 2 minutes)
+        last_heartbeat = control.get('last_heartbeat')
+        if last_heartbeat:
+            heartbeat_time = datetime.fromisoformat(last_heartbeat.replace('Z', '+00:00'))
+            heartbeat_age = (now - heartbeat_time).total_seconds()
+            is_healthy = heartbeat_age < 120  # 2 minutes
+        else:
+            is_healthy = False
+            heartbeat_age = None
+
+        # Get config info
+        config = control.get('config', {})
+
+        # Build health response
+        health_status = {
+            "healthy": is_healthy,
+            "enabled": control.get('enabled', False),
+            "status": control.get('status', 'unknown'),
+            "heartbeat_age_seconds": heartbeat_age,
+            "last_heartbeat": last_heartbeat,
+            "pid": control.get('pid'),
+            "memory_mb": control.get('memory_mb'),
+            "cpu_percent": control.get('cpu_percent'),
+            "current_cycle": config.get('current_cycle', 0),
+            "total_cycles_completed": config.get('total_cycles_completed', 0),
+            "last_cycle_completed_at": config.get('last_cycle_completed_at'),
+            "next_cycle_at": config.get('next_cycle_at'),
+            "in_waiting_period": False
+        }
+
+        # Check if in waiting period
+        if config.get('next_cycle_at'):
+            next_cycle_time = datetime.fromisoformat(config['next_cycle_at'].replace('Z', '+00:00'))
+            if now < next_cycle_time:
+                health_status['in_waiting_period'] = True
+                health_status['wait_remaining_seconds'] = (next_cycle_time - now).total_seconds()
+
+        # Log API call
+        if log_api_call:
+            log_api_call(request, "GET /api/instagram/scraper/health", 200, "instagram_scraper")
+
+        return health_status
+
+    except Exception as e:
+        logger.error(f"Failed to get health status: {e}")
+        if log_api_call:
+            log_api_call(request, "GET /api/instagram/scraper/health", 500, "instagram_scraper")
+        return {
+            "healthy": False,
+            "status": "error",
+            "error": str(e)
+        }
+
 @router.get("/status")
 async def get_instagram_scraper_status(request: Request):
     """Get Instagram scraper status from Supabase"""
