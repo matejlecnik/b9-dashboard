@@ -1502,11 +1502,15 @@ class InstagramScraperUnified:
                             })
                             raise
 
-                        # Log performance stats
-                        stats = self.performance_monitor.get_stats()
-                        logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
-                                   f"Avg response: {stats['avg_response_time']:.3f}s, "
-                                   f"Total requests: {stats['total_requests']}")
+                        # Log performance stats (with error handling)
+                        try:
+                            stats = self.performance_monitor.get_stats()
+                            logger.info(f"Performance: {stats['current_rps']:.1f} req/sec, "
+                                       f"Avg response: {stats['avg_response_time']:.3f}s, "
+                                       f"Total requests: {stats['total_requests']}")
+                        except Exception as perf_error:
+                            logger.warning(f"Could not get performance stats: {perf_error}")
+                            # Don't let this stop the method from completing
 
                     except Exception as processing_error:
                         logger.error(f"❌ FATAL: Processing crashed: {processing_error}")
@@ -1577,19 +1581,28 @@ class InstagramScraperUnified:
                     "error": str(e)
                 })
 
-        # Cycle is complete, return control to the wrapper
-        logger.info("Instagram scraper cycle completed successfully")
-        logger.info(f"Total creators processed: {self.creators_processed}")
-        logger.info(f"Total API calls made: {self.api_calls_made}")
+        # CRITICAL: Ensure method always completes and returns to wrapper
+        # This section MUST execute no matter what happens above
+        try:
+            # Log final stats
+            logger.info("Instagram scraper cycle completed successfully")
+            logger.info(f"Total creators processed: {self.creators_processed if hasattr(self, 'creators_processed') else 0}")
+            logger.info(f"Total API calls made: {self.api_calls_made if hasattr(self, 'api_calls_made') else 0}")
+        except:
+            pass  # Don't let logging errors prevent return
 
-        # Log final completion for wrapper
-        logger.info("🏁 SCRAPER RUN() METHOD COMPLETE - Returning to wrapper for 4-hour wait")
-        self._log_realtime("success", "🏁 Scraper run() complete - wrapper should log 4-hour wait", {
-            "method_complete": True,
-            "returning_to_wrapper": True
-        })
+        # CRITICAL: Log final completion for wrapper
+        try:
+            logger.info("🏁 SCRAPER RUN() METHOD COMPLETE - Returning to wrapper for 4-hour wait")
+            self._log_realtime("success", "🏁 Scraper run() complete - wrapper should log 4-hour wait", {
+                "method_complete": True,
+                "returning_to_wrapper": True
+            })
+        except:
+            pass  # Even if logging fails, we must return
 
-        # Explicit return to ensure method completes
+        # CRITICAL: Explicit return to ensure method completes
+        logger.info(">>> RETURNING FROM RUN() METHOD <<<")
         return
 
 

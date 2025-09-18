@@ -1,7 +1,7 @@
-BUILD_VERSION=4.4.0-INSTAGRAM-STARTUP-FIX
-BUILD_DATE=2025-09-18T19:35:00Z
+BUILD_VERSION=4.5.0-PERFORMANCE-STATS-FIX
+BUILD_DATE=2025-09-18T19:45:00Z
 DEPLOYMENT=render-production
-FIX_DESCRIPTION=Added comprehensive startup logging to diagnose Instagram scraper not running - checks for RAPIDAPI_KEY on startup
+FIX_DESCRIPTION=Fixed Instagram scraper run() method hanging on performance stats - added error handling and ensured method always returns
 
 This file forces Docker cache invalidation on each deployment.
 Update the BUILD_DATE before deploying to ensure fresh code is deployed.
