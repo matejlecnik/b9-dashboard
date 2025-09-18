@@ -1,5 +1,5 @@
 # B9 Dashboard - Production Dockerfile for Render
-# Combined API + Reddit Scraper with supervisor management
+# Combined API + Scrapers managed by Python startup script
 
 FROM python:3.12-slim-bullseye as builder
 
@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create app directory and copy requirements
 WORKDIR /app
-COPY requirements-combined.txt .
+COPY api/requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements-combined.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Production stage
 FROM python:3.12-slim-bullseye
@@ -33,11 +33,10 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=10000 \
     ENVIRONMENT=production
 
-# Install runtime dependencies and supervisor
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
-    supervisor \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -55,15 +54,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --chown=app:app api/ ./api/
 
 # Create necessary directories
-RUN mkdir -p logs /var/log/supervisor && \
-    chown -R app:app logs /var/log/supervisor
-
-# Copy supervisor configuration
-COPY --chown=app:app supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy startup script
-COPY --chown=app:app start.sh ./start.sh
-RUN chmod +x ./start.sh
+RUN mkdir -p logs && \
+    chown -R app:app logs
 
 # Switch to non-root user
 USER app
