@@ -313,7 +313,7 @@ Tags for r/{name}:"""
                     },
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
+                # temperature parameter removed - model only supports default (1)
                 max_completion_tokens=self.max_tokens
             )
 

@@ -144,7 +144,7 @@ async def test_openai_connection():
         response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": "Say 'test successful'"}],
-            max_tokens=10
+            max_completion_tokens=10
         )
 
         result = response.choices[0].message.content
@@ -167,7 +167,8 @@ async def test_tag_categorization_service(supabase, openai_client, test_subreddi
         return
 
     try:
-        # Import the service
+        # Import the service - update the path
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'api'))
         from services.categorization_service_tags import TagCategorizationService
 
         print_info("Initializing TagCategorizationService...")
@@ -246,7 +247,7 @@ Return ONLY a JSON array of tags, nothing else.
                 {"role": "user", "content": test_prompt}
             ],
             temperature=0.1,
-            max_tokens=100
+            max_completion_tokens=100
         )
 
         result = response.choices[0].message.content
