@@ -2,14 +2,12 @@
 """
 Continuous Instagram Scraper
 Checks Supabase control table every 30 seconds and runs scraping when enabled
-Based on Reddit scraper architecture for 24/7 operation
+Based on Reddit scraper architecture with 4-hour wait between cycles
 """
 import asyncio
 import os
 import sys
 import logging
-import gc
-import psutil
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 from dotenv import load_dotenv
@@ -29,12 +27,12 @@ else:
         system_logger = None
 
 # Version tracking
-SCRAPER_VERSION = "2.1.0"
+SCRAPER_VERSION = "3.0.0"  # Simplified to match Reddit pattern
 
 # Configuration
-CYCLE_WAIT_HOURS = 4  # Wait 4 hours between cycles
+CYCLE_WAIT_HOURS = 4  # Wait 4 hours between cycles (Instagram specific)
 CHECK_INTERVAL_SECONDS = 30  # Check control table every 30 seconds
-ERROR_WAIT_SECONDS = 60  # Wait 60 seconds after errors
+WAIT_UPDATE_MINUTES = 1  # Update wait status every minute
 
 # Load environment variables
 load_dotenv()
@@ -47,7 +45,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class ContinuousInstagramScraper:
-    """Manages continuous Instagram scraping with Supabase control"""
+    """Manages continuous Instagram scraping with Supabase control (simplified like Reddit)"""
 
     def __init__(self):
         self.supabase = None
@@ -55,10 +53,8 @@ class ContinuousInstagramScraper:
         self.is_scraping = False
         self.last_check = None
         self.cycle_count = 0
-        self.stop_requested = False
         self.last_cycle_completed_at = None
         self.next_cycle_at = None
-        self.total_cycles_completed = 0
 
     def initialize_supabase(self):
         """Initialize Supabase client"""
@@ -74,55 +70,37 @@ class ContinuousInstagramScraper:
     async def update_heartbeat(self):
         """Update heartbeat in database to show scraper is alive"""
         try:
-            now = datetime.now(timezone.utc)
-            status_info = {
-                'last_heartbeat': now.isoformat(),
+            self.supabase.table('system_control').update({
+                'last_heartbeat': datetime.now(timezone.utc).isoformat(),
                 'pid': os.getpid()
-            }
-
-            # Add memory usage if available
-            try:
-                process = psutil.Process()
-                memory_info = process.memory_info()
-                status_info['memory_mb'] = round(memory_info.rss / 1024 / 1024, 1)
-                status_info['cpu_percent'] = process.cpu_percent(interval=0.1)
-            except:
-                pass
-
-            self.supabase.table('system_control').update(status_info).eq('script_name', 'instagram_scraper').execute()
+            }).eq('script_name', 'instagram_scraper').execute()
         except Exception as e:
             logger.error(f"Error updating heartbeat: {e}")
 
-    def get_health_status(self):
-        """Get current health status for monitoring"""
-        now = datetime.now(timezone.utc)
-        status = {
-            'healthy': True,
-            'version': SCRAPER_VERSION,
-            'uptime_seconds': 0,
-            'is_scraping': self.is_scraping,
-            'cycles_completed': self.total_cycles_completed,
-            'current_cycle': self.cycle_count,
-            'last_cycle_completed_at': self.last_cycle_completed_at.isoformat() if self.last_cycle_completed_at else None,
-            'next_cycle_at': self.next_cycle_at.isoformat() if self.next_cycle_at else None,
-            'in_waiting_period': False
-        }
+    def _log_to_system(self, level: str, message: str, context: dict = None):
+        """Log to both console and Supabase system_logs"""
+        # Console log
+        if level == 'error':
+            logger.error(message)
+        elif level == 'warning':
+            logger.warning(message)
+        elif level == 'success':
+            logger.info(f"✅ {message}")
+        else:
+            logger.info(message)
 
-        # Check if in waiting period
-        if self.next_cycle_at and now < self.next_cycle_at:
-            status['in_waiting_period'] = True
-            status['wait_remaining_seconds'] = (self.next_cycle_at - now).total_seconds()
-
-        # Add memory info
+        # Supabase log
         try:
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            status['memory_mb'] = round(memory_info.rss / 1024 / 1024, 1)
-            status['cpu_percent'] = process.cpu_percent(interval=0.1)
-        except:
-            pass
-
-        return status
+            self.supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_scraper',  # Always instagram_scraper
+                'script_name': 'continuous_instagram_scraper',
+                'level': level,
+                'message': message,
+                'context': context or {}
+            }).execute()
+        except Exception as e:
+            logger.debug(f"Could not log to system_logs: {e}")
 
     async def check_scraper_status(self):
         """Check if scraper should be running from Supabase control table"""
@@ -169,8 +147,8 @@ class ContinuousInstagramScraper:
             logger.error(f"Error checking scraper status: {e}")
             return False, {}
 
-    async def run_scraping_cycle(self, config):
-        """Run one Instagram scraping cycle"""
+    async def run_scraping_cycle(self):
+        """Run one Instagram scraping cycle (simplified like Reddit)"""
         if self.is_scraping:
             logger.warning("⚠️ Scraping already in progress, skipping cycle")
             return
@@ -180,75 +158,17 @@ class ContinuousInstagramScraper:
         cycle_start_time = datetime.now(timezone.utc)
 
         try:
-            logger.info(f"🔄 Starting Instagram scraping cycle #{self.cycle_count}")
-
-            # Log cycle start
-            self.supabase.table('system_logs').insert({
-                'timestamp': cycle_start_time.isoformat(),
-                'source': 'instagram_scraper',
-                'script_name': 'continuous_instagram_scraper',
-                'level': 'info',
-                'message': f'🔄 Starting Instagram scraping cycle #{self.cycle_count}',
-                'context': {'cycle': self.cycle_count, 'version': SCRAPER_VERSION}
-            }).execute()
+            self._log_to_system('info', f'Starting Instagram scraping cycle #{self.cycle_count}', {
+                'cycle': self.cycle_count,
+                'version': SCRAPER_VERSION
+            })
 
             # Initialize scraper if needed
             if not self.scraper:
                 logger.info("Initializing Instagram scraper...")
-                try:
-                    # Validate configuration with detailed error logging
-                    logger.info("Validating Instagram API configuration...")
-
-                    # First log current configuration state
-                    logger.info(f"   RAPIDAPI_KEY: {'✅ SET' if Config.RAPIDAPI_KEY else '❌ MISSING'}")
-                    logger.info(f"   RapidAPI Host: {Config.RAPIDAPI_HOST}")
-                    logger.info(f"   Supabase URL: {'✅ SET' if Config.SUPABASE_URL else '❌ MISSING'}")
-                    logger.info(f"   Supabase Key: {'✅ SET' if Config.SUPABASE_KEY else '❌ MISSING'}")
-
-                    # Now validate - this will raise if missing
-                    Config.validate()
-                    logger.info("✅ Configuration validated successfully")
-
-                    # Initialize the scraper
-                    logger.info("Creating InstagramScraperUnified instance...")
-                    logger.info(f"Current memory usage: {psutil.Process().memory_info().rss / 1024 / 1024:.1f} MB")
-
-                    self.scraper = InstagramScraperUnified()
-                    logger.info("✅ Instagram scraper initialized successfully")
-
-                    # Log memory after creation
-                    logger.info(f"Memory after scraper creation: {psutil.Process().memory_info().rss / 1024 / 1024:.1f} MB")
-
-                except ValueError as e:
-                    logger.error(f"❌ Configuration validation failed: {e}")
-                    # Log specific missing variables
-                    logger.error(f"   RAPIDAPI_KEY: {'SET' if os.getenv('RAPIDAPI_KEY') else 'MISSING'}")
-                    logger.error(f"   SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'MISSING'}")
-                    logger.error(f"   SUPABASE_SERVICE_ROLE_KEY: {'SET' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'MISSING'}")
-
-                    # Update database with error
-                    self.supabase.table('system_control').update({
-                        'enabled': False,
-                        'status': 'error',
-                        'last_error': str(e)[:500],
-                        'last_error_at': datetime.now(timezone.utc).isoformat()
-                    }).eq('script_name', 'instagram_scraper').execute()
-                    raise
-
-                except Exception as e:
-                    logger.error(f"❌ Failed to initialize Instagram scraper: {e}")
-                    import traceback
-                    error_trace = traceback.format_exc()
-                    logger.error(f"Traceback: {error_trace}")
-
-                    # Update database with error
-                    self.supabase.table('system_control').update({
-                        'enabled': False,
-                        'status': 'error',
-                        'last_error': f"Init failed: {str(e)[:400]}",
-                        'last_error_at': datetime.now(timezone.utc).isoformat()
-                    }).eq('script_name', 'instagram_scraper').execute()
-                    raise
+                Config.validate()
+                self.scraper = InstagramScraperUnified()
+                logger.info("✅ Instagram scraper initialized")
 
             # Create control checker function (like Reddit scraper)
             async def control_checker():
@@ -262,178 +182,37 @@ class ContinuousInstagramScraper:
                     logger.error(f"Error checking control status: {e}")
                     return False
 
-            # Run the scraping with async/await (matches Reddit scraper architecture)
-            logger.info("Starting Instagram scraper async run() method...")
-            try:
-                # Run with await - exactly like Reddit scraper does
-                await self.scraper.run(control_checker=control_checker)
-                logger.info("✅ Instagram scraper async run() method completed successfully")
+            # Run the scraping
+            await self.scraper.run(control_checker=control_checker)
 
-            except Exception as e:
-                logger.error(f"❌ Error in scraper run() method: {e}")
-                import traceback
-                error_trace = traceback.format_exc()
-                logger.error(f"Traceback: {error_trace}")
-
-                # Update database with error details
-                try:
-                    self.supabase.table('system_control').update({
-                        'status': 'error',
-                        'last_error': f"Scraper crashed: {str(e)[:400]}",
-                        'last_error_at': datetime.now(timezone.utc).isoformat()
-                    }).eq('script_name', 'instagram_scraper').execute()
-
-                    # Log error to system_logs
-                    self.supabase.table('system_logs').insert({
-                        'timestamp': datetime.now(timezone.utc).isoformat(),
-                        'source': 'instagram_scraper',
-                        'script_name': 'continuous_instagram_scraper',
-                        'level': 'error',
-                        'message': f'❌ Scraper crashed during cycle #{self.cycle_count}: {str(e)}',
-                        'context': {
-                            'cycle': self.cycle_count,
-                            'error': str(e),
-                            'traceback': error_trace[:1000]  # Limit traceback size
-                        }
-                    }).execute()
-                except Exception as log_error:
-                    logger.error(f"Failed to log error to database: {log_error}")
-
-                # Don't re-raise, continue to cycle completion logic
-                logger.warning("Continuing to cycle completion despite error...")
-
-            # IMPORTANT: Log that we're entering the cycle completion section
-            logger.info("=" * 60)
-            logger.info("ENTERING CYCLE COMPLETION SECTION")
-            logger.info("=" * 60)
-
-            # Log to Supabase that we're in completion section
-            try:
-                self.supabase.table('system_logs').insert({
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': 'instagram_scraper',
-                    'script_name': 'continuous_instagram_scraper',
-                    'level': 'info',
-                    'message': '📊 Entering cycle completion section - preparing wait period',
-                    'context': {'cycle': self.cycle_count, 'phase': 'cycle_completion'}
-                }).execute()
-            except Exception as log_error:
-                logger.warning(f"Could not log completion section entry: {log_error}")
+            # Cycle completion (simplified)
 
             # Calculate cycle duration
             cycle_end_time = datetime.now(timezone.utc)
             duration_seconds = (cycle_end_time - cycle_start_time).total_seconds()
+            duration_str = f"{int(duration_seconds // 60)}m {int(duration_seconds % 60)}s" if duration_seconds >= 60 else f"{duration_seconds:.1f}s"
 
-            # Format duration
-            if duration_seconds >= 3600:
-                hours = int(duration_seconds // 3600)
-                minutes = int((duration_seconds % 3600) // 60)
-                duration_formatted = f"{hours}h {minutes}m"
-            elif duration_seconds >= 60:
-                minutes = int(duration_seconds // 60)
-                seconds = int(duration_seconds % 60)
-                duration_formatted = f"{minutes}m {seconds}s"
-            else:
-                duration_formatted = f"{int(duration_seconds)}s"
-
-            # Get scraper stats (with better error handling)
-            try:
-                creators_processed = self.scraper.creators_processed if self.scraper and hasattr(self.scraper, 'creators_processed') else 0
-                api_calls_made = self.scraper.api_calls_made if self.scraper and hasattr(self.scraper, 'api_calls_made') else 0
-                logger.info(f"Retrieved scraper stats: {creators_processed} creators, {api_calls_made} API calls")
-            except Exception as stats_error:
-                logger.warning(f"Could not retrieve scraper stats: {stats_error}")
-                creators_processed = 0
-                api_calls_made = 0
+            # Get stats from scraper
+            creators_processed = self.scraper.creators_processed if self.scraper and hasattr(self.scraper, 'creators_processed') else 0
+            api_calls = self.scraper.api_calls_made if self.scraper and hasattr(self.scraper, 'api_calls_made') else 0
 
             # Log cycle completion
-            self.supabase.table('system_logs').insert({
-                'timestamp': cycle_end_time.isoformat(),
-                'source': 'instagram_scraper',
-                'script_name': 'continuous_instagram_scraper',
-                'level': 'success',
-                'message': f'✅ Completed Instagram scraping cycle #{self.cycle_count} - {creators_processed} profiles processed',
-                'context': {
-                    'cycle': self.cycle_count,
-                    'duration_seconds': duration_seconds,
-                    'duration_formatted': duration_formatted,
-                    'creators_processed': creators_processed,
-                    'api_calls': api_calls_made,
-                    'successful_calls': self.scraper.successful_calls if hasattr(self.scraper, 'successful_calls') else 0
-                },
-                'duration_ms': int(duration_seconds * 1000)
-            }).execute()
+            self._log_to_system('success', f'Completed Instagram cycle #{self.cycle_count} in {duration_str}', {
+                'cycle': self.cycle_count,
+                'duration_seconds': duration_seconds,
+                'creators_processed': creators_processed,
+                'api_calls': api_calls
+            })
 
-            # Mark cycle as completed
+            # Mark cycle as completed and set next cycle time
             self.last_cycle_completed_at = cycle_end_time
             self.next_cycle_at = cycle_end_time + timedelta(hours=CYCLE_WAIT_HOURS)
-            self.total_cycles_completed += 1
 
-            # Update system control with cycle info
-            try:
-                self.supabase.table('system_control').update({
-                    'config': {
-                        'current_cycle': self.cycle_count,
-                        'total_cycles_completed': self.total_cycles_completed,
-                        'last_cycle_completed_at': self.last_cycle_completed_at.isoformat(),
-                        'next_cycle_at': self.next_cycle_at.isoformat(),
-                        'creators_processed': creators_processed,
-                        'api_calls_today': api_calls_made,
-                        'in_waiting_period': True,
-                        'waiting_until': self.next_cycle_at.isoformat()
-                    },
-                    'updated_at': datetime.now(timezone.utc).isoformat()
-                }).eq('script_name', 'instagram_scraper').execute()
-            except Exception as e:
-                logger.error(f"Failed to update cycle info: {e}")
+            logger.info(f"✅ Cycle #{self.cycle_count} complete - {creators_processed} creators processed")
+            logger.info(f"⏳ Starting {CYCLE_WAIT_HOURS}-hour wait until next cycle")
 
-            # Create prominent cycle completion message
-            separator = "=" * 60
-            logger.info(separator)
-            logger.info("🎉 INSTAGRAM SCRAPER CYCLE COMPLETE 🎉")
-            logger.info(separator)
-            logger.info(f"✅ Cycle #{self.cycle_count} finished successfully")
-            logger.info(f"👥 Creators Processed: {creators_processed}")
-            logger.info(f"📊 API Calls Made: {api_calls_made}")
-            logger.info(f"⏱️ Duration: {duration_formatted}")
-            logger.info(f"💤 ENTERING {CYCLE_WAIT_HOURS}-HOUR WAITING PERIOD")
-            logger.info(f"⏰ Next Cycle: {self.next_cycle_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-            logger.info(separator)
-
-            # Log to Supabase with SUCCESS level for visibility
-            wait_msg = f"🎉 CYCLE #{self.cycle_count} COMPLETE | Processed {creators_processed} profiles | Waiting {CYCLE_WAIT_HOURS} hours | Next: {self.next_cycle_at.strftime('%H:%M:%S UTC')}"
-
-            self.supabase.table('system_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'instagram_scraper',
-                'script_name': 'continuous_instagram_scraper',
-                'level': 'success',  # Changed to success for better visibility
-                'message': wait_msg,
-                'context': {
-                    'cycle_completed': self.cycle_count,
-                    'wait_hours': CYCLE_WAIT_HOURS,
-                    'next_cycle_at': self.next_cycle_at.isoformat(),
-                    'creators_processed': creators_processed,
-                    'api_calls': api_calls_made,
-                    'duration_formatted': duration_formatted,
-                    'in_waiting_period': True
-                }
-            }).execute()
-
-            # Clean up memory after cycle
-            logger.info("Cleaning up memory after cycle...")
-            if self.scraper:
-                self.scraper = None  # Release scraper instance
-            gc.collect()  # Force garbage collection
-
-            # Log memory usage
-            try:
-                process = psutil.Process()
-                memory_info = process.memory_info()
-                memory_mb = memory_info.rss / 1024 / 1024
-                logger.info(f"💾 Memory usage after cleanup: {memory_mb:.1f} MB")
-            except:
-                pass
+            # Clean up scraper instance
+            self.scraper = None
 
         except Exception as e:
             logger.error(f"Error during scraping cycle: {e}")
@@ -463,49 +242,30 @@ class ContinuousInstagramScraper:
             if self.scraper:
                 logger.info("Cleaning up scraper after error...")
                 self.scraper = None
-            gc.collect()
 
         finally:
             self.is_scraping = False
 
-    async def run(self):
-        """Main loop that continuously checks control table and runs scraping"""
-        logger.info(f"🚀 Continuous Instagram scraper v{SCRAPER_VERSION} started")
+    async def run_continuous(self):
+        """Main continuous loop - checks every 30 seconds (like Reddit scraper)"""
+        logger.info(f"🚀 Starting Instagram scraper v{SCRAPER_VERSION} with 30-second check interval")
+
+        # Initialize Supabase
+        self.initialize_supabase()
 
         # Log startup
-        self.supabase.table('system_logs').insert({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'source': 'instagram_scraper',
-            'script_name': 'continuous_instagram_scraper',
-            'level': 'info',
-            'message': f'🚀 Continuous Instagram scraper v{SCRAPER_VERSION} started',
-            'context': {'version': SCRAPER_VERSION}
-        }).execute()
+        self._log_to_system('info', f'Instagram scraper v{SCRAPER_VERSION} started', {
+            'version': SCRAPER_VERSION
+        })
 
-        # Check if there's stored cycle information
-        try:
-            result = self.supabase.table('system_control').select('config').eq('script_name', 'instagram_scraper').execute()
-            if result.data and len(result.data) > 0:
-                config = result.data[0].get('config', {})
-                if config.get('last_cycle_completed_at'):
-                    last_completed = datetime.fromisoformat(config['last_cycle_completed_at'].replace('Z', '+00:00'))
-                    self.last_cycle_completed_at = last_completed
-                    self.next_cycle_at = last_completed + timedelta(hours=CYCLE_WAIT_HOURS)
-                    self.total_cycles_completed = config.get('total_cycles_completed', 0)
-                    self.cycle_count = config.get('current_cycle', 0)
-
-                    # Check if we're still in waiting period
-                    now = datetime.now(timezone.utc)
-                    if now < self.next_cycle_at:
-                        wait_minutes = (self.next_cycle_at - now).total_seconds() / 60
-                        logger.info(f"🕰️ Resuming from previous cycle. Still in waiting period. {wait_minutes:.1f} minutes remaining until next cycle.")
-        except Exception as e:
-            logger.warning(f"Could not restore cycle state: {e}")
-
-        while not self.stop_requested:
+        while True:
             try:
                 # Check if scraper should be running
-                enabled, config = await self.check_scraper_status()
+                check_result = await self.check_scraper_status()
+                if isinstance(check_result, tuple):
+                    enabled, config = check_result
+                else:
+                    enabled, config = check_result, {}
 
                 if enabled:
                     # Update heartbeat
@@ -514,131 +274,77 @@ class ContinuousInstagramScraper:
                     # Check if we're in a waiting period
                     now = datetime.now(timezone.utc)
                     if self.next_cycle_at and now < self.next_cycle_at:
-                        # Still in waiting period
+                        # Still in waiting period - update every minute
                         wait_seconds = (self.next_cycle_at - now).total_seconds()
+                        wait_minutes = int(wait_seconds / 60)
 
-                        # Log status every 30 minutes or when getting close
-                        should_log = False
-                        log_level = logger.debug
+                        # Log every minute
+                        if not hasattr(self, '_last_wait_minute') or self._last_wait_minute != wait_minutes:
+                            logger.info(f"⏳ Waiting: {wait_minutes} minutes until next cycle")
 
-                        # Determine when to log
-                        if not hasattr(self, 'last_wait_log_time'):
-                            self.last_wait_log_time = now
-                            should_log = True
-                            log_level = logger.info
-                        elif (now - self.last_wait_log_time).total_seconds() >= 1800:  # Every 30 minutes
-                            should_log = True
-                            log_level = logger.info
-                            self.last_wait_log_time = now
-                        elif wait_seconds <= 60:  # Last minute
-                            should_log = True
-                            log_level = logger.info
+                            # Log to system_logs every 10 minutes
+                            if wait_minutes % 10 == 0:
+                                self._log_to_system('info', f'Waiting {wait_minutes} minutes until next cycle', {
+                                    'minutes_remaining': wait_minutes,
+                                    'next_cycle_at': self.next_cycle_at.isoformat()
+                                })
 
-                        if should_log:
-                            if wait_seconds > 3600:  # More than 1 hour
-                                wait_hours = wait_seconds / 3600
-                                wait_msg = f"⏳ WAITING PERIOD: {wait_hours:.1f} hours remaining until next cycle at {self.next_cycle_at.strftime('%H:%M:%S UTC')}"
-                                log_level(wait_msg)
+                            self._last_wait_minute = wait_minutes
 
-                                # Log to Supabase for visibility
-                                if log_level == logger.info:
-                                    self.supabase.table('system_logs').insert({
-                                        'timestamp': now.isoformat(),
-                                        'source': 'instagram_scraper',
-                                        'script_name': 'continuous_instagram_scraper',
-                                        'level': 'info',
-                                        'message': f"⏳ Waiting: {wait_hours:.1f}h remaining",
-                                        'context': {
-                                            'in_waiting_period': True,
-                                            'hours_remaining': round(wait_hours, 1),
-                                            'next_cycle_at': self.next_cycle_at.isoformat()
-                                        }
-                                    }).execute()
-                            elif wait_seconds > 60:  # More than 1 minute
-                                wait_minutes = wait_seconds / 60
-                                wait_msg = f"⏳ WAITING PERIOD: {wait_minutes:.1f} minutes remaining until next cycle"
-                                log_level(wait_msg)
-                            else:
-                                wait_msg = f"⏰ CYCLE STARTING SOON: {wait_seconds:.0f} seconds until next cycle!"
-                                logger.info(wait_msg)
+                        # Short sleep during wait
+                        await asyncio.sleep(1)
                     else:
-                        # Time to run a new cycle or no previous cycle
-                        logger.info("=" * 60)
-                        logger.info("🚀 STARTING NEW INSTAGRAM SCRAPING CYCLE")
-                        logger.info("=" * 60)
+                        # Time to run a new cycle
+                        logger.info("🚀 Starting Instagram scraping cycle")
 
-                        # Clear the last wait log time
-                        if hasattr(self, 'last_wait_log_time'):
-                            del self.last_wait_log_time
+                        # Run the cycle
+                        await self.run_scraping_cycle()
 
-                        await self.run_scraping_cycle(config)
+                        # After cycle, enter 4-hour wait
+                        logger.info(f"💤 Entering {CYCLE_WAIT_HOURS}-hour wait period")
+                        self._log_to_system('info', f'Starting {CYCLE_WAIT_HOURS}-hour wait period', {
+                            'wait_hours': CYCLE_WAIT_HOURS,
+                            'next_cycle_at': self.next_cycle_at.isoformat() if self.next_cycle_at else None
+                        })
                 else:
-                    # Reset state when disabled
-                    if self.cycle_count > 0 or self.next_cycle_at:
-                        logger.info("📴 Instagram scraper disabled, resetting state...")
-                        self.cycle_count = 0
-                        self.last_cycle_completed_at = None
-                        self.next_cycle_at = None
-                        self.scraper = None  # Clean up scraper instance
-                        gc.collect()
-
-                # Wait before next check
-                await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+                    # Scraper disabled
+                    logger.info("💤 Instagram scraper disabled - checking again in 30 seconds...")
+                    await asyncio.sleep(30)
 
             except KeyboardInterrupt:
                 logger.info("⛔ Received interrupt signal, shutting down...")
-                self.stop_requested = True
                 break
             except Exception as e:
-                logger.error(f"Error in main loop: {e}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                # Wait a bit longer on errors to avoid rapid failures
-                await asyncio.sleep(ERROR_WAIT_SECONDS)
+                logger.error(f"❌ Error in continuous loop: {e}")
+                logger.info("⏳ Waiting 30 seconds before retry...")
+                await asyncio.sleep(30)
 
         # Cleanup
         if self.scraper:
-            logger.info("Cleaning up scraper resources...")
-            # Instagram scraper cleanup if needed
-            pass
+            self.scraper = None
 
-        logger.info("👋 Continuous Instagram scraper stopped")
+        # Log shutdown
+        try:
+            self.supabase.table('system_control').update({
+                'pid': None,
+                'enabled': False,
+                'status': 'stopped',
+                'stopped_at': datetime.now(timezone.utc).isoformat()
+            }).eq('script_name', 'instagram_scraper').execute()
 
-    def stop(self):
-        """Request the scraper to stop"""
-        self.stop_requested = True
-        if self.scraper:
-            self.scraper.request_stop()
+            self._log_to_system('info', 'Instagram scraper stopped')
+        except Exception as e:
+            logger.error(f"Error logging shutdown: {e}")
+
+        logger.info("👋 Instagram scraper stopped")
 
 async def main():
     """Main entry point"""
     scraper = ContinuousInstagramScraper()
 
     try:
-        # Initialize Supabase
-        scraper.initialize_supabase()
-
-        # Log startup to Supabase
-        try:
-            scraper.supabase.table('system_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'instagram_scraper',
-                'script_name': 'continuous_instagram_scraper',
-                'level': 'info',
-                'message': f'🚀 Instagram scraper v{SCRAPER_VERSION} process started',
-                'context': {
-                    'version': SCRAPER_VERSION,
-                    'pid': os.getpid(),
-                    'rapidapi_key_set': bool(Config.RAPIDAPI_KEY),
-                    'supabase_url_set': bool(Config.SUPABASE_URL),
-                    'supabase_key_set': bool(Config.SUPABASE_KEY)
-                }
-            }).execute()
-        except Exception as log_error:
-            logger.warning(f"Could not log startup to Supabase: {log_error}")
-
         # Run the continuous scraper
-        await scraper.run()
+        await scraper.run_continuous()
 
     except Exception as e:
         logger.error(f"Fatal error: {e}")
