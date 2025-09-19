@@ -1,7 +1,7 @@
-BUILD_VERSION=4.6.0-THREAD-SAFETY-FIX
-BUILD_DATE=2025-09-18T20:00:00Z
+BUILD_VERSION=4.7.0-NO-THREADING
+BUILD_DATE=2025-09-19T05:00:00Z
 DEPLOYMENT=render-production
-FIX_DESCRIPTION=Fixed Instagram scraper thread termination issue - added thread-safe exception handling and timeout protection to ensure 4-hour wait message appears
+FIX_DESCRIPTION=Removed asyncio.to_thread to match Reddit scraper architecture - synchronous execution eliminates threading issues that caused wrapper to hang
 
 This file forces Docker cache invalidation on each deployment.
 Update the BUILD_DATE before deploying to ensure fresh code is deployed.

@@ -138,15 +138,15 @@ const InstagramTable = memo(function InstagramTable({
           </div>
         )}
 
-        {/* Profile & Info - All clickable */}
-        <a
-          href={`https://instagram.com/${creator.username}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-start gap-3 w-96 px-3 cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          {/* Avatar */}
-          <div className="flex-shrink-0">
+        {/* Profile & Info - Clickable sections */}
+        <div className="flex items-start gap-3 w-96 px-3">
+          {/* Avatar - Clickable */}
+          <a
+            href={`https://instagram.com/${creator.username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          >
             {creator.profile_pic_url ? (
               <img
                 src={toProxiedImageUrl(creator.profile_pic_url)}
@@ -168,7 +168,7 @@ const InstagramTable = memo(function InstagramTable({
             >
               {creator.username.slice(0, 2).toUpperCase()}
             </div>
-          </div>
+          </a>
 
           {/* Creator Details */}
           <div className="flex-1 min-w-0">
@@ -177,9 +177,16 @@ const InstagramTable = memo(function InstagramTable({
               <div className="text-xs text-gray-500 truncate">{creator.full_name}</div>
             )}
 
-            {/* Username with badges */}
+            {/* Username with badges - Clickable */}
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="font-semibold text-sm text-gray-900">@{creator.username}</span>
+              <a
+                href={`https://instagram.com/${creator.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-sm text-gray-900 hover:text-purple-600 transition-colors"
+              >
+                @{creator.username}
+              </a>
               {creator.is_verified && (
                 <Badge variant="secondary" className="text-xs h-4 px-1">✓</Badge>
               )}
@@ -195,16 +202,20 @@ const InstagramTable = memo(function InstagramTable({
               </div>
             )}
 
-            {/* External Link */}
+            {/* External Link - Separate clickable element */}
             {externalLink && (
-              <div className="text-xs text-blue-600 truncate hover:underline" onClick={(e) => e.stopPropagation()}>
-                <a href={externalLink} target="_blank" rel="noopener noreferrer">
-                  🔗 {externalLink.replace(/^https?:\/\//i, '').split('/')[0]}
-                </a>
-              </div>
+              <a
+                href={externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs text-blue-600 truncate hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                🔗 {externalLink.replace(/^https?:\/\//i, '').split('/')[0]}
+              </a>
             )}
           </div>
-        </a>
+        </div>
 
         {/* Followers */}
         <div className="w-28 text-center px-2">

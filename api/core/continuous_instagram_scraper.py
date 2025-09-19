@@ -250,40 +250,13 @@ class ContinuousInstagramScraper:
                     }).eq('script_name', 'instagram_scraper').execute()
                     raise
 
-            # Run the scraping in a thread with timeout protection
-            logger.info("Starting Instagram scraper run() method with timeout protection...")
+            # Run the scraping synchronously (like Reddit scraper does - no threading)
+            logger.info("Starting Instagram scraper run() method (synchronous, no threading)...")
             try:
-                # Add timeout of 30 minutes (1800 seconds) for the scraper run
-                SCRAPER_TIMEOUT_SECONDS = 1800
-                logger.info(f"⏱️ Setting timeout of {SCRAPER_TIMEOUT_SECONDS/60} minutes for scraper run")
-
-                # Run with timeout protection
-                await asyncio.wait_for(
-                    asyncio.to_thread(self.scraper.run),
-                    timeout=SCRAPER_TIMEOUT_SECONDS
-                )
+                # Run synchronously without threading - matches Reddit scraper architecture
+                # This eliminates the threading issues that were causing hangs
+                self.scraper.run()
                 logger.info("✅ Instagram scraper run() method completed successfully")
-
-            except asyncio.TimeoutError:
-                logger.error(f"⏱️ TIMEOUT: Instagram scraper exceeded {SCRAPER_TIMEOUT_SECONDS/60} minute limit")
-                # Log timeout to Supabase
-                try:
-                    self.supabase.table('system_logs').insert({
-                        'timestamp': datetime.now(timezone.utc).isoformat(),
-                        'source': 'instagram_scraper',
-                        'script_name': 'continuous_instagram_scraper',
-                        'level': 'error',
-                        'message': f'⏱️ Scraper timeout after {SCRAPER_TIMEOUT_SECONDS/60} minutes',
-                        'context': {
-                            'cycle': self.cycle_count,
-                            'timeout_seconds': SCRAPER_TIMEOUT_SECONDS,
-                            'error_type': 'timeout'
-                        }
-                    }).execute()
-                except:
-                    pass
-                # Don't re-raise, continue to cycle completion
-                logger.warning("Continuing to cycle completion despite timeout...")
 
             except Exception as e:
                 logger.error(f"❌ Error in scraper run() method: {e}")

@@ -34,12 +34,7 @@ export function InstagramSidebar() {
       id: 'niching',
       title: 'Niching',
       href: '/instagram/niching',
-      icon: Hash,
-      badge: {
-        type: 'status' as const,
-        value: 'Soon',
-        variant: 'warning' as const
-      }
+      icon: Hash
     },
     {
       id: 'viral-content',
