@@ -698,21 +698,32 @@ class InstagramScraperUnified:
             "avg_reel_views": 0,
             "avg_reel_likes": 0,
             "avg_reel_comments": 0,
+            "avg_reel_saves": 0,
+            "avg_reel_shares": 0,
             "avg_likes_per_reel_cached": 0,  # New cached field
             "avg_comments_per_reel_cached": 0,  # New cached field
+            "avg_saves_per_reel_cached": 0,  # New save metric
+            "avg_shares_per_reel_cached": 0,  # New share metric
 
             # Basic post metrics
             "avg_post_likes": 0,
             "avg_post_comments": 0,
+            "avg_post_saves": 0,
+            "avg_post_shares": 0,
             "avg_post_engagement": 0,
             "avg_likes_per_post_cached": 0,  # New cached field
             "avg_comments_per_post_cached": 0,  # New cached field
+            "avg_saves_per_post_cached": 0,  # New save metric
+            "avg_shares_per_post_cached": 0,  # New share metric
 
             # Aggregate metrics
             "total_views": 0,
             "total_likes": 0,
             "total_comments": 0,
+            "total_saves": 0,
+            "total_shares": 0,
             "total_engagement": 0,
+            "save_to_like_ratio": 0,  # New ratio metric
 
             # Advanced metrics
             "engagement_rate": 0,
@@ -759,15 +770,21 @@ class InstagramScraperUnified:
                 reel_views = []
                 reel_likes = []
                 reel_comments = []
+                reel_saves = []
+                reel_shares = []
 
                 for reel in reels:
                     views = reel.get("play_count", 0)
                     likes = reel.get("like_count", 0)
                     comments = reel.get("comment_count", 0)
+                    saves = reel.get("save_count", 0) or 0
+                    shares = reel.get("share_count", 0) or 0
 
                     if views: reel_views.append(views)
                     if likes: reel_likes.append(likes)
                     if comments: reel_comments.append(comments)
+                    if saves: reel_saves.append(saves)
+                    if shares: reel_shares.append(shares)
 
                 if reel_views:
                     analytics["avg_reel_views"] = sum(reel_views) / len(reel_views)
@@ -787,6 +804,16 @@ class InstagramScraperUnified:
                     analytics["avg_comments_per_reel_cached"] = analytics["avg_reel_comments"]  # Cache the value
                     analytics["total_comments"] += sum(reel_comments)
 
+                if reel_saves:
+                    analytics["avg_reel_saves"] = sum(reel_saves) / len(reel_saves)
+                    analytics["avg_saves_per_reel_cached"] = analytics["avg_reel_saves"]  # Cache the value
+                    analytics["total_saves"] += sum(reel_saves)
+
+                if reel_shares:
+                    analytics["avg_reel_shares"] = sum(reel_shares) / len(reel_shares)
+                    analytics["avg_shares_per_reel_cached"] = analytics["avg_reel_shares"]  # Cache the value
+                    analytics["total_shares"] += sum(reel_shares)
+
                 # Calculate reel engagement rate
                 if followers_count > 0 and reel_likes:
                     reel_engagement = sum(reel_likes) + sum(reel_comments) if reel_comments else sum(reel_likes)
@@ -804,6 +831,8 @@ class InstagramScraperUnified:
             if posts:
                 post_likes = []
                 post_comments = []
+                post_saves = []
+                post_shares = []
                 post_engagements = []
                 caption_lengths = []
                 hashtag_counts = []
@@ -811,10 +840,14 @@ class InstagramScraperUnified:
                 for post in posts:
                     likes = post.get("like_count", 0)
                     comments = post.get("comment_count", 0)
+                    saves = post.get("save_count", 0) or 0
+                    shares = post.get("share_count", 0) or 0
                     engagement = likes + comments
 
                     if likes: post_likes.append(likes)
                     if comments: post_comments.append(comments)
+                    if saves: post_saves.append(saves)
+                    if shares: post_shares.append(shares)
                     if engagement: post_engagements.append(engagement)
 
                     # Caption analysis
@@ -838,6 +871,16 @@ class InstagramScraperUnified:
                     analytics["avg_post_comments"] = sum(post_comments) / len(post_comments)
                     analytics["avg_comments_per_post_cached"] = analytics["avg_post_comments"]  # Cache the value
                     analytics["total_comments"] += sum(post_comments)
+
+                if post_saves:
+                    analytics["avg_post_saves"] = sum(post_saves) / len(post_saves)
+                    analytics["avg_saves_per_post_cached"] = analytics["avg_post_saves"]  # Cache the value
+                    analytics["total_saves"] += sum(post_saves)
+
+                if post_shares:
+                    analytics["avg_post_shares"] = sum(post_shares) / len(post_shares)
+                    analytics["avg_shares_per_post_cached"] = analytics["avg_post_shares"]  # Cache the value
+                    analytics["total_shares"] += sum(post_shares)
 
                 if post_engagements:
                     analytics["avg_post_engagement"] = sum(post_engagements) / len(post_engagements)
@@ -874,6 +917,10 @@ class InstagramScraperUnified:
             # Comment to like ratio
             if analytics["total_likes"] > 0:
                 analytics["comment_to_like_ratio"] = analytics["total_comments"] / analytics["total_likes"]
+
+            # Save to like ratio (important viral indicator)
+            if analytics["total_likes"] > 0 and analytics["total_saves"] > 0:
+                analytics["save_to_like_ratio"] = analytics["total_saves"] / analytics["total_likes"]
 
             # Reels vs Posts performance
             if analytics["avg_reel_views"] > 0 and analytics["avg_post_engagement"] > 0:
@@ -1178,6 +1225,73 @@ class InstagramScraperUnified:
         except Exception:
             return None
 
+    def _track_follower_growth(self, creator_id: str, username: str, current_followers: int, current_following: int = None, media_count: int = None):
+        """Track follower history and calculate growth rates"""
+        try:
+            # Record current follower count in history table
+            history_entry = {
+                "creator_id": creator_id,
+                "username": username,
+                "followers_count": current_followers,
+                "following_count": current_following,
+                "media_count": media_count,
+                "recorded_at": datetime.now(timezone.utc).isoformat()
+            }
+
+            self.supabase.table("instagram_follower_history").insert(history_entry).execute()
+
+            # Get previous follower counts for growth calculation
+            # Daily growth: compare with 24 hours ago
+            day_ago = datetime.now(timezone.utc) - timedelta(days=1)
+            daily_result = self.supabase.table("instagram_follower_history")\
+                .select("followers_count")\
+                .eq("creator_id", creator_id)\
+                .lte("recorded_at", day_ago.isoformat())\
+                .order("recorded_at", desc=True)\
+                .limit(1)\
+                .execute()
+
+            daily_growth_rate = None
+            if daily_result.data and daily_result.data[0]["followers_count"] > 0:
+                prev_daily = daily_result.data[0]["followers_count"]
+                daily_growth_rate = ((current_followers - prev_daily) / prev_daily) * 100
+
+            # Weekly growth: compare with 7 days ago
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            weekly_result = self.supabase.table("instagram_follower_history")\
+                .select("followers_count")\
+                .eq("creator_id", creator_id)\
+                .lte("recorded_at", week_ago.isoformat())\
+                .order("recorded_at", desc=True)\
+                .limit(1)\
+                .execute()
+
+            weekly_growth_rate = None
+            if weekly_result.data and weekly_result.data[0]["followers_count"] > 0:
+                prev_weekly = weekly_result.data[0]["followers_count"]
+                weekly_growth_rate = ((current_followers - prev_weekly) / prev_weekly) * 100
+
+            # Get most recent previous count for general tracking
+            prev_result = self.supabase.table("instagram_follower_history")\
+                .select("followers_count")\
+                .eq("creator_id", creator_id)\
+                .neq("followers_count", current_followers)\
+                .order("recorded_at", desc=True)\
+                .limit(1)\
+                .execute()
+
+            previous_followers = prev_result.data[0]["followers_count"] if prev_result.data else None
+
+            return {
+                "daily_growth_rate": round(daily_growth_rate, 2) if daily_growth_rate else None,
+                "weekly_growth_rate": round(weekly_growth_rate, 2) if weekly_growth_rate else None,
+                "previous_followers_count": previous_followers
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to track follower growth for {creator_id}: {e}")
+            return {"daily_growth_rate": None, "weekly_growth_rate": None, "previous_followers_count": None}
+
     def _update_creator_analytics(self, creator_id: str, analytics: Dict[str, Any]):
         """Update creator with calculated analytics including enhanced post and reel metrics"""
         try:
@@ -1194,14 +1308,19 @@ class InstagramScraperUnified:
                 "avg_views_per_reel_cached": analytics.get("avg_reel_views"),
                 "avg_likes_per_reel_cached": analytics.get("avg_likes_per_reel_cached"),
                 "avg_comments_per_reel_cached": analytics.get("avg_comments_per_reel_cached"),
+                "avg_saves_per_reel_cached": analytics.get("avg_saves_per_reel_cached"),
+                "avg_shares_per_reel_cached": analytics.get("avg_shares_per_reel_cached"),
 
                 # Post metrics
                 "avg_likes_per_post_cached": analytics.get("avg_likes_per_post_cached"),
                 "avg_comments_per_post_cached": analytics.get("avg_comments_per_post_cached"),
+                "avg_saves_per_post_cached": analytics.get("avg_saves_per_post_cached"),
+                "avg_shares_per_post_cached": analytics.get("avg_shares_per_post_cached"),
 
                 # Engagement metrics
                 "avg_engagement_rate": analytics.get("avg_engagement_rate"),
                 "engagement_rate_cached": analytics.get("engagement_rate"),
+                "save_to_like_ratio": analytics.get("save_to_like_ratio"),
 
                 # Content analysis
                 "best_content_type": analytics.get("best_content_type"),
@@ -1270,6 +1389,15 @@ class InstagramScraperUnified:
                 # Set current follower count for engagement rate calculations
                 self.current_creator_followers = profile_data.get("follower_count", 0)
 
+                # Track follower growth before updating profile
+                growth_data = self._track_follower_growth(
+                    creator_id,
+                    username,
+                    profile_data.get("follower_count", 0),
+                    profile_data.get("following_count"),
+                    profile_data.get("media_count")
+                )
+
                 # Extract and identify external URL type
                 external_url = profile_data.get("external_url")
                 external_url_type = self._identify_external_url_type(external_url) if external_url else None
@@ -1277,7 +1405,7 @@ class InstagramScraperUnified:
                 # Extract bio links
                 bio_links = self._extract_bio_links(profile_data)
 
-                # Update creator with fresh profile data
+                # Update creator with fresh profile data and growth metrics
                 update_data = {
                     "followers_count": profile_data.get("follower_count"),
                     "following_count": profile_data.get("following_count"),
@@ -1292,6 +1420,10 @@ class InstagramScraperUnified:
                     "bio_links": bio_links if bio_links else None,
                     "full_name": profile_data.get("full_name"),
                     "is_private": profile_data.get("is_private"),
+                    "follower_growth_rate_daily": growth_data.get("daily_growth_rate"),
+                    "follower_growth_rate_weekly": growth_data.get("weekly_growth_rate"),
+                    "previous_followers_count": growth_data.get("previous_followers_count"),
+                    "followers_last_updated": datetime.now(timezone.utc).isoformat(),
                     "last_scraped_at": datetime.now(timezone.utc).isoformat()
                 }
 
