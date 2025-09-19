@@ -79,14 +79,14 @@ class CategorizationService:
             # Using filter for null or empty category_text
             response = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
-            ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers.desc').limit(limit).execute()
+            ).eq('review', 'Ok').filter('category_text', 'is', 'null').limit(limit).execute()
             
             self.logger.info(f"📊 Query 1 (null category_text): Found {len(response.data or [])} subreddits")
             
             # Also get subreddits with empty category_text
             response2 = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
-            ).eq('review', 'Ok').eq('category_text', '').order('subscribers.desc').limit(limit).execute()
+            ).eq('review', 'Ok').eq('category_text', '').limit(limit).execute()
             
             self.logger.info(f"📊 Query 2 (empty category_text): Found {len(response2.data or [])} subreddits")
             

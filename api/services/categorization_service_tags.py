@@ -199,14 +199,14 @@ Tags for r/{name}:"""
             # Get subreddits that are approved but don't have tags yet
             response = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed, over18, rules_data'
-            ).eq('review', 'Ok').filter('tags', 'is', 'null').order('subscribers.desc').limit(limit).execute()
+            ).eq('review', 'Ok').filter('tags', 'is', 'null').limit(limit).execute()
 
             self.logger.info(f"📊 Query 1 (null tags): Found {len(response.data or [])} subreddits")
 
             # Also get subreddits with empty tags array
             response2 = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed, over18, rules_data'
-            ).eq('review', 'Ok').eq('tags', '[]').order('subscribers.desc').limit(limit).execute()
+            ).eq('review', 'Ok').eq('tags', '[]').limit(limit).execute()
 
             self.logger.info(f"📊 Query 2 (empty tags): Found {len(response2.data or [])} subreddits")
 
