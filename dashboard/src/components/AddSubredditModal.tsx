@@ -3,7 +3,6 @@
 import React, { useState, useCallback } from 'react'
 import { StandardModal } from '@/components/standard/StandardModal'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import {
@@ -23,7 +22,6 @@ interface AddSubredditModalProps {
 export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditModalProps) {
   const { addToast } = useToast()
   const [subredditName, setSubredditName] = useState('')
-  const [fetchFromReddit, setFetchFromReddit] = useState(true)
   const [reviewStatus, setReviewStatus] = useState<string>('unreviewed')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -82,7 +80,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
         },
         body: JSON.stringify({
           name: cleanName,
-          fetchFromReddit,
+          fetchFromReddit: true,  // Always fetch from Reddit
           review,
         }),
       })
@@ -107,7 +105,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
     } finally {
       setLoading(false)
     }
-  }, [subredditName, fetchFromReddit, onSuccess, addToast])
+  }, [subredditName, reviewStatus, onSuccess, addToast])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !loading) {
@@ -120,7 +118,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
       isOpen={isOpen}
       onClose={onClose}
       title="Add New Subreddit"
-      subtitle="Add a subreddit to track and review"
+      subtitle="Add a subreddit to track and review (fetches data from Reddit)"
       size="md"
       primaryAction={{
         label: loading ? 'Adding...' : 'Add Subreddit',
@@ -157,27 +155,6 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
             Enter the subreddit name with or without the r/ prefix
           </p>
         </div>
-
-        {/* Fetch from Reddit Checkbox */}
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="fetch-from-reddit"
-            checked={fetchFromReddit}
-            onCheckedChange={(checked) => setFetchFromReddit(checked as boolean)}
-            disabled={loading}
-          />
-          <label
-            htmlFor="fetch-from-reddit"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Fetch details from Reddit
-          </label>
-        </div>
-        {fetchFromReddit && (
-          <p className="text-xs text-gray-500 ml-6">
-            Will fetch subscriber count, description, and other metadata from Reddit
-          </p>
-        )}
 
         {/* Review Status Selection */}
         <div>
@@ -216,7 +193,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
         {loading && (
           <div className="flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg">
             <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-            <p className="text-sm text-gray-600">Adding subreddit...</p>
+            <p className="text-sm text-gray-600">Fetching subreddit data from Reddit...</p>
           </div>
         )}
       </div>

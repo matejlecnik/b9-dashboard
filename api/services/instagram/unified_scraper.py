@@ -291,8 +291,7 @@ class InstagramScraperUnified:
             "thread": thread_id,
             "endpoint": endpoint.split('/')[-1],  # Just the endpoint name
             "params": params,
-            "api_calls_made": self.api_calls_made + 1,
-            "current_rps": 0
+            "api_calls_made": self.api_calls_made + 1
         })
 
         # API limit checks removed - let RapidAPI handle its own limits
@@ -325,8 +324,7 @@ class InstagramScraperUnified:
                 "thread": thread_id,
                 "endpoint": endpoint.split('/')[-1],
                 "response_time_ms": int(request_time * 1000),
-                "items_count": len(data.get('items', [])) if isinstance(data, dict) else 0,
-                "current_rps": current_rps
+                "items_count": len(data.get('items', [])) if isinstance(data, dict) else 0
             })
 
             return data

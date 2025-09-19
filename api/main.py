@@ -37,6 +37,7 @@ from utils import (
 )
 from services.categorization_service import CategorizationService
 from services.categorization_service_tags import TagCategorizationService
+from services.single_subreddit_fetcher import fetch_subreddit
 from routes.scraper_routes import router as scraper_router
 from routes.user_routes import router as user_router
 
@@ -72,6 +73,9 @@ class CategorizationRequest(BaseModel):
     batchSize: int = 30
     limit: Optional[int] = None
     subredditIds: Optional[List[int]] = None
+
+class SingleSubredditRequest(BaseModel):
+    subreddit_name: str
 
 class ScrapingRequest(BaseModel):
     subredditNames: Optional[List[str]] = None
@@ -589,6 +593,46 @@ async def get_tag_stats(request: Request):
     except Exception as e:
         logger.error(f"Failed to get tag stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# SINGLE SUBREDDIT FETCHER ENDPOINT
+# =============================================================================
+
+@app.post("/api/subreddits/fetch-single")
+@rate_limit("api")
+async def fetch_single_subreddit(request: Request, payload: SingleSubredditRequest):
+    """Fetch data for a single subreddit from Reddit"""
+    logger.info(f"📊 Single subreddit fetch request: {payload.subreddit_name}")
+
+    try:
+        # Clean the subreddit name
+        subreddit_name = payload.subreddit_name.replace('r/', '').replace('u/', '').strip()
+
+        if not subreddit_name:
+            raise HTTPException(status_code=400, detail="Subreddit name is required")
+
+        # Fetch the subreddit data using the fetcher
+        result = fetch_subreddit(subreddit_name)
+
+        if not result['success']:
+            logger.warning(f"⚠️ Failed to fetch r/{subreddit_name}: {result.get('error')}")
+            if result.get('status') == 404:
+                raise HTTPException(status_code=404, detail=f"Subreddit r/{subreddit_name} not found")
+            elif result.get('status') == 403:
+                raise HTTPException(status_code=403, detail=f"Subreddit r/{subreddit_name} is private or banned")
+            else:
+                raise HTTPException(status_code=500, detail=result.get('error', 'Failed to fetch subreddit'))
+
+        logger.info(f"✅ Successfully fetched data for r/{subreddit_name}")
+
+        # Return just the data part for the frontend
+        return result['data']
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch subreddit: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch subreddit: {str(e)}")
 
 # =============================================================================
 # BACKGROUND JOB ENDPOINTS
