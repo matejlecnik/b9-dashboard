@@ -282,12 +282,12 @@ class ContinuousInstagramScraper:
                         if not hasattr(self, '_last_wait_minute') or self._last_wait_minute != wait_minutes:
                             logger.info(f"⏳ Waiting: {wait_minutes} minutes until next cycle")
 
-                            # Log to system_logs every 10 minutes
-                            if wait_minutes % 10 == 0:
-                                self._log_to_system('info', f'Waiting {wait_minutes} minutes until next cycle', {
-                                    'minutes_remaining': wait_minutes,
-                                    'next_cycle_at': self.next_cycle_at.isoformat()
-                                })
+                            # Log to system_logs every minute (not just every 10 minutes)
+                            self._log_to_system('info', f'⏳ Waiting {wait_minutes} minutes until next cycle', {
+                                'minutes_remaining': wait_minutes,
+                                'next_cycle_at': self.next_cycle_at.isoformat(),
+                                'hours_remaining': round(wait_minutes / 60, 1)
+                            })
 
                             self._last_wait_minute = wait_minutes
 

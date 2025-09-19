@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface AddSubredditModalProps {
   isOpen: boolean
@@ -17,6 +24,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
   const { addToast } = useToast()
   const [subredditName, setSubredditName] = useState('')
   const [fetchFromReddit, setFetchFromReddit] = useState(true)
+  const [reviewStatus, setReviewStatus] = useState<string>('unreviewed')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,6 +66,12 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
     // Clean the name (remove r/ prefix if present)
     const cleanName = subredditName.replace(/^[ru]\//, '').trim()
 
+    // Convert review status to proper format
+    const review = reviewStatus === 'unreviewed' ? null :
+                   reviewStatus === 'ok' ? 'Ok' :
+                   reviewStatus === 'no_seller' ? 'No Seller' :
+                   reviewStatus === 'non_related' ? 'Non Related' : null
+
     setLoading(true)
 
     try {
@@ -69,6 +83,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
         body: JSON.stringify({
           name: cleanName,
           fetchFromReddit,
+          review,
         }),
       })
 
@@ -163,6 +178,31 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
             Will fetch subscriber count, description, and other metadata from Reddit
           </p>
         )}
+
+        {/* Review Status Selection */}
+        <div>
+          <label htmlFor="review-status" className="block text-sm font-medium text-gray-700 mb-2">
+            Review Status
+          </label>
+          <Select
+            value={reviewStatus}
+            onValueChange={setReviewStatus}
+            disabled={loading}
+          >
+            <SelectTrigger id="review-status" className="w-full">
+              <SelectValue placeholder="Select review status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unreviewed">Unreviewed</SelectItem>
+              <SelectItem value="ok">Ok</SelectItem>
+              <SelectItem value="no_seller">No Seller</SelectItem>
+              <SelectItem value="non_related">Non Related</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-xs text-gray-500">
+            Set the initial review status for this subreddit
+          </p>
+        </div>
 
         {/* Error Message */}
         {error && (

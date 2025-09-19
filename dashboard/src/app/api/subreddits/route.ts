@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 [API:${requestId}] /api/subreddits POST - Starting request`)
 
     const body = await request.json()
-    const { name, fetchFromReddit = false } = body
+    const { name, fetchFromReddit = false, review = null } = body
 
     // Validate input
     if (!name || typeof name !== 'string') {
@@ -235,11 +235,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate review status if provided
+    if (review && !['Ok', 'No Seller', 'Non Related'].includes(review)) {
+      return NextResponse.json(
+        { error: 'Invalid review status', success: false },
+        { status: 400 }
+      )
+    }
+
     let subredditData: any = {
       name: cleanName,
       display_name_prefixed: `r/${cleanName}`,
       created_at: new Date().toISOString(),
-      review: null,
+      review: review || null,  // Use the provided review status or null
       category_text: null,
       tags: null
     }
@@ -269,6 +277,7 @@ export async function POST(request: NextRequest) {
             ...redditData,
             name: cleanName, // Ensure our clean name is used
             display_name_prefixed: `r/${cleanName}`,
+            review: review || null, // Preserve the review status
           }
         } else {
           console.warn(`⚠️ [API:${requestId}] Failed to fetch from Reddit, adding basic entry`)
