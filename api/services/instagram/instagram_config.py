@@ -20,7 +20,7 @@ class Config:
     RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "instagram-looter2.p.rapidapi.com")
 
     # Performance Settings for 60 req/sec
-    MAX_WORKERS = int(os.getenv("INSTAGRAM_MAX_WORKERS", "10"))  # Concurrent threads - reduced for stability
+    MAX_WORKERS = int(os.getenv("INSTAGRAM_MAX_WORKERS", "3"))  # Concurrent threads - limited to 3 for stability
     REQUESTS_PER_SECOND = int(os.getenv("INSTAGRAM_REQUESTS_PER_SECOND", "55"))  # Stay under 60 limit
     RATE_LIMIT_DELAY = 1.0 / REQUESTS_PER_SECOND  # Calculate delay between requests
 
@@ -29,7 +29,7 @@ class Config:
     CONCURRENT_CREATORS = int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "3"))  # Process 3 creators simultaneously - matches Reddit's 3-thread pattern
 
     # Connection Pooling
-    CONNECTION_POOL_SIZE = int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "20"))  # Reduced to match worker count
+    CONNECTION_POOL_SIZE = int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "6"))  # 2x the thread count for efficiency
     CONNECTION_MAX_RETRIES = int(os.getenv("INSTAGRAM_CONNECTION_MAX_RETRIES", "3"))
     CONNECTION_TIMEOUT = int(os.getenv("INSTAGRAM_CONNECTION_TIMEOUT", "30"))
 
