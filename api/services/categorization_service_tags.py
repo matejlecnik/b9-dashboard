@@ -368,6 +368,16 @@ Tags for r/{name}:"""
             processing_time_ms = int((time.time() - start_time) * 1000)
             error_message = str(e)
 
+            # Log the full error details for debugging
+            self.logger.error(f"❌ Failed to tag r/{subreddit_name}: {error_message}")
+            self.logger.error(f"Error type: {type(e).__name__}")
+
+            # Check if it's an OpenAI API error
+            if "max_tokens" in error_message:
+                error_message = "OpenAI API parameter error: Use max_completion_tokens instead of max_tokens"
+            elif "temperature" in error_message:
+                error_message = "OpenAI API parameter error: Temperature must be default (1) for this model"
+
             result = TagCategorizationResult(
                 subreddit_id=subreddit_id,
                 subreddit_name=subreddit_name,
@@ -608,9 +618,17 @@ Tags for r/{name}:"""
         self.logger.info(f"Tagging complete! Processed: {len(all_results)}, Success: {successful_count}, Errors: {error_count}")
         self.logger.info(f"Total cost: ${total_cost:.4f}, Duration: {duration/60:.1f} minutes")
 
+        # If all results were errors, include error details in message
+        message = f'Successfully tagged {successful_count} out of {len(all_results)} subreddits'
+        if error_count > 0 and successful_count == 0:
+            # Get the first error message for display
+            first_error = next((r.error_message for r in all_results if not r.success), "Unknown error")
+            message = f'Failed to tag subreddits. Error: {first_error}'
+            self.logger.error(f"All categorization attempts failed. First error: {first_error}")
+
         return {
             'status': 'completed',
-            'message': f'Successfully tagged {successful_count} out of {len(all_results)} subreddits',
+            'message': message,
             'stats': stats,
             'results': all_results
         }

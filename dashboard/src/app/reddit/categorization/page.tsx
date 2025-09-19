@@ -578,11 +578,16 @@ export default function CategorizationPage() {
           // Log what we received
           setCategorizationLogs(prev => [...prev, `📦 Response type: ${typeof renderResponse}`])
           setCategorizationLogs(prev => [...prev, `📦 Response status: ${renderResponse.status || 'processing'}`])
-          
+
           if (renderResponse.message) {
             setCategorizationLogs(prev => [...prev, `📢 ${renderResponse.message}`])
+
+            // Check if the message indicates an error
+            if (renderResponse.message.includes('Failed') || renderResponse.message.includes('Error')) {
+              setCategorizationLogs(prev => [...prev, `⚠️ Warning: ${renderResponse.message}`])
+            }
           }
-          
+
           // Check if results are directly in renderResponse (not nested)
           if (renderResponse.stats) {
             const stats = renderResponse.stats
@@ -594,21 +599,52 @@ export default function CategorizationPage() {
             if (stats.total_cost !== undefined) {
               setCategorizationLogs(prev => [...prev, `💰 Total cost: $${stats.total_cost.toFixed(4)}`])
             }
+
+            // If all items failed, show a warning
+            if (stats.total_processed > 0 && stats.successful === 0) {
+              setCategorizationLogs(prev => [...prev, `⚠️ All items failed to process. Check Render deployment status.`])
+              setCategorizationLogs(prev => [...prev, `💡 Common issues: OpenAI API parameter changes, deployment in progress`])
+            }
           }
-          
-          // Check if results are in a different structure
-          if (renderResponse.results && !renderResponse.results.stats) {
-            console.log('Results found but no stats, showing raw results:', renderResponse.results)
-            setCategorizationLogs(prev => [...prev, `📦 Raw results: ${JSON.stringify(renderResponse.results)}`])
+
+          // Check if we have individual error results
+          if (renderResponse.results && Array.isArray(renderResponse.results)) {
+            const errorResults = renderResponse.results.filter((r: any) => !r.success)
+            if (errorResults.length > 0) {
+              setCategorizationLogs(prev => [...prev, `📝 Error Details:`])
+              // Show first 3 errors
+              errorResults.slice(0, 3).forEach((result: any) => {
+                setCategorizationLogs(prev => [...prev, `  ⚠️ ${result.subreddit_name}: ${result.error_message}`])
+              })
+              if (errorResults.length > 3) {
+                setCategorizationLogs(prev => [...prev, `  ... and ${errorResults.length - 3} more errors`])
+              }
+            }
           }
         }
         
-        addToast({
-          type: 'success',
-          title: 'AI Tagging Complete',
-          description: `Processing completed for ${data.estimated_subreddits || settings.limit} subreddits`,
-          duration: 5000
-        })
+        // Show appropriate toast based on results
+        const hasStats = renderResponse?.stats
+        const successCount = hasStats ? (renderResponse.stats.successful || 0) : 0
+        const totalCount = hasStats ? (renderResponse.stats.total_processed || 0) : (data.estimated_subreddits || settings.limit)
+
+        if (hasStats && successCount === 0 && totalCount > 0) {
+          addToast({
+            type: 'error',
+            title: 'AI Tagging Failed',
+            description: `Failed to process ${totalCount} subreddits. Check the logs for details.`,
+            duration: 7000
+          })
+        } else {
+          addToast({
+            type: 'success',
+            title: 'AI Tagging Complete',
+            description: hasStats
+              ? `Successfully tagged ${successCount} out of ${totalCount} subreddits`
+              : `Processing completed for ${totalCount} subreddits`,
+            duration: 5000
+          })
+        }
         
         // Auto-refresh to show updated results
         setTimeout(() => {

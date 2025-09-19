@@ -666,12 +666,11 @@ export default function SubredditReviewPage() {
             </div>
             <Button
               onClick={() => setShowAddModal(true)}
-              variant="default"
-              className="h-[100px] px-6"
               disabled={loading}
+              className="min-h-[100px] px-6 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
             >
-              <Plus className="mr-2 h-5 w-5" />
-              Add New
+              <Plus className="h-5 w-5" />
+              <span>Add New</span>
             </Button>
           </div>
         </div>
