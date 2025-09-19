@@ -196,6 +196,74 @@ class InstagramScraperUnified:
         """Initialize Supabase client"""
         return create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
+    def _identify_external_url_type(self, url: str) -> str:
+        """Identify the type of external URL (OnlyFans, Linktree, etc.)"""
+        if not url:
+            return None
+
+        url_lower = url.lower()
+
+        # Common link types for OnlyFans creators
+        if "onlyfans.com" in url_lower:
+            return "onlyfans"
+        elif "linktr.ee" in url_lower or "linktree" in url_lower:
+            return "linktree"
+        elif "allmylinks" in url_lower or "all.my" in url_lower:
+            return "allmylinks"
+        elif "beacons.ai" in url_lower:
+            return "beacons"
+        elif "bio.link" in url_lower:
+            return "biolink"
+        elif "fans.ly" in url_lower or "fansly" in url_lower:
+            return "fansly"
+        elif "mym.fans" in url_lower:
+            return "mym"
+        elif "patreon.com" in url_lower:
+            return "patreon"
+        elif "cashapp" in url_lower or "cash.app" in url_lower:
+            return "cashapp"
+        elif "paypal" in url_lower:
+            return "paypal"
+        elif "twitter.com" in url_lower or "x.com" in url_lower:
+            return "twitter"
+        elif "youtube.com" in url_lower or "youtu.be" in url_lower:
+            return "youtube"
+        elif "tiktok.com" in url_lower:
+            return "tiktok"
+        elif "snapchat.com" in url_lower:
+            return "snapchat"
+        elif "telegram" in url_lower or "t.me" in url_lower:
+            return "telegram"
+        elif "discord" in url_lower:
+            return "discord"
+        else:
+            # Check for personal website patterns
+            if any(ext in url_lower for ext in [".com", ".net", ".org", ".io", ".co"]):
+                return "personal_site"
+            return "other"
+
+    def _extract_bio_links(self, bio_data: Dict) -> List[Dict]:
+        """Extract and parse bio links from Instagram bio data"""
+        bio_links = []
+
+        try:
+            # Check for bio_links array in profile data
+            if bio_data and isinstance(bio_data.get("bio_links"), list):
+                for link in bio_data["bio_links"]:
+                    if isinstance(link, dict):
+                        url = link.get("url", "")
+                        title = link.get("title", "")
+                        link_type = self._identify_external_url_type(url)
+                        bio_links.append({
+                            "url": url,
+                            "title": title,
+                            "type": link_type
+                        })
+        except Exception as e:
+            logger.debug(f"Error parsing bio links: {e}")
+
+        return bio_links
+
     def _extract_hashtags(self, text: str) -> List[str]:
         """Extract hashtags from text"""
         hashtags = re.findall(r'#[A-Za-z0-9_]+', text)
@@ -624,15 +692,23 @@ class InstagramScraperUnified:
 
     def _calculate_analytics(self, creator_id: str, reels: List[Dict], posts: List[Dict],
                            profile_data: Optional[Dict] = None) -> Dict[str, Any]:
-        """Calculate comprehensive creator analytics"""
+        """Calculate comprehensive creator analytics with enhanced post and reel metrics"""
         analytics = {
-            # Basic metrics
+            # Basic reel metrics
             "avg_reel_views": 0,
             "avg_reel_likes": 0,
             "avg_reel_comments": 0,
+            "avg_likes_per_reel_cached": 0,  # New cached field
+            "avg_comments_per_reel_cached": 0,  # New cached field
+
+            # Basic post metrics
             "avg_post_likes": 0,
             "avg_post_comments": 0,
             "avg_post_engagement": 0,
+            "avg_likes_per_post_cached": 0,  # New cached field
+            "avg_comments_per_post_cached": 0,  # New cached field
+
+            # Aggregate metrics
             "total_views": 0,
             "total_likes": 0,
             "total_comments": 0,
@@ -640,20 +716,26 @@ class InstagramScraperUnified:
 
             # Advanced metrics
             "engagement_rate": 0,
+            "avg_engagement_rate": 0,  # New overall engagement rate
+            "post_engagement_rate": 0,  # New post-specific engagement rate
+            "reel_engagement_rate": 0,  # New reel-specific engagement rate
             "avg_engagement_per_content": 0,
             "reels_vs_posts_performance": 0,  # Ratio of reel views to post engagement
             "viral_content_rate": 0,
             "viral_content_count": 0,
+            "viral_threshold_multiplier": Config.VIRAL_MULTIPLIER,  # Track the threshold used
             "posting_frequency_per_week": 0,
             "posting_consistency_score": 0,
             "content_reach_rate": 0,  # Views/followers ratio
             "comment_to_like_ratio": 0,
+            "last_post_days_ago": None,  # New field for tracking recency
 
             # Content analysis
             "total_content_analyzed": 0,
             "reels_analyzed": len(reels),
             "posts_analyzed": len(posts),
             "best_performing_type": "unknown",
+            "best_content_type": None,  # New field matching DB column
             "avg_caption_length": 0,
             "uses_hashtags": False,
             "avg_hashtag_count": 0,
@@ -697,11 +779,18 @@ class InstagramScraperUnified:
 
                 if reel_likes:
                     analytics["avg_reel_likes"] = sum(reel_likes) / len(reel_likes)
+                    analytics["avg_likes_per_reel_cached"] = analytics["avg_reel_likes"]  # Cache the value
                     analytics["total_likes"] += sum(reel_likes)
 
                 if reel_comments:
                     analytics["avg_reel_comments"] = sum(reel_comments) / len(reel_comments)
+                    analytics["avg_comments_per_reel_cached"] = analytics["avg_reel_comments"]  # Cache the value
                     analytics["total_comments"] += sum(reel_comments)
+
+                # Calculate reel engagement rate
+                if followers_count > 0 and reel_likes:
+                    reel_engagement = sum(reel_likes) + sum(reel_comments) if reel_comments else sum(reel_likes)
+                    analytics["reel_engagement_rate"] = (reel_engagement / len(reels) / followers_count) * 100
 
                 # Viral detection for reels
                 if Config.ENABLE_VIRAL_DETECTION and reel_views:
@@ -742,15 +831,27 @@ class InstagramScraperUnified:
 
                 if post_likes:
                     analytics["avg_post_likes"] = sum(post_likes) / len(post_likes)
+                    analytics["avg_likes_per_post_cached"] = analytics["avg_post_likes"]  # Cache the value
                     analytics["total_likes"] += sum(post_likes)
 
                 if post_comments:
                     analytics["avg_post_comments"] = sum(post_comments) / len(post_comments)
+                    analytics["avg_comments_per_post_cached"] = analytics["avg_post_comments"]  # Cache the value
                     analytics["total_comments"] += sum(post_comments)
 
                 if post_engagements:
                     analytics["avg_post_engagement"] = sum(post_engagements) / len(post_engagements)
                     analytics["total_engagement"] += sum(post_engagements)
+
+                # Calculate post engagement rate
+                if followers_count > 0 and post_engagements:
+                    analytics["post_engagement_rate"] = (sum(post_engagements) / len(posts) / followers_count) * 100
+
+                # Check for viral posts (2x average engagement)
+                if Config.ENABLE_VIRAL_DETECTION and post_engagements and analytics["avg_post_engagement"] > 0:
+                    viral_posts = sum(1 for e in post_engagements
+                                    if e >= analytics["avg_post_engagement"] * Config.VIRAL_MULTIPLIER)
+                    analytics["viral_content_count"] += viral_posts
 
                 if caption_lengths:
                     analytics["avg_caption_length"] = sum(caption_lengths) / len(caption_lengths)
@@ -763,10 +864,11 @@ class InstagramScraperUnified:
             analytics["total_content_analyzed"] = len(reels) + len(posts)
             analytics["total_engagement"] = analytics["total_likes"] + analytics["total_comments"]
 
-            # Engagement rate calculation
+            # Engagement rate calculation (overall)
             if followers_count > 0 and analytics["total_content_analyzed"] > 0:
                 avg_engagement = analytics["total_engagement"] / analytics["total_content_analyzed"]
                 analytics["engagement_rate"] = (avg_engagement / followers_count) * 100
+                analytics["avg_engagement_rate"] = analytics["engagement_rate"]  # Store in new field
                 analytics["avg_engagement_per_content"] = avg_engagement
 
             # Comment to like ratio
@@ -777,11 +879,26 @@ class InstagramScraperUnified:
             if analytics["avg_reel_views"] > 0 and analytics["avg_post_engagement"] > 0:
                 analytics["reels_vs_posts_performance"] = analytics["avg_reel_views"] / analytics["avg_post_engagement"]
 
-            # Best performing content type
-            if analytics["avg_reel_views"] > analytics["avg_post_engagement"]:
+            # Determine best performing content type with enhanced logic
+            reel_score = analytics["reel_engagement_rate"] if analytics["reel_engagement_rate"] > 0 else 0
+            post_score = analytics["post_engagement_rate"] if analytics["post_engagement_rate"] > 0 else 0
+
+            if reel_score > post_score * 1.5:  # Reels significantly better
                 analytics["best_performing_type"] = "reels"
+                analytics["best_content_type"] = "reels"
+            elif post_score > reel_score * 1.5:  # Posts significantly better
+                analytics["best_performing_type"] = "posts"
+                analytics["best_content_type"] = "posts"
+            elif reel_score > 0 and post_score > 0:  # Both perform similarly
+                analytics["best_performing_type"] = "mixed"
+                analytics["best_content_type"] = "mixed"
+            elif analytics["avg_reel_views"] > analytics["avg_post_engagement"]:
+                # Fallback to view/engagement comparison
+                analytics["best_performing_type"] = "reels"
+                analytics["best_content_type"] = "reels"
             elif analytics["avg_post_engagement"] > 0:
                 analytics["best_performing_type"] = "posts"
+                analytics["best_content_type"] = "posts"
 
             # Calculate posting frequency and consistency
             all_content = reels + posts
@@ -797,7 +914,9 @@ class InstagramScraperUnified:
                     current_time = int(time.time())
 
                     # Days since last post
-                    analytics["days_since_last_post"] = (current_time - timestamps[-1]) / 86400
+                    days_ago = (current_time - timestamps[-1]) / 86400
+                    analytics["days_since_last_post"] = days_ago
+                    analytics["last_post_days_ago"] = days_ago  # Store in new field too
 
                     # Posting frequency
                     if len(timestamps) > 1:
@@ -835,8 +954,8 @@ class InstagramScraperUnified:
 
         return analytics
 
-    def _store_reels(self, creator_id: str, username: str, reels: List[Dict]) -> tuple[int, int, int]:
-        """Store reels in database with comprehensive data extraction
+    def _store_reels(self, creator_id: str, username: str, reels: List[Dict], creator_niche: str = None) -> tuple[int, int, int]:
+        """Store reels in database with comprehensive data extraction and niche information
         Returns: (total_saved, new_count, existing_count)
         """
         if not reels:
@@ -885,6 +1004,7 @@ class InstagramScraperUnified:
                     "shortcode": reel.get("code"),
                     "creator_id": str(creator_id),
                     "creator_username": username,
+                    "creator_niche": creator_niche,  # Add creator's niche
                     "product_type": reel.get("product_type"),
                     "media_type": reel.get("media_type"),
                     "taken_at": self._to_iso(reel.get("taken_at") or reel.get("device_timestamp")),
@@ -936,8 +1056,8 @@ class InstagramScraperUnified:
 
         return total_saved, new_count, existing_count
 
-    def _store_posts(self, creator_id: str, username: str, posts: List[Dict]) -> tuple[int, int, int]:
-        """Store posts in database with comprehensive data extraction
+    def _store_posts(self, creator_id: str, username: str, posts: List[Dict], creator_niche: str = None) -> tuple[int, int, int]:
+        """Store posts in database with comprehensive data extraction and niche information
         Returns: (total_saved, new_count, existing_count)
         """
         if not posts:
@@ -996,6 +1116,7 @@ class InstagramScraperUnified:
                     "shortcode": post.get("code"),
                     "creator_id": str(creator_id),
                     "creator_username": username,
+                    "creator_niche": creator_niche,  # Add creator's niche
                     "product_type": post.get("product_type", "feed"),
                     "media_type": post.get("media_type"),
                     "post_type": post_type,
@@ -1058,25 +1179,54 @@ class InstagramScraperUnified:
             return None
 
     def _update_creator_analytics(self, creator_id: str, analytics: Dict[str, Any]):
-        """Update creator with calculated analytics"""
+        """Update creator with calculated analytics including enhanced post and reel metrics"""
         try:
+            # Get current total API calls first
+            current_calls_result = self.supabase.table("instagram_creators")\
+                .select("total_api_calls")\
+                .eq("ig_user_id", creator_id)\
+                .single()\
+                .execute()
+            current_calls = current_calls_result.data.get("total_api_calls", 0) if current_calls_result.data else 0
+
             update_data = {
+                # Reel metrics
                 "avg_views_per_reel_cached": analytics.get("avg_reel_views"),
-                "avg_engagement_rate": analytics.get("avg_post_engagement"),
+                "avg_likes_per_reel_cached": analytics.get("avg_likes_per_reel_cached"),
+                "avg_comments_per_reel_cached": analytics.get("avg_comments_per_reel_cached"),
+
+                # Post metrics
+                "avg_likes_per_post_cached": analytics.get("avg_likes_per_post_cached"),
+                "avg_comments_per_post_cached": analytics.get("avg_comments_per_post_cached"),
+
+                # Engagement metrics
+                "avg_engagement_rate": analytics.get("avg_engagement_rate"),
+                "engagement_rate_cached": analytics.get("engagement_rate"),
+
+                # Content analysis
+                "best_content_type": analytics.get("best_content_type"),
+                "viral_content_count_cached": analytics.get("viral_content_count"),
+                "viral_threshold_multiplier": analytics.get("viral_threshold_multiplier"),
+
+                # Posting metrics
                 "posting_frequency_per_week": analytics.get("posting_frequency_per_week"),
+                "posting_consistency_score": analytics.get("posting_consistency_score"),
+                "last_post_days_ago": analytics.get("last_post_days_ago"),
+
+                # Metadata
                 "last_scraped_at": datetime.now(timezone.utc).isoformat(),
-                "total_api_calls": self.supabase.table("instagram_creators")\
-                    .select("total_api_calls")\
-                    .eq("ig_user_id", creator_id)\
-                    .single()\
-                    .execute()\
-                    .data.get("total_api_calls", 0) + self.api_calls_made
+                "total_api_calls": current_calls + self.api_calls_made
             }
+
+            # Remove None values to avoid overwriting with nulls
+            update_data = {k: v for k, v in update_data.items() if v is not None}
 
             self.supabase.table("instagram_creators")\
                 .update(update_data)\
                 .eq("ig_user_id", creator_id)\
                 .execute()
+
+            logger.debug(f"Updated analytics for {creator_id}: {len(update_data)} fields")
 
         except Exception as e:
             logger.warning(f"Failed to update creator analytics for {creator_id}: {e}")
@@ -1087,6 +1237,7 @@ class InstagramScraperUnified:
         # Handle different key formats
         creator_id = str(creator.get("ig_user_id") or creator.get("instagram_id", ""))
         username = creator.get("username", "")
+        creator_niche = creator.get("niche", None)  # Get the creator's niche
         thread_id = threading.current_thread().name
 
         logger.info(f"[{thread_id}] Processing {username} ({creator_id})")
@@ -1119,6 +1270,13 @@ class InstagramScraperUnified:
                 # Set current follower count for engagement rate calculations
                 self.current_creator_followers = profile_data.get("follower_count", 0)
 
+                # Extract and identify external URL type
+                external_url = profile_data.get("external_url")
+                external_url_type = self._identify_external_url_type(external_url) if external_url else None
+
+                # Extract bio links
+                bio_links = self._extract_bio_links(profile_data)
+
                 # Update creator with fresh profile data
                 update_data = {
                     "followers_count": profile_data.get("follower_count"),
@@ -1129,12 +1287,16 @@ class InstagramScraperUnified:
                     "profile_pic_url": profile_data.get("profile_pic_url"),
                     "is_business_account": profile_data.get("is_business_account"),
                     "is_professional_account": profile_data.get("is_professional_account"),
-                    "category_name": profile_data.get("category_name"),
-                    "external_url": profile_data.get("external_url"),
+                    "external_url": external_url,
+                    "external_url_type": external_url_type,
+                    "bio_links": bio_links if bio_links else None,
                     "full_name": profile_data.get("full_name"),
                     "is_private": profile_data.get("is_private"),
                     "last_scraped_at": datetime.now(timezone.utc).isoformat()
                 }
+
+                # Remove None values
+                update_data = {k: v for k, v in update_data.items() if v is not None}
 
                 self.supabase.table("instagram_creators").update(update_data)\
                     .eq("ig_user_id", creator_id).execute()
@@ -1179,9 +1341,9 @@ class InstagramScraperUnified:
             posts = self._fetch_posts(creator_id, posts_to_fetch)
             logger.info(f"[{thread_id}] Fetched {len(posts)} posts")
 
-            # Store content
-            reels_saved, reels_new, reels_existing = self._store_reels(creator_id, username, reels)
-            posts_saved, posts_new, posts_existing = self._store_posts(creator_id, username, posts)
+            # Store content with niche information
+            reels_saved, reels_new, reels_existing = self._store_reels(creator_id, username, reels, creator_niche)
+            posts_saved, posts_new, posts_existing = self._store_posts(creator_id, username, posts, creator_niche)
             total_saved = reels_saved + posts_saved
             total_new = reels_new + posts_new
 
@@ -1278,7 +1440,7 @@ class InstagramScraperUnified:
 
         try:
             query = self.supabase.table("instagram_creators")\
-                .select("ig_user_id, username")\
+                .select("ig_user_id, username, niche")\
                 .eq("review_status", "ok")\
                 .neq("ig_user_id", None)
 
