@@ -403,7 +403,8 @@ export default function NichingPage() {
         abortControllerRef.current.abort()
       }
     }
-  }, [fetchNicheCounts, fetchCreators, selectedNiches, availableNiches, debouncedSearchQuery])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNiches, debouncedSearchQuery])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">

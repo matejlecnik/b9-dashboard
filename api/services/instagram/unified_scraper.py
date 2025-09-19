@@ -1484,9 +1484,9 @@ class InstagramScraperUnified:
                         })
 
                         # Process all creators at once using concurrent processing
-                        # Use asyncio.to_thread to run the synchronous method in a thread pool
+                        # Direct synchronous call - matches Reddit scraper's threading pattern
                         try:
-                            await asyncio.to_thread(self.process_creators_concurrent, creators)
+                            self.process_creators_concurrent(creators)
                             processed_count = len(creators)
 
                             # Log completion

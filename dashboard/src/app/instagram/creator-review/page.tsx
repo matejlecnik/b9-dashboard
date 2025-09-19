@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, Sparkles, Tag, Check, Slash, Clock } from 'lucide-react'
+import { Search, Sparkles, Tag, Check, Slash, Clock, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { InstagramSidebar } from '@/components/InstagramSidebar'
@@ -374,7 +374,7 @@ export default function CreatorReviewPage() {
             <div className="space-y-6">
 
               {/* Metrics Cards */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <InstagramMetricsCards
                   totalCreators={reviewCounts.total}
                   pendingCount={reviewCounts.pending}
@@ -382,6 +382,18 @@ export default function CreatorReviewPage() {
                   nonRelatedCount={reviewCounts.non_related}
                   loading={loading}
                 />
+              </div>
+
+              {/* Action Button */}
+              <div className="mb-4">
+                <Button
+                  onClick={() => toast.info('Get related creators feature coming soon!')}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Get Related Creators
+                </Button>
               </div>
 
               {/* Combined Toolbar: Search on left, Filters on right */}
