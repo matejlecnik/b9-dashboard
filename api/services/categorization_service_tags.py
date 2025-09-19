@@ -314,7 +314,7 @@ Tags for r/{name}:"""
                     {"role": "user", "content": prompt}
                 ],
                 temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_completion_tokens=self.max_tokens
             )
 
             tags_raw = response.choices[0].message.content.strip()

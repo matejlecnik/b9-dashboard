@@ -59,13 +59,13 @@ async def test_supabase_connection():
     try:
         from supabase import create_client
 
-        # Get Supabase credentials
-        url = os.getenv('SUPABASE_URL')
+        # Get Supabase credentials - try both naming conventions
+        url = os.getenv('SUPABASE_URL') or os.getenv('NEXT_PUBLIC_SUPABASE_URL')
         key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 
         if not url or not key:
-            print_error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment")
-            return None
+            print_error("Missing SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment")
+            return None, None
 
         print_info(f"Connecting to: {url}")
 
