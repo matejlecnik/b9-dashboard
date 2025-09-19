@@ -456,22 +456,11 @@ Tags for r/{name}:"""
                                      over18: bool) -> bool:
         """Update tags in database for both subreddit and its posts"""
         try:
-            # Map primary category to old category for backward compatibility
-            category_mapping = {
-                "body": "Body Focus",
-                "physical": "Body Types & Features",
-                "demo": "Demographics",
-                "style": "Style & Aesthetic",
-                "theme": "Lifestyle & Themes",
-                "platform": "Platform & Engagement"
-            }
-            old_category = category_mapping.get(primary_category, "Selfie & Amateur")
 
             # Update the subreddit with tags
             self.supabase.table('reddit_subreddits').update({
                 'tags': tags,
                 'primary_category': primary_category,
-                'category_text': old_category,  # Keep for backward compatibility
                 'tags_updated_at': datetime.now(timezone.utc).isoformat(),
                 'tags_updated_by': 'ai_tagger',
                 'updated_at': datetime.now(timezone.utc).isoformat()
@@ -483,7 +472,6 @@ Tags for r/{name}:"""
             posts_update_response = self.supabase.table('reddit_posts').update({
                 'sub_tags': tags,
                 'sub_primary_category': primary_category,
-                'sub_category_text': old_category,  # Keep existing field
                 'sub_over18': over18
             }).eq('subreddit_name', subreddit_name).execute()
 
