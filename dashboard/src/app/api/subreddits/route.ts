@@ -31,20 +31,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Build the query
+    // Build the query - include tags field for new tag system
     let query = supabase
       .from('reddit_subreddits')
       .select(
-        'id,name,display_name_prefixed,title,subscribers,avg_upvotes_per_post,review,category_text,community_icon,icon_img,top_content_type,rules_data,over18,comment_to_upvote_ratio'
+        'id,name,display_name_prefixed,title,subscribers,avg_upvotes_per_post,review,category_text,tags,primary_category,community_icon,icon_img,top_content_type,rules_data,over18,comment_to_upvote_ratio'
       )
 
-    // Apply filters
+    // Apply filters - now checking tags field instead of category_text
     if (filter === 'categorized') {
-      // Categorized means it has a non-empty category_text
-      query = query.not('category_text', 'is', null).neq('category_text', '')
+      // Categorized means it has tags (not null and not empty array)
+      query = query.not('tags', 'is', null).neq('tags', '[]')
     } else if (filter === 'uncategorized') {
-      // Uncategorized means null OR empty string
-      query = query.or('category_text.is.null,category_text.eq.')
+      // Uncategorized means no tags (null OR empty array)
+      query = query.or('tags.is.null,tags.eq.[]')
     } else if (filter === 'unreviewed') {
       query = query.is('review', null)
     } else if (filter === 'ok') {
@@ -122,10 +122,10 @@ export async function GET(request: NextRequest) {
 
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
         baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })),
-        // Categorized: not null AND not empty string
-        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).not('category_text', 'is', null).neq('category_text', ''),
-        // Uncategorized: null OR empty string
-        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).or('category_text.is.null,category_text.eq.')
+        // Categorized: has tags (not null AND not empty array)
+        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).not('tags', 'is', null).neq('tags', '[]'),
+        // Uncategorized: no tags (null OR empty array)
+        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).or('tags.is.null,tags.eq.[]')
       ])
       statsDuration = Date.now() - statsStartTime
 

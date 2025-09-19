@@ -36,6 +36,7 @@ from utils import (
     system_logger, log_api_call, log_exception
 )
 from services.categorization_service import CategorizationService
+from services.categorization_service_tags import TagCategorizationService
 from routes.scraper_routes import router as scraper_router
 from routes.user_routes import router as user_router
 
@@ -92,6 +93,7 @@ class BackgroundJobRequest(BaseModel):
 # =============================================================================
 
 categorization_service = None
+tag_categorization_service = None
 supabase = None
 
 # =============================================================================
@@ -101,7 +103,7 @@ supabase = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager with enhanced initialization"""
-    global categorization_service, supabase
+    global categorization_service, tag_categorization_service, supabase
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
     system_logger.info("Starting B9 Dashboard API", source="api", script_name="main", context={"environment": os.getenv("ENVIRONMENT", "development")})
@@ -150,6 +152,7 @@ async def lifespan(app: FastAPI):
         logger.info("⚙️  Initializing services...")
 
         categorization_service = CategorizationService(supabase, openai_key)
+        tag_categorization_service = TagCategorizationService(supabase, openai_key)
 
         logger.info("✅ All services initialized")
 
@@ -522,20 +525,69 @@ async def get_categorization_stats(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/categorization/categories")
-@rate_limit("api") 
+@rate_limit("api")
 async def get_categories(request: Request):
     """Get list of available marketing categories"""
     if not categorization_service:
         raise HTTPException(status_code=503, detail="Categorization service not initialized")
-    
+
     try:
         return {
             "reddit_categories": categorization_service.CATEGORIES,
             "total_categories": len(categorization_service.CATEGORIES)
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get categories: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/categorization/tags/start")
+@rate_limit("api")
+async def start_tag_categorization(request: Request, payload: CategorizationRequest):
+    """Start AI tag-based categorization process for approved subreddits"""
+    logger.info(f"🏷️  Tag categorization request received: batch_size={payload.batchSize}, limit={payload.limit}")
+
+    if not tag_categorization_service:
+        logger.error("❌ Tag categorization service not initialized")
+        raise HTTPException(status_code=503, detail="Tag categorization service not initialized")
+
+    if not supabase:
+        logger.error("❌ Supabase client not initialized")
+        raise HTTPException(status_code=503, detail="Supabase connection not available")
+
+    try:
+        logger.info(f"🚀 Starting tag categorization with batch_size={payload.batchSize}, limit={payload.limit}")
+
+        # Start tag categorization with specified parameters
+        result = await tag_categorization_service.tag_all_uncategorized(
+            batch_size=payload.batchSize,
+            limit=payload.limit,
+            subreddit_ids=payload.subredditIds
+        )
+
+        logger.info(f"✅ Tag categorization completed: {result.get('status')}")
+        logger.info(f"📊 Stats: {result.get('stats')}")
+
+        # Return the result for frontend processing
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Tag categorization failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Tag categorization failed: {str(e)}")
+
+@app.get("/api/categorization/tags/stats")
+@rate_limit("api")
+async def get_tag_stats(request: Request):
+    """Get tag categorization statistics"""
+    if not tag_categorization_service:
+        raise HTTPException(status_code=503, detail="Tag categorization service not initialized")
+
+    try:
+        stats = await tag_categorization_service.get_tag_stats()
+        return stats
+
+    except Exception as e:
+        logger.error(f"Failed to get tag stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
