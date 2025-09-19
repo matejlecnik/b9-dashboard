@@ -1382,37 +1382,43 @@ class InstagramScraperUnified:
 
     def run(self):
         """Main execution method - runs a single cycle"""
-        logger.info("=" * 60)
-        logger.info("Instagram Unified Scraper Starting")
-        logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
-        logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}")
-        logger.info(f"RAPIDAPI_KEY configured: {'YES' if Config.RAPIDAPI_KEY else 'NO'}")
-        logger.info("=" * 60)
+        import threading
+        thread_id = threading.current_thread().ident
+        logger.info(f"🧵 THREAD {thread_id}: Entering Instagram scraper run() method")
 
-        # Validate configuration
+        # Wrap ENTIRE method in try-finally for thread safety
         try:
-            Config.validate()
-            logger.info("✅ Configuration validated successfully")
-        except Exception as e:
-            logger.error(f"❌ Configuration validation failed: {e}")
-            self.update_scraper_status("error")
-            raise
+            logger.info("=" * 60)
+            logger.info("Instagram Unified Scraper Starting")
+            logger.info(f"Workers: {Config.MAX_WORKERS}, Target RPS: {Config.REQUESTS_PER_SECOND}")
+            logger.info(f"Concurrent Creators: {Config.CONCURRENT_CREATORS}")
+            logger.info(f"RAPIDAPI_KEY configured: {'YES' if Config.RAPIDAPI_KEY else 'NO'}")
+            logger.info("=" * 60)
 
-        # Update status to running
-        self.update_scraper_status("running")
+            # Validate configuration
+            try:
+                Config.validate()
+                logger.info("✅ Configuration validated successfully")
+            except Exception as e:
+                logger.error(f"❌ Configuration validation failed: {e}")
+                self.update_scraper_status("error")
+                raise
 
-        # Initial check
-        initial_continue = self.should_continue()
-        logger.info(f"Initial should_continue() check: {initial_continue}")
+            # Update status to running
+            self.update_scraper_status("running")
 
-        if not initial_continue:
-            logger.warning("Scraper is disabled, exiting")
-            return
+            # Initial check
+            initial_continue = self.should_continue()
+            logger.info(f"Initial should_continue() check: {initial_continue}")
 
-        # Process a single cycle (continuous_instagram_scraper.py will handle the loop)
-        if self.should_continue():
-            self.cycle_number += 1
-            self.cycle_start_time = datetime.now(timezone.utc)
+            if not initial_continue:
+                logger.warning("Scraper is disabled, exiting")
+                return
+
+            # Process a single cycle (continuous_instagram_scraper.py will handle the loop)
+            if self.should_continue():
+                self.cycle_number += 1
+                self.cycle_start_time = datetime.now(timezone.utc)
 
             logger.info(f"\n{'='*60}")
             logger.info(f"Starting Cycle #{self.cycle_number} at {self.cycle_start_time.isoformat()}")
@@ -1581,29 +1587,38 @@ class InstagramScraperUnified:
                     "error": str(e)
                 })
 
-        # CRITICAL: Ensure method always completes and returns to wrapper
-        # This section MUST execute no matter what happens above
-        try:
-            # Log final stats
-            logger.info("Instagram scraper cycle completed successfully")
-            logger.info(f"Total creators processed: {self.creators_processed if hasattr(self, 'creators_processed') else 0}")
-            logger.info(f"Total API calls made: {self.api_calls_made if hasattr(self, 'api_calls_made') else 0}")
-        except:
-            pass  # Don't let logging errors prevent return
+            # CRITICAL: Ensure method always completes and returns to wrapper
+            # This section MUST execute no matter what happens above
+            try:
+                # Log final stats
+                logger.info("Instagram scraper cycle completed successfully")
+                logger.info(f"Total creators processed: {self.creators_processed if hasattr(self, 'creators_processed') else 0}")
+                logger.info(f"Total API calls made: {self.api_calls_made if hasattr(self, 'api_calls_made') else 0}")
+            except:
+                pass  # Don't let logging errors prevent return
 
-        # CRITICAL: Log final completion for wrapper
-        try:
-            logger.info("🏁 SCRAPER RUN() METHOD COMPLETE - Returning to wrapper for 4-hour wait")
-            self._log_realtime("success", "🏁 Scraper run() complete - wrapper should log 4-hour wait", {
-                "method_complete": True,
-                "returning_to_wrapper": True
-            })
-        except:
-            pass  # Even if logging fails, we must return
+            # CRITICAL: Log final completion for wrapper
+            try:
+                logger.info("🏁 SCRAPER RUN() METHOD COMPLETE - Returning to wrapper for 4-hour wait")
+                self._log_realtime("success", "🏁 Scraper run() complete - wrapper should log 4-hour wait", {
+                    "method_complete": True,
+                    "returning_to_wrapper": True
+                })
+            except:
+                pass  # Even if logging fails, we must return
 
-        # CRITICAL: Explicit return to ensure method completes
-        logger.info(">>> RETURNING FROM RUN() METHOD <<<")
-        return
+        except Exception as e:
+            # Catch any exception in the main try block
+            logger.error(f"🧵 THREAD {thread_id}: Exception in run() method: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Don't re-raise - let the method complete
+        finally:
+            # CRITICAL: Always execute this block, no matter what
+            logger.info(f"🧵 THREAD {thread_id}: Exiting run() method - ensuring return to wrapper")
+            # Explicit return to ensure method completes
+            logger.info(">>> RETURNING FROM RUN() METHOD <<<")
+            return
 
 
 def main():

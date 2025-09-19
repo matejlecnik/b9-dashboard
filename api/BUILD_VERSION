@@ -1,7 +1,7 @@
-BUILD_VERSION=4.5.0-PERFORMANCE-STATS-FIX
-BUILD_DATE=2025-09-18T19:45:00Z
+BUILD_VERSION=4.6.0-THREAD-SAFETY-FIX
+BUILD_DATE=2025-09-18T20:00:00Z
 DEPLOYMENT=render-production
-FIX_DESCRIPTION=Fixed Instagram scraper run() method hanging on performance stats - added error handling and ensured method always returns
+FIX_DESCRIPTION=Fixed Instagram scraper thread termination issue - added thread-safe exception handling and timeout protection to ensure 4-hour wait message appears
 
 This file forces Docker cache invalidation on each deployment.
 Update the BUILD_DATE before deploying to ensure fresh code is deployed.
