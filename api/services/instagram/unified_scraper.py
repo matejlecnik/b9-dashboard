@@ -1124,7 +1124,7 @@ class InstagramScraperUnified:
                     "followers_count": profile_data.get("follower_count"),
                     "following_count": profile_data.get("following_count"),
                     "media_count": profile_data.get("media_count"),
-                    "bio": profile_data.get("biography"),
+                    "biography": profile_data.get("biography"),
                     "is_verified": profile_data.get("is_verified"),
                     "profile_pic_url": profile_data.get("profile_pic_url"),
                     "is_business_account": profile_data.get("is_business_account"),
