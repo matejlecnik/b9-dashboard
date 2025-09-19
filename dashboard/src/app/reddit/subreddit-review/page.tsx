@@ -647,7 +647,7 @@ export default function SubredditReviewPage() {
 
         {/* Metrics Cards with Add Button - Simplified */}
         <div className="mb-6">
-          <div className="flex items-start gap-4">
+          <div className="flex items-stretch gap-4">
             <div className="flex-1">
               <ComponentErrorBoundary>
                 {loading ? (
@@ -664,14 +664,39 @@ export default function SubredditReviewPage() {
                 )}
               </ComponentErrorBoundary>
             </div>
-            <Button
-              onClick={() => setShowAddModal(true)}
-              disabled={loading}
-              className="min-h-[100px] px-6 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Add New</span>
-            </Button>
+            <div className="flex items-stretch">
+              <button
+                onClick={() => setShowAddModal(true)}
+                disabled={loading}
+                className="group relative h-full min-h-[100px] w-[140px] px-6 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
+                  backdropFilter: 'blur(16px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
+                }}
+              >
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
+
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+                {/* Glow effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <Plus className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Add New
+                  </span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 

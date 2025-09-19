@@ -257,6 +257,15 @@ Tags for r/{name}:"""
         confidence = 1.0
 
         try:
+            # Handle markdown code blocks
+            if isinstance(tags_raw, str):
+                if "```json" in tags_raw:
+                    # Extract JSON from markdown
+                    tags_raw = tags_raw.split("```json")[1].split("```")[0].strip()
+                elif "```" in tags_raw:
+                    # Extract from generic code block
+                    tags_raw = tags_raw.split("```")[1].split("```")[0].strip()
+
             # Handle different response formats
             if isinstance(tags_raw, str):
                 # Try to parse as JSON
@@ -271,24 +280,44 @@ Tags for r/{name}:"""
                 self.logger.warning(f"Unexpected tag format: {type(tags_raw)}")
                 return [], 0.5
 
+            # Log what we're validating
+            self.logger.debug(f"Validating tags: {tags_list}")
+
             # Validate each tag
+            invalid_tags = []
             for tag in tags_list:
                 tag = tag.strip().lower()
                 if tag in self.valid_tags:
                     tags.append(tag)
                 else:
-                    self.logger.warning(f"Invalid tag: {tag}")
+                    invalid_tags.append(tag)
                     confidence *= 0.9
 
-            # Ensure we have at least one tag
-            if not tags:
-                tags = ["platform:type:amateur"]  # Default fallback
-                confidence = 0.5
+            # Log invalid tags for debugging
+            if invalid_tags:
+                self.logger.warning(f"Invalid tags rejected: {invalid_tags}")
+                # Try to find close matches
+                for invalid_tag in invalid_tags:
+                    if ':' in invalid_tag:
+                        parts = invalid_tag.split(':')
+                        if len(parts) >= 2:
+                            close_matches = [t for t in self.valid_tags if t.startswith(f"{parts[0]}:{parts[1]}:")]
+                            if close_matches:
+                                self.logger.info(f"  Possible alternatives for '{invalid_tag}': {close_matches[:3]}")
 
+            # If no valid tags found, it's a failure
+            if not tags:
+                self.logger.error("No valid tags found - categorization failed")
+                raise ValueError(f"No valid tags could be extracted from: {tags_raw[:200]}")
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON parsing error: {e}")
+            self.logger.error(f"Raw response was: {tags_raw[:500] if isinstance(tags_raw, str) else tags_raw}")
+            raise
         except Exception as e:
             self.logger.error(f"Error parsing tags: {e}")
-            tags = ["platform:type:amateur"]
-            confidence = 0.3
+            self.logger.error(f"Raw input was: {tags_raw if 'tags_raw' in locals() else 'Not available'}")
+            raise
 
         return tags, confidence
 
@@ -317,7 +346,37 @@ Tags for r/{name}:"""
                 max_completion_tokens=self.max_tokens
             )
 
-            tags_raw = response.choices[0].message.content.strip()
+            # Validate response structure
+            if not response.choices or len(response.choices) == 0:
+                self.logger.error(f"❌ No choices in OpenAI response for r/{subreddit_name}")
+                raise ValueError("OpenAI returned no choices")
+
+            if not response.choices[0].message:
+                self.logger.error(f"❌ No message in OpenAI response for r/{subreddit_name}")
+                raise ValueError("OpenAI returned no message")
+
+            # Handle None content
+            content = response.choices[0].message.content
+            if content is None:
+                self.logger.error(f"❌ OpenAI returned None content for r/{subreddit_name}")
+                self.logger.error(f"Full response: {response}")
+                raise ValueError("OpenAI returned None content")
+
+            # Log raw content before stripping
+            self.logger.debug(f"Raw content before strip: [{repr(content)}]")
+
+            tags_raw = content.strip()
+
+            # Log after stripping
+            self.logger.debug(f"Content after strip: [{repr(tags_raw)}]")
+
+            if not tags_raw:
+                self.logger.error(f"❌ OpenAI returned empty content for r/{subreddit_name}")
+                self.logger.error(f"Raw content was: [{repr(content)}]")
+                raise ValueError("OpenAI returned empty content")
+
+            # Log the raw response for debugging
+            self.logger.info(f"🤖 Raw OpenAI response for r/{subreddit_name}: {tags_raw[:200]}")
 
             # Validate and clean tags
             tags, confidence = self._validate_and_clean_tags(tags_raw)
@@ -381,8 +440,8 @@ Tags for r/{name}:"""
             result = TagCategorizationResult(
                 subreddit_id=subreddit_id,
                 subreddit_name=subreddit_name,
-                tags=["platform:type:amateur"],
-                primary_category="platform",
+                tags=[],  # No fallback tags - AI must choose
+                primary_category="",  # No category if no tags
                 confidence=0.0,
                 success=False,
                 error_message=error_message,

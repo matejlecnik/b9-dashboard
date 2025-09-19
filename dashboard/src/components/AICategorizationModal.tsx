@@ -180,24 +180,6 @@ export function AICategorizationModal({
                     className="w-full h-8 text-sm border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                 </div>
-                
-                {/* Processing Info */}
-                <div className="p-2.5 rounded-lg bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200">
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-gray-600">Batch Size:</span>
-                      <span className="font-medium text-gray-900">50 items</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-gray-600">AI Model:</span>
-                      <span className="font-medium text-gray-900">GPT-4</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-gray-600">Auto-refresh:</span>
-                      <span className="font-medium text-gray-900">30 seconds</span>
-                    </div>
-                  </div>
-                </div>
               </div>
               
               {/* Cost Estimation with brand colors */}

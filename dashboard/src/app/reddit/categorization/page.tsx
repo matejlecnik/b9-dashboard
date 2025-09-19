@@ -524,34 +524,35 @@ export default function CategorizationPage() {
       
       if (renderResponse && renderResponse.status === 'completed' && renderResponse.results) {
         // We have the complete results from the backend
-        const results = renderResponse.results
+        const results = renderResponse.results  // This is the array of individual results
+        const stats = renderResponse.stats  // Stats are at the renderResponse level, not results level
         console.log('Processing completed results:', results)
-        console.log('Stats:', results.stats)
-        console.log('Individual results:', results.results)
-        
+        console.log('Stats:', stats)
+        console.log('Individual results:', results)
+
         setCategorizationLogs(prev => [...prev, `✅ Categorization completed successfully!`])
-        setCategorizationLogs(prev => [...prev, `📊 Processed: ${results.stats?.total_processed || 0} items`])
-        setCategorizationLogs(prev => [...prev, `✓ Successful: ${results.stats?.successful || 0}`])
-        setCategorizationLogs(prev => [...prev, `✗ Errors: ${results.stats?.errors || 0}`])
-        setCategorizationLogs(prev => [...prev, `💰 Total cost: $${results.stats?.total_cost?.toFixed(4) || '0.00'}`])
-        
+        setCategorizationLogs(prev => [...prev, `📊 Processed: ${stats?.total_processed || 0} items`])
+        setCategorizationLogs(prev => [...prev, `✓ Successful: ${stats?.successful || 0}`])
+        setCategorizationLogs(prev => [...prev, `✗ Errors: ${stats?.errors || 0}`])
+        setCategorizationLogs(prev => [...prev, `💰 Total cost: $${stats?.total_cost?.toFixed(4) || '0.00'}`])
+
         // Add individual results if available
-        if (results.results && Array.isArray(results.results)) {
+        if (results && Array.isArray(results)) {
           setCategorizationLogs(prev => [...prev, `📝 Individual Results:`])
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          results.results.forEach((result: any) => {
+          results.forEach((result: any) => {
             if (result.success) {
-              setCategorizationLogs(prev => [...prev, `  ✓ ${result.subreddit_name} → ${result.category}`])
+              setCategorizationLogs(prev => [...prev, `  ✓ ${result.subreddit_name} → ${result.primary_category || 'categorized'}`])
             } else {
               setCategorizationLogs(prev => [...prev, `  ✗ ${result.subreddit_name}: ${result.error_message || 'Failed'}`])
             }
           })
         }
-        
+
         addToast({
           type: 'success',
           title: 'AI Tagging Complete',
-          description: `Successfully tagged ${results.stats?.successful || 0} out of ${results.stats?.total_processed || 0} subreddits`,
+          description: `Successfully tagged ${stats?.successful || 0} out of ${stats?.total_processed || 0} subreddits`,
           duration: 5000
         })
         
@@ -779,20 +780,46 @@ export default function CategorizationPage() {
                 </div>
                 
                 {/* AI Review Button using standardized component */}
-                <Button
+                <button
                   onClick={handleCategorizeAll}
                   disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
-                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center gap-2"
+                  className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
+                  }}
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span>
-                    {categorizingAll
-                      ? 'Processing...'
-                      : categoryCounts.uncategorized === 0
-                      ? 'All done!'
-                      : `AI Tagging (${Math.min(categoryCounts.uncategorized, 500)} items)`}
-                  </span>
-                </Button>
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
+
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center">
+                    <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                    <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent text-center">
+                      {categorizingAll
+                        ? 'Processing...'
+                        : categoryCounts.uncategorized === 0
+                        ? 'All done!'
+                        : `AI Tagging`}
+                    </span>
+                    {!categorizingAll && categoryCounts.uncategorized > 0 && (
+                      <span className="text-[10px] text-gray-500 mt-0.5">
+                        {Math.min(categoryCounts.uncategorized, 500)} items
+                      </span>
+                    )}
+                  </div>
+                </button>
               </div>
             )}
           </ComponentErrorBoundary>

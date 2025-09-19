@@ -499,15 +499,43 @@ export default function InstagramMonitor() {
             {/* Left Column - Button and Success Rate */}
             <div className="flex flex-col gap-3 flex-shrink-0">
               {/* Start/Stop Scraper Button */}
-              <Button
-                variant={isRunning ? 'destructive' : 'default'}
+              <button
                 onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: isRunning
+                    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15))'
+                    : 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
+                  backdropFilter: 'blur(16px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
+                }}
               >
-                {isRunning ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                {isRunning ? 'Stop Scraper' : 'Start Scraper'}
-              </Button>
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
+
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+                {/* Glow effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center">
+                  {isRunning ? (
+                    <Square className="h-5 w-5 text-red-500 mb-1 group-hover:text-red-600 transition-colors" />
+                  ) : (
+                    <Play className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
+                  )}
+                  <span className={`text-xs font-semibold bg-gradient-to-r ${isRunning ? 'from-red-600 to-red-700' : 'from-pink-600 to-purple-600'} bg-clip-text text-transparent`}>
+                    {isRunning ? 'Stop Scraper' : 'Start Scraper'}
+                  </span>
+                </div>
+              </button>
 
               {/* Success Rate Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">

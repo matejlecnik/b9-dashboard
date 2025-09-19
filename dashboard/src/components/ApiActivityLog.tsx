@@ -90,7 +90,8 @@ export function ApiActivityLog({
 
           // Filter by source based on endpoint
           if (endpoint === 'categorization') {
-            query = query.eq('source', 'reddit_categorizer')
+            // Include both old categorizer and new tag-based tagger logs
+            query = query.or('source.eq.reddit_categorizer,source.eq.reddit_tagger')
           } else if (endpoint === 'users') {
             query = query.or('source.eq.user_discovery,source.eq.api_user_discovery')
           }
