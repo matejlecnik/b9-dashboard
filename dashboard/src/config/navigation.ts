@@ -25,6 +25,7 @@ export interface NavigationItem {
   shortcut?: string
   onClick?: () => void
   subItems?: NavigationItem[]
+  isComingSoon?: boolean
 }
 
 export interface NavigationSection {
@@ -82,7 +83,8 @@ export const navigationConfig: NavigationConfig = {
           title: 'User Analysis',
           href: '/reddit/user-analysis',
           icon: Users,
-          shortcut: '⌘5'
+          shortcut: '⌘5',
+          isComingSoon: true
         }
       ]
     }

@@ -22,8 +22,8 @@ import {
   Activity
 } from 'lucide-react'
 import NextImage from 'next/image'
-import { UserSearchAndFilters } from '@/components/UserSearchAndFilters'
-import { UserListSkeleton, UserSearchSkeleton } from '@/components/UniversalLoading'
+import { UserFilters } from '@/components/UserFilters'
+import { UserListSkeleton } from '@/components/UniversalLoading'
 import { useToast } from '@/components/ui/toast'
 import {
   useUserStats,
@@ -519,21 +519,21 @@ export default function UserAnalysisPage() {
 
           {/* Filters Section - Right Side */}
           <div className="flex items-center">
-            {!isLoading && (
-              <UserSearchAndFilters
-                currentFilter={qualityFilter}
-                onFilterChange={setQualityFilter}
-                userCounts={stats ? {
-                  total_users: stats.total_users,
-                  high_quality_users: stats.high_quality_users,
-                  our_creators: stats.our_creators,
-                  low_quality_users: stats.low_quality_users
-                } : null}
-                searchQuery={searchInput}
-                onSearchChange={() => {}}
-                loading={isLoading || isFetchingNextPage}
-              />
-            )}
+            <UserFilters
+              currentFilter={qualityFilter}
+              onFilterChange={(value) => {
+                React.startTransition(() => {
+                  setQualityFilter(value)
+                })
+              }}
+              userCounts={stats ? {
+                total_users: stats.total_users,
+                high_quality_users: stats.high_quality_users,
+                our_creators: stats.our_creators,
+                low_quality_users: stats.low_quality_users
+              } : null}
+              loading={usersLoading}
+            />
           </div>
         </div>
 

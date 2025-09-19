@@ -18,43 +18,71 @@ const MemoizedNavigationItem = React.memo<{
 }>(({ item, isActive }) => {
   const Icon = item.icon
   const linkRef = useRef<HTMLAnchorElement>(null)
-  
+  const isComingSoon = item.isComingSoon === true
+
   // Enhanced accessibility attributes
   const accessibilityProps = {
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-label': item.title,
-    'tabIndex': 0
+    'aria-label': isComingSoon ? `${item.title} - Coming Soon` : item.title,
+    'aria-disabled': isComingSoon,
+    'tabIndex': isComingSoon ? -1 : 0
   }
-  
+
+  const itemContent = (
+    <div className={`
+      relative flex items-center px-3 py-2.5 rounded-xl cursor-pointer transform
+      ${isComingSoon
+        ? 'text-gray-400 bg-gray-50/50 cursor-not-allowed opacity-60'
+        : isActive
+          ? 'bg-b9-pink/15 text-b9-pink shadow-apple transition-colors duration-200'
+          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]'
+      }
+      justify-start will-change-auto
+    `}>
+      <div className="flex items-center flex-1">
+        <Icon className={`h-5 w-5 ${isComingSoon ? 'text-gray-400' : isActive ? 'text-b9-pink' : ''} mr-3 transition-transform duration-200 ease-out ${!isComingSoon ? 'group-hover:scale-110' : ''}`} aria-hidden="true" />
+        <div className="flex-1">
+          <div className="font-medium text-sm flex items-center gap-2">
+            <span className={`transition-transform duration-200 ease-out ${!isComingSoon ? 'group-hover:translate-x-0.5' : ''}`}>{item.title}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Coming Soon Badge */}
+      {isComingSoon && (
+        <div className="px-2 py-0.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 text-[10px] font-medium rounded-md shadow-sm">
+          Coming Soon
+        </div>
+      )}
+
+      {/* Regular Badge rendering */}
+      {!isComingSoon && item.badge && (
+        <NavigationBadge config={item.badge} className="ml-2" />
+      )}
+    </div>
+  )
+
+  // If coming soon, render as a div instead of a link
+  if (isComingSoon) {
+    return (
+      <div
+        title={`${item.title} - This feature is coming soon!`}
+        className="rounded-xl relative group"
+        {...accessibilityProps}
+      >
+        {itemContent}
+      </div>
+    )
+  }
+
   return (
-    <Link 
+    <Link
       ref={linkRef}
-      href={item.href} 
+      href={item.href}
       {...accessibilityProps}
       className="focus:outline-none focus:ring-2 focus:ring-b9-pink/50 focus:ring-offset-2 focus:ring-offset-transparent rounded-xl relative group"
     >
-      <div className={`
-        relative flex items-center px-3 py-2.5 rounded-xl cursor-pointer transform
-        ${isActive
-          ? 'bg-b9-pink/15 text-b9-pink shadow-apple transition-colors duration-200'
-          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]'
-        }
-        justify-start will-change-auto
-      `}>
-        <div className="flex items-center flex-1">
-          <Icon className={`h-5 w-5 ${isActive ? 'text-b9-pink' : ''} mr-3 transition-transform duration-200 ease-out group-hover:scale-110`} aria-hidden="true" />
-          <div className="flex-1">
-            <div className="font-medium text-sm flex items-center gap-2">
-              <span className="transition-transform duration-200 ease-out group-hover:translate-x-0.5">{item.title}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Badge rendering */}
-        {item.badge && (
-          <NavigationBadge config={item.badge} className="ml-2" />
-        )}
-      </div>
+      {itemContent}
     </Link>
   )
 })

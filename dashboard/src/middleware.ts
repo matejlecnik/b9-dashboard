@@ -8,6 +8,9 @@ import type { NextRequest } from 'next/server'
 // API routes that don't require authentication (very limited)
 const PUBLIC_API_ROUTES = ['/api/health']
 
+// Routes that are coming soon and should be blocked in production
+const COMING_SOON_ROUTES = ['/reddit/user-analysis']
+
 // Supabase auth cookie patterns to check
 const SUPABASE_AUTH_COOKIES = [
   'sb-access-token',
@@ -72,6 +75,13 @@ export async function middleware(request: NextRequest) {
     // Redirect to login for unauthenticated users
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
+  }
+
+  // Block "Coming Soon" routes in production (after auth check)
+  if (COMING_SOON_ROUTES.some(route => pathname.startsWith(route))) {
+    // Redirect to dashboards page with a message
+    const dashboardUrl = new URL('/dashboards', request.url)
+    return NextResponse.redirect(dashboardUrl)
   }
 
   // Handle root route - redirect authenticated users to dashboards

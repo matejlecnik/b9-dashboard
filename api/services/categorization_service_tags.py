@@ -112,7 +112,8 @@ class TagCategorizationService:
         self.temperature = 0.1
         # GPT-5-mini uses reasoning tokens internally before generating output
         # We need enough tokens for both reasoning AND the actual JSON response
-        self.max_tokens = 500  # Increased to account for ~200 reasoning tokens + output
+        # With all 247 tags shown, responses may be longer (5-8 tags per subreddit)
+        self.max_tokens = 800  # Increased for ~300 reasoning tokens + 200-300 output tokens
         self.delay_between_requests = 0.4
 
         # Pricing per 1K tokens (GPT-5-mini)
@@ -135,7 +136,7 @@ class TagCategorizationService:
         return valid_tags
 
     def _generate_complete_tag_reference(self) -> str:
-        """Generate complete list of all available tags"""
+        """Generate complete list of all available tags - shows ALL 247 tags"""
         lines = []
         for category, data in self.TAG_STRUCTURE.items():
             lines.append(f"\n{data['name'].upper()}:")
@@ -144,13 +145,9 @@ class TagCategorizationService:
                 subcat_display = subcategory.replace('_', ' ').title()
                 tags = [f"{category}:{subcategory}:{v}" for v in values]
                 if tags:
-                    # Show first few tags and count
-                    sample = tags[:6]
-                    remaining = len(tags) - 6
-                    if remaining > 0:
-                        lines.append(f"- {subcat_display}: {', '.join(sample)} ... (+{remaining} more)")
-                    else:
-                        lines.append(f"- {subcat_display}: {', '.join(tags)}")
+                    # Show ALL tags, not just first 6
+                    # This ensures OpenAI can see every available option
+                    lines.append(f"- {subcat_display}: {', '.join(tags)}")
         return '\n'.join(lines)
 
     def _build_tag_prompt(self, subreddit: Dict[str, Any]) -> str:
