@@ -381,7 +381,12 @@ class ProxyEnabledMultiScraper:
         self.current_client_index = 0
         self.supabase = None
         self.public_api = None  # Will be initialized with requests-based API
-        
+
+        # Non-Related subreddit caching
+        self.non_related_cache = set()
+        self.non_related_cache_time = None
+        self.cache_ttl = timedelta(hours=6)  # Refresh cache every 6 hours
+
         # Performance tracking
         self.stats = {
             'accounts_used': {},
@@ -628,7 +633,18 @@ class ProxyEnabledMultiScraper:
         """Filter out subreddits that already exist in database and were recently scraped"""
         if not subreddit_names:
             return set()
-            
+
+        # Load Non Related cache if needed
+        await self.load_non_related_cache()
+
+        # Remove Non Related subreddits immediately
+        original_count = len(subreddit_names)
+        subreddit_names = subreddit_names - self.non_related_cache
+        filtered_count = original_count - len(subreddit_names)
+
+        if filtered_count > 0:
+            logger.info(f"🚫 Filtered out {filtered_count} Non Related subreddits from discovery")
+
         try:
             # Convert set to list for database query
             subreddit_list = list(subreddit_names)
@@ -895,25 +911,63 @@ class ProxyEnabledMultiScraper:
         
         return client_info['client'], client_info['username'], client_info['account_id']
     
-    async def get_target_subreddits(self) -> List[str]:
-        """Get target subreddits (ONLY Ok review status) in random order"""
+    async def get_target_subreddits(self) -> Dict[str, List[str]]:
+        """Get subreddits by review status for different processing types"""
         try:
-            response = self.supabase.table('reddit_subreddits').select('name, review').eq(
-                'review', 'Ok'
-            ).execute()
-            
-            subreddits = [item['name'] for item in response.data]
-            
-            # Randomize the order so we don't always start with the same subreddits
-            random.shuffle(subreddits)
-            
-            logger.info(f"📋 Found {len(subreddits)} target subreddits (ONLY Ok review status) - randomized order")
-            return subreddits
-            
+            # Get OK subreddits for full processing (users + discovery)
+            ok_response = self.supabase.table('reddit_subreddits').select(
+                'name, review'
+            ).eq('review', 'Ok').execute()
+
+            # Get No Seller subreddits for data update only (no users/discovery)
+            no_seller_response = self.supabase.table('reddit_subreddits').select(
+                'name, review'
+            ).eq('review', 'No Seller').execute()
+
+            ok_subreddits = [item['name'] for item in ok_response.data] if ok_response.data else []
+            no_seller_subreddits = [item['name'] for item in no_seller_response.data] if no_seller_response.data else []
+
+            # Randomize order to distribute load
+            random.shuffle(ok_subreddits)
+            random.shuffle(no_seller_subreddits)
+
+            logger.info(f"📋 Found {len(ok_subreddits)} OK subreddits for full processing")
+            logger.info(f"📊 Found {len(no_seller_subreddits)} No Seller subreddits for data update only")
+
+            return {
+                'ok': ok_subreddits,
+                'no_seller': no_seller_subreddits
+            }
+
         except Exception as e:
             logger.error(f"❌ Failed to fetch target subreddits: {e}")
-            return ['SFWAmIHot']
-    
+            return {'ok': [], 'no_seller': []}
+
+    async def load_non_related_cache(self):
+        """Load Non Related subreddits to skip processing"""
+        # Check if cache is still fresh
+        if (self.non_related_cache_time and
+            datetime.now(timezone.utc) - self.non_related_cache_time < self.cache_ttl):
+            return  # Cache still valid
+
+        try:
+            response = self.supabase.table('reddit_subreddits').select('name').eq(
+                'review', 'Non Related'
+            ).execute()
+
+            if response.data:
+                self.non_related_cache = {item['name'] for item in response.data}
+                self.non_related_cache_time = datetime.now(timezone.utc)
+
+                logger.info(f"🚫 Loaded {len(self.non_related_cache)} Non Related subreddits to skip")
+            else:
+                self.non_related_cache = set()
+                logger.info("ℹ️ No Non Related subreddits found")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load Non Related cache: {e}")
+            self.non_related_cache = set()
+
     async def test_proxy_scraping(self, control_checker=None):
         """3-Thread discovery pipeline with proxy rotation"""
         logger.info("🚀 Starting 3-thread discovery pipeline...")
@@ -943,11 +997,15 @@ class ProxyEnabledMultiScraper:
         requirements_lock = threading.Lock()
         logger.info("📊 Initialized minimum requirements tracking system")
         
-        # STEP 1: Get target subreddits from database (OK review status only)
-        target_subreddits = await self.get_target_subreddits()
-        logger.info(f"📋 Found {len(target_subreddits)} target subreddits from database")
-        
-        if not target_subreddits:
+        # STEP 1: Get target subreddits from database by review status
+        subreddits_by_status = await self.get_target_subreddits()
+        ok_subreddits = subreddits_by_status.get('ok', [])
+        no_seller_subreddits = subreddits_by_status.get('no_seller', [])
+
+        total_subreddits = len(ok_subreddits) + len(no_seller_subreddits)
+        logger.info(f"📋 Found {total_subreddits} target subreddits: {len(ok_subreddits)} OK, {len(no_seller_subreddits)} No Seller")
+
+        if not ok_subreddits and not no_seller_subreddits:
             logger.warning("⚠️ No target subreddits found")
             return
         
@@ -961,11 +1019,23 @@ class ProxyEnabledMultiScraper:
         # STEP 2: Process subreddits with enhanced threading (9 threads, 3 per proxy)
         all_authors = set()
         processing_lock = threading.Lock()
-        logger.info(f"🔍 Processing {len(target_subreddits)} subreddits with 9 concurrent threads (3 per proxy)...")
-        
+        logger.info(f"🔍 Processing {total_subreddits} subreddits with 9 concurrent threads (3 per proxy)...")
+
+        # Combine all subreddits but track their type
+        all_subreddits = []
+        subreddit_types = {}  # Map subreddit name to type ('ok' or 'no_seller')
+
+        for sub in ok_subreddits:
+            all_subreddits.append(sub)
+            subreddit_types[sub] = 'ok'
+
+        for sub in no_seller_subreddits:
+            all_subreddits.append(sub)
+            subreddit_types[sub] = 'no_seller'
+
         # Distribute subreddits across 9 threads (round-robin)
         thread_subreddits = [[] for _ in range(9)]  # 9 empty lists for 9 threads
-        for i, subreddit_name in enumerate(target_subreddits):
+        for i, subreddit_name in enumerate(all_subreddits):
             thread_subreddits[i % 9].append(subreddit_name)
             
         proxy_services = ["BeyondProxy", "NyronProxy", "RapidProxy"]
@@ -984,7 +1054,7 @@ class ProxyEnabledMultiScraper:
         # Define worker function for each thread
         def process_subreddits_thread(thread_id: int, subreddits_list: list, proxy_service: str):
             """Process subreddits sequentially within a single thread, each with specific proxy"""
-            nonlocal all_authors, cycle_analyzed_subreddits, subreddit_requirements
+            nonlocal all_authors, cycle_analyzed_subreddits, subreddit_requirements, subreddit_types
             thread_successful = 0
             thread_failed = 0
             # Enhanced color coding for 9 threads (3 per proxy)
@@ -1023,29 +1093,48 @@ class ProxyEnabledMultiScraper:
             
             for sub_idx, subreddit_name in enumerate(subreddits_list):
                 try:
-                    logger.info(f"{proxy_colors[thread_id]} [{sub_idx+1}/{len(subreddits_list)}] r/{subreddit_name} via {proxy_service}")
-                    
-                    # Process subreddit with the thread's specific proxy and API instance (synchronous call)
-                    authors = self.analyze_subreddit_with_thread_api(subreddit_name, thread_proxy_config, thread_api)
-                    
-                    # Track minimum requirements for this subreddit (thread-safe)
-                    if authors:
-                        with requirements_lock:
-                            logger.info(f"📊 Tracking requirements for SEED subreddit r/{subreddit_name} with {len(authors)} authors")
-                            self.track_subreddit_requirements(subreddit_name, authors, subreddit_requirements)
-                    
-                    # Thread-safe updates
-                    with processing_lock:
-                        cycle_analyzed_subreddits.add(subreddit_name)
-                        if authors:
-                            all_authors.update(authors)
-                            
-                    if authors:
-                        logger.info(f"✅ r/{subreddit_name} completed via {proxy_service}, found {len(authors)} authors")
+                    # Check subreddit type
+                    sub_type = subreddit_types.get(subreddit_name, 'ok')
+                    type_indicator = "📊 [No Seller]" if sub_type == 'no_seller' else "✅ [OK]"
+
+                    logger.info(f"{proxy_colors[thread_id]} [{sub_idx+1}/{len(subreddits_list)}] {type_indicator} r/{subreddit_name} via {proxy_service}")
+
+                    if sub_type == 'no_seller':
+                        # For "No Seller" subreddits: Only update subreddit data and posts
+                        # No user extraction or new subreddit discovery
+                        logger.info(f"📊 Updating data only for No Seller subreddit r/{subreddit_name}")
+
+                        # Use thread API to update subreddit data and posts only
+                        self.update_no_seller_subreddit(subreddit_name, thread_proxy_config, thread_api)
+
+                        # Track as processed but don't collect authors
+                        with processing_lock:
+                            cycle_analyzed_subreddits.add(subreddit_name)
+
+                        logger.info(f"✅ r/{subreddit_name} data updated (No Seller - no user extraction)")
                         thread_successful += 1
                     else:
-                        logger.warning(f"⚠️ r/{subreddit_name} returned no authors")
-                        thread_failed += 1
+                        # For "OK" subreddits: Full processing (users + discovery)
+                        authors = self.analyze_subreddit_with_thread_api(subreddit_name, thread_proxy_config, thread_api)
+
+                        # Track minimum requirements for this subreddit (thread-safe)
+                        if authors:
+                            with requirements_lock:
+                                logger.info(f"📊 Tracking requirements for SEED subreddit r/{subreddit_name} with {len(authors)} authors")
+                                self.track_subreddit_requirements(subreddit_name, authors, subreddit_requirements)
+
+                        # Thread-safe updates
+                        with processing_lock:
+                            cycle_analyzed_subreddits.add(subreddit_name)
+                            if authors:
+                                all_authors.update(authors)
+
+                        if authors:
+                            logger.info(f"✅ r/{subreddit_name} completed via {proxy_service}, found {len(authors)} authors")
+                            thread_successful += 1
+                        else:
+                            logger.warning(f"⚠️ r/{subreddit_name} returned no authors")
+                            thread_failed += 1
                     
                     # Random delay between subreddits within thread (1-3 seconds)
                     if sub_idx < len(subreddits_list) - 1:
@@ -1129,8 +1218,27 @@ class ProxyEnabledMultiScraper:
             
             for user_idx, username in enumerate(users_list):
                 try:
+                    # Check if user was processed in last 24 hours
+                    try:
+                        user_check = self.supabase.table('reddit_users').select(
+                            'username, last_scraped_at'
+                        ).eq('username', username).single().execute()
+
+                        if user_check.data and user_check.data.get('last_scraped_at'):
+                            last_scraped = user_check.data.get('last_scraped_at')
+                            last_scraped_dt = datetime.fromisoformat(last_scraped.replace('Z', '+00:00'))
+                            hours_ago = (datetime.now(timezone.utc) - last_scraped_dt).total_seconds() / 3600
+
+                            if hours_ago < 24:
+                                logger.info(f"⏭️ {proxy_colors[thread_id]} Skipping u/{username} - processed {hours_ago:.1f}h ago")
+                                async with processing_lock:
+                                    self.processed_users_memory.add(username)
+                                continue
+                    except Exception as e:
+                        logger.debug(f"User {username} not in database or error checking: {e}")
+
                     logger.info(f"{proxy_colors[thread_id]} [{user_idx+1}/{len(users_list)}] u/{username} via {proxy_service}")
-                    
+
                     # Process user with timeout protection  
                     try:
                         user_subreddits = await asyncio.wait_for(
@@ -2207,76 +2315,6 @@ class ProxyEnabledMultiScraper:
                 logger.info(f"🚫 Non Related detected: '{keyword}'")
                 return "Non Related"
         
-        # NEW MULTI-TIER "No Seller" DETECTION SYSTEM
-        
-        # First check for seller-friendly patterns (override any restrictions)
-        seller_friendly_patterns = [
-            r'verified\s+sellers?\s+(?:allowed|welcome)',
-            r'sellers?\s+(?:welcome|allowed)',
-            r'promotion\s+(?:allowed|welcome)\s+(?:on|with)',
-            r'seller\s+friendly',
-            r'onlyfans\s+(?:allowed|welcome)',
-            r'content\s+creators?\s+welcome',
-            r'creators?\s+allowed',
-            r'selling\s+(?:allowed|permitted)\s+(?:on|with)',
-            r'promotional\s+posts?\s+(?:allowed|welcome)'
-        ]
-        
-        for pattern in seller_friendly_patterns:
-            if re.search(pattern, rules_lower):
-                logger.info(f"✅ Seller-friendly pattern detected: '{pattern}' - skipping No Seller classification")
-                return None  # Don't classify as No Seller if sellers are explicitly allowed
-        
-        # Explicit seller ban patterns - ONLY "no sellers" and "no onlyfans" 
-        explicit_ban_patterns = [
-            r'\bno\s+sellers?\b',
-            r'\bno\s+onlyfans\b',
-            r'\bno\s+of\b',  # Common abbreviation for OnlyFans
-            r'sellers?\s+(?:will\s+be\s+)?banned?\b',
-            r'sellers?\s+(?:are\s+)?(?:not\s+)?(?:allowed|permitted|welcome)\b'
-        ]
-        
-        # Weak indicators (require multiple to trigger)
-        weak_indicators = [
-            'no spam',
-            'no ads', 
-            'no marketplace',
-            'not for sale',
-            'no vendors',
-            'no oc'  # This is often about Original Content, not necessarily sellers
-        ]
-        
-        # Count explicit bans
-        explicit_bans_found = []
-        for pattern in explicit_ban_patterns:
-            matches = re.findall(pattern, rules_lower)
-            if matches:
-                explicit_bans_found.extend(matches)
-                
-        # Count weak indicators
-        weak_indicators_found = []
-        for indicator in weak_indicators:
-            if indicator in rules_lower:
-                weak_indicators_found.append(indicator)
-        
-        # DECISION LOGIC:
-        # 1. Any explicit ban = "No Seller" 
-        # 2. OR 3+ weak indicators = "No Seller"
-        # 3. OR 1 explicit ban + 2+ weak indicators = "No Seller"
-        
-        total_explicit = len(explicit_bans_found)
-        total_weak = len(weak_indicators_found)
-        
-        if total_explicit >= 1:
-            logger.info(f"🚫 No Seller detected: {total_explicit} explicit ban(s): {explicit_bans_found}")
-            return "No Seller"
-        elif total_weak >= 3:
-            logger.info(f"🚫 No Seller detected: {total_weak} weak indicators: {weak_indicators_found}")
-            return "No Seller"
-        elif total_weak >= 2:
-            logger.info(f"⚠️  Weak seller restrictions detected ({total_weak} indicators): {weak_indicators_found} - leaving for manual review")
-            return None  # Manual review needed for ambiguous cases
-        
         # If no automatic review detected, leave empty for manual review
         logger.debug("📋 No automatic review detected - leaving empty for manual review")
         return None
@@ -2366,17 +2404,20 @@ class ProxyEnabledMultiScraper:
         }
     
     async def save_user_data(self, user_data: dict):
-        """Save user data to database"""
+        """Save user data to database with last_scraped_at timestamp"""
         if not user_data or not user_data.get('username'):
             return
-            
+
+        # Add last_scraped_at timestamp
+        user_data['last_scraped_at'] = datetime.now(timezone.utc).isoformat()
+
         try:
             resp = self.supabase.table('reddit_users').upsert(user_data, on_conflict='username').execute()
             if hasattr(resp, 'error') and resp.error:
                 logger.error(f"❌ Error saving user data: {resp.error}")
             else:
-                logger.info(f"💾 Saved user data for u/{user_data['username']}")
-                
+                logger.info(f"💾 Saved user data for u/{user_data['username']} with timestamp")
+
         except Exception as e:
             logger.error(f"❌ Exception saving user data: {e}")
     
@@ -2490,7 +2531,7 @@ class ProxyEnabledMultiScraper:
         # Temporarily replace the shared API with the thread-specific one
         original_api = self.public_api
         self.public_api = thread_api
-        
+
         try:
             # Use the existing method with the thread-specific API
             result = self.analyze_subreddit_public_api_with_proxy_sync(subreddit_name, proxy_config)
@@ -2498,7 +2539,88 @@ class ProxyEnabledMultiScraper:
         finally:
             # Always restore the original API
             self.public_api = original_api
-    
+
+    def update_no_seller_subreddit(self, subreddit_name: str, proxy_config: dict, thread_api):
+        """Update only subreddit data and posts for No Seller subreddits (no user extraction)"""
+        # Temporarily replace the shared API with the thread-specific one
+        original_api = self.public_api
+        self.public_api = thread_api
+
+        try:
+            logger.info(f"📊 Updating No Seller subreddit r/{subreddit_name} (data only)")
+
+            # Fetch subreddit info using the public API
+            subreddit_data = self.public_api.get_subreddit_info(subreddit_name, proxy_config)
+
+            if not subreddit_data:
+                logger.warning(f"⚠️ Failed to fetch about data for r/{subreddit_name}")
+                return
+
+            # Update subreddit data directly
+            if subreddit_data:
+                # Prepare subreddit data for database
+                subreddit_update = {
+                    'name': subreddit_name,
+                    'display_name_prefixed': subreddit_data.get('display_name_prefixed', f'r/{subreddit_name}'),
+                    'title': subreddit_data.get('title', ''),
+                    'public_description': subreddit_data.get('public_description', ''),
+                    'description': subreddit_data.get('description', ''),
+                    'subscribers': subreddit_data.get('subscribers', 0),
+                    'accounts_active': subreddit_data.get('accounts_active'),
+                    'over18': subreddit_data.get('over18', False),
+                    'lang': subreddit_data.get('lang', 'en'),
+                    'whitelist_status': subreddit_data.get('whitelist_status'),
+                    'created_utc': datetime.fromtimestamp(subreddit_data.get('created_utc', 0), tz=timezone.utc).isoformat() if subreddit_data.get('created_utc') else None,
+                    'last_scraped_at': datetime.now(timezone.utc).isoformat()
+                }
+
+                # Save subreddit data
+                resp = self.supabase.table('reddit_subreddits').upsert(subreddit_update, on_conflict='name').execute()
+                if hasattr(resp, 'error') and resp.error:
+                    logger.error(f"❌ Error saving subreddit data: {resp.error}")
+                else:
+                    logger.info(f"✅ Updated subreddit data for r/{subreddit_name}")
+
+            # Fetch and save posts (but don't extract users)
+            posts_data = self.public_api.get_subreddit_hot_posts(subreddit_name, limit=30, proxy_config=proxy_config)
+
+            if posts_data:
+                # Prepare posts for batch save
+                posts_to_save = []
+                for post in posts_data:
+                    if post:
+                        post_record = {
+                            'reddit_id': post.get('id'),
+                            'subreddit_name': subreddit_name,
+                            'author_username': post.get('author', '[deleted]'),
+                            'title': post.get('title', ''),
+                            'selftext': post.get('selftext', ''),
+                            'score': post.get('score', 0),
+                            'upvote_ratio': post.get('upvote_ratio', 0),
+                            'num_comments': post.get('num_comments', 0),
+                            'created_utc': datetime.fromtimestamp(post.get('created_utc', 0), tz=timezone.utc).isoformat() if post.get('created_utc') else None,
+                            'is_video': post.get('is_video', False),
+                            'over_18': post.get('over_18', False),
+                            'spoiler': post.get('spoiler', False),
+                            'stickied': post.get('stickied', False),
+                            'url': post.get('url', ''),
+                            'permalink': post.get('permalink', '')
+                        }
+                        posts_to_save.append(post_record)
+
+                if posts_to_save:
+                    # Save posts using the sync method or direct upsert
+                    self.save_posts_batch_sync(posts_to_save)
+                    logger.info(f"✅ Updated {len(posts_to_save)} posts for No Seller subreddit r/{subreddit_name}")
+            else:
+                logger.warning(f"⚠️ No posts found for r/{subreddit_name}")
+
+        except Exception as e:
+            logger.error(f"❌ Error updating No Seller subreddit r/{subreddit_name}: {e}")
+        finally:
+            # Always restore the original API
+            self.public_api = original_api
+
     def analyze_subreddit_public_api_with_proxy_sync(self, subreddit_name: str, proxy_config: dict):
         """Analyze subreddit using Public JSON API with specific proxy config (synchronous)"""
         try:
