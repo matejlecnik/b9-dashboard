@@ -97,20 +97,6 @@ export default function SubredditReviewPage() {
     setRulesModal({ isOpen: false, subreddit: null })
   }, [])
 
-  // Handle successful subreddit addition
-  const handleSubredditAdded = useCallback(() => {
-    setShowAddModal(false)
-    // Refresh the list to show the newly added subreddit
-    fetchSubreddits(0, false)
-    fetchCounts()
-    addToast({
-      type: 'success',
-      title: 'Subreddit Added',
-      description: 'The subreddit has been added successfully.',
-      duration: 3000
-    })
-  }, [fetchSubreddits, fetchCounts, addToast])
-
   // Show rules modal for a subreddit
   const handleShowRules = useCallback((subreddit: Subreddit) => {
     setRulesModal({ isOpen: true, subreddit })
@@ -261,6 +247,19 @@ export default function SubredditReviewPage() {
     }
   }, [currentFilter, debouncedSearchQuery, addToast, fetchCounts])
 
+  // Handle successful subreddit addition
+  const handleSubredditAdded = useCallback(() => {
+    setShowAddModal(false)
+    // Refresh the list to show the newly added subreddit
+    fetchSubreddits(0, false)
+    fetchCounts()
+    addToast({
+      type: 'success',
+      title: 'Subreddit Added',
+      description: 'The subreddit has been added successfully.',
+      duration: 3000
+    })
+  }, [fetchSubreddits, fetchCounts, addToast])
 
   // Undo last single/bulk action
   const undoLastAction = useCallback(async () => {

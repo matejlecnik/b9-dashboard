@@ -9,6 +9,7 @@ API_VERSION = "2.0.0"
 
 import os
 import sys
+import signal
 import subprocess
 import logging
 from fastapi import APIRouter, HTTPException, Request
@@ -764,10 +765,23 @@ async def stop_instagram_scraper(request: Request):
                     "status": "already_stopped"
                 }
 
-            # Update to disable
+            # Get the PID to kill the process
+            pid = result.data[0].get('pid')
+            if pid:
+                try:
+                    # Kill the subprocess
+                    os.kill(pid, signal.SIGTERM)
+                    logger.info(f"✅ Killed Instagram scraper process {pid}")
+                except ProcessLookupError:
+                    logger.info(f"Process {pid} already dead")
+                except Exception as e:
+                    logger.error(f"Failed to kill process {pid}: {e}")
+
+            # Update to disable and clear PID
             supabase.table('system_control').update({
                 'enabled': False,
                 'status': 'stopped',
+                'pid': None,  # Clear the PID since process is killed
                 'stopped_at': datetime.now(timezone.utc).isoformat(),
                 'updated_at': datetime.now(timezone.utc).isoformat(),
                 'updated_by': 'api'
