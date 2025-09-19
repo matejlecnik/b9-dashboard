@@ -174,3 +174,138 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export async function POST(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7)
+
+  try {
+    console.log(`🔄 [API:${requestId}] /api/subreddits POST - Starting request`)
+
+    const body = await request.json()
+    const { name, fetchFromReddit = false } = body
+
+    // Validate input
+    if (!name || typeof name !== 'string') {
+      return NextResponse.json(
+        { error: 'Subreddit name is required', success: false },
+        { status: 400 }
+      )
+    }
+
+    // Clean the name (remove r/ or u/ prefix if present)
+    const cleanName = name.replace(/^[ru]\//, '').trim().toLowerCase()
+
+    // Validate format
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanName)) {
+      return NextResponse.json(
+        { error: 'Invalid subreddit name format', success: false },
+        { status: 400 }
+      )
+    }
+
+    if (cleanName.length < 3 || cleanName.length > 21) {
+      return NextResponse.json(
+        { error: 'Subreddit name must be between 3 and 21 characters', success: false },
+        { status: 400 }
+      )
+    }
+
+    console.log(`🔄 [API:${requestId}] Adding subreddit: ${cleanName}, fetchFromReddit: ${fetchFromReddit}`)
+
+    const supabase = await createClient()
+    if (!supabase) {
+      console.error('❌ [API] Supabase client not available')
+      return NextResponse.json(
+        { error: 'Database connection not available', success: false },
+        { status: 500 }
+      )
+    }
+
+    // Check if subreddit already exists
+    const { data: existingSubreddit } = await supabase
+      .from('reddit_subreddits')
+      .select('id, name')
+      .eq('name', cleanName)
+      .single()
+
+    if (existingSubreddit) {
+      return NextResponse.json(
+        { error: `Subreddit r/${cleanName} already exists in the database`, success: false },
+        { status: 409 }
+      )
+    }
+
+    let subredditData: any = {
+      name: cleanName,
+      display_name_prefixed: `r/${cleanName}`,
+      created_at: new Date().toISOString(),
+      review: null,
+      category_text: null,
+      tags: null
+    }
+
+    // If fetchFromReddit is true, call the Python backend to get subreddit details
+    if (fetchFromReddit) {
+      try {
+        console.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
+
+        // Call Python backend to fetch subreddit details
+        const backendUrl = process.env.PYTHON_BACKEND_URL || 'https://b9-dashboard.onrender.com'
+        const response = await fetch(`${backendUrl}/api/subreddits/fetch-single`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subreddit_name: cleanName }),
+        })
+
+        if (response.ok) {
+          const redditData = await response.json()
+          console.log(`✅ [API:${requestId}] Fetched Reddit data:`, redditData)
+
+          // Merge Reddit data with our base data
+          subredditData = {
+            ...subredditData,
+            ...redditData,
+            name: cleanName, // Ensure our clean name is used
+            display_name_prefixed: `r/${cleanName}`,
+          }
+        } else {
+          console.warn(`⚠️ [API:${requestId}] Failed to fetch from Reddit, adding basic entry`)
+        }
+      } catch (error) {
+        console.error(`❌ [API:${requestId}] Error fetching from Reddit:`, error)
+      }
+    }
+
+    // Insert the new subreddit
+    const { data: newSubreddit, error: insertError } = await supabase
+      .from('reddit_subreddits')
+      .insert(subredditData)
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error(`❌ [API:${requestId}] Failed to insert subreddit:`, insertError)
+      return NextResponse.json(
+        { error: 'Failed to add subreddit to database', success: false },
+        { status: 500 }
+      )
+    }
+
+    console.log(`✅ [API:${requestId}] Successfully added subreddit:`, newSubreddit)
+
+    return NextResponse.json({
+      success: true,
+      subreddit: newSubreddit,
+      message: `Successfully added r/${cleanName}`
+    })
+
+  } catch (error) {
+    console.error(`❌ [API:${requestId}] Unexpected error in POST /api/subreddits:`, error)
+    return NextResponse.json(
+      { error: 'Internal server error', success: false },
+      { status: 500 }
+    )
+  }
+}

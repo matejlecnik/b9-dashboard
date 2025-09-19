@@ -59,14 +59,14 @@ class CategorizationService:
         self.openai = AsyncOpenAI(api_key=openai_api_key)
         
         # Configuration
-        self.model = "gpt-4-turbo-preview"
+        self.model = "gpt-5-mini-2025-08-07"
         self.temperature = 0.1
         self.max_tokens = 50
         self.delay_between_requests = 0.4
-        
-        # Pricing per 1K tokens (GPT-4-turbo-preview)
-        self.price_per_1k_prompt_tokens = 0.01
-        self.price_per_1k_completion_tokens = 0.03
+
+        # Pricing per 1K tokens (GPT-5-mini)
+        self.price_per_1k_prompt_tokens = 0.00125  # $1.25 per million
+        self.price_per_1k_completion_tokens = 0.01     # $10 per million
         
         self.logger = logging.getLogger(__name__)
     
@@ -79,14 +79,14 @@ class CategorizationService:
             # Using filter for null or empty category_text
             response = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
-            ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers', desc=True).limit(limit).execute()
+            ).eq('review', 'Ok').filter('category_text', 'is', 'null').order('subscribers.desc').limit(limit).execute()
             
             self.logger.info(f"📊 Query 1 (null category_text): Found {len(response.data or [])} subreddits")
             
             # Also get subreddits with empty category_text
             response2 = self.supabase.table('reddit_subreddits').select(
                 'id, name, title, public_description, subscribers, display_name_prefixed'
-            ).eq('review', 'Ok').eq('category_text', '').order('subscribers', desc=True).limit(limit).execute()
+            ).eq('review', 'Ok').eq('category_text', '').order('subscribers.desc').limit(limit).execute()
             
             self.logger.info(f"📊 Query 2 (empty category_text): Found {len(response2.data or [])} subreddits")
             
@@ -282,7 +282,7 @@ Category:"""
                     'subreddit_name': result.subreddit_name,
                     'subreddit_id': result.subreddit_id,
                     'category_assigned': result.category if result.success else None,
-                    'ai_model': 'gpt-4-turbo-preview',
+                    'ai_model': 'gpt-5-mini-2025-08-07',
                     'prompt_tokens': result.prompt_tokens,
                     'completion_tokens': result.completion_tokens,
                     'cost': float(result.cost) if result.cost else 0.00,

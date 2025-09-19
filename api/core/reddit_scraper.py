@@ -1752,6 +1752,17 @@ class ProxyEnabledMultiScraper:
     async def extract_post_data(self, submission, subreddit_name: str) -> dict:
         """Extract comprehensive post data from Reddit submission"""
         try:
+            # Fetch subreddit tags
+            subreddit_tags = []
+            subreddit_primary_category = None
+            try:
+                sub_resp = self.supabase.table('reddit_subreddits').select('tags, primary_category').eq('name', subreddit_name).limit(1).execute()
+                if sub_resp.data and len(sub_resp.data) > 0:
+                    subreddit_tags = sub_resp.data[0].get('tags', [])
+                    subreddit_primary_category = sub_resp.data[0].get('primary_category')
+            except Exception as e:
+                logger.debug(f"Could not fetch tags for r/{subreddit_name}: {e}")
+
             # Basic post data
             reddit_id = getattr(submission, 'id', None)
             title = getattr(submission, 'title', None)
@@ -1823,6 +1834,8 @@ class ProxyEnabledMultiScraper:
                 'domain': domain,
                 'thumbnail': thumbnail,
                 'scraped_at': datetime.now(timezone.utc).isoformat(),
+                'sub_tags': subreddit_tags,
+                'sub_primary_category': subreddit_primary_category,
             }
         except Exception as e:
             logger.error(f"❌ Error extracting post data: {e}")
@@ -2973,6 +2986,17 @@ class ProxyEnabledMultiScraper:
     def convert_public_post_data(self, post_data: dict, subreddit_name: str) -> dict:
         """Convert public API post data to database format"""
         try:
+            # Fetch subreddit tags
+            subreddit_tags = []
+            subreddit_primary_category = None
+            try:
+                sub_resp = self.supabase.table('reddit_subreddits').select('tags, primary_category').eq('name', subreddit_name).limit(1).execute()
+                if sub_resp.data and len(sub_resp.data) > 0:
+                    subreddit_tags = sub_resp.data[0].get('tags', [])
+                    subreddit_primary_category = sub_resp.data[0].get('primary_category')
+            except Exception as e:
+                logger.debug(f"Could not fetch tags for r/{subreddit_name}: {e}")
+
             reddit_id = post_data.get('id')
             title = post_data.get('title')
             selftext = post_data.get('selftext')
@@ -3046,6 +3070,8 @@ class ProxyEnabledMultiScraper:
                 'domain': domain,
                 'thumbnail': thumbnail,
                 'scraped_at': datetime.now(timezone.utc).isoformat(),
+                'sub_tags': subreddit_tags,
+                'sub_primary_category': subreddit_primary_category,
             }
         except Exception as e:
             logger.error(f"❌ Error converting post data: {e}")

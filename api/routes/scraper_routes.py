@@ -81,6 +81,66 @@ async def start_scraper(request: Request):
                 'updated_by': 'api'
             }).execute()
 
+        # Start the actual subprocess immediately (like Instagram scraper does)
+        try:
+            # Open log file for Reddit scraper output
+            log_file_path = '/tmp/reddit_scraper.log'
+            log_file = open(log_file_path, 'a')
+            log_file.write(f"\n\n{'='*60}\n")
+            log_file.write(f"Starting Reddit scraper at {datetime.now(timezone.utc).isoformat()}\n")
+            log_file.write(f"{'='*60}\n")
+            log_file.flush()
+
+            # Start Reddit scraper subprocess with proper logging
+            reddit_process = subprocess.Popen(
+                [sys.executable, "-u", "core/continuous_scraper.py"],
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,  # Detach from parent
+                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # API directory
+                env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
+            )
+
+            # Check if process started successfully
+            import time
+            time.sleep(2)  # Give it time to start
+
+            if reddit_process.poll() is None:
+                # Process is running
+                logger.info(f"✅ Reddit scraper subprocess started with PID: {reddit_process.pid}")
+
+                # Update PID in database
+                supabase.table('system_control').update({
+                    'pid': reddit_process.pid
+                }).eq('script_name', 'reddit_scraper').execute()
+
+                # Log success to file
+                log_file.write(f"✅ Subprocess started successfully with PID: {reddit_process.pid}\n")
+                log_file.flush()
+            else:
+                # Process died immediately - read the error
+                log_file.close()
+                with open(log_file_path, 'r') as f:
+                    error_output = f.read()
+                    last_lines = error_output.split('\n')[-20:]  # Get last 20 lines
+                    error_msg = '\n'.join(last_lines)
+
+                logger.error(f"Reddit scraper subprocess died immediately. Last output:\n{error_msg}")
+
+                # Update database with error
+                supabase.table('system_control').update({
+                    'enabled': False,
+                    'status': 'error',
+                    'last_error': f"Process died on startup: {error_msg[:500]}",
+                    'last_error_at': datetime.now(timezone.utc).isoformat()
+                }).eq('script_name', 'reddit_scraper').execute()
+
+        except Exception as subprocess_error:
+            logger.error(f"Failed to start subprocess: {subprocess_error}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
         # Log the action
         supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),

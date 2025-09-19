@@ -489,18 +489,14 @@ export default function CategorizationPage() {
     
     try {
       // Add initial log
-      setCategorizationLogs(prev => [...prev, `Starting AI categorization with ${settings.limit} items...`])
+      setCategorizationLogs(prev => [...prev, `Starting AI tagging with ${settings.limit} items...`])
       
-      const response = await fetch('/api/ai/categorize-batch', {
+      const response = await fetch('/api/categorization/tags/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          batchSize: settings.batchSize,
-          limit: settings.limit,
-          model: settings.model,
-          temperature: settings.temperature,
-          categories: settings.categories,
-          apiKeyOverride: settings.apiKeyOverride
+          batch_size: settings.batchSize,
+          limit: settings.limit
         })
       })
       
@@ -554,8 +550,8 @@ export default function CategorizationPage() {
         
         addToast({
           type: 'success',
-          title: 'AI Categorization Complete',
-          description: `Successfully categorized ${results.stats?.successful || 0} out of ${results.stats?.total_processed || 0} subreddits`,
+          title: 'AI Tagging Complete',
+          description: `Successfully tagged ${results.stats?.successful || 0} out of ${results.stats?.total_processed || 0} subreddits`,
           duration: 5000
         })
         
@@ -609,7 +605,7 @@ export default function CategorizationPage() {
         
         addToast({
           type: 'success',
-          title: 'AI Categorization Complete',
+          title: 'AI Tagging Complete',
           description: `Processing completed for ${data.estimated_subreddits || settings.limit} subreddits`,
           duration: 5000
         })
@@ -631,10 +627,10 @@ export default function CategorizationPage() {
       const errorMsg = error instanceof Error ? error.message : 'Failed to start AI categorization'
       setCategorizationLogs(prev => [...prev, `❌ Error: ${errorMsg}`])
       
-      console.error('AI categorization error:', error)
+      console.error('AI tagging error:', error)
       addToast({
         type: 'error',
-        title: 'AI Categorization Failed',
+        title: 'AI Tagging Failed',
         description: errorMsg,
         duration: 5000
       })
@@ -758,7 +754,7 @@ export default function CategorizationPage() {
                       ? 'Processing...'
                       : categoryCounts.uncategorized === 0
                       ? 'All done!'
-                      : `AI Review (${Math.min(categoryCounts.uncategorized, 500)} items)`}
+                      : `AI Tagging (${Math.min(categoryCounts.uncategorized, 500)} items)`}
                   </span>
                 </Button>
               </div>

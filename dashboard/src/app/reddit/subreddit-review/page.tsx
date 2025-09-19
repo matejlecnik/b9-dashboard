@@ -13,6 +13,9 @@ import { MetricsCardsSkeleton, TableSkeleton } from '@/components/UniversalLoadi
 import { useErrorHandler } from '@/lib/errorUtils'
 import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+import { AddSubredditModal } from '@/components/AddSubredditModal'
 
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller'
 type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
@@ -49,6 +52,7 @@ export default function SubredditReviewPage() {
     type: 'single' | 'bulk'
     items: Array<{ id: number, prevReview: ReviewValue }>
   } | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   // Ref to break circular dependency with undoLastAction
   const undoLastActionRef = useRef<() => Promise<void>>(() => Promise.resolve())
@@ -92,6 +96,20 @@ export default function SubredditReviewPage() {
   const handleCloseRules = useCallback(() => {
     setRulesModal({ isOpen: false, subreddit: null })
   }, [])
+
+  // Handle successful subreddit addition
+  const handleSubredditAdded = useCallback(() => {
+    setShowAddModal(false)
+    // Refresh the list to show the newly added subreddit
+    fetchSubreddits(0, false)
+    fetchCounts()
+    addToast({
+      type: 'success',
+      title: 'Subreddit Added',
+      description: 'The subreddit has been added successfully.',
+      duration: 3000
+    })
+  }, [fetchSubreddits, fetchCounts, addToast])
 
   // Show rules modal for a subreddit
   const handleShowRules = useCallback((subreddit: Subreddit) => {
@@ -628,22 +646,35 @@ export default function SubredditReviewPage() {
         <h2 className="sr-only">Subreddit Review</h2>
         {/* Title removed per request */}
 
-        {/* Metrics Cards - Simplified */}
+        {/* Metrics Cards with Add Button - Simplified */}
         <div className="mb-6">
-          <ComponentErrorBoundary>
-            {loading ? (
-              <MetricsCardsSkeleton />
-            ) : (
-              <MetricsCards
-                totalSubreddits={totalSubreddits}
-                statusCount={reviewCounts.unreviewed}
-                statusTitle="Unreviewed"
-                newTodayCount={newTodayCount}
-                reviewCounts={reviewCounts}
-                loading={loading}
-              />
-            )}
-          </ComponentErrorBoundary>
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <ComponentErrorBoundary>
+                {loading ? (
+                  <MetricsCardsSkeleton />
+                ) : (
+                  <MetricsCards
+                    totalSubreddits={totalSubreddits}
+                    statusCount={reviewCounts.unreviewed}
+                    statusTitle="Unreviewed"
+                    newTodayCount={newTodayCount}
+                    reviewCounts={reviewCounts}
+                    loading={loading}
+                  />
+                )}
+              </ComponentErrorBoundary>
+            </div>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              variant="default"
+              className="h-[100px] px-6"
+              disabled={loading}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add New
+            </Button>
+          </div>
         </div>
 
         {/* Combined Toolbar: Search on left, Filters on right - Slim Design */}
@@ -928,6 +959,15 @@ export default function SubredditReviewPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Add Subreddit Modal */}
+        {showAddModal && (
+          <AddSubredditModal
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            onSuccess={handleSubredditAdded}
+          />
         )}
       </div>
 
