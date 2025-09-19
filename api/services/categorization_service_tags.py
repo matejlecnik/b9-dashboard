@@ -110,7 +110,9 @@ class TagCategorizationService:
         # Configuration
         self.model = "gpt-5-mini-2025-08-07"
         self.temperature = 0.1
-        self.max_tokens = 200  # Increased for multiple tags
+        # GPT-5-mini uses reasoning tokens internally before generating output
+        # We need enough tokens for both reasoning AND the actual JSON response
+        self.max_tokens = 500  # Increased to account for ~200 reasoning tokens + output
         self.delay_between_requests = 0.4
 
         # Pricing per 1K tokens (GPT-5-mini)

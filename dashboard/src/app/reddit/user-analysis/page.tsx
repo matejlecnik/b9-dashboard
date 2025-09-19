@@ -18,7 +18,8 @@ import {
   MailCheck,
   Shield,
   Download,
-  CheckSquare
+  CheckSquare,
+  Activity
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { UserSearchAndFilters } from '@/components/UserSearchAndFilters'
@@ -344,81 +345,181 @@ export default function UserAnalysisPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* Stats Overview with Glass Morphism Cards and Add User Button */}
+        {/* Stats Overview with Standardized MetricsCards Style */}
         <ComponentErrorBoundary>
           {statsLoading ? (
-            <div className="flex gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-                <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-              </div>
-              <div className="w-32 h-28 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+              ))}
             </div>
           ) : (
-            <div className="flex gap-3">
-              {/* Stats Cards Container - 80% width */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-                {/* Total Users Card - Glass Morphism */}
-                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900">Total Users</h3>
-                    <Users className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatNumber(stats?.total_users)}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Active (30d): {formatNumber(stats?.users_active_last_30_days)}
-                    </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
+              {/* Total Users Card */}
+              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
+                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
+                border border-white/20
+                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
+                hover:bg-[rgba(248,250,252,0.8)]
+                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
+                hover:scale-[1.02] hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                    <Users className="h-4 w-4" />
                   </div>
                 </div>
 
-                {/* High Quality Users Card - Glass Morphism */}
-                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900">High Quality</h3>
-                    <Star className="h-4 w-4 text-yellow-500" />
+                <div className="space-y-1.5">
+                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                    {formatNumber(stats?.total_users)}
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatNumber(stats?.high_quality_users)}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Score ≥ 7.0
-                    </p>
+                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    Total Users
                   </div>
-                </div>
-
-                {/* Our Creators Card - Glass Morphism with Pink Accent */}
-                <div className="bg-gradient-to-br from-pink-50/80 to-white/80 backdrop-blur-sm border border-pink-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900">Our Creators</h3>
-                    <Crown className="h-4 w-4 text-pink-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                      {formatNumber(stats?.our_creators)}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Manually marked
-                    </p>
+                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    In Database
                   </div>
                 </div>
               </div>
 
+              {/* Active Users Card */}
+              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
+                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
+                border border-white/20
+                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
+                hover:bg-[rgba(248,250,252,0.8)]
+                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
+                hover:scale-[1.02] hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                    <Activity className="h-4 w-4" />
+                  </div>
+                  {stats?.users_active_last_30_days && stats.users_active_last_30_days > 0 && (
+                    <div className="w-1 h-1 rounded-full"
+                      style={{
+                        background: 'linear-gradient(135deg, #FFB3C1, #FF99A9)',
+                        boxShadow: '0 1px 2px rgba(255, 179, 193, 0.2)',
+                      }}></div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                    {formatNumber(stats?.users_active_last_30_days)}
+                  </div>
+                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    Active Users
+                  </div>
+                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    Last 30 days
+                  </div>
+                </div>
+              </div>
+
+              {/* High Quality Users Card */}
+              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
+                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
+                border border-white/20
+                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
+                hover:bg-[rgba(248,250,252,0.8)]
+                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
+                hover:scale-[1.02] hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                    <Star className="h-4 w-4" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                    {formatNumber(stats?.high_quality_users)}
+                  </div>
+                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    High Quality
+                  </div>
+                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    Score ≥ 7.0
+                  </div>
+                </div>
+              </div>
+
+              {/* Our Creators Card with Pink Accent */}
+              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
+                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
+                border border-white/20
+                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
+                hover:bg-[rgba(248,250,252,0.8)]
+                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
+                hover:scale-[1.02] hover:-translate-y-1
+                ring-2 ring-pink-200/30">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 rounded-xl text-[#FF8395] bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                    <Crown className="h-4 w-4" />
+                  </div>
+                  <div className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: 'linear-gradient(135deg, #FF8395, #FF7A85)',
+                      boxShadow: '0 1px 2px rgba(255, 131, 149, 0.25)',
+                    }}></div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                    {formatNumber(stats?.our_creators)}
+                  </div>
+                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    Our Creators
+                  </div>
+                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                    {stats?.our_creators && stats?.our_creators > 0 ? 'Manually marked' : 'None yet'}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </ComponentErrorBoundary>
 
 
-        {/* Combined Toolbar: Search, Filters, and Bulk Actions */}
-        <div className="space-y-3">
-          {isLoading && allUsers.length === 0 ? (
-            <UserSearchSkeleton />
-          ) : (
-            <>
+        {/* Combined Toolbar: Search on left, Filters on right - Slim Design matching subreddit review */}
+        <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+          {/* Search Section - Left Side - Compact */}
+          <div className="flex items-center flex-1 min-w-0 max-w-xs">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
+                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder=""
+                title="Search users by username"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                disabled={usersLoading || isFetchingNextPage}
+                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8 relative"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput('')}
+                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filters Section - Right Side */}
+          <div className="flex items-center">
+            {!isLoading && (
               <UserSearchAndFilters
                 currentFilter={qualityFilter}
                 onFilterChange={setQualityFilter}
@@ -429,82 +530,84 @@ export default function UserAnalysisPage() {
                   low_quality_users: stats.low_quality_users
                 } : null}
                 searchQuery={searchInput}
-                onSearchChange={setSearchInput}
+                onSearchChange={() => {}}
                 loading={isLoading || isFetchingNextPage}
               />
-
-              {/* Bulk Actions Toolbar (only when items selected) */}
-              {selectedUserIds.size > 0 && (
-                <div className="p-3 bg-white/70 backdrop-blur-md border border-pink-100 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-200">
-                  <div className="text-sm font-medium text-gray-700">
-                    {formatNumber(selectedUserIds.size)} selected
-                  </div>
-                  <div className="flex gap-2 flex-1">
-                    <Button
-                      onClick={handleBulkToggleCreator}
-                      disabled={bulkActionLoading}
-                      size="sm"
-                      className="bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600"
-                    >
-                      {bulkActionLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                      ) : (
-                        <Crown className="h-3 w-3 mr-1" />
-                      )}
-                      Toggle Creator
-                    </Button>
-                    <Button
-                      onClick={handleBulkExport}
-                      disabled={bulkActionLoading}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Download className="h-3 w-3 mr-1" />
-                      Export CSV
-                    </Button>
-                    <Button
-                      onClick={handleSelectNone}
-                      size="sm"
-                      variant="ghost"
-                      className="ml-auto"
-                    >
-                      Clear Selection
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* User List with Improved Table Structure */}
-        <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Users ({formatNumber(allUsers.length)}{hasNextPage ? '+' : ''})
-                </h3>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {usersLoading && allUsers.length === 0 ? 'Loading users...' :
-                   debouncedSearchTerm.trim() ? `Showing search results for "${debouncedSearchTerm}"` :
-                   `Showing ${allUsers.length} users${hasNextPage ? ' (scroll for more)' : ''}`}
-                </p>
-              </div>
-              {allUsers.length > 0 && (
-                <Button
-                  onClick={selectedUserIds.size === allUsers.length ? handleSelectNone : handleSelectAll}
-                  size="sm"
-                  variant="outline"
-                >
-                  <CheckSquare className="h-3 w-3 mr-1" />
-                  {selectedUserIds.size === allUsers.length ? 'Deselect All' : 'Select All'}
-                </Button>
-              )}
+        {/* Bulk Actions Toolbar (only when items selected) */}
+        {selectedUserIds.size > 0 && (
+          <div className="p-3 bg-white/70 backdrop-blur-md border border-pink-100 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-200 mb-3">
+            <div className="text-sm font-medium text-gray-700">
+              {formatNumber(selectedUserIds.size)} selected
+            </div>
+            <div className="flex gap-2 flex-1">
+              <Button
+                onClick={handleBulkToggleCreator}
+                disabled={bulkActionLoading}
+                size="sm"
+                className="bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600"
+              >
+                {bulkActionLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                ) : (
+                  <Crown className="h-3 w-3 mr-1" />
+                )}
+                Toggle Creator
+              </Button>
+              <Button
+                onClick={handleBulkExport}
+                disabled={bulkActionLoading}
+                size="sm"
+                variant="outline"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={handleSelectNone}
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+              >
+                Clear Selection
+              </Button>
             </div>
           </div>
+        )}
 
-          <div className="flex-1 overflow-y-auto px-4 py-2">
+        {/* Main User List - Flex grow to fill remaining space (matching subreddit review) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200/50 bg-gradient-to-r from-white/60 to-gray-50/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Users ({formatNumber(allUsers.length)}{hasNextPage ? '+' : ''})
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {usersLoading && allUsers.length === 0 ? 'Loading users...' :
+                     debouncedSearchTerm.trim() ? `Showing search results for "${debouncedSearchTerm}"` :
+                     `Showing ${allUsers.length} users${hasNextPage ? ' (scroll for more)' : ''}`}
+                  </p>
+                </div>
+                {allUsers.length > 0 && (
+                  <Button
+                    onClick={selectedUserIds.size === allUsers.length ? handleSelectNone : handleSelectAll}
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-300 hover:border-pink-300 hover:bg-pink-50/50"
+                  >
+                    <CheckSquare className="h-3 w-3 mr-1" />
+                    {selectedUserIds.size === allUsers.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/30">
             {usersError ? (
               <div className="text-center py-8">
                 <p className="text-gray-800">Error loading users. Please try again.</p>
@@ -527,10 +630,10 @@ export default function UserAnalysisPage() {
                     <div
                       key={user.id}
                       className={`
-                        group relative p-4 rounded-lg border transition-all duration-200 cursor-pointer
+                        group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer
                         ${isSelected
-                          ? 'bg-pink-50 border-pink-300 shadow-sm'
-                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm'
+                          ? 'bg-gradient-to-r from-pink-50/80 to-purple-50/80 border-pink-300 shadow-md ring-1 ring-pink-200/30'
+                          : 'bg-white/80 backdrop-blur-sm border-gray-200/70 hover:bg-white/95 hover:border-gray-300 hover:shadow-lg hover:scale-[1.01]'
                         }
                       `}
                     >
@@ -626,6 +729,7 @@ export default function UserAnalysisPage() {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
 
