@@ -373,27 +373,32 @@ export default function CreatorReviewPage() {
           <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
             <div className="space-y-6">
 
-              {/* Metrics Cards */}
-              <div className="mb-4">
-                <InstagramMetricsCards
-                  totalCreators={reviewCounts.total}
-                  pendingCount={reviewCounts.pending}
-                  approvedCount={reviewCounts.ok}
-                  nonRelatedCount={reviewCounts.non_related}
-                  loading={loading}
-                />
-              </div>
+              {/* Metrics Cards and Action Button Row */}
+              <div className="flex gap-3 mb-4">
+                {/* Metrics Cards - Made smaller */}
+                <div className="flex-1">
+                  <InstagramMetricsCards
+                    totalCreators={reviewCounts.total}
+                    pendingCount={reviewCounts.pending}
+                    approvedCount={reviewCounts.ok}
+                    nonRelatedCount={reviewCounts.non_related}
+                    loading={loading}
+                  />
+                </div>
 
-              {/* Action Button */}
-              <div className="mb-4">
-                <Button
-                  onClick={() => toast.info('Get related creators feature coming soon!')}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Get Related Creators
-                </Button>
+                {/* Action Button - Aligned with cards */}
+                <div className="flex items-stretch">
+                  <Button
+                    onClick={() => toast.info('Get related creators feature coming soon!')}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] h-auto min-h-[100px] px-6"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <UserPlus className="h-5 w-5" />
+                      <span className="text-sm font-medium">Get Related<br/>Creators</span>
+                    </div>
+                  </Button>
+                </div>
               </div>
 
               {/* Combined Toolbar: Search on left, Filters on right */}

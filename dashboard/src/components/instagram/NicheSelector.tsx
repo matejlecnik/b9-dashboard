@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import React, { useState, useEffect, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { ChevronDown, Check, Hash, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 interface NicheSelectorProps {
   creatorId: number
@@ -17,8 +19,6 @@ interface NicheSelectorProps {
   onNicheChange?: (niche: string | null) => void
   disabled?: boolean
 }
-
-const CLEAR_VALUE = '__UNNICHED__'
 
 export function NicheSelector({
   creatorId,
@@ -29,15 +29,23 @@ export function NicheSelector({
 }: NicheSelectorProps) {
   const [localNiche, setLocalNiche] = useState(currentNiche)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [newNicheInput, setNewNicheInput] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setLocalNiche(currentNiche)
   }, [currentNiche])
 
-  const handleNicheChange = async (value: string) => {
-    const newNiche = value === CLEAR_VALUE ? null : value
-    setLocalNiche(newNiche)
+  const handleNicheChange = async (niche: string | null) => {
+    if (niche === localNiche) {
+      setIsOpen(false)
+      return
+    }
+
+    setLocalNiche(niche)
     setIsUpdating(true)
+    setIsOpen(false)
 
     try {
       const supabase = createBrowserClient(
@@ -46,13 +54,13 @@ export function NicheSelector({
       )
       const { error } = await supabase
         .from('instagram_creators')
-        .update({ niche: newNiche })
+        .update({ niche })
         .eq('id', creatorId)
 
       if (error) throw error
 
       if (onNicheChange) {
-        onNicheChange(newNiche)
+        onNicheChange(niche)
       }
     } catch (error) {
       console.error('Error updating niche:', error)
@@ -63,34 +71,88 @@ export function NicheSelector({
     }
   }
 
-  const selectedValue = localNiche && localNiche.length > 0 ? localNiche : CLEAR_VALUE
+  const handleAddNewNiche = async () => {
+    const trimmedNiche = newNicheInput.trim()
+    if (!trimmedNiche) return
+
+    await handleNicheChange(trimmedNiche)
+    setNewNicheInput('')
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddNewNiche()
+    }
+  }
 
   return (
-    <Select
-      value={selectedValue}
-      onValueChange={handleNicheChange}
-      disabled={disabled || isUpdating}
-    >
-      <SelectTrigger 
-        className="h-8 text-xs font-medium border-gray-200 hover:bg-gray-50"
-        aria-label="Select niche"
-      >
-        <SelectValue>
-          {localNiche || (
-            <span className="text-gray-400">Un-niched</span>
-          )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="max-h-72">
-        <SelectItem value={CLEAR_VALUE} className="text-xs">
-          <span className="text-gray-400">Clear Niche</span>
-        </SelectItem>
-        {availableNiches.map((niche) => (
-          <SelectItem key={niche} value={niche} className="text-xs">
-            {niche}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={isOpen}
+          className="h-8 w-full justify-between text-xs font-medium border-gray-200 hover:bg-gray-50"
+          disabled={disabled || isUpdating}
+        >
+          <span className={cn(!localNiche && "text-gray-400")}>
+            {localNiche || "Un-niched"}
+          </span>
+          <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0 bg-white" align="start">
+        <div className="max-h-[300px] overflow-auto">
+          {/* Clear option */}
+          <button
+            className="relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none hover:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+            onClick={() => handleNicheChange(null)}
+          >
+            {!localNiche ? <Check className="mr-2 h-3 w-3" /> : <span className="mr-2 h-3 w-3" />}
+            <span className="text-gray-400">Clear Niche</span>
+          </button>
+
+          {/* Existing niches */}
+          {availableNiches.map((niche) => (
+            <button
+              key={niche}
+              className="relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none hover:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+              onClick={() => handleNicheChange(niche)}
+            >
+              {localNiche === niche ? <Check className="mr-2 h-3 w-3" /> : <span className="mr-2 h-3 w-3" />}
+              {niche}
+            </button>
+          ))}
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-1" />
+
+          {/* Add new niche input */}
+          <div className="p-2">
+            <div className="flex items-center gap-1">
+              <Input
+                ref={inputRef}
+                type="text"
+                placeholder="Add new niche..."
+                value={newNicheInput}
+                onChange={(e) => setNewNicheInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="h-7 text-xs flex-1"
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleAddNewNiche}
+                disabled={!newNicheInput.trim()}
+                className="h-7 w-7 p-0"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

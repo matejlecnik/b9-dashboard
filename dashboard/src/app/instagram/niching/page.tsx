@@ -605,6 +605,32 @@ export default function NichingPage() {
                   hasMore={hasMore}
                   loadingMore={loadingMore}
                   postsMetrics={postsMetrics}
+                  onUpdateReview={async (id, status) => {
+                    // Update review status
+                    try {
+                      const { error } = await supabase
+                        .from('instagram_creators')
+                        .update({
+                          review_status: status,
+                          reviewed_at: new Date().toISOString(),
+                          reviewed_by: 'admin'
+                        })
+                        .eq('id', id)
+
+                      if (error) {
+                        toast.error('Failed to update review status')
+                      } else {
+                        toast.success('Review status updated')
+                        // Update local state
+                        setCreators(prev => prev.map(c =>
+                          c.id === id ? { ...c, review_status: status } : c
+                        ))
+                      }
+                    } catch (error) {
+                      console.error('Error updating review:', error)
+                      toast.error('An error occurred')
+                    }
+                  }}
                   customColumns={[
                     {
                       key: 'niche',

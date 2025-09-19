@@ -34,7 +34,7 @@ import aiohttp
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+# Removed concurrent.futures - using raw threading.Thread like Reddit scraper
 from queue import Queue
 import random
 
@@ -121,8 +121,7 @@ class InstagramScraperUnified:
         # Create connection pool for reusing connections
         self.session = self._create_session_pool()
 
-        # Thread pool for concurrent processing
-        self.executor = ThreadPoolExecutor(max_workers=Config.MAX_WORKERS)
+        # Note: Using raw threading.Thread like Reddit scraper, not ThreadPoolExecutor
 
         # Rate limiting
         self.rate_limiter = threading.Semaphore(Config.REQUESTS_PER_SECOND)
@@ -1337,46 +1336,60 @@ class InstagramScraperUnified:
             logger.warning(f"Failed to update scraper status: {e}")
 
     def process_creators_concurrent(self, creators: List[Dict]):
-        """Process multiple creators concurrently with thread pool"""
-        futures = []
+        """Process multiple creators concurrently using raw threading.Thread (matches Reddit scraper)"""
+        threads = []
+        self.thread_results = {}  # Store results from threads
+        self.thread_errors = {}   # Store errors from threads
         successful = 0
         failed = 0
 
         # Log thread distribution
-        self._log_realtime("info", f"🔄 Distributing {len(creators)} creators across {Config.CONCURRENT_CREATORS} threads", {
+        self._log_realtime("info", f"🔄 Distributing {len(creators)} creators across threads (Reddit-style threading)", {
             "creators_count": len(creators),
-            "threads": Config.CONCURRENT_CREATORS,
+            "max_threads": Config.CONCURRENT_CREATORS,
             "target_rps": Config.REQUESTS_PER_SECOND
         })
 
-        with ThreadPoolExecutor(max_workers=Config.CONCURRENT_CREATORS, thread_name_prefix="Worker") as executor:
-            for i, creator in enumerate(creators):
-                # Submit creator processing to thread pool
-                # No should_continue check here - we process all creators in the batch
-                future = executor.submit(self.process_creator, creator)
-                futures.append((future, creator))
+        def process_creator_thread(creator_data, thread_name):
+            """Thread function to process a single creator"""
+            username = creator_data.get('username', 'Unknown')
+            try:
+                # Process the creator
+                result = self.process_creator(creator_data)
+                self.thread_results[username] = result
+                logger.debug(f"✅ [{thread_name}] Creator {username} processed successfully")
+            except Exception as e:
+                self.thread_errors[username] = str(e)
+                logger.error(f"❌ [{thread_name}] Creator {username} processing failed: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                self.errors.append({"creator": username, "error": str(e)})
 
-                # Small delay to avoid thundering herd
-                time.sleep(0.05)
+        # Create and start threads (batch them to respect CONCURRENT_CREATORS limit)
+        for i, creator in enumerate(creators):
+            # Wait if we've reached the concurrent limit
+            while len([t for t in threads if t.is_alive()]) >= Config.CONCURRENT_CREATORS:
+                time.sleep(0.1)  # Wait for a thread to finish
 
-            # Collect results as they complete
-            for i, (future, creator) in enumerate(futures):
-                username = creator.get('username', 'Unknown')
-                try:
-                    result = future.result(timeout=120)  # 2 minute timeout per creator
-                    if result:
-                        successful += 1
-                        logger.debug(f"✅ Creator {username} processed successfully")
-                except FuturesTimeoutError:
-                    failed += 1
-                    logger.error(f"⏱️ Timeout processing creator {username} (exceeded 120s)")
-                    self.errors.append({"creator": username, "error": "Processing timeout"})
-                except Exception as e:
-                    failed += 1
-                    logger.error(f"❌ Creator {username} processing failed: {e}")
-                    import traceback
-                    logger.error(f"Traceback: {traceback.format_exc()}")
-                    self.errors.append({"creator": username, "error": str(e)})
+            thread_name = f"InstagramThread-{i}"
+            thread = threading.Thread(
+                target=process_creator_thread,
+                args=(creator, thread_name),
+                name=thread_name
+            )
+            threads.append(thread)
+            thread.start()
+
+            # Small delay to avoid thundering herd
+            time.sleep(0.05)
+
+        # Wait for all threads to complete (like Reddit scraper does)
+        for thread in threads:
+            thread.join()
+
+        # Count results
+        successful = len(self.thread_results)
+        failed = len(self.thread_errors)
 
         logger.info(f"\n📊 Batch Results: {successful} successful, {failed} failed out of {len(creators)} creators")
 
