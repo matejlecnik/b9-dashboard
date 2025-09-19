@@ -553,7 +553,6 @@ class InstagramScraperUnified:
                     "profile_pic_url": data.get("profile_pic_url_hd") or data.get("profile_pic_url", ""),
                     "is_business_account": data.get("is_business_account", False),
                     "is_professional_account": data.get("is_professional_account", False),
-                    "category_name": data.get("category_name", ""),
                     "external_url": data.get("external_url", ""),
                     "has_clips": data.get("has_clips", False),
                     "full_name": data.get("full_name", ""),
