@@ -250,13 +250,24 @@ class ContinuousInstagramScraper:
                     }).eq('script_name', 'instagram_scraper').execute()
                     raise
 
-            # Run the scraping synchronously (like Reddit scraper does - no threading)
-            logger.info("Starting Instagram scraper run() method (synchronous, no threading)...")
+            # Create control checker function (like Reddit scraper)
+            async def control_checker():
+                """Check if scraper should continue running"""
+                try:
+                    result = self.supabase.table('system_control').select('enabled').eq('script_name', 'instagram_scraper').execute()
+                    if result.data and len(result.data) > 0:
+                        return result.data[0].get('enabled', False)
+                    return False
+                except Exception as e:
+                    logger.error(f"Error checking control status: {e}")
+                    return False
+
+            # Run the scraping with async/await (matches Reddit scraper architecture)
+            logger.info("Starting Instagram scraper async run() method...")
             try:
-                # Run synchronously without threading - matches Reddit scraper architecture
-                # This eliminates the threading issues that were causing hangs
-                self.scraper.run()
-                logger.info("✅ Instagram scraper run() method completed successfully")
+                # Run with await - exactly like Reddit scraper does
+                await self.scraper.run(control_checker=control_checker)
+                logger.info("✅ Instagram scraper async run() method completed successfully")
 
             except Exception as e:
                 logger.error(f"❌ Error in scraper run() method: {e}")

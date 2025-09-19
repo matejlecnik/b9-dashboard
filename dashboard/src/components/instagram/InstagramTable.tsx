@@ -33,6 +33,13 @@ interface InstagramCreator {
   avg_likes_per_post?: number | null
 }
 
+interface CustomColumn {
+  key: string
+  label: string
+  width?: string
+  render: (creator: InstagramCreator) => React.ReactNode
+}
+
 interface InstagramTableProps {
   creators: InstagramCreator[]
   loading: boolean
@@ -45,6 +52,7 @@ interface InstagramTableProps {
   loadingMore?: boolean
   className?: string
   postsMetrics?: Map<string, { avgLikes: number, avgComments: number }>
+  customColumns?: CustomColumn[]
 }
 
 const formatNumber = (num: number | null | undefined): string => {
@@ -65,7 +73,8 @@ const InstagramTable = memo(function InstagramTable({
   hasMore = false,
   loadingMore = false,
   className,
-  postsMetrics
+  postsMetrics,
+  customColumns = []
 }: InstagramTableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -266,9 +275,16 @@ const InstagramTable = memo(function InstagramTable({
           )}
         </div>
 
+        {/* Custom Columns */}
+        {customColumns.map((column) => (
+          <div key={column.key} className={cn(column.width || 'w-40', 'px-2')}>
+            {column.render(creator)}
+          </div>
+        ))}
+
         {/* Review buttons */}
-        <div className="w-52 px-2">
-          {onUpdateReview && (
+        {onUpdateReview && (
+          <div className="w-52 px-2">
             <div className="flex gap-1">
               {[
                 { label: 'Approve', value: 'ok' as const },
@@ -295,8 +311,8 @@ const InstagramTable = memo(function InstagramTable({
                 )
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
       </div>
     )
@@ -339,7 +355,12 @@ const InstagramTable = memo(function InstagramTable({
         <div className="w-28 text-center px-2">Followers</div>
         <div className="w-28 text-center px-2">Avg Views/Reel</div>
         <div className="w-28 text-center px-2">Avg Likes/Post</div>
-        <div className="w-52 px-2">Review Status</div>
+        {customColumns.map((column) => (
+          <div key={column.key} className={cn(column.width || 'w-40', 'px-2')}>
+            {column.label}
+          </div>
+        ))}
+        {onUpdateReview && <div className="w-52 px-2">Review Status</div>}
         <div className="flex-1 flex justify-end pr-4">
           <span className="text-xs text-gray-400">
             {creators.length.toLocaleString()} results
@@ -386,4 +407,4 @@ const InstagramTable = memo(function InstagramTable({
 })
 
 export { InstagramTable }
-export type { InstagramCreator, InstagramTableProps }
+export type { InstagramCreator, InstagramTableProps, CustomColumn }

@@ -1380,11 +1380,11 @@ class InstagramScraperUnified:
 
         logger.info(f"\n📊 Batch Results: {successful} successful, {failed} failed out of {len(creators)} creators")
 
-    def run(self):
-        """Main execution method - runs a single cycle"""
+    async def run(self, control_checker=None):
+        """Main execution method - runs a single cycle (async version matching Reddit scraper)"""
         import threading
         thread_id = threading.current_thread().ident
-        logger.info(f"🧵 THREAD {thread_id}: Entering Instagram scraper run() method")
+        logger.info(f"🧵 THREAD {thread_id}: Entering Instagram scraper async run() method")
 
         # Wrap ENTIRE method in try-finally for thread safety
         try:
@@ -1407,16 +1407,20 @@ class InstagramScraperUnified:
             # Update status to running
             self.update_scraper_status("running")
 
-            # Initial check
-            initial_continue = self.should_continue()
-            logger.info(f"Initial should_continue() check: {initial_continue}")
+            # Initial check using control_checker if provided, otherwise use internal method
+            if control_checker:
+                initial_continue = await control_checker()
+            else:
+                initial_continue = self.should_continue()
+            logger.info(f"Initial control check: {initial_continue}")
 
             if not initial_continue:
                 logger.warning("Scraper is disabled, exiting")
                 return
 
             # Process a single cycle (continuous_instagram_scraper.py will handle the loop)
-            if self.should_continue():
+            should_continue = await control_checker() if control_checker else self.should_continue()
+            if should_continue:
                 self.cycle_number += 1
                 self.cycle_start_time = datetime.now(timezone.utc)
 
@@ -1480,8 +1484,9 @@ class InstagramScraperUnified:
                         })
 
                         # Process all creators at once using concurrent processing
+                        # Use asyncio.to_thread to run the synchronous method in a thread pool
                         try:
-                            self.process_creators_concurrent(creators)
+                            await asyncio.to_thread(self.process_creators_concurrent, creators)
                             processed_count = len(creators)
 
                             # Log completion
@@ -1558,7 +1563,6 @@ class InstagramScraperUnified:
                         logger.info(f"API Calls Made: {self.api_calls_made}")
                         logger.info(f"Successful Calls: {self.successful_calls} ({success_rate:.1f}% success rate)")
                         logger.info(f"Failed Calls: {self.failed_calls}")
-                        logger.info(f"Failed Batches: {failed_batches}")
                         logger.info(f"Average Calls per Creator: {avg_calls_per_creator:.1f}")
                         logger.info(f"Total Cost: ${total_cost:.2f}")
                         logger.info(f"Cycle Duration: {cycle_duration:.1f} seconds ({cycle_duration/60:.1f} minutes)")
@@ -1621,11 +1625,11 @@ class InstagramScraperUnified:
             return
 
 
-def main():
+async def main():
     """Main entry point"""
     try:
         scraper = InstagramScraperUnified()
-        scraper.run()
+        await scraper.run()
     except KeyboardInterrupt:
         logger.info("Scraper interrupted by user")
         sys.exit(0)
@@ -1635,4 +1639,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
