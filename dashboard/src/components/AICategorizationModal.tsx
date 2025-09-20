@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { X, Sparkles, Info, Terminal } from 'lucide-react'
+import { X, Sparkles, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useToast } from '@/components/ui/toast'
+import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 
 interface AICategorizationModalProps {
   isOpen: boolean
@@ -50,7 +51,6 @@ export function AICategorizationModal({
   })
   
   const [estimatedCost, setEstimatedCost] = useState(0)
-  const [showLogs, setShowLogs] = useState(false)
   
   // Update limit when uncategorizedCount changes
   useEffect(() => {
@@ -60,12 +60,6 @@ export function AICategorizationModal({
     }))
   }, [uncategorizedCount])
   
-  // Auto-show logs when processing starts or logs are added
-  useEffect(() => {
-    if (isProcessing || logs.length > 0) {
-      setShowLogs(true)
-    }
-  }, [isProcessing, logs.length])
   
   // Calculate estimated cost (GPT-4 actual pricing based on real usage)
   useEffect(() => {
@@ -189,15 +183,6 @@ export function AICategorizationModal({
                       step={10}
                       className="w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-pink-500 [&_[role=slider]]:to-purple-500 [&_[role=slider]]:border-0 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-pink-500/20 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[data-orientation]]:bg-gray-200 [&_[data-orientation]_span]:bg-gradient-to-r [&_[data-orientation]_span]:from-pink-500 [&_[data-orientation]_span]:to-purple-500"
                     />
-
-                    {/* Tick marks for quarters */}
-                    <div className="flex justify-between mt-1 px-2">
-                      <span className="text-[9px] text-gray-400">1</span>
-                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.25)}</span>
-                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.5)}</span>
-                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.75)}</span>
-                      <span className="text-[9px] text-gray-400">{uncategorizedCount}</span>
-                    </div>
                   </div>
 
                   {/* Quick select buttons */}
@@ -259,56 +244,32 @@ export function AICategorizationModal({
                 </div>
               </div>
               
-              {/* Logs Section - Show when processing or has logs */}
+              {/* Live Logs Section - Show when processing or has logs */}
               {(isProcessing || logs.length > 0) && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
-                      <Terminal className="h-3 w-3 text-pink-500" />
-                      Processing Logs
-                    </h3>
-                    <button
-                      onClick={() => setShowLogs(!showLogs)}
-                      className="text-[10px] text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      {showLogs ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                  {showLogs && (
-                    <div 
-                      className="rounded-lg p-3 font-mono text-[11px] space-y-1 max-h-48 overflow-y-auto"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.95))',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(75, 85, 99, 0.3)',
-                        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)'
-                      }}
-                    >
-                      {logs.length > 0 ? (
-                        logs.map((log, index) => {
-                          // Style different log types
-                          let logClass = "text-gray-300"
-                          if (log.includes('✅') || log.includes('✓')) logClass = "text-green-400"
-                          else if (log.includes('❌') || log.includes('✗') || log.includes('Error')) logClass = "text-red-400"
-                          else if (log.includes('📊') || log.includes('💰')) logClass = "text-blue-400"
-                          else if (log.includes('API Response')) logClass = "text-yellow-400"
-                          else if (log.includes('→')) logClass = "text-purple-400"
-                          
-                          return (
-                            <div key={index} className={logClass}>
-                              {!log.startsWith(' ') && (
-                                <span className="text-pink-400 mr-1">[{new Date().toLocaleTimeString()}]</span>
-                              )}
+                  <LogViewerSupabase
+                    title="Processing Logs"
+                    height="200px"
+                    autoScroll={true}
+                    refreshInterval={2000}
+                    maxLogs={50}
+                    useSystemLogs={true}
+                    sourceFilter="reddit_tagger"
+                  />
+
+                  {/* Show local logs as fallback if any exist */}
+                  {logs.length > 0 && (
+                    <div className="text-[10px] text-gray-500 px-2">
+                      <details>
+                        <summary className="cursor-pointer hover:text-gray-700">Local logs ({logs.length})</summary>
+                        <div className="mt-1 space-y-0.5 max-h-20 overflow-y-auto">
+                          {logs.map((log, index) => (
+                            <div key={index} className="text-gray-600 font-mono">
                               {log}
                             </div>
-                          )
-                        })
-                      ) : (
-                        <div className="text-gray-400 flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-400" />
-                          Waiting for response...
+                          ))}
                         </div>
-                      )}
+                      </details>
                     </div>
                   )}
                 </div>
