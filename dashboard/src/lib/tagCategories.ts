@@ -40,6 +40,7 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: 'focus:pussy', label: 'Pussy', category: 'focus' },
       { value: 'focus:legs', label: 'Legs', category: 'focus' },
       { value: 'focus:thighs', label: 'Thighs', category: 'focus' },
+      { value: 'focus:feet', label: 'Feet', category: 'focus' },
       { value: 'focus:face', label: 'Face', category: 'focus' },
       { value: 'focus:belly', label: 'Belly', category: 'focus' },
       { value: 'focus:curves', label: 'Curves', category: 'focus' },

@@ -34,12 +34,12 @@ class TagCategorizationResult:
 class TagCategorizationService:
     """AI-powered multi-tag subreddit categorization service"""
 
-    # New simplified tag structure (83 tags total - removed duplicates)
+    # New simplified tag structure (84 tags total - removed duplicates, kept focus:feet)
     TAG_STRUCTURE = {
         "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm",
                  "amateur", "verified", "sellers", "cnc", "voyeur",
                  "rating", "general"],
-        "focus": ["breasts", "ass", "pussy", "legs", "thighs", "face", "belly",
+        "focus": ["breasts", "ass", "pussy", "legs", "thighs", "feet", "face", "belly",
                  "curves", "full_body"],
         "body": ["petite", "slim", "athletic", "average", "curvy", "thick", "slim_thick",
                 "bbw", "ssbbw"],
@@ -87,7 +87,7 @@ class TagCategorizationService:
         return valid_tags
 
     def _generate_complete_tag_reference(self) -> str:
-        """Generate complete list of all available tags - shows ALL 83 tags"""
+        """Generate complete list of all available tags - shows ALL 84 tags"""
         lines = []
         category_names = {
             "niche": "CONTENT/NICHE",

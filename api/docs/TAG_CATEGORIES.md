@@ -8,7 +8,7 @@ Tags follow the format: `category:value` or `category:subcategory`
 
 Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
-## Complete Tag Hierarchy (83 Total Tags)
+## Complete Tag Hierarchy (84 Total Tags)
 
 ### 1️⃣ CONTENT/NICHE (14 tags)
 *Primary content type or niche focus*
@@ -28,7 +28,7 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `niche:rating` - Rating/feedback subs
 - `niche:general` - General NSFW content
 
-### 2️⃣ BODY FOCUS (9 tags)
+### 2️⃣ BODY FOCUS (10 tags)
 *Primary body part emphasis*
 
 - `focus:breasts` - Breast/chest focused
@@ -36,6 +36,7 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `focus:pussy` - Pussy focused
 - `focus:legs` - Legs focused
 - `focus:thighs` - Thigh specific
+- `focus:feet` - Feet focused
 - `focus:face` - Face/portrait focused
 - `focus:belly` - Belly/tummy focused
 - `focus:curves` - Overall curves emphasis
@@ -222,6 +223,6 @@ All existing tags in the database will be cleared and recategorized using this n
 ---
 
 *Last Updated: January 2025*
-*Total Tags: 83*
+*Total Tags: 84*
 *Categories: 11*
 *Tags per Subreddit: 1-2 (prefer 1)*
