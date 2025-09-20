@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     console.log('🎯 Starting tag categorization:', { batch_size, limit })
 
     // Call the Python backend API for tag categorization
-    const apiUrl = `${RENDER_API_URL}/api/categorization/tags/start`
+    const apiUrl = `${RENDER_API_URL}/api/categorization/start`
     console.log('📡 Calling Render API:', apiUrl)
 
     const response = await fetch(apiUrl, {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        batch_size,
+        batchSize: batch_size,
         limit
       }),
       signal: AbortSignal.timeout(300000), // 5 minute timeout for batch processing

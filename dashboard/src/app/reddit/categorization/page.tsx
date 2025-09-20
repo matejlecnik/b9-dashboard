@@ -101,25 +101,47 @@ export default function CategorizationPage() {
     setRulesModal({ isOpen: true, subreddit })
   }, [])
 
-  // Load available categories once
+  // Load available categories from actual subreddit data
   useEffect(() => {
     let isMounted = true
     ;(async () => {
       try {
-        const res = await fetch('/api/categories?limit=1000')
-        if (!res.ok) return
-        const json = await res.json()
-        const rawNames: string[] = (((json?.categories as Array<{ name?: unknown }> | undefined) ?? [])
-          .map((c) => c?.name)
-          .filter((n: unknown): n is string => typeof n === 'string' && n.trim().length > 0)) as string[]
-        const uniqueNames: string[] = Array.from(new Set<string>(rawNames))
-        const names: string[] = uniqueNames.sort((a: string, b: string) => a.localeCompare(b))
-        if (isMounted && names.length > 0) {
+        // Fetch unique primary_category values directly from Supabase
+        if (!supabase) {
+          console.error('Supabase client not initialized')
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('reddit_subreddits')
+          .select('primary_category')
+          .eq('review', 'Ok')
+          .not('primary_category', 'is', null)
+          .neq('primary_category', '')
+
+        if (error) {
+          console.error('Failed to fetch categories:', error)
+          return
+        }
+
+        // Extract unique categories
+        const uniqueCategories = new Set<string>()
+        data?.forEach(item => {
+          if (item.primary_category && item.primary_category.trim()) {
+            uniqueCategories.add(item.primary_category.trim())
+          }
+        })
+
+        const categoriesArray = Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b))
+
+        if (isMounted && categoriesArray.length > 0) {
           React.startTransition(() => {
-            setAvailableCategories(names)
+            setAvailableCategories(categoriesArray)
           })
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error loading categories:', error)
+      }
     })()
     return () => { isMounted = false }
   }, [])
@@ -376,20 +398,153 @@ export default function CategorizationPage() {
     })
   }, [subreddits, handleAsyncOperation, addToast, selectedCategories, undoLastAction])
 
-  // Update category for single subreddit
-  const updateCategory = useCallback(async (id: number, categoryText: string) => {
+  // Update tags for a subreddit
+  const updateTags = useCallback(async (id: number, oldTag: string, newTag: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
-    
+    if (!subreddit || !subreddit.tags) return
+
     await handleAsyncOperation(async () => {
       if (!supabase) {
         throw new Error('Supabase client not initialized')
       }
-      
+
+      // Update the tags array
+      const newTags = subreddit.tags!.map(tag => tag === oldTag ? newTag : tag)
+
       const { error } = await supabase
         .from('reddit_subreddits')
-        .update({ primary_category: categoryText })
+        .update({ tags: newTags })
         .eq('id', id)
-      if (error) throw new Error(`Failed to update category: ${error.message}`)
+
+      if (error) throw new Error(`Failed to update tag: ${error.message}`)
+      return { subreddit, newTags }
+    }, {
+      context: 'tag_update',
+      showToast: false,
+      onSuccess: ({ subreddit, newTags }) => {
+        // Optimistic update
+        setSubreddits(prev => prev.map(sub =>
+          sub.id === id
+            ? { ...sub, tags: newTags }
+            : sub
+        ))
+
+        addToast({
+          type: 'success',
+          title: 'Tag Updated',
+          description: `Updated tag for ${subreddit.display_name_prefixed}`,
+          duration: 2000
+        })
+      }
+    })
+  }, [subreddits, handleAsyncOperation, addToast])
+
+  // Remove tag from a subreddit
+  const removeTag = useCallback(async (id: number, tagToRemove: string) => {
+    const subreddit = subreddits.find(sub => sub.id === id)
+    if (!subreddit || !subreddit.tags) return
+
+    await handleAsyncOperation(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+
+      // Filter out the tag
+      const newTags = subreddit.tags!.filter(tag => tag !== tagToRemove)
+
+      const { error } = await supabase
+        .from('reddit_subreddits')
+        .update({ tags: newTags })
+        .eq('id', id)
+
+      if (error) throw new Error(`Failed to remove tag: ${error.message}`)
+      return { subreddit, newTags }
+    }, {
+      context: 'tag_remove',
+      showToast: false,
+      onSuccess: ({ subreddit, newTags }) => {
+        // Optimistic update
+        setSubreddits(prev => prev.map(sub =>
+          sub.id === id
+            ? { ...sub, tags: newTags }
+            : sub
+        ))
+
+        addToast({
+          type: 'success',
+          title: 'Tag Removed',
+          description: `Removed tag from ${subreddit.display_name_prefixed}`,
+          duration: 2000
+        })
+      }
+    })
+  }, [subreddits, handleAsyncOperation, addToast])
+
+  // Add tag to subreddit
+  const addTag = useCallback(async (id: number, tagToAdd: string) => {
+    const subreddit = subreddits.find(sub => sub.id === id)
+    if (!subreddit) return
+
+    await handleAsyncOperation(async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
+
+      // Add the new tag to existing tags
+      const currentTags = subreddit.tags || []
+      if (currentTags.includes(tagToAdd)) {
+        throw new Error('Tag already exists')
+      }
+
+      const newTags = [...currentTags, tagToAdd]
+
+      const { error } = await supabase
+        .from('reddit_subreddits')
+        .update({ tags: newTags })
+        .eq('id', id)
+
+      if (error) throw new Error(`Failed to add tag: ${error.message}`)
+      return { subreddit, newTags }
+    }, {
+      context: 'tag_add',
+      showToast: false,
+      onSuccess: ({ subreddit, newTags }) => {
+        // Optimistic update
+        setSubreddits(prev => prev.map(sub =>
+          sub.id === id
+            ? { ...sub, tags: newTags }
+            : sub
+        ))
+
+        addToast({
+          type: 'success',
+          title: 'Tag Added',
+          description: `Added tag to ${subreddit.display_name_prefixed}`,
+          duration: 2000
+        })
+      }
+    })
+  }, [subreddits, handleAsyncOperation, addToast])
+
+  // Update category for single subreddit - using API endpoint for consistency
+  const updateCategory = useCallback(async (id: number, categoryText: string) => {
+    const subreddit = subreddits.find(sub => sub.id === id)
+
+    await handleAsyncOperation(async () => {
+      const response = await fetch(`/api/subreddits/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ primary_category: categoryText })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to update category')
+      }
+
       return { subreddit, categoryText }
     }, {
       context: 'category_update',
@@ -433,21 +588,27 @@ export default function CategorizationPage() {
             categorized: Math.max(0, prev.categorized + (nowCategorized ? 1 : -1))
           }))
         }
-        
-        addToast({ 
-          type: 'success', 
-          title: categoryText.trim() === '' ? 'Category Cleared' : 'Category Updated', 
+
+        addToast({
+          type: 'success',
+          title: categoryText.trim() === '' ? 'Category Cleared' : 'Category Updated',
           description: categoryText.trim() === ''
             ? `${subreddit?.display_name_prefixed} set to Uncategorized`
-            : `${subreddit?.display_name_prefixed} assigned to ${categoryText}`, 
-          duration: 3000 
+            : `${subreddit?.display_name_prefixed} assigned to ${categoryText}`,
+          duration: 3000
         })
       },
-      onError: () => { 
-        fetchSubreddits(0, false)
+      onError: () => {
+        // Don't refetch all data on error - let user retry
+        addToast({
+          type: 'error',
+          title: 'Update Failed',
+          description: `Failed to update category for ${subreddit?.display_name_prefixed}. Please try again.`,
+          duration: 5000
+        })
       }
     })
-  }, [subreddits, handleAsyncOperation, selectedCategories, addToast, fetchSubreddits])
+  }, [subreddits, handleAsyncOperation, selectedCategories, addToast])
 
   // Handle opening AI categorization modal
   const handleCategorizeAll = useCallback(() => {
@@ -658,22 +819,33 @@ export default function CategorizationPage() {
     }
   }, [addToast, fetchSubreddits])
 
-  // Bulk category update
+  // Bulk category update - also using API endpoint for consistency
   const updateBulkCategory = useCallback(async (categoryText: string) => {
     const selectedIds = Array.from(selectedSubreddits)
     if (selectedIds.length === 0) return
-    
+
     await handleAsyncOperation(async () => {
-      if (!supabase) {
-        throw new Error('Supabase client not initialized')
+      // Update each selected subreddit via API
+      const updatePromises = selectedIds.map(id =>
+        fetch(`/api/subreddits/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ primary_category: categoryText })
+        }).then(res => res.json())
+      )
+
+      const results = await Promise.allSettled(updatePromises)
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+
+      if (successCount === 0) {
+        throw new Error('All updates failed')
+      } else if (successCount < selectedIds.length) {
+        console.warn(`Only ${successCount} of ${selectedIds.length} updates succeeded`)
       }
-      
-      const { error } = await supabase
-        .from('reddit_subreddits')
-        .update({ primary_category: categoryText })
-        .in('id', selectedIds)
-      if (error) throw new Error(`Failed to update categories: ${error.message}`)
-      return { count: selectedIds.length, categoryText }
+
+      return { count: successCount, categoryText }
     }, {
       context: 'bulk_category_update',
       showToast: false,
@@ -684,24 +856,29 @@ export default function CategorizationPage() {
             ? { ...sub, primary_category: categoryText }
             : sub
         ))
-        
+
         // Clear selection
         setSelectedSubreddits(new Set())
-        
-        addToast({ 
-          type: 'success', 
-          title: 'Bulk Update Complete', 
+
+        addToast({
+          type: 'success',
+          title: 'Bulk Update Complete',
           description: (categoryText || '').trim() === ''
             ? `${count} subreddits set to Uncategorized`
-            : `${count} subreddits assigned to ${categoryText}`, 
-          duration: 3000 
+            : `${count} subreddits assigned to ${categoryText}`,
+          duration: 3000
         })
       },
-      onError: () => { 
-        fetchSubreddits(0, false)
+      onError: () => {
+        addToast({
+          type: 'error',
+          title: 'Bulk Update Failed',
+          description: 'Failed to update categories. Please try again.',
+          duration: 5000
+        })
       }
     })
-  }, [selectedSubreddits, handleAsyncOperation, addToast, fetchSubreddits])
+  }, [selectedSubreddits, handleAsyncOperation, addToast])
 
   // Simplified data loading on mount and filter changes
   useEffect(() => {
@@ -918,6 +1095,9 @@ export default function CategorizationPage() {
                     setSelectedSubreddits,
                     onUpdateCategory: updateCategory,
                     onUpdateReview: updateReview,
+                    onUpdateTags: updateTags,
+                    onRemoveTag: removeTag,
+                    onAddTag: addTag,
                     availableCategories,
                     loading,
                     hasMore,

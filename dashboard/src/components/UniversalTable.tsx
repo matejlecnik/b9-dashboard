@@ -6,6 +6,7 @@ import { type Subreddit } from '@/lib/supabase/index'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CategorySelector } from '@/components/CategorySelector'
+import { TagsDisplay } from '@/components/TagsDisplay'
 import { cn } from '@/lib/utils'
 import { BookOpen, BadgeCheck } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
@@ -37,17 +38,20 @@ interface UniversalTableProps {
   // Core data
   subreddits: Subreddit[]
   loading: boolean
-  
+
   // Selection
   selectedSubreddits?: Set<number>
   setSelectedSubreddits?: (ids: Set<number>) => void
   allowSelectionInReview?: boolean
-  
+
   // Update handlers
   onUpdateCategory?: (id: number, categoryText: string) => void
   onBulkUpdateCategory?: (categoryText: string) => void
   onUpdateReview?: (id: number, reviewText: string) => void
   onBulkUpdateReview?: (reviewText: string) => void
+  onUpdateTags?: (id: number, oldTag: string, newTag: string) => void
+  onRemoveTag?: (id: number, tag: string) => void
+  onAddTag?: (id: number, tag: string) => void
   
   // Mode and behavior
   mode?: TableMode
@@ -146,11 +150,14 @@ export const UniversalTable = memo(function UniversalTable({
   selectedSubreddits = new Set(),
   setSelectedSubreddits,
   allowSelectionInReview = false,
-  
+
   // Update handlers
   onUpdateCategory,
   onUpdateReview,
-  
+  onUpdateTags,
+  onRemoveTag,
+  onAddTag,
+
   // Mode and behavior
   mode = 'category',
   
@@ -545,43 +552,14 @@ export const UniversalTable = memo(function UniversalTable({
             </div>
 
             {/* Tags column */}
-            <div className="w-64 px-2">
-              <div className="flex flex-wrap gap-1">
-                {subreddit.tags && subreddit.tags.length > 0 ? (
-                  <>
-                    {subreddit.tags.slice(0, 3).map((tag, index) => {
-                      // Format tag from "category:subcategory:detail" to readable format
-                      const parts = tag.split(':')
-                      const displayText = parts.length > 1 ? parts.slice(1).join(' • ') : tag
-
-                      return (
-                        <span
-                          key={index}
-                          className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium",
-                            "bg-gradient-to-r from-pink-50 to-purple-50 text-pink-700 border border-pink-200",
-                            compactMode && "px-1.5 py-0 text-[10px]"
-                          )}
-                          title={tag}
-                        >
-                          {displayText}
-                        </span>
-                      )
-                    })}
-                    {subreddit.tags.length > 3 && (
-                      <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium",
-                        "bg-gray-100 text-gray-600",
-                        compactMode && "px-1.5 py-0 text-[10px]"
-                      )}>
-                        +{subreddit.tags.length - 3} more
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-gray-400">No tags</span>
-                )}
-              </div>
+            <div className="w-96 px-2">
+              <TagsDisplay
+                tags={subreddit.tags || []}
+                compactMode={compactMode}
+                onTagUpdate={onUpdateTags ? (oldTag, newTag) => onUpdateTags(subreddit.id, oldTag, newTag) : undefined}
+                onTagRemove={onRemoveTag ? (tag) => onRemoveTag(subreddit.id, tag) : undefined}
+                onAddTag={onAddTag ? (tag) => onAddTag(subreddit.id, tag) : undefined}
+              />
             </div>
           </>
         )}
