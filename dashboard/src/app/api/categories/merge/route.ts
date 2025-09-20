@@ -228,7 +228,7 @@ export async function POST(request: Request) {
           .from('reddit_subreddits')
           .update({
             category_id: (targetCategory as CategoryRow).id,
-            category_text: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
+            primary_category: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
           })
           .eq('category_id', sourceCategory.id)
           .select('id')
@@ -239,24 +239,24 @@ export async function POST(request: Request) {
           subredditsUpdated += subredditsByIdUpdate?.length || 0
         }
 
-        // Update legacy subreddits by category_text
-        const { data: subredditsByTextUpdate, error: subredditsByTextError } = await supabase
+        // Update subreddits by primary_category
+        const { data: subredditsByPrimaryUpdate, error: subredditsByPrimaryError } = await supabase
           .from('reddit_subreddits')
           .update({
             category_id: (targetCategory as CategoryRow).id,
-            category_text: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
+            primary_category: new_name ? normalizeCategoryName(new_name) : (targetCategory as CategoryRow).name
           })
-          .ilike('category_text', sourceCategory.name)
+          .ilike('primary_category', sourceCategory.name)
           .is('category_id', null)
           .select('id')
 
-        if (subredditsByTextError) {
+        if (subredditsByPrimaryError) {
           console.warn(
-            `Error updating legacy subreddits for category ${sourceCategory.name}:`,
-            subredditsByTextError
+            `Error updating subreddits by primary_category for ${sourceCategory.name}:`,
+            subredditsByPrimaryError
           )
         } else {
-          subredditsUpdated += Array.isArray(subredditsByTextUpdate) ? subredditsByTextUpdate.length : 0
+          subredditsUpdated += Array.isArray(subredditsByPrimaryUpdate) ? subredditsByPrimaryUpdate.length : 0
         }
 
         totalSubredditsUpdated += subredditsUpdated

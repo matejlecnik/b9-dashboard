@@ -28,6 +28,7 @@ import { useToast } from '@/components/ui/toast'
 import { supabase } from '@/lib/supabase/index'
 import type { Subreddit, Post } from '@/lib/supabase/index'
 import { getCategoryStyles } from '@/lib/colors'
+import { TagsDisplay } from '@/components/TagsDisplay'
 
 interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
   recent_posts?: Post[]
@@ -55,6 +56,7 @@ interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
     }>
   }
   verification_required?: boolean | null
+  tags?: string[] | null // Override to ensure it's treated as an array
 }
 
 interface ExtendedPost extends Post {
@@ -78,6 +80,7 @@ interface DiscoveryTableProps {
   selectedCategories?: string[]
   availableCategories?: string[]
   sfwOnly?: boolean
+  onUpdate?: (id: number, updates: Partial<SubredditWithPosts>) => void
 }
 
 interface PostGridProps {
@@ -253,9 +256,12 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
 export const DiscoveryTable = memo(function DiscoveryTable({
   subreddits,
   loading = false,
+  onLoadMore,
+  hasMore = false,
   selectedCategories = [],
   availableCategories = [],
-  sfwOnly = false
+  sfwOnly = false,
+  onUpdate
 }: DiscoveryTableProps) {
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
@@ -289,29 +295,12 @@ export const DiscoveryTable = memo(function DiscoveryTable({
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-      // Build query with filters
-      let query = supabase
+      // Fetch posts without category filtering since all shown subreddits are already filtered
+      const { data: posts, error } = await supabase
         .from('reddit_posts')
         .select('*')
         .eq('subreddit_name', subredditName)
         .gte('created_utc', thirtyDaysAgo.toISOString())
-
-      // Apply category filter using the new sub_primary_category field
-      if (selectedCategories.length === 0) {
-        // Show only uncategorized
-        query = query.or('sub_primary_category.is.null,sub_primary_category.eq.')
-      } else if (selectedCategories.length < availableCategories.length) {
-        // Show only selected categories
-        query = query.in('sub_primary_category', selectedCategories)
-      }
-      // If all categories selected, no additional filter needed
-
-      // Apply SFW filter using the new sub_over18 field
-      if (sfwOnly) {
-        query = query.eq('sub_over18', false)
-      }
-
-      const { data: posts, error } = await query
         .order('score', { ascending: false })
         .limit(10)
 
@@ -503,35 +492,107 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                       
                       {/* Rules Button with spacing */}
                       <div className="px-1">
-                        <button
-                          onClick={() => {
-                            const hasRulesData = subreddit.rules_data && 
-                              typeof subreddit.rules_data === 'object' && (
-                                (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
-                                (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data && 
-                                 Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
-                              )
-                            
-                            if (hasRulesData) {
-                              handleShowRules(subreddit)
-                            } else {
-                              const confirmOpen = window.confirm(
-                                `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
-                              )
-                              if (confirmOpen) {
-                                window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
-                              }
-                            }
-                          }}
-                          className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
-                          title="View Rules"
-                        >
-                          <BookOpen className="h-3.5 w-3.5 text-b9-pink" />
-                        </button>
+                        {(() => {
+                          const hasRulesData = subreddit.rules_data &&
+                            typeof subreddit.rules_data === 'object' && (
+                              (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
+                              (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
+                               Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
+                            )
+
+                          return (
+                            <button
+                              onClick={() => {
+                                if (hasRulesData) {
+                                  handleShowRules(subreddit)
+                                } else {
+                                  const confirmOpen = window.confirm(
+                                    `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
+                                  )
+                                  if (confirmOpen) {
+                                    window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
+                                  }
+                                }
+                              }}
+                              className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
+                              title="View Rules"
+                            >
+                              <BookOpen className={`h-3.5 w-3.5 ${hasRulesData ? 'text-b9-pink' : 'text-gray-300'}`} />
+                            </button>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Tags Display - Two Small Rows */}
+                  <div className="mb-1.5">
+                    <TagsDisplay
+                      tags={Array.isArray(subreddit.tags) ? subreddit.tags : []}
+                      compactMode={true}
+                      onTagUpdate={async (oldTag, newTag) => {
+                        // Update tags in database directly via Supabase
+                        if (!supabase) return
+
+                        const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
+                        const index = currentTags.indexOf(oldTag)
+                        if (index !== -1) {
+                          currentTags[index] = newTag
+
+                          const { error } = await supabase
+                            .from('reddit_subreddits')
+                            .update({ tags: currentTags })
+                            .eq('id', subreddit.id)
+
+                          if (!error) {
+                            // Update local state by creating new array reference
+                            subreddit.tags = [...currentTags]
+                            // Force re-render by updating parent if callback exists
+                            if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                          }
+                        }
+                      }}
+                      onTagRemove={async (tag) => {
+                        if (!supabase) return
+
+                        const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
+                        const newTags = currentTags.filter(t => t !== tag)
+
+                        const { error } = await supabase
+                          .from('reddit_subreddits')
+                          .update({ tags: newTags })
+                          .eq('id', subreddit.id)
+
+                        if (!error) {
+                          // Update local state by creating new array reference
+                          subreddit.tags = [...newTags]
+                          // Force re-render by updating parent if callback exists
+                          if (onUpdate) onUpdate(subreddit.id, { tags: newTags })
+                        }
+                      }}
+                      onAddTag={async (tag) => {
+                        if (!supabase) return
+
+                        const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
+                        if (!currentTags.includes(tag)) {
+                          currentTags.push(tag)
+
+                          const { error } = await supabase
+                            .from('reddit_subreddits')
+                            .update({ tags: currentTags })
+                            .eq('id', subreddit.id)
+
+                          if (!error) {
+                            // Update local state by creating new array reference
+                            subreddit.tags = [...currentTags]
+                            // Force re-render by updating parent if callback exists
+                            if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+
                   {/* Best Posting Time */}
                   {(subreddit.best_posting_hour !== null || subreddit.best_posting_day) && (
                     <div className="bg-gradient-to-r from-pink-50 to-pink-50/70 rounded border border-pink-200 px-2 py-1 mb-1.5 flex items-center justify-center space-x-1.5">
@@ -581,20 +642,20 @@ export const DiscoveryTable = memo(function DiscoveryTable({
 
       {/* Load More button removed - using infinite scroll instead */}
 
-      {/* Rules Modal */}
+      {/* Rules Modal - Glassmorphism Design */}
       {rulesModal.isOpen && rulesModal.subreddit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-md"
             onClick={() => setRulesModal({ isOpen: false, subreddit: null })}
           />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
+          <div className="relative bg-gradient-to-br from-white/90 via-gray-50/85 to-white/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden border border-white/20">
+            <div className="p-5 border-b border-gray-200/30 bg-gradient-to-r from-transparent via-white/10 to-transparent">
               <h2 className="text-lg font-semibold text-gray-900">
                 r/{rulesModal.subreddit.name} Rules
               </h2>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[calc(80vh-120px)]">
+            <div className="p-5 overflow-y-auto max-h-[calc(80vh-140px)] bg-gradient-to-b from-transparent via-gray-50/20 to-transparent">
               {(() => {
                 const rules = rulesModal.subreddit.rules_data
                 
@@ -606,7 +667,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                   return (
                     <div className="space-y-3">
                       {rules.map((rule: { short_name?: string; title?: string; description?: string; violation_reason?: string }, index: number) => (
-                        <div key={index} className="border-b border-gray-100 pb-3 last:border-0">
+                        <div key={index} className="border-b border-gray-200/20 pb-3 last:border-0 bg-white/30 rounded-lg p-3 backdrop-blur-sm">
                           <h3 className="font-medium text-gray-900">
                             {index + 1}. {rule.short_name || rule.title || `Rule ${index + 1}`}
                           </h3>
@@ -627,10 +688,10 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                 return <p className="text-sm text-gray-500">No rules available</p>
               })()}
             </div>
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200/30 bg-gradient-to-r from-transparent via-white/10 to-transparent">
               <button
                 onClick={() => setRulesModal({ isOpen: false, subreddit: null })}
-                className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 bg-white/50 hover:bg-white/70 text-gray-700 rounded-lg backdrop-blur-sm transition-all duration-200 border border-gray-200/30"
               >
                 Close
               </button>

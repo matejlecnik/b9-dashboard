@@ -11,13 +11,13 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json()
     } catch {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid JSON in request body' 
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid JSON in request body'
       }, { status: 400 })
     }
 
-    const { id, username, our_creator } = body
+    const { id, username, our_creator, model_id } = body
 
     // Comprehensive input validation
     if (!id && !username) {
@@ -45,6 +45,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'our_creator must be a boolean value'
+      }, { status: 400 })
+    }
+
+    // Validate model_id if provided
+    if (model_id !== undefined && (typeof model_id !== 'number' || !Number.isInteger(model_id) || model_id <= 0)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Model ID must be a positive integer'
       }, { status: 400 })
     }
 
@@ -91,13 +99,21 @@ export async function POST(req: NextRequest) {
       }, { status: 404 })
     }
 
-    // Update the user's creator status
+    // Build update object
+    const updateData: any = {
+      our_creator,
+      updated_at: new Date().toISOString()
+    }
+
+    // Add model_id if provided
+    if (model_id !== undefined) {
+      updateData.model_id = model_id
+    }
+
+    // Update the user's creator status and optionally model_id
     const { error: updateError } = await supabase
       .from('reddit_users')
-      .update({
-        our_creator,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', existingUser.id)
 
     if (updateError) {

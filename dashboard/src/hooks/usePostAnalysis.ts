@@ -208,10 +208,8 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         })
         .map((post: any) => {
           // Use mirror fields directly
-          const category_text = post.sub_primary_category || null
           return {
             ...post,
-            category_text,
             sub_primary_category: post.sub_primary_category,
             sub_over18: post.sub_over18
           }

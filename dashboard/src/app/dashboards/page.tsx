@@ -3,10 +3,11 @@
 import { Card, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
+import {
   Target,
   Activity,
-  Search
+  Search,
+  UserCircle2
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -117,6 +118,22 @@ export default function DashboardsPage() {
           { label: 'Subreddits', value: '5.8K+' },
           { label: 'Posts', value: '500K+' },
           { label: 'Active', value: '24/7' }
+        ]
+      },
+      {
+        id: 'models',
+        name: 'Models Dashboard',
+        description: 'Manage models and their content tag preferences across platforms',
+        icon: UserCircle2,
+        href: '/models',
+        status: 'active',
+        color: 'border-purple-200 hover:border-purple-300',
+        gradient: 'from-purple-500/10 via-purple-400/5 to-purple-500/10',
+        accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600 text-white',
+        metrics: [
+          { label: 'Models', value: 'Active' },
+          { label: 'Tags', value: '247' },
+          { label: 'Platforms', value: 'Multi' }
         ]
       },
       {

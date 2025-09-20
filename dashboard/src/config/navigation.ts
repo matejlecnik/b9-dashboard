@@ -4,7 +4,8 @@ import {
   Users,
   FileText,
   FolderTree,
-  LucideIcon
+  LucideIcon,
+  UserCircle2
 } from 'lucide-react'
 
 export interface BadgeConfig {

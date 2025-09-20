@@ -55,10 +55,9 @@ Provides data-driven subreddit recommendations for OnlyFans marketing campaigns 
 ```typescript
 // Category filter now in query
 if (selectedCategories.length === 0) {
-  query = query.or('category_text.is.null,category_text.eq.')
+  query = query.or('primary_category.is.null,primary_category.eq.')
 } else if (selectedCategories.length < availableCategories.length) {
-  query = query.in('category_text', selectedCategories)
-}
+  query = query.in('primary_category', selectedCategories)
 ```
 
 **Result**: Accurate filtering across all 1045 subreddits

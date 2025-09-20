@@ -1,478 +1,235 @@
 # Reddit Subreddit Tag Categorization System
 
 ## Overview
-This document defines the complete tag hierarchy for categorizing Reddit subreddits for OnlyFans marketing campaigns. The system uses a multi-tag approach where each subreddit can have multiple tags across different categories.
+This document defines the tag hierarchy for categorizing Reddit subreddits for OnlyFans marketing campaigns. The system uses a maximum of 2 tags per subreddit to ensure precise matching and prevent inappropriate model-subreddit pairings.
 
 ## Tag Format
-All tags follow the format: `category:subcategory:value`
+Tags follow the format: `category:value` or `category:subcategory`
 
-Example: `physical:hair:redhead` or `body:ass:pawg`
+Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
-## Complete Tag Hierarchy
+## Complete Tag Hierarchy (88 Total Tags)
 
-### 1️⃣ PHYSICAL ATTRIBUTES
-*Body characteristics and physical features*
+### 1️⃣ CONTENT/NICHE (18 tags)
+*Primary content type or niche focus*
 
-#### Body Size/Type
-- `physical:body_type:petite` - Small frame, under 5'4"
-- `physical:body_type:slim` - Slender build
-- `physical:body_type:athletic` - Fit, toned, muscular
-- `physical:body_type:average` - Medium build
-- `physical:body_type:curvy` - Hourglass figure
-- `physical:body_type:thick` - Fuller figure
-- `physical:body_type:slim_thick` - Slim waist, thick hips/thighs
-- `physical:body_type:bbw` - Big beautiful women
-- `physical:body_type:ssbbw` - Super-sized BBW
-- `physical:body_type:chubby` - Soft, fuller body
+- `niche:cosplay` - Cosplay content
+- `niche:gaming` - Gaming related content
+- `niche:anime` - Anime/manga related
+- `niche:fitness` - Fitness/gym focused
+- `niche:yoga` - Yoga specific content
+- `niche:outdoors` - Outdoor/public content
+- `niche:bdsm` - BDSM/kink content
+- `niche:feet` - Feet fetish content
+- `niche:amateur` - Amateur/real content emphasis
+- `niche:verified` - Verified accounts only
+- `niche:teen` - Teen/barely-legal focus (18+)
+- `niche:selfie` - Face/selfie focused
+- `niche:sellers` - For selling services
+- `niche:cnc` - CNC/rape fantasy content
+- `niche:daddy` - Daddy/DDLG themed
+- `niche:voyeur` - Upskirt/candid/voyeur
+- `niche:rating` - Rating/feedback subs
+- `niche:general` - General NSFW content
 
-#### Hair
-- `physical:hair:blonde` - Blonde hair
-- `physical:hair:brunette` - Brown hair
-- `physical:hair:redhead` - Red/ginger hair
-- `physical:hair:black` - Black hair
-- `physical:hair:colored` - Dyed/unnatural colors
-- `physical:hair:short` - Short hairstyles
-- `physical:hair:long` - Long hair
-- `physical:hair:curly` - Curly hair texture
-- `physical:hair:straight` - Straight hair
+### 2️⃣ BODY FOCUS (10 tags)
+*Primary body part emphasis*
 
-#### Skin Tone
-- `physical:skin:pale` - Very fair/porcelain skin
-- `physical:skin:fair` - Light skin
-- `physical:skin:tan` - Tanned/bronze skin
-- `physical:skin:olive` - Mediterranean/olive complexion
-- `physical:skin:brown` - Brown skin
-- `physical:skin:dark` - Dark skin
-- `physical:skin:ebony` - Very dark skin
+- `focus:breasts` - Breast/chest focused
+- `focus:ass` - Ass/booty focused
+- `focus:pussy` - Pussy focused
+- `focus:legs` - Legs focused
+- `focus:thighs` - Thigh specific
+- `focus:feet` - Feet focused
+- `focus:face` - Face/portrait focused
+- `focus:belly` - Belly/tummy focused
+- `focus:curves` - Overall curves emphasis
+- `focus:full_body` - Full body shots
 
-#### Modifications
-- `physical:mod:tattoos` - Has tattoos
-- `physical:mod:piercings` - Has piercings
-- `physical:mod:stretched` - Stretched piercings/gauges
-- `physical:mod:natural` - No modifications
-- `physical:mod:implants` - Surgical enhancements
-- `physical:mod:bimbo` - Heavy modifications/bimbo aesthetic
+### 3️⃣ BODY TYPE (9 tags)
+*Overall body build*
 
-#### Facial/Features
-- `physical:feature:freckles` - Has freckles
-- `physical:feature:glasses` - Wears glasses
-- `physical:feature:braces` - Has braces
-- `physical:feature:dimples` - Has dimples
-- `physical:feature:eyes_blue` - Blue eyes
-- `physical:feature:eyes_green` - Green eyes
-- `physical:feature:eyes_brown` - Brown eyes
-- `physical:feature:lips_full` - Full lips
-- `physical:feature:gap_teeth` - Gap in teeth
+- `body:petite` - Small frame, under 5'4"
+- `body:slim` - Slender build
+- `body:athletic` - Fit, toned, muscular
+- `body:average` - Medium build
+- `body:curvy` - Hourglass figure
+- `body:thick` - Fuller figure
+- `body:slim_thick` - Slim waist, thick hips/thighs
+- `body:bbw` - Big beautiful women
+- `body:ssbbw` - Super-sized BBW
 
-#### Age Appearance
-- `physical:age_look:teen` - Looks very young (18+)
-- `physical:age_look:mature` - Mature appearance
-- `physical:age_look:milf` - MILF aesthetic
-- `physical:age_look:gilf` - GILF aesthetic
+### 4️⃣ ASS SPECIFIC (5 tags)
+*Specific ass characteristics*
 
-### 2️⃣ BODY FOCUS
-*Specific body parts and areas of focus*
+- `ass:small` - Small/cute butts
+- `ass:bubble` - Bubble butts
+- `ass:pawg` - Phat ass white girls
+- `ass:thick` - Thick/big asses
+- `ass:jiggly` - Jiggly/bouncy
 
-#### Ass/Booty
-- `body:ass:general` - General ass content
-- `body:ass:big` - Big/large asses
-- `body:ass:small` - Small/cute butts
-- `body:ass:bubble` - Bubble butts
-- `body:ass:pawg` - Phat ass white girls
-- `body:ass:paag` - Phat ass Asian girls
-- `body:ass:pabg` - Phat ass black girls
-- `body:ass:jiggly` - Jiggly/bouncy
-- `body:ass:twerk` - Twerking focused
-- `body:ass:thong` - Thong/asshole focus
-- `body:ass:spread` - Spreading
-- `body:ass:bent_over` - Bent over poses
+### 5️⃣ BREASTS SPECIFIC (7 tags)
+*Specific breast characteristics*
 
-#### Breasts/Chest
-- `body:breasts:small` - A-B cup
-- `body:breasts:medium` - C-D cup
-- `body:breasts:large` - DD+ cup
-- `body:breasts:huge` - Massive breasts
-- `body:breasts:natural` - Natural breasts
-- `body:breasts:enhanced` - Implants/enhanced
-- `body:breasts:perky` - Perky/upright
-- `body:breasts:saggy` - Natural sag/hangers
-- `body:breasts:flat` - Flat chested
-- `body:breasts:puffy` - Puffy nipples
-- `body:breasts:pierced` - Pierced nipples
-- `body:breasts:lactating` - Lactation content
+- `breasts:small` - A-B cup
+- `breasts:medium` - C-D cup
+- `breasts:large` - DD-DDD cup
+- `breasts:huge` - Massive breasts
+- `breasts:natural` - Natural breasts
+- `breasts:enhanced` - Implants/enhanced
+- `breasts:perky` - Perky/upright
 
-#### Legs/Lower Body
-- `body:legs:general` - Legs focus
-- `body:legs:thick_thighs` - Thick thighs
-- `body:legs:thin_legs` - Thin/slim legs
-- `body:legs:thigh_gap` - Thigh gap
-- `body:legs:calves` - Calves focus
-- `body:legs:stockings` - In stockings/nylons
+### 6️⃣ DEMOGRAPHICS - AGE (5 tags)
+*Age groups*
 
-#### Feet
-- `body:feet:general` - General feet
-- `body:feet:soles` - Foot soles
-- `body:feet:toes` - Toes focus
-- `body:feet:arches` - High arches
-- `body:feet:dirty` - Dirty feet
-- `body:feet:worship` - Foot worship
-- `body:feet:footjob` - Footjob content
-- `body:feet:heels` - In high heels
-- `body:feet:barefoot` - Barefoot
+- `age:teen` - 18-19 years
+- `age:college` - College age (20-24)
+- `age:milf` - MILF age (30-45)
+- `age:mature` - 40-49 years
+- `age:gilf` - 50+ years
 
-#### Core/Torso
-- `body:core:abs` - Abs/six-pack
-- `body:core:belly` - Belly focus
-- `body:core:hips` - Hip focus
-- `body:core:hip_bones` - Visible hip bones
-- `body:core:back` - Back focus
-- `body:core:sideboob` - Side boob
-- `body:core:underboob` - Under boob
-- `body:core:cleavage` - Cleavage focus
+### 7️⃣ DEMOGRAPHICS - ETHNICITY (7 tags)
+*Ethnic/racial categories*
 
-#### Intimate Areas
-- `body:pussy:general` - General pussy
-- `body:pussy:shaved` - Shaved/smooth
-- `body:pussy:hairy` - Hairy/bush
-- `body:pussy:lips` - Prominent lips
-- `body:pussy:innie` - Innie pussy
-- `body:pussy:spread` - Spreading
-- `body:pussy:mound` - Mound focus
-- `body:pussy:cameltoe` - Cameltoe
+- `ethnicity:asian` - Asian (all)
+- `ethnicity:latina` - Latina/Hispanic
+- `ethnicity:ebony` - Black/African
+- `ethnicity:white` - White/Caucasian
+- `ethnicity:indian` - Indian/South Asian
+- `ethnicity:middle_eastern` - Middle Eastern/Arab
+- `ethnicity:mixed` - Mixed race
 
-#### Full Body
-- `body:full:general` - Full body shots
-- `body:full:nude` - Full nude
-- `body:full:artistic` - Artistic nudes
-- `body:full:curves` - Curves emphasis
-- `body:full:from_behind` - Back view
-- `body:full:mirror` - Mirror selfies
+### 8️⃣ STYLE/AESTHETIC (13 tags)
+*Visual style and modifications*
 
-#### Other Body Parts
-- `body:face:selfie` - Face/selfie focus
-- `body:face:pretty` - Pretty faces
-- `body:face:cute` - Cute faces
-- `body:lips:general` - Lips focus
-- `body:tongue:out` - Tongue out
-- `body:hands:general` - Hands focus
-- `body:armpits:general` - Armpit focus
+- `style:alt` - Alternative style
+- `style:goth` - Goth aesthetic
+- `style:egirl` - E-girl aesthetic
+- `style:tattooed` - Has tattoos
+- `style:pierced` - Has piercings
+- `style:natural` - Natural/no modifications
+- `style:bimbo` - Bimbo aesthetic
+- `style:tomboy` - Tomboy style
+- `style:femdom` - Dominant aesthetic
+- `style:submissive` - Submissive aesthetic
+- `style:cosplay` - Cosplay style
+- `style:lingerie` - Lingerie focused
+- `style:uniform` - Uniforms (school, nurse, etc.)
 
-### 3️⃣ DEMOGRAPHICS
-*Age groups, ethnicities, and geographic origins*
+### 9️⃣ HAIR (4 tags)
+*Distinctive hair colors only*
 
-#### Age Groups
-- `demo:age:teen` - 18-22 years
-- `demo:age:college` - College age (18-24)
-- `demo:age:twenties` - 23-29 years
-- `demo:age:thirties` - 30-39 years
-- `demo:age:milf` - MILF age (30-45)
-- `demo:age:mature` - 40-49 years
-- `demo:age:gilf` - 50+ years
-- `demo:age:barely_legal` - Just turned 18
+- `hair:blonde` - Blonde hair
+- `hair:redhead` - Red/ginger hair
+- `hair:brunette` - Brown hair
+- `hair:colored` - Dyed/unnatural colors
 
-#### Ethnicity/Race
-- `demo:ethnicity:white` - White/Caucasian
-- `demo:ethnicity:asian` - Asian (general)
-- `demo:ethnicity:latina` - Latina/Hispanic
-- `demo:ethnicity:ebony` - Black/African
-- `demo:ethnicity:indian` - Indian/South Asian
-- `demo:ethnicity:middle_eastern` - Middle Eastern/Arab
-- `demo:ethnicity:mixed` - Mixed race
-- `demo:ethnicity:native` - Native American
-- `demo:ethnicity:pacific` - Pacific Islander
+### 🔟 SPECIAL ATTRIBUTES (14 tags)
+*Specific attributes or themes*
 
-#### Asian Specific
-- `demo:asian:japanese` - Japanese
-- `demo:asian:chinese` - Chinese
-- `demo:asian:korean` - Korean
-- `demo:asian:thai` - Thai
-- `demo:asian:filipina` - Filipina
-- `demo:asian:vietnamese` - Vietnamese
-- `demo:asian:indonesian` - Indonesian
+- `special:hairy` - Hairy/bush
+- `special:shaved` - Shaved/smooth
+- `special:pregnant` - Pregnancy content
+- `special:lactating` - Lactation content
+- `special:squirter` - Squirting
+- `special:flexible` - Flexibility focus
+- `special:tall` - Tall girls (5'10"+)
+- `special:short` - Short girls (under 5'2")
+- `special:pawg` - PAWG specific
+- `special:breeding` - Breeding kink
+- `special:daddy` - Daddy themes
+- `special:slutty` - Slut themes
+- `special:clothed` - Clothed/teasing
+- `special:bent_over` - Bent over poses
 
-#### Geographic
-- `demo:geo:american` - USA
-- `demo:geo:canadian` - Canada
-- `demo:geo:british` - UK
-- `demo:geo:european` - Europe (general)
-- `demo:geo:australian` - Australia/NZ
-- `demo:geo:latin_american` - Latin America
-- `demo:geo:russian` - Russia/Eastern Europe
-- `demo:geo:scandinavian` - Nordic countries
-- `demo:geo:brazilian` - Brazil
+### 1️⃣1️⃣ CONTENT TYPE (3 tags)
+*Content creation style*
 
-### 4️⃣ STYLE & AESTHETIC
-*Visual presentation, clothing, and aesthetics*
+- `content:oc` - Original content only
+- `content:selfies` - Selfie content
+- `content:professional` - Professional photography
 
-#### Clothing/Outfits
-- `style:clothing:lingerie` - Lingerie/underwear
-- `style:clothing:bikini` - Bikini/swimwear
-- `style:clothing:yoga_pants` - Yoga pants/leggings
-- `style:clothing:jeans` - Jeans/denim
-- `style:clothing:dress` - Dresses
-- `style:clothing:skirt` - Skirts
-- `style:clothing:shorts` - Shorts
-- `style:clothing:stockings` - Stockings/nylons
-- `style:clothing:socks` - Socks/knee-highs
-- `style:clothing:heels` - High heels
-- `style:clothing:boots` - Boots
-- `style:clothing:costume` - Costumes
-- `style:clothing:uniform` - Uniforms
-- `style:clothing:latex` - Latex/leather
-- `style:clothing:fishnets` - Fishnets
+## Tag Assignment Rules
 
-#### Nudity Level
-- `style:nudity:clothed` - Fully clothed
-- `style:nudity:teasing` - Teasing/implied
-- `style:nudity:topless` - Topless only
-- `style:nudity:bottomless` - Bottomless only
-- `style:nudity:nude` - Full nude
-- `style:nudity:explicit` - Explicit/spread
+### Maximum Tags
+- **STRICT LIMIT: 2 tags per subreddit**
+- Choose the 2 most defining characteristics
+- Priority order: niche/focus → body/demographic → style
 
-#### Aesthetic/Vibe
-- `style:aesthetic:cute` - Cute/kawaii
-- `style:aesthetic:sexy` - Sexy/seductive
-- `style:aesthetic:innocent` - Innocent looking
-- `style:aesthetic:slutty` - Slutty/provocative
-- `style:aesthetic:elegant` - Elegant/classy
-- `style:aesthetic:girl_next_door` - Girl next door
-- `style:aesthetic:trashy` - Trashy aesthetic
-- `style:aesthetic:artistic` - Artistic/creative
+### Examples
 
-#### Subcultures
-- `style:subculture:goth` - Goth style
-- `style:subculture:alt` - Alternative
-- `style:subculture:emo` - Emo style
-- `style:subculture:punk` - Punk aesthetic
-- `style:subculture:egirl` - E-girl aesthetic
-- `style:subculture:vsco` - VSCO girl
-- `style:subculture:bimbo` - Bimbo aesthetic
-- `style:subculture:tomboy` - Tomboy style
-- `style:subculture:princess` - Princess aesthetic
-- `style:subculture:hippie` - Hippie/boho
-
-#### Cosplay/Fantasy
-- `style:cosplay:anime` - Anime cosplay
-- `style:cosplay:gaming` - Gaming characters
-- `style:cosplay:superhero` - Superhero costumes
-- `style:cosplay:disney` - Disney characters
-- `style:cosplay:generic` - General cosplay
-
-### 5️⃣ CONTENT THEMES
-*Roleplay scenarios, dynamics, and content themes*
-
-#### Power Dynamics
-- `theme:dynamic:dom` - Dominant
-- `theme:dynamic:sub` - Submissive
-- `theme:dynamic:switch` - Switch
-- `theme:dynamic:brat` - Bratty sub
-- `theme:dynamic:daddy` - Daddy dynamic
-- `theme:dynamic:mommy` - Mommy dynamic
-- `theme:dynamic:master` - Master/slave
-
-#### Roleplay Scenarios
-- `theme:roleplay:ddlg` - Daddy's little girl
-- `theme:roleplay:student` - Student/teacher
-- `theme:roleplay:nurse` - Nurse/medical
-- `theme:roleplay:secretary` - Secretary/boss
-- `theme:roleplay:maid` - Maid service
-- `theme:roleplay:stepmom` - Step-family
-- `theme:roleplay:cheating` - Cheating/homewrecker
-- `theme:roleplay:virgin` - Virgin roleplay
-- `theme:roleplay:religious` - Religious themes
-
-#### Fetish/Kink
-- `theme:fetish:bdsm` - BDSM content
-- `theme:fetish:breeding` - Breeding kink
-- `theme:fetish:cnc` - CNC/rape fantasy
-- `theme:fetish:humiliation` - Humiliation
-- `theme:fetish:worship` - Body worship
-- `theme:fetish:collar` - Collar/ownership
-- `theme:fetish:petplay` - Pet play
-- `theme:fetish:ahegao` - Ahegao faces
-- `theme:fetish:joi` - JOI content
-- `theme:fetish:cuckold` - Cuckolding
-
-#### Lifestyle Themes
-- `theme:lifestyle:housewife` - Housewife
-- `theme:lifestyle:hotwife` - Hotwife
-- `theme:lifestyle:gym` - Gym/fitness
-- `theme:lifestyle:yoga` - Yoga
-- `theme:lifestyle:outdoor` - Outdoor/public
-- `theme:lifestyle:beach` - Beach/pool
-- `theme:lifestyle:country` - Country/farm
-- `theme:lifestyle:office` - Office/work
-
-#### Content Mood
-- `theme:mood:romantic` - Romantic/sensual
-- `theme:mood:hardcore` - Hardcore/rough
-- `theme:mood:playful` - Playful/fun
-- `theme:mood:intimate` - Intimate/personal
-- `theme:mood:aggressive` - Aggressive/intense
-- `theme:mood:gentle` - Gentle/soft
-
-### 6️⃣ PLATFORM & ENGAGEMENT
-*How content is created and shared*
-
-#### Content Type
-- `platform:type:selfie` - Selfie content
-- `platform:type:amateur` - Amateur content
-- `platform:type:professional` - Pro quality
-- `platform:type:oc` - Original content only
-- `platform:type:verified` - Verified users only
-- `platform:type:candid` - Candid/unposed
-
-#### OnlyFans Related
-- `platform:of:promo` - Direct OF promotion
-- `platform:of:friendly` - OF creator friendly
-- `platform:of:restricted` - No OF allowed
-- `platform:of:sellers` - Sellers allowed
-- `platform:of:no_sellers` - No sellers
-
-#### Interaction Style
-- `platform:interaction:rating` - Rate me posts
-- `platform:interaction:request` - Taking requests
-- `platform:interaction:tribute` - Tribute posts
-- `platform:interaction:roleplay` - Roleplay interaction
-- `platform:interaction:discussion` - Discussion based
-- `platform:interaction:showcase` - Just showing off
-
-## Migration Mapping from Old Categories
-
-### Old Category → New Tags Mapping
-
-| Old Category | Primary Tags |
-|--------------|-------------|
-| Feet & Foot Fetish | `body:feet:general` |
-| Ass & Booty | `body:ass:general` |
-| Body Types & Features | Various `physical:*` tags based on specific subreddit |
-| Lingerie & Underwear | `style:clothing:lingerie` |
-| Lifestyle & Themes | Various `theme:*` tags based on specific subreddit |
-| Clothed & Dressed | `style:nudity:clothed` |
-| Selfie & Amateur | `platform:type:selfie`, `platform:type:amateur` |
-| Cosplay & Fantasy | `style:cosplay:generic` |
-| Goth & Alternative | `style:subculture:goth`, `style:subculture:alt` |
-| Ethnic & Cultural | Various `demo:ethnicity:*` tags |
-| Specific Body Parts | Various `body:*` tags |
-| Age Demographics | Various `demo:age:*` tags |
-| Boobs & Chest | `body:breasts:general` |
-| OnlyFans Promotion | `platform:of:promo` |
-| Gym & Fitness | `theme:lifestyle:gym`, `physical:body_type:athletic` |
-| Full Body & Nude | `body:full:nude` |
-| Interactive & Personalized | Various `platform:interaction:*` tags |
-
-## Example Tag Assignments
-
-### r/palegirls (1.37M subscribers)
+#### r/AsianHotties
 ```json
-{
-  "tags": [
-    "physical:skin:pale",
-    "body:full:artistic",
-    "style:nudity:nude",
-    "platform:type:amateur"
-  ],
-  "primary_category": "physical"
-}
+["ethnicity:asian", "focus:full_body"]
 ```
 
-### r/AsianHotties (2.26M subscribers)
+#### r/paag
 ```json
-{
-  "tags": [
-    "demo:ethnicity:asian",
-    "body:full:general",
-    "style:nudity:nude",
-    "platform:type:amateur"
-  ],
-  "primary_category": "demographic"
-}
+["ass:pawg", "ethnicity:asian"]
 ```
 
-### r/gothsluts
+#### r/gothsluts
 ```json
-{
-  "tags": [
-    "style:subculture:goth",
-    "style:aesthetic:slutty",
-    "physical:mod:tattoos",
-    "physical:mod:piercings",
-    "platform:type:amateur",
-    "platform:of:friendly"
-  ],
-  "primary_category": "style"
-}
+["style:goth", "special:slutty"]
 ```
 
-### r/DadWouldBeProud (2.01M subscribers)
+#### r/DadWouldBeProud
 ```json
-{
-  "tags": [
-    "theme:roleplay:ddlg",
-    "theme:dynamic:daddy",
-    "platform:of:friendly",
-    "style:aesthetic:cute",
-    "demo:age:teen"
-  ],
-  "primary_category": "theme"
-}
+["niche:daddy", "age:teen"]
 ```
 
-### r/paag (1.44M subscribers)
+#### r/XMenCosplayers
 ```json
-{
-  "tags": [
-    "body:ass:paag",
-    "demo:ethnicity:asian",
-    "body:ass:big",
-    "style:nudity:nude"
-  ],
-  "primary_category": "body"
-}
+["niche:cosplay"]
+```
+*Note: Only gets cosplay tag, preventing inappropriate matches*
+
+#### r/BigBoobsGW
+```json
+["focus:breasts", "breasts:large"]
 ```
 
-## Tag Assignment Guidelines
+#### r/fuckdoll
+```json
+["special:slutty", "niche:amateur"]
+```
 
-1. **Assign only relevant tags** - Don't force tags from every category
-2. **Multiple tags per category OK** - Can have both "curvy" and "thick"
-3. **Typical counts**:
-   - Simple/specific subs: 1-3 tags
-   - Average subs: 3-5 tags
-   - Complex subs: 5-8 tags
-4. **Primary category** should be the most defining characteristic
-5. **Order doesn't matter** in the tags array
+## Model-Subreddit Matching
+
+Models are assigned tags from the same pool. A subreddit matches a model if they share at least 1 tag.
+
+### Example Matching
+Model tags: `["ethnicity:asian", "body:petite"]`
+- ✅ Matches r/AsianHotties `["ethnicity:asian", "focus:full_body"]`
+- ✅ Matches r/xsmallgirls `["body:petite", "special:slutty"]`
+- ❌ Does NOT match r/XMenCosplayers `["niche:cosplay"]`
 
 ## Query Examples
 
-### Find petite Asian subreddits
+### Find Asian subreddits
 ```sql
 SELECT * FROM reddit_subreddits
-WHERE tags @> '["physical:body_type:petite", "demo:ethnicity:asian"]'
+WHERE tags @> '["ethnicity:asian"]'
 ```
 
-### Find all foot fetish content
+### Find subreddits matching model
 ```sql
+-- Model has tags ["body:petite", "style:goth"]
 SELECT * FROM reddit_subreddits
-WHERE tags @> '["body:feet:general"]'
+WHERE tags && '["body:petite", "style:goth"]'::jsonb
 ```
 
-### Complex query: (Redhead OR Blonde) AND Lingerie
-```sql
-SELECT * FROM reddit_subreddits
-WHERE (tags @> '["physical:hair:redhead"]' OR tags @> '["physical:hair:blonde"]')
-AND tags @> '["style:clothing:lingerie"]'
-```
+## Migration Notes
 
-## Maintenance Notes
-
-- Tags are stored as JSONB array in PostgreSQL
-- Use GIN indexing for performance
-- Tags should be lowercase with underscores (no spaces)
-- New tags can be added but should follow naming conventions
-- Consider tag relationships when adding new ones
+All existing tags in the database will be cleared and recategorized using this new system:
+- Platform tags (platform:*) → REMOVED
+- Mood tags (theme:mood:*) → REMOVED
+- Nudity tags (style:nudity:*) → REMOVED
+- Detailed features → SIMPLIFIED
 
 ---
 
 *Last Updated: January 2025*
-*Total Tags: 280+*
-*Categories: 6*
+*Total Tags: 88*
+*Categories: 11*
+*Max Tags per Subreddit: 2*

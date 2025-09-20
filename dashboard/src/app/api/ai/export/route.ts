@@ -10,7 +10,7 @@ interface SubredditData {
   public_description: string
   subscribers: number
   over18: boolean
-  category_text: string
+  primary_category: string
   avg_upvotes_per_post: number
   avg_comments_per_post?: number
   top_content_type?: string
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
           *,
           subreddits!inner(
             name, display_name_prefixed, title, public_description,
-            subscribers, over18, category_text, avg_upvotes_per_post
+            subscribers, over18, primary_category, avg_upvotes_per_post
           )
         `)
         .gte('created_at', cutoffDate.toISOString())
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
         s.subreddits.title || '',
         s.subreddits.subscribers || 0,
         s.subreddits.over18 ? 'Yes' : 'No',
-        s.subreddits.category_text || 'Uncategorized',
+        s.subreddits.primary_category || 'Uncategorized',
         s.suggested_category || '',
         s.confidence_score || 0,
         `"${(s.reasoning || '').replace(/"/g, '""')}"`,
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
         .from('reddit_subreddits')
         .select(`
           id, name, display_name_prefixed, title, public_description,
-          subscribers, over18, category_text, avg_upvotes_per_post,
+          subscribers, over18, primary_category, avg_upvotes_per_post,
           avg_comments_per_post, top_content_type, created_at
         `)
         .eq('review', 'Ok')
@@ -173,8 +173,8 @@ export async function GET(request: Request) {
           data: subreddits,
           exportedAt: new Date().toISOString(),
           totalSubreddits: subreddits.length,
-          categorized: subreddits.filter((s: SubredditData) => s.category_text).length,
-          uncategorized: subreddits.filter((s: SubredditData) => !s.category_text).length
+          categorized: subreddits.filter((s: SubredditData) => s.primary_category).length,
+          uncategorized: subreddits.filter((s: SubredditData) => !s.primary_category).length
         })
       }
 
@@ -200,7 +200,7 @@ export async function GET(request: Request) {
         `"${(s.public_description || '').replace(/"/g, '""')}"`,
         s.subscribers || 0,
         s.over18 ? 'Yes' : 'No',
-        s.category_text || 'Uncategorized',
+        s.primary_category || 'Uncategorized',
         s.avg_upvotes_per_post || 0,
         s.avg_comments_per_post || 0,
         s.top_content_type || '',
@@ -267,7 +267,7 @@ export async function POST(request: Request) {
         .select(`
           *,
           subreddits!inner(
-            name, display_name_prefixed, title, subscribers, over18, category_text
+            name, display_name_prefixed, title, subscribers, over18, primary_category
           )
         `)
         .gte('created_at', session.created_at)
@@ -372,7 +372,7 @@ export async function POST(request: Request) {
         s.display_name_prefixed || '',
         s.title || '',
         s.subscribers || 0,
-        s.category_text || '',
+        s.primary_category || '',
         s.ai_suggestion?.suggested_category || '',
         s.ai_suggestion?.confidence_score || '',
         s.ai_suggestion?.user_feedback || ''

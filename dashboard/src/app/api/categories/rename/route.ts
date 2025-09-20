@@ -168,7 +168,7 @@ export async function POST(request: Request) {
         const { data: subredditsByIdUpdate, error: subredditsByIdError } = await supabase
           .from('reddit_subreddits')
           .update({
-            category_text: normalizedNewName // Also update the legacy field for consistency
+            primary_category: normalizedNewName // Update the primary_category field
           })
           .eq('category_id', existingCategory.id)
           .select('id')
@@ -179,20 +179,20 @@ export async function POST(request: Request) {
           subredditsUpdated += subredditsByIdUpdate?.length || 0
         }
 
-        // Also update legacy subreddits that only have category_text
-        const { data: subredditsByTextUpdate, error: subredditsByTextError } = await supabase
+        // Also update subreddits that have the old category name in primary_category
+        const { data: subredditsByPrimaryUpdate, error: subredditsByPrimaryError } = await supabase
           .from('reddit_subreddits')
           .update({
-            category_text: normalizedNewName
+            primary_category: normalizedNewName
           })
-          .ilike('category_text', normalizedOldName)
+          .ilike('primary_category', normalizedOldName)
           .is('category_id', null) // Only update those without category_id
           .select('id')
 
-        if (subredditsByTextError) {
-          console.warn('Error updating legacy subreddits by category_text:', subredditsByTextError)
+        if (subredditsByPrimaryError) {
+          console.warn('Error updating subreddits by primary_category:', subredditsByPrimaryError)
         } else {
-          subredditsUpdated += subredditsByTextUpdate?.length || 0
+          subredditsUpdated += subredditsByPrimaryUpdate?.length || 0
         }
       }
 

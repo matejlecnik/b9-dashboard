@@ -260,8 +260,7 @@ function TagEditDropdown({
                     <div className="text-[10px] font-semibold text-gray-500">
                       Editing: {(() => {
                         const category = TAG_CATEGORIES.find(c => c.name === tagCategory)
-                        const subcategory = category?.subcategories.find(s => s.name === tagSubcategory)
-                        return subcategory?.label || tagSubcategory.replace(/_/g, ' ')
+                        return category?.label || tagCategory.replace(/_/g, ' ')
                       })()}
                     </div>
                     <div className="text-[9px] text-gray-400 mt-0.5">
@@ -447,16 +446,16 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md",
-          "text-[10px] font-medium transition-all duration-200",
+          "inline-flex items-center p-0.5 rounded-md",
+          "text-[9px] font-medium transition-all duration-200",
           "hover:shadow-sm cursor-pointer",
           "bg-gradient-to-r border",
           "from-gray-50 to-slate-50 text-gray-600 border-gray-200/50",
           "hover:from-pink-50 hover:to-rose-50 hover:text-pink-600 hover:border-pink-200/50"
         )}
+        title="Add Tag"
       >
-        <Plus className="w-2.5 h-2.5" />
-        <span>Add Tag</span>
+        <Plus className="w-3 h-3" />
       </button>
 
       {isOpen && typeof window !== 'undefined' && createPortal(
@@ -542,7 +541,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                           <Plus className="w-3 h-3 text-gray-400 flex-shrink-0" />
                           <span className="truncate">{tagOption.label}</span>
                           <span className="text-[9px] text-gray-400 ml-auto flex-shrink-0">
-                            {tagOption.subcategory}
+                            {tagOption.category}
                           </span>
                         </button>
                       ))}
@@ -608,24 +607,24 @@ export function TagsDisplay({
           <div
             key={`${tag.full}-${index}`}
             className={cn(
-              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md",
-              "text-[10px] font-medium transition-all duration-200",
+              "group relative inline-flex items-center gap-1 px-1 py-0.5 rounded-md",
+              "text-[9px] font-medium transition-all duration-200",
               "hover:shadow-sm cursor-default",
               "bg-gradient-to-r border",
               colors.bg,
               colors.text,
               colors.border,
-              compactMode && "px-1 py-0 text-[9px]"
+              compactMode && "px-1 py-0 text-[8px]"
             )}
             title={tag.full}
           >
             {/* Emoji icon */}
-            <span className="flex-shrink-0 text-[11px]">
+            <span className="flex-shrink-0 text-[10px]">
               {emoji}
             </span>
 
             {/* Tag text */}
-            <span className="truncate max-w-[80px]">
+            <span className="truncate max-w-[60px]">
               {tag.display}
             </span>
 

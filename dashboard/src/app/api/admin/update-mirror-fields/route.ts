@@ -15,7 +15,7 @@ export async function POST() {
     // Only include: unreviewed (null), 'Ok', or 'No Seller'
     const { data: targetSubreddits, error: subFetchError } = await supabase
       .from('reddit_subreddits')
-      .select('name, category_text, over18')
+      .select('name, primary_category, over18')
       .or('review.is.null,review.eq.Ok,review.eq.No Seller')
 
     if (subFetchError) {
@@ -61,7 +61,7 @@ export async function POST() {
 
     // Create a map for quick lookup
     const subredditMap = new Map(
-      targetSubreddits.map(s => [s.name, { category_text: s.category_text, over18: s.over18 }])
+      targetSubreddits.map(s => [s.name, { primary_category: s.primary_category, over18: s.over18 }])
     )
 
     // Update posts in larger batches for better performance
@@ -79,7 +79,7 @@ export async function POST() {
         if (subData) {
           updates.push({
             id: post.id,
-            sub_category_text: subData.category_text,
+            sub_category_text: subData.primary_category,
             sub_over18: subData.over18
           })
         }

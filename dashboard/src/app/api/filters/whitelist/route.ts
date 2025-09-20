@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
           title,
           subscribers,
           review,
-          category_text
+          primary_category
         )
       `)
       .order('created_at', { ascending: false })

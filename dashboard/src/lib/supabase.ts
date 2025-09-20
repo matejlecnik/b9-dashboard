@@ -182,8 +182,7 @@ export interface Subreddit {
   public_description?: string | null
   subscribers?: number | null
   review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null // Review status for subreddit-review page
-  category_text: string | null // Legacy category text for categorization page
-  category_id?: string | null // New foreign key reference to categories table
+  category_id?: string | null // Foreign key reference to categories table
   subscriber_engagement_ratio?: number | null
   avg_upvotes_per_post: number
   best_posting_day?: string | null
@@ -216,6 +215,7 @@ export interface Subreddit {
     | null
   total_upvotes_hot_30?: number | null
   total_posts_hot_30?: number | null
+  tags?: string | null // Comma-separated list of tags
 }
 
 export interface User {

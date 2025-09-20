@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
-import { X, Search, UserPlus, Loader2, AlertCircle, Sparkles } from 'lucide-react'
+import { X, Search, UserPlus, Loader2, AlertCircle, Sparkles, Plus, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -21,6 +21,14 @@ interface User {
   is_gold: boolean
   our_creator: boolean
   overall_user_score: number | null
+  model_id?: number | null
+}
+
+interface Model {
+  id: number
+  name: string
+  stage_name: string | null
+  is_active: boolean
 }
 
 interface AddUserModalProps {
@@ -35,8 +43,72 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
   const [isSearching, setIsSearching] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [notFoundUsername, setNotFoundUsername] = useState<string | null>(null)
+  const [models, setModels] = useState<Model[]>([])
+  const [selectedModelId, setSelectedModelId] = useState<number | null>(null)
+  const [showCreateModel, setShowCreateModel] = useState(false)
+  const [newModelName, setNewModelName] = useState('')
+  const [creatingModel, setCreatingModel] = useState(false)
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
   const { showSuccess, showError } = useToast()
+
+  // Fetch models when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchModels()
+    }
+  }, [isOpen])
+
+  const fetchModels = async () => {
+    try {
+      const response = await fetch('/api/models/list')
+      const data = await response.json()
+      if (data.success) {
+        const activeModels = data.models.filter((m: Model) => m.is_active)
+        setModels(activeModels)
+        // Select first model by default
+        if (activeModels.length > 0 && !selectedModelId) {
+          setSelectedModelId(activeModels[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error)
+    }
+  }
+
+  const createNewModel = async () => {
+    if (!newModelName.trim()) {
+      showError('Model name is required')
+      return
+    }
+
+    setCreatingModel(true)
+    try {
+      const response = await fetch('/api/models/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newModelName.trim(),
+          assigned_tags: []
+        })
+      })
+
+      const data = await response.json()
+      if (data.success && data.model) {
+        showSuccess(`Model ${newModelName} created successfully`)
+        await fetchModels()
+        setSelectedModelId(data.model.id)
+        setShowCreateModel(false)
+        setNewModelName('')
+      } else {
+        throw new Error(data.error || 'Failed to create model')
+      }
+    } catch (error) {
+      console.error('Error creating model:', error)
+      showError(error instanceof Error ? error.message : 'Failed to create model')
+    } finally {
+      setCreatingModel(false)
+    }
+  }
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
@@ -88,19 +160,29 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
   const handleSelectUser = async (user: User) => {
     if (!user.our_creator) {
-      // Mark as our creator
+      // Check if model is selected
+      if (!selectedModelId) {
+        showError('Please select a model for this user')
+        return
+      }
+
+      // Mark as our creator with model
       try {
         const response = await fetch('/api/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: user.id, our_creator: true })
+          body: JSON.stringify({
+            id: user.id,
+            our_creator: true,
+            model_id: selectedModelId
+          })
         })
 
         if (!response.ok) throw new Error('Failed to mark as creator')
 
-        const updatedUser = { ...user, our_creator: true }
+        const updatedUser = { ...user, our_creator: true, model_id: selectedModelId }
         onUserAdded(updatedUser)
-        showSuccess(`Marked ${user.username} as our creator`)
+        showSuccess(`Added ${user.username} to model ${models.find(m => m.id === selectedModelId)?.name}`)
         onClose()
       } catch (error) {
         console.error('Error marking as creator:', error)
@@ -114,6 +196,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
   }
 
   const handleFetchFromReddit = async (username: string) => {
+    // Check if model is selected
+    if (!selectedModelId) {
+      showError('Please select a model for this user')
+      return
+    }
+
     setIsFetching(true)
 
     try {
@@ -130,8 +218,22 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
       const data = await response.json()
       if (data.success && data.user) {
-        onUserAdded(data.user)
-        showSuccess(`Successfully added ${username} from Reddit`)
+        // Now update the user with our_creator and model_id
+        const updateResponse = await fetch('/api/users/toggle-creator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: data.user.id,
+            our_creator: true,
+            model_id: selectedModelId
+          })
+        })
+
+        if (!updateResponse.ok) throw new Error('Failed to assign model to user')
+
+        const updatedUser = { ...data.user, our_creator: true, model_id: selectedModelId }
+        onUserAdded(updatedUser)
+        showSuccess(`Successfully added ${username} from Reddit to model ${models.find(m => m.id === selectedModelId)?.name}`)
         onClose()
       } else {
         throw new Error('Failed to fetch user data')
@@ -158,7 +260,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl"
+          className="relative w-full max-w-md max-h-[80vh] overflow-hidden rounded-3xl"
           style={{
             background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.98), rgba(229, 231, 235, 0.95), rgba(209, 213, 219, 0.92))',
             backdropFilter: 'blur(24px) saturate(180%)',
@@ -179,7 +281,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                   <h2 className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                     Add User
                   </h2>
-                  <p className="text-[10px] text-gray-500">Search and add Reddit users</p>
+                  <p className="text-[10px] text-gray-500">Search and add Reddit users to a model</p>
                 </div>
               </div>
               <button
@@ -192,7 +294,70 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
           </div>
 
           {/* Content */}
-          <div className="px-5 py-3 overflow-y-auto max-h-[calc(70vh-140px)]">
+          <div className="px-5 py-3 overflow-y-auto max-h-[calc(80vh-140px)]">
+            {/* Model Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Model *
+              </label>
+              {showCreateModel ? (
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter model name..."
+                    value={newModelName}
+                    onChange={(e) => setNewModelName(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    onClick={createNewModel}
+                    disabled={creatingModel}
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    {creatingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreateModel(false)
+                      setNewModelName('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <select
+                      value={selectedModelId || ''}
+                      onChange={(e) => setSelectedModelId(Number(e.target.value))}
+                      className="w-full appearance-none bg-white border border-gray-200 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    >
+                      <option value="">Select a model...</option>
+                      {models.map(model => (
+                        <option key={model.id} value={model.id}>
+                          {model.name} {model.stage_name ? `(${model.stage_name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowCreateModel(true)}
+                    className="px-3"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* Search Input */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -202,9 +367,15 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-8 text-sm border-pink-200 focus:border-pink-400 focus:ring-pink-400 bg-white/50"
-                autoFocus
+                disabled={!selectedModelId}
               />
             </div>
+
+            {!selectedModelId && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">Please select a model first before searching for users.</p>
+              </div>
+            )}
 
             {/* Results */}
             <div className="space-y-2">
@@ -218,11 +389,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 <button
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
+                  disabled={!selectedModelId}
                   className={`w-full rounded-lg border p-3 text-left transition-colors ${
                     user.our_creator
                       ? 'border-green-300 bg-green-50/50 hover:bg-green-100/50'
                       : 'border-pink-200/50 bg-white/40 hover:bg-pink-50/50'
-                  }`}
+                  } ${!selectedModelId ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     {user.avatar_url ? (
@@ -256,7 +428,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 </button>
               ))}
             </div>
-          ) : notFoundUsername ? (
+          ) : notFoundUsername && selectedModelId ? (
             <div className="rounded-lg bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4">
               <div className="mb-3 flex items-center gap-2 text-amber-600">
                 <AlertCircle className="h-4 w-4" />
@@ -267,7 +439,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
               </p>
               <Button
                 onClick={() => handleFetchFromReddit(notFoundUsername)}
-                disabled={isFetching}
+                disabled={isFetching || !selectedModelId}
                 className="w-full bg-pink-600 hover:bg-pink-700"
               >
                 {isFetching ? (

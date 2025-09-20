@@ -34,73 +34,25 @@ class TagCategorizationResult:
 class TagCategorizationService:
     """AI-powered multi-tag subreddit categorization service"""
 
-    # Complete tag hierarchy
+    # New simplified tag structure (88 tags total)
     TAG_STRUCTURE = {
-        "physical": {
-            "name": "Physical Attributes",
-            "subcategories": {
-                "body_type": ["petite", "slim", "athletic", "average", "curvy", "thick", "slim_thick", "bbw", "ssbbw", "chubby"],
-                "hair": ["blonde", "brunette", "redhead", "black", "colored", "short", "long", "curly", "straight"],
-                "skin": ["pale", "fair", "tan", "olive", "brown", "dark", "ebony"],
-                "mod": ["tattoos", "piercings", "stretched", "natural", "implants", "bimbo"],
-                "feature": ["freckles", "glasses", "braces", "dimples", "eyes_blue", "eyes_green", "eyes_brown", "lips_full", "gap_teeth"],
-                "age_look": ["teen", "mature", "milf", "gilf"]
-            }
-        },
-        "body": {
-            "name": "Body Focus",
-            "subcategories": {
-                "ass": ["general", "big", "small", "bubble", "pawg", "paag", "pabg", "jiggly", "twerk", "thong", "spread", "bent_over"],
-                "breasts": ["small", "medium", "large", "huge", "natural", "enhanced", "perky", "saggy", "flat", "puffy", "pierced", "lactating"],
-                "legs": ["general", "thick_thighs", "thin_legs", "thigh_gap", "calves", "stockings"],
-                "feet": ["general", "soles", "toes", "arches", "dirty", "worship", "footjob", "heels", "barefoot"],
-                "core": ["abs", "belly", "hips", "hip_bones", "back", "sideboob", "underboob", "cleavage"],
-                "pussy": ["general", "shaved", "hairy", "lips", "innie", "spread", "mound", "cameltoe"],
-                "full": ["general", "nude", "artistic", "curves", "from_behind", "mirror"],
-                "face": ["selfie", "pretty", "cute"],
-                "lips": ["general"],
-                "tongue": ["out"],
-                "hands": ["general"],
-                "armpits": ["general"]
-            }
-        },
-        "demo": {
-            "name": "Demographics",
-            "subcategories": {
-                "age": ["teen", "college", "twenties", "thirties", "milf", "mature", "gilf", "barely_legal"],
-                "ethnicity": ["white", "asian", "latina", "ebony", "indian", "middle_eastern", "mixed", "native", "pacific"],
-                "asian": ["japanese", "chinese", "korean", "thai", "filipina", "vietnamese", "indonesian"],
-                "geo": ["american", "canadian", "british", "european", "australian", "latin_american", "russian", "scandinavian", "brazilian"]
-            }
-        },
-        "style": {
-            "name": "Style & Aesthetic",
-            "subcategories": {
-                "clothing": ["lingerie", "bikini", "yoga_pants", "jeans", "dress", "skirt", "shorts", "stockings", "socks", "heels", "boots", "costume", "uniform", "latex", "fishnets"],
-                "nudity": ["clothed", "teasing", "topless", "bottomless", "nude", "explicit"],
-                "aesthetic": ["cute", "sexy", "innocent", "slutty", "elegant", "girl_next_door", "trashy", "artistic"],
-                "subculture": ["goth", "alt", "emo", "punk", "egirl", "vsco", "bimbo", "tomboy", "princess", "hippie"],
-                "cosplay": ["anime", "gaming", "superhero", "disney", "generic"]
-            }
-        },
-        "theme": {
-            "name": "Content Themes",
-            "subcategories": {
-                "dynamic": ["dom", "sub", "switch", "brat", "daddy", "mommy", "master"],
-                "roleplay": ["ddlg", "student", "nurse", "secretary", "maid", "stepmom", "cheating", "virgin", "religious"],
-                "fetish": ["bdsm", "breeding", "cnc", "humiliation", "worship", "collar", "petplay", "ahegao", "joi", "cuckold"],
-                "lifestyle": ["housewife", "hotwife", "gym", "yoga", "outdoor", "beach", "country", "office"],
-                "mood": ["romantic", "hardcore", "playful", "intimate", "aggressive", "gentle"]
-            }
-        },
-        "platform": {
-            "name": "Platform & Engagement",
-            "subcategories": {
-                "type": ["selfie", "amateur", "professional", "oc", "verified", "candid"],
-                "of": ["promo", "friendly", "restricted", "sellers", "no_sellers"],
-                "interaction": ["rating", "request", "tribute", "roleplay", "discussion", "showcase"]
-            }
-        }
+        "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm", "feet",
+                 "amateur", "verified", "teen", "selfie", "sellers", "cnc", "daddy", "voyeur",
+                 "rating", "general"],
+        "focus": ["breasts", "ass", "pussy", "legs", "thighs", "feet", "face", "belly",
+                 "curves", "full_body"],
+        "body": ["petite", "slim", "athletic", "average", "curvy", "thick", "slim_thick",
+                "bbw", "ssbbw"],
+        "ass": ["small", "bubble", "pawg", "thick", "jiggly"],
+        "breasts": ["small", "medium", "large", "huge", "natural", "enhanced", "perky"],
+        "age": ["teen", "college", "milf", "mature", "gilf"],
+        "ethnicity": ["asian", "latina", "ebony", "white", "indian", "middle_eastern", "mixed"],
+        "style": ["alt", "goth", "egirl", "tattooed", "pierced", "natural", "bimbo",
+                 "tomboy", "femdom", "submissive", "cosplay", "lingerie", "uniform"],
+        "hair": ["blonde", "redhead", "brunette", "colored"],
+        "special": ["hairy", "shaved", "pregnant", "lactating", "squirter", "flexible",
+                   "tall", "short", "pawg", "breeding", "daddy", "slutty", "clothed", "bent_over"],
+        "content": ["oc", "selfies", "professional"]
     }
 
     def __init__(self, supabase_client: Client, openai_api_key: str):
@@ -128,26 +80,35 @@ class TagCategorizationService:
     def _build_valid_tags_list(self) -> set:
         """Build a set of all valid tags"""
         valid_tags = set()
-        for category, data in self.TAG_STRUCTURE.items():
-            for subcategory, values in data['subcategories'].items():
-                for value in values:
-                    tag = f"{category}:{subcategory}:{value}"
-                    valid_tags.add(tag)
+        for category, values in self.TAG_STRUCTURE.items():
+            for value in values:
+                tag = f"{category}:{value}"
+                valid_tags.add(tag)
         return valid_tags
 
     def _generate_complete_tag_reference(self) -> str:
-        """Generate complete list of all available tags - shows ALL 247 tags"""
+        """Generate complete list of all available tags - shows ALL 88 tags"""
         lines = []
-        for category, data in self.TAG_STRUCTURE.items():
-            lines.append(f"\n{data['name'].upper()}:")
-            for subcategory, values in data['subcategories'].items():
-                # Format subcategory name nicely
-                subcat_display = subcategory.replace('_', ' ').title()
-                tags = [f"{category}:{subcategory}:{v}" for v in values]
-                if tags:
-                    # Show ALL tags, not just first 6
-                    # This ensures OpenAI can see every available option
-                    lines.append(f"- {subcat_display}: {', '.join(tags)}")
+        category_names = {
+            "niche": "CONTENT/NICHE",
+            "focus": "BODY FOCUS",
+            "body": "BODY TYPE",
+            "ass": "ASS SPECIFIC",
+            "breasts": "BREASTS SPECIFIC",
+            "age": "AGE GROUP",
+            "ethnicity": "ETHNICITY",
+            "style": "STYLE/AESTHETIC",
+            "hair": "HAIR",
+            "special": "SPECIAL ATTRIBUTES",
+            "content": "CONTENT TYPE"
+        }
+
+        for category, values in self.TAG_STRUCTURE.items():
+            lines.append(f"\n{category_names.get(category, category.upper())}:")
+            tags = [f"{category}:{v}" for v in values]
+            if tags:
+                # Show all tags for this category
+                lines.append(f"{', '.join(tags)}")
         return '\n'.join(lines)
 
     def _build_tag_prompt(self, subreddit: Dict[str, Any]) -> str:
@@ -179,14 +140,17 @@ AVAILABLE TAGS (choose from these ONLY):
 {tag_reference}
 
 Instructions:
-1. Select 2-8 tags from the AVAILABLE TAGS list above that best describe this subreddit
-2. Consider the rules to understand what type of content is allowed
-3. Rules mentioning "no sellers", "no OnlyFans", or "verification required" suggest platform:of:restricted
-4. Focus on the most defining characteristics (body focus, demographics, style, themes)
-5. Return ONLY a JSON array of tags, nothing else
+1. Select EXACTLY 2 tags (no more, no less) that best describe this subreddit
+2. Priority order: niche/focus first, then body/demographic, then style
+3. For cosplay subreddits, ONLY use "niche:cosplay" (prevents inappropriate matches)
+4. Consider the rules - "no sellers" means this is NOT "niche:sellers"
+5. Return ONLY a JSON array of exactly 2 tags, nothing else
 
-Example response:
-["physical:hair:redhead", "body:full:nude", "style:nudity:nude", "platform:type:amateur"]
+Example responses:
+- r/AsianHotties: ["ethnicity:asian", "focus:full_body"]
+- r/gothsluts: ["style:goth", "special:slutty"]
+- r/XMenCosplayers: ["niche:cosplay"]
+- r/paag: ["ass:pawg", "ethnicity:asian"]
 
 Tags for r/{name}:"""
 
@@ -235,20 +199,25 @@ Tags for r/{name}:"""
     def _determine_primary_category(self, tags: List[str]) -> str:
         """Determine primary category from tags"""
         if not tags:
-            return "platform"
+            return "niche"
 
-        # Count tags by main category
-        category_counts = {}
+        # Priority order for primary category
+        priority_order = ["niche", "focus", "body", "ethnicity", "age", "style", "ass", "breasts", "special", "hair", "content"]
+
+        # Get categories from tags
+        tag_categories = []
         for tag in tags:
             if ':' in tag:
-                main_cat = tag.split(':')[0]
-                category_counts[main_cat] = category_counts.get(main_cat, 0) + 1
+                category = tag.split(':')[0]
+                tag_categories.append(category)
 
-        # Return most common category
-        if category_counts:
-            return max(category_counts.items(), key=lambda x: x[1])[0]
+        # Return first category based on priority
+        for priority_cat in priority_order:
+            if priority_cat in tag_categories:
+                return priority_cat
 
-        return "platform"
+        # Fallback to first category found
+        return tag_categories[0] if tag_categories else "niche"
 
     def _validate_and_clean_tags(self, tags_raw: Any) -> Tuple[List[str], float]:
         """Validate and clean tags from AI response"""

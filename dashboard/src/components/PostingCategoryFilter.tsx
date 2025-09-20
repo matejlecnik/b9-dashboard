@@ -20,11 +20,11 @@ export function PostingCategoryFilter({
   loading = false
 }: PostingCategoryFilterProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
 
-  // Close dropdown when clicking outside and calculate position
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
@@ -37,13 +37,14 @@ export function PostingCategoryFilter({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Calculate dropdown position when opened
+  // Update dropdown position when it opens
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setDropdownPosition({
         top: rect.bottom + window.scrollY + 4,
-        left: rect.right - 256 + window.scrollX // 256px is the width of dropdown (w-64)
+        left: rect.right - 256 + window.scrollX, // 256px is w-64
+        width: 256
       })
     }
   }, [isOpen])
@@ -80,7 +81,7 @@ export function PostingCategoryFilter({
   const displayText = getDisplayText()
 
   return (
-    <>
+    <div className="relative">
       <Button
         ref={buttonRef}
         variant="outline"
@@ -93,15 +94,14 @@ export function PostingCategoryFilter({
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
-      {isOpen && typeof document !== 'undefined' && createPortal(
+      {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200"
+          className="fixed bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
-            zIndex: 999999,
-            pointerEvents: 'auto'
+            width: `${dropdownPosition.width}px`
           }}
         >
           <div className="p-2 border-b border-gray-100">
@@ -175,6 +175,6 @@ export function PostingCategoryFilter({
         </div>,
         document.body
       )}
-    </>
+    </div>
   )
 }
