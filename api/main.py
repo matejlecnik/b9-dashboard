@@ -35,7 +35,6 @@ from utils import (
     request_timer, get_cache, rate_limit, check_request_rate_limit,
     system_logger, log_api_call, log_exception
 )
-from services.categorization_service import CategorizationService
 from services.categorization_service_tags import TagCategorizationService
 from services.single_subreddit_fetcher import fetch_subreddit
 from routes.scraper_routes import router as scraper_router
@@ -96,7 +95,6 @@ class BackgroundJobRequest(BaseModel):
 # GLOBAL SERVICES
 # =============================================================================
 
-categorization_service = None
 tag_categorization_service = None
 supabase = None
 
@@ -107,7 +105,7 @@ supabase = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager with enhanced initialization"""
-    global categorization_service, tag_categorization_service, supabase
+    global tag_categorization_service, supabase
 
     logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
     system_logger.info("Starting B9 Dashboard API", source="api", script_name="main", context={"environment": os.getenv("ENVIRONMENT", "development")})
@@ -155,7 +153,6 @@ async def lifespan(app: FastAPI):
         # Initialize services
         logger.info("⚙️  Initializing services...")
 
-        categorization_service = CategorizationService(supabase, openai_key)
         tag_categorization_service = TagCategorizationService(supabase, openai_key)
 
         logger.info("✅ All services initialized")
@@ -447,8 +444,8 @@ async def get_system_stats(request: Request, cache: cache_manager = Depends(get_
         stats = {}
         
         # Gather stats from all services
-        if categorization_service:
-            stats["categorization"] = await categorization_service.get_categorization_stats()
+        if tag_categorization_service:
+            stats["categorization"] = await tag_categorization_service.get_tag_stats()
         
         # Scraper stats can be fetched from Supabase logs directly if needed
         stats["scraper"] = {"status": "Use /api/scraper/status endpoint for details"}
@@ -472,80 +469,6 @@ async def get_system_stats(request: Request, cache: cache_manager = Depends(get_
 # =============================================================================
 
 @app.post("/api/categorization/start")
-@rate_limit("api")
-async def start_categorization(request: Request, payload: CategorizationRequest):
-    """Start AI categorization process for approved subreddits"""
-    logger.info(f"📝 Categorization request received: batchSize={payload.batchSize}, limit={payload.limit}, subredditIds={payload.subredditIds}")
-    
-    if not categorization_service:
-        logger.error("❌ Categorization service not initialized")
-        raise HTTPException(status_code=503, detail="Categorization service not initialized")
-    
-    if not supabase:
-        logger.error("❌ Supabase client not initialized")
-        raise HTTPException(status_code=503, detail="Supabase connection not available")
-    
-    # Test Supabase connection
-    try:
-        test_response = supabase.table('reddit_subreddits').select('id').limit(1).execute()
-        logger.info(f"✅ Supabase connection test successful: {len(test_response.data)} test rows")
-    except Exception as e:
-        logger.error(f"❌ Supabase connection test failed: {e}")
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
-    
-    try:
-        logger.info(f"🚀 Starting categorization with batch_size={payload.batchSize}, limit={payload.limit}")
-        
-        # Start categorization with specified parameters
-        result = await categorization_service.categorize_all_uncategorized(
-            batch_size=payload.batchSize,
-            limit=payload.limit,
-            subreddit_ids=payload.subredditIds
-        )
-        
-        return {
-            "status": "completed",
-            "message": f"Categorization completed successfully",
-            "results": result
-        }
-        
-    except Exception as e:
-        logger.error(f"Categorization failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Categorization failed: {str(e)}")
-
-@app.get("/api/categorization/stats")
-@rate_limit("api")
-async def get_categorization_stats(request: Request):
-    """Get categorization statistics"""
-    if not categorization_service:
-        raise HTTPException(status_code=503, detail="Categorization service not initialized")
-    
-    try:
-        stats = await categorization_service.get_categorization_stats()
-        return stats
-        
-    except Exception as e:
-        logger.error(f"Failed to get categorization stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/categorization/categories")
-@rate_limit("api")
-async def get_categories(request: Request):
-    """Get list of available marketing categories"""
-    if not categorization_service:
-        raise HTTPException(status_code=503, detail="Categorization service not initialized")
-
-    try:
-        return {
-            "reddit_categories": categorization_service.CATEGORIES,
-            "total_categories": len(categorization_service.CATEGORIES)
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to get categories: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/categorization/tags/start")
 @rate_limit("api")
 async def start_tag_categorization(request: Request, payload: CategorizationRequest):
     """Start AI tag-based categorization process for approved subreddits"""
@@ -579,7 +502,7 @@ async def start_tag_categorization(request: Request, payload: CategorizationRequ
         logger.error(f"❌ Tag categorization failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Tag categorization failed: {str(e)}")
 
-@app.get("/api/categorization/tags/stats")
+@app.get("/api/categorization/stats")
 @rate_limit("api")
 async def get_tag_stats(request: Request):
     """Get tag categorization statistics"""

@@ -29,11 +29,10 @@ import { supabase } from '@/lib/supabase/index'
 import type { Subreddit, Post } from '@/lib/supabase/index'
 import { getCategoryStyles } from '@/lib/colors'
 
-interface SubredditWithPosts extends Omit<Subreddit, 'category_text' | 'created_at' | 'review'> {
+interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
   recent_posts?: Post[]
   public_description?: string | null
   comment_to_upvote_ratio?: number | null
-  category_text?: string | null
   min_account_age_days?: number | null
   min_comment_karma?: number | null
   min_post_karma?: number | null
@@ -297,13 +296,13 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         .eq('subreddit_name', subredditName)
         .gte('created_utc', thirtyDaysAgo.toISOString())
 
-      // Apply category filter using the new sub_category_text field
+      // Apply category filter using the new sub_primary_category field
       if (selectedCategories.length === 0) {
         // Show only uncategorized
-        query = query.or('sub_category_text.is.null,sub_category_text.eq.')
+        query = query.or('sub_primary_category.is.null,sub_primary_category.eq.')
       } else if (selectedCategories.length < availableCategories.length) {
         // Show only selected categories
-        query = query.in('sub_category_text', selectedCategories)
+        query = query.in('sub_primary_category', selectedCategories)
       }
       // If all categories selected, no additional filter needed
 
@@ -410,12 +409,12 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                 {/* Left Section - Subreddit Info (35%) - More Compact */}
                 <div className="w-[35%] p-3 border-r border-pink-100 relative">
                   {/* Category Badge - Upper Right Corner */}
-                  {subreddit.category_text && (
-                    <div 
+                  {subreddit.primary_category && (
+                    <div
                       className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-medium z-10 ring-1 ring-gray-300/50"
-                      style={getCategoryStyles(subreddit.category_text)}
+                      style={getCategoryStyles(subreddit.primary_category)}
                     >
-                      {subreddit.category_text}
+                      {subreddit.primary_category}
                     </div>
                   )}
                   

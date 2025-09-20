@@ -533,15 +533,57 @@ export const UniversalTable = memo(function UniversalTable({
 
         {/* Category column (only in category mode) */}
         {mode === 'category' && (
-          <div className="w-48 px-2">
-            <CategorySelector
-              subredditId={subreddit.id}
-              currentCategory={subreddit.category_text || ''}
-              onUpdateCategory={(id, category) => handleUpdate(id, category)}
-              compact={compactMode}
-              availableCategories={availableCategories}
-            />
-          </div>
+          <>
+            <div className="w-32 px-2">
+              <CategorySelector
+                subredditId={subreddit.id}
+                currentCategory={subreddit.primary_category || ''}
+                onUpdateCategory={(id, category) => handleUpdate(id, category)}
+                compact={compactMode}
+                availableCategories={availableCategories}
+              />
+            </div>
+
+            {/* Tags column */}
+            <div className="w-64 px-2">
+              <div className="flex flex-wrap gap-1">
+                {subreddit.tags && subreddit.tags.length > 0 ? (
+                  <>
+                    {subreddit.tags.slice(0, 3).map((tag, index) => {
+                      // Format tag from "category:subcategory:detail" to readable format
+                      const parts = tag.split(':')
+                      const displayText = parts.length > 1 ? parts.slice(1).join(' • ') : tag
+
+                      return (
+                        <span
+                          key={index}
+                          className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium",
+                            "bg-gradient-to-r from-pink-50 to-purple-50 text-pink-700 border border-pink-200",
+                            compactMode && "px-1.5 py-0 text-[10px]"
+                          )}
+                          title={tag}
+                        >
+                          {displayText}
+                        </span>
+                      )
+                    })}
+                    {subreddit.tags.length > 3 && (
+                      <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium",
+                        "bg-gray-100 text-gray-600",
+                        compactMode && "px-1.5 py-0 text-[10px]"
+                      )}>
+                        +{subreddit.tags.length - 3} more
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">No tags</span>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
     )
@@ -617,9 +659,16 @@ export const UniversalTable = memo(function UniversalTable({
           <div className="w-52 px-2 font-medium text-gray-700" role="columnheader">
             {mode === 'review' ? 'Review' : 'Review'}
           </div>
-          <div className="w-48 px-2 font-medium text-gray-700" role="columnheader">
-            {mode === 'review' ? '' : 'Category'}
-          </div>
+          {mode === 'category' && (
+            <>
+              <div className="w-32 px-2 font-medium text-gray-700" role="columnheader">
+                Category
+              </div>
+              <div className="w-64 px-2 font-medium text-gray-700" role="columnheader">
+                Tags
+              </div>
+            </>
+          )}
           <div className="flex-1 flex justify-end pr-4">
             <span className="text-xs text-gray-400" aria-label="Row count">
               {processedSubreddits.length.toLocaleString()} results

@@ -2,12 +2,12 @@
 B9 Dashboard API Services
 
 This package contains all the service modules for the B9 Dashboard API:
-- categorization_service: AI-powered subreddit categorization
+- categorization_service_tags: AI-powered subreddit tag categorization
 """
 
-from .categorization_service import CategorizationService, CategorizationResult
+from .categorization_service_tags import TagCategorizationService, TagCategorizationResult
 
 __all__ = [
-    'CategorizationService',
-    'CategorizationResult',
+    'TagCategorizationService',
+    'TagCategorizationResult',
 ]

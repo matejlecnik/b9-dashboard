@@ -5,7 +5,7 @@ import { z } from 'zod'
 // Validation schema for subreddit updates
 const SubredditUpdateSchema = z.object({
   review: z.enum(['Ok', 'No Seller', 'Non Related']).nullable().optional(),
-  category_text: z.union([
+  primary_category: z.union([
     z.string().length(0), // Allow empty string for uncategorized
     z.string().min(1).max(100),
     z.null()
@@ -135,7 +135,7 @@ export async function PATCH(
     // Check if subreddit exists
     const { data: existingSubreddit, error: fetchError } = await supabase
       .from('reddit_subreddits')
-      .select('id, name, display_name_prefixed, review, category_text')
+      .select('id, name, display_name_prefixed, review, primary_category')
       .eq('id', subredditId)
       .single()
 
@@ -185,7 +185,7 @@ export async function PATCH(
       subreddit: updatedSubreddit,
       previousState: {
         review: existingSubreddit.review,
-        category_text: existingSubreddit.category_text
+        primary_category: existingSubreddit.primary_category
       },
       changes: updateData,
       performance: {

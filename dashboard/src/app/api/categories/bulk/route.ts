@@ -6,7 +6,7 @@ import { z } from 'zod'
 const BulkCategoryUpdateSchema = z.object({
   subredditIds: z.array(z.number().int().positive()).min(1).max(100), // Limit to 100 for performance
   categoryId: z.string().uuid().nullable(), // UUID or null to clear category
-  categoryText: z.string().min(1).max(100).nullable().optional() // Legacy text field
+  primaryCategory: z.string().min(1).max(100).nullable().optional() // Primary category field
 })
 
 export async function PATCH(request: NextRequest) {
@@ -40,12 +40,12 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const { subredditIds, categoryId, categoryText } = parseResult.data
+    const { subredditIds, categoryId, primaryCategory } = parseResult.data
 
     // Verify subreddits exist and get current states for audit
     const { data: existingSubreddits, error: fetchError } = await supabase
       .from('reddit_subreddits')
-      .select('id, name, display_name_prefixed, category_id, category_text')
+      .select('id, name, display_name_prefixed, category_id, primary_category')
       .in('id', subredditIds)
 
     if (fetchError) {
@@ -70,21 +70,21 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Prepare update data
-    const updateData: { updated_at: string; category_id?: string | null; category_text?: string | null } = {
+    const updateData: { updated_at: string; category_id?: string | null; primary_category?: string | null } = {
       updated_at: new Date().toISOString()
     }
 
     if (categoryId !== undefined) {
       updateData.category_id = categoryId
     }
-    if (categoryText !== undefined) {
-      updateData.category_text = categoryText
+    if (primaryCategory !== undefined) {
+      updateData.primary_category = primaryCategory
     }
 
-    console.log('🔄 [API] Updating subreddits:', { 
+    console.log('🔄 [API] Updating subreddits:', {
       count: subredditIds.length,
       categoryId,
-      categoryText: categoryText?.substring(0, 20) + (categoryText && categoryText.length > 20 ? '...' : '')
+      primaryCategory: primaryCategory?.substring(0, 20) + (primaryCategory && primaryCategory.length > 20 ? '...' : '')
     })
 
     // Perform bulk update
@@ -92,7 +92,7 @@ export async function PATCH(request: NextRequest) {
       .from('reddit_subreddits')
       .update(updateData)
       .in('id', subredditIds)
-      .select('id, name, display_name_prefixed, category_id, category_text')
+      .select('id, name, display_name_prefixed, category_id, primary_category')
 
     if (updateError) {
       console.error('❌ [API] Bulk update failed:', updateError)
@@ -118,19 +118,19 @@ export async function PATCH(request: NextRequest) {
     console.log('✅ [API] Bulk update successful:', {
       updatedCount: updatedSubreddits?.length || 0,
       categoryId,
-      categoryText
+      primaryCategory
     })
 
     return NextResponse.json({
       success: true,
       message: `Successfully updated ${updatedSubreddits?.length || 0} subreddits`,
       updatedSubreddits: updatedSubreddits || [],
-      previousStates: (existingSubreddits as Array<{ id: number; name: string; category_id: string | null; category_text: string | null }>).
+      previousStates: (existingSubreddits as Array<{ id: number; name: string; category_id: string | null; primary_category: string | null }>).
         map((s) => ({
           id: s.id,
           name: s.name,
           previousCategoryId: s.category_id,
-          previousCategoryText: s.category_text
+          previousPrimaryCategory: s.primary_category
         }))
     })
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     // Fetch subreddits that would be affected
     const { data: subreddits, error } = await supabase
       .from('reddit_subreddits')
-      .select('id, name, display_name_prefixed, category_id, category_text')
+      .select('id, name, display_name_prefixed, category_id, primary_category')
       .in('id', subredditIds)
 
     if (error) {

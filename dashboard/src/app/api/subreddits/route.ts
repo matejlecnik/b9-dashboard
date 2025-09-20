@@ -35,16 +35,16 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('reddit_subreddits')
       .select(
-        'id,name,display_name_prefixed,title,subscribers,avg_upvotes_per_post,review,category_text,tags,primary_category,community_icon,icon_img,top_content_type,rules_data,over18,comment_to_upvote_ratio'
+        'id,name,display_name_prefixed,title,subscribers,avg_upvotes_per_post,review,tags,primary_category,community_icon,icon_img,top_content_type,rules_data,over18,comment_to_upvote_ratio'
       )
 
-    // Apply filters - now checking tags field instead of category_text
+    // Apply filters - checking primary_category field
     if (filter === 'categorized') {
-      // Categorized means it has tags (not null and not empty array)
-      query = query.not('tags', 'is', null).neq('tags', '[]')
+      // Categorized means it has a primary_category (not null and not empty string)
+      query = query.not('primary_category', 'is', null).neq('primary_category', '')
     } else if (filter === 'uncategorized') {
-      // Uncategorized means no tags (null OR empty array)
-      query = query.or('tags.is.null,tags.eq.[]')
+      // Uncategorized means no primary_category (null OR empty string)
+      query = query.or('primary_category.is.null,primary_category.eq.')
     } else if (filter === 'unreviewed') {
       query = query.is('review', null)
     } else if (filter === 'ok') {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // Apply category filter
     if (categories.length > 0) {
-      query = query.in('category_text', categories)
+      query = query.in('primary_category', categories)
     }
 
     // Apply search
@@ -121,11 +121,11 @@ export async function GET(request: NextRequest) {
       }
 
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
-        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })),
-        // Categorized: has tags (not null AND not empty array)
-        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).not('tags', 'is', null).neq('tags', '[]'),
-        // Uncategorized: no tags (null OR empty array)
-        baseFilters(supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })).or('tags.is.null,tags.eq.[]')
+        baseFilters(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true })),
+        // Categorized: has primary_category (not null AND not empty string)
+        baseFilters(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true })).not('primary_category', 'is', null).neq('primary_category', ''),
+        // Uncategorized: no primary_category (null OR empty string)
+        baseFilters(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true })).or('primary_category.is.null,primary_category.eq.')
       ])
       statsDuration = Date.now() - statsStartTime
 
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
       display_name_prefixed: `r/${cleanName}`,
       created_at: new Date().toISOString(),
       review: review || null,  // Use the provided review status or null
-      category_text: null,
+      primary_category: null,
       tags: null
     }
 

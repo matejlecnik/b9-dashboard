@@ -112,14 +112,14 @@ export async function GET(request: NextRequest) {
     } else if (type === 'category') {
       // Category stats for categorization page (already handled by main /api/subreddits endpoint)
       const [totalResult, categorizedResult, uncategorizedResult] = await Promise.all([
-        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true }).not('name', 'ilike', 'u_%'),
-        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })
+        supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).not('name', 'ilike', 'u_%'),
+        supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .not('name', 'ilike', 'u_%')
-          .not('category_text', 'is', null)
-          .neq('category_text', ''),
-        supabase.from('reddit_subreddits').select('*', { count: 'exact', head: true })
+          .not('primary_category', 'is', null)
+          .neq('primary_category', ''),
+        supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true })
           .not('name', 'ilike', 'u_%')
-          .or('category_text.is.null,category_text.eq.')
+          .or('primary_category.is.null,primary_category.eq.')
       ])
 
       const statsDuration = Date.now() - statsStartTime

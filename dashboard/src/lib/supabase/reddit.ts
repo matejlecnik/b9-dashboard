@@ -12,8 +12,9 @@ export interface Subreddit {
   subscribers?: number | null
   accounts_active?: number | null // Active members count
   review: 'Ok' | 'No Seller' | 'Non Related' | null // Review status for subreddit-review page
-  category_text: string | null // Legacy category text for categorization page
-  category_id?: string | null // New foreign key reference to categories table
+  category_id?: string | null // Foreign key reference to categories table
+  primary_category?: string | null // Primary category from tag system (e.g., "body", "style", "physical")
+  tags?: string[] | null // Array of hierarchical tags (e.g., ["body:ass:general", "style:clothing:lingerie"])
   subscriber_engagement_ratio?: number | null
   avg_engagement_velocity?: number | null // Posts per day velocity
   comment_to_upvote_ratio?: number | null // Comment to upvote ratio

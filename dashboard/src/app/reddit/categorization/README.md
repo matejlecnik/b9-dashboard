@@ -92,7 +92,8 @@ interface Subreddit {
   display_name_prefixed: string
   title: string | null
   public_description: string | null
-  category_text: string | null  // The category field
+  primary_category: string | null  // The primary category field
+  tags: string[] | null  // Array of hierarchical tags
   review_decision: string | null // Must be "Ok" for categorization
   icon_img: string | null
   community_icon: string | null

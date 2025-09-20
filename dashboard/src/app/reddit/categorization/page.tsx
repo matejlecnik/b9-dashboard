@@ -41,25 +41,7 @@ export default function CategorizationPage() {
     subreddit: null
   })
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([
-    'Age Demographics',
-    'Ass & Booty',
-    'Body Types & Features',
-    'Boobs & Chest',
-    'Clothed & Dressed',
-    'Cosplay & Fantasy',
-    'Ethnic & Cultural',
-    'Feet & Foot Fetish',
-    'Full Body & Nude',
-    'Goth & Alternative',
-    'Gym & Fitness',
-    'Interactive & Personalized',
-    'Lifestyle & Themes',
-    'Lingerie & Underwear',
-    'OnlyFans Promotion',
-    'Selfie & Amateur',
-    'Specific Body Parts'
-  ])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [bulkCategory, setBulkCategory] = useState('')
   const [categorizingAll, setCategorizingAll] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
@@ -201,7 +183,7 @@ export default function CategorizationPage() {
       console.log('✅ [CATEGORIZATION] Fetched subreddits successfully:', { 
         count: newData.length, 
         page, 
-        sampleData: newData.slice(0, 2).map((s: { name?: string; category_text?: string | null }) => ({name: s.name, category: s.category_text})) 
+        sampleData: newData.slice(0, 2).map((s: { name?: string; primary_category?: string | null }) => ({name: s.name, category: s.primary_category})) 
       })
       setHasMore(result.hasMore || false)
       
@@ -405,7 +387,7 @@ export default function CategorizationPage() {
       
       const { error } = await supabase
         .from('reddit_subreddits')
-        .update({ category_text: categoryText })
+        .update({ primary_category: categoryText })
         .eq('id', id)
       if (error) throw new Error(`Failed to update category: ${error.message}`)
       return { subreddit, categoryText }
@@ -414,13 +396,13 @@ export default function CategorizationPage() {
       showToast: false,
       onSuccess: ({ subreddit, categoryText }) => {
         // Optimistic update
-        setSubreddits(prev => prev.map(sub => 
-          sub.id === id 
-            ? { ...sub, category_text: categoryText }
+        setSubreddits(prev => prev.map(sub =>
+          sub.id === id
+            ? { ...sub, primary_category: categoryText }
             : sub
         ))
-        
-        const wasCategorized = (subreddit?.category_text || '').trim() !== ''
+
+        const wasCategorized = (subreddit?.primary_category || '').trim() !== ''
         const nowCategorized = categoryText.trim() !== ''
 
         // Check if item should be removed from current view
@@ -688,7 +670,7 @@ export default function CategorizationPage() {
       
       const { error } = await supabase
         .from('reddit_subreddits')
-        .update({ category_text: categoryText })
+        .update({ primary_category: categoryText })
         .in('id', selectedIds)
       if (error) throw new Error(`Failed to update categories: ${error.message}`)
       return { count: selectedIds.length, categoryText }
@@ -697,9 +679,9 @@ export default function CategorizationPage() {
       showToast: false,
       onSuccess: ({ count, categoryText }) => {
         // Update all selected subreddits
-        setSubreddits(prev => prev.map(sub => 
+        setSubreddits(prev => prev.map(sub =>
           selectedSubreddits.has(sub.id)
-            ? { ...sub, category_text: categoryText }
+            ? { ...sub, primary_category: categoryText }
             : sub
         ))
         

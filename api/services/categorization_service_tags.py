@@ -109,11 +109,11 @@ class TagCategorizationService:
 
         # Configuration
         self.model = "gpt-5-mini-2025-08-07"
-        self.temperature = 0.1
+        # Temperature removed - GPT-5-mini only supports default (1.0)
         # GPT-5-mini uses reasoning tokens internally before generating output
         # We need enough tokens for both reasoning AND the actual JSON response
         # With all 247 tags shown, responses may be longer (5-8 tags per subreddit)
-        self.max_tokens = 800  # Increased for ~300 reasoning tokens + 200-300 output tokens
+        self.max_completion_tokens = 2000  # Increased for better responses
         self.delay_between_requests = 0.4
 
         # Pricing per 1K tokens (GPT-5-mini)
@@ -342,7 +342,7 @@ Tags for r/{name}:"""
                     {"role": "user", "content": prompt}
                 ],
                 # temperature parameter removed - model only supports default (1)
-                max_completion_tokens=self.max_tokens
+                max_completion_tokens=self.max_completion_tokens
             )
 
             # Validate response structure

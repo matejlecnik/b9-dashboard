@@ -115,13 +115,15 @@ export async function GET(request: Request) {
       } as CategoriesResponse)
     }
     
-    // Fall back to extracting categories from category_text field
+    // Fall back to extracting unique categories from primary_category field
+    // Only select the primary_category column and distinct values
     const { data, error } = await supabase
       .from('reddit_subreddits')
-      .select('category_text')
-      .not('category_text', 'is', null)
-      .neq('category_text', '')
+      .select('primary_category')
+      .not('primary_category', 'is', null)
+      .neq('primary_category', '')
       .eq('review', 'Ok')
+      .limit(5000) // Limit to prevent overwhelming queries
     
     if (error) {
       console.error('Database error:', error)
@@ -134,10 +136,10 @@ export async function GET(request: Request) {
     // Extract unique categories and count their usage (normalized)
     const dedupCounts = new Map<string, { name: string; count: number }>()
     for (const item of data) {
-      if (!item || !item.category_text) continue
-      const key = normalizationKey(item.category_text)
+      if (!item || !item.primary_category) continue
+      const key = normalizationKey(item.primary_category)
       if (!key) continue
-      const canonicalName = normalizeCategoryName(item.category_text)
+      const canonicalName = normalizeCategoryName(item.primary_category)
       const existing = dedupCounts.get(key)
       if (existing) {
         existing.count += 1

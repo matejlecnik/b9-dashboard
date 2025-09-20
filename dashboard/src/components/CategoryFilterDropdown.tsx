@@ -27,8 +27,8 @@ export function CategoryFilterDropdown({
 }: CategoryFilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
-  const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -40,16 +40,18 @@ export function CategoryFilterDropdown({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right - 256 + window.scrollX // 256px is the dropdown width
+        top: rect.bottom + 4,
+        left: rect.right - 256 // 256px is the dropdown width
       })
     }
   }, [isOpen])
@@ -93,14 +95,16 @@ export function CategoryFilterDropdown({
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
-      {isOpen && typeof document !== 'undefined' && createPortal(
-        <div 
+      {isOpen && typeof window !== 'undefined' && createPortal(
+        <div
           ref={dropdownRef}
-          className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
           style={{
+            position: 'fixed',
             top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`
+            left: `${dropdownPosition.left}px`,
+            zIndex: 9999
           }}
+          className="w-64 bg-white rounded-lg shadow-lg border border-gray-200"
         >
           <div className="p-2 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
@@ -120,7 +124,7 @@ export function CategoryFilterDropdown({
                 </button>
               </div>
             </div>
-            
+
             {/* Show uncategorized option */}
             <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
               <div className="relative flex items-center justify-center w-4 h-4">
@@ -131,8 +135,8 @@ export function CategoryFilterDropdown({
                   className="sr-only"
                 />
                 <div className={`w-4 h-4 rounded border ${
-                  isShowingUncategorized 
-                    ? 'bg-pink-500 border-pink-500' 
+                  isShowingUncategorized
+                    ? 'bg-pink-500 border-pink-500'
                     : 'bg-white border-gray-300'
                 }`}>
                   {isShowingUncategorized && (
@@ -166,8 +170,8 @@ export function CategoryFilterDropdown({
                       className="sr-only"
                     />
                     <div className={`w-4 h-4 rounded border ${
-                      selectedCategories.includes(category) 
-                        ? 'bg-pink-500 border-pink-500' 
+                      selectedCategories.includes(category)
+                        ? 'bg-pink-500 border-pink-500'
                         : 'bg-white border-gray-300'
                     }`}>
                       {selectedCategories.includes(category) && (
@@ -175,7 +179,7 @@ export function CategoryFilterDropdown({
                       )}
                     </div>
                   </div>
-                  <span 
+                  <span
                     className="text-xs flex-1 truncate px-2 py-0.5 rounded-md transition-all"
                     style={{
                       backgroundColor: styles.backgroundColor,

@@ -23,7 +23,7 @@ type BaseSubreddit = Omit<Subreddit, 'review'> & {
   review: Subreddit['review'] | AllowedCategory | null 
 }
 
-interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'created_at'> {
+interface SubredditWithPosts extends Omit<BaseSubreddit, 'created_at'> {
   recent_posts?: Post[]
   post_count?: number
   avg_score?: number
@@ -32,7 +32,6 @@ interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'crea
   moderator_activity_score?: number
   community_health_score?: number
   categories?: string[]
-  category_text?: string | null
 }
 
 interface UsePostingAnalysisReturn {
@@ -112,12 +111,12 @@ export function usePostingAnalysis(): UsePostingAnalysisReturn {
         .select(`
           id, name, display_name_prefixed, title, description, subscribers,
           subscriber_engagement_ratio, avg_upvotes_per_post, over18,
-          community_icon, banner_img, review, category_text,
+          community_icon, banner_img, review, primary_category,
           recent_posts, post_count, avg_score, engagement_score,
           best_posting_hour, moderator_activity_score, community_health_score
         `)
         .eq('review', 'Ok') // Only show approved subreddits for posting
-        .not('category_text', 'is', null) // Only categorized subreddits
+        .not('primary_category', 'is', null) // Only categorized subreddits
         .order('subscriber_engagement_ratio', { ascending: false })
         .limit(500) // Reasonable limit for posting recommendations
       
@@ -180,7 +179,7 @@ export function usePostingAnalysis(): UsePostingAnalysisReturn {
         sub.display_name_prefixed?.toLowerCase().includes(query) ||
         sub.title?.toLowerCase().includes(query) ||
         sub.description?.toLowerCase().includes(query) ||
-        sub.category_text?.toLowerCase().includes(query)
+        sub.primary_category?.toLowerCase().includes(query)
       )
     }
     
@@ -192,7 +191,7 @@ export function usePostingAnalysis(): UsePostingAnalysisReturn {
     // Apply category filter
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(sub => {
-        const category = sub.category_text ?? null
+        const category = sub.primary_category ?? null
         return !!category && selectedCategories.includes(category)
       })
     }

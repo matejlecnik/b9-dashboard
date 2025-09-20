@@ -44,11 +44,11 @@ type SortDirection = 'asc' | 'desc'
 
 type BaseSubreddit = Omit<Subreddit, 'review'> & { review: Subreddit['review'] | AllowedCategory | null }
 
-interface SubredditWithPosts extends Omit<BaseSubreddit, 'category_text' | 'created_at'> {
+interface SubredditWithPosts extends Omit<BaseSubreddit, 'created_at'> {
   recent_posts?: Post[]
   public_description?: string | null
   comment_to_upvote_ratio?: number | null
-  category_text?: string | null
+  primary_category?: string | null
   min_account_age_days?: number | null
   min_comment_karma?: number | null
   min_post_karma?: number | null
@@ -78,26 +78,8 @@ export default function PostingPage() {
   const [loading, setLoading] = useState(true)
   const [, setLastUpdated] = useState<Date>(new Date())
   const [searchQuery, setSearchQuery] = useState('')
-  const availableCategories = [
-    'Age Demographics',
-    'Ass & Booty',
-    'Body Types & Features',
-    'Boobs & Chest',
-    'Clothed & Dressed',
-    'Cosplay & Fantasy',
-    'Ethnic & Cultural',
-    'Feet & Foot Fetish',
-    'Full Body & Nude',
-    'Goth & Alternative',
-    'Gym & Fitness',
-    'Interactive & Personalized',
-    'Lifestyle & Themes',
-    'Lingerie & Underwear',
-    'OnlyFans Promotion',
-    'Selfie & Amateur',
-    'Specific Body Parts'
-  ]
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(availableCategories)
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   // Filters & sorting
   const [sfwOnly, setSfwOnly] = useState<boolean>(false)
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false)
@@ -136,16 +118,16 @@ export default function PostingPage() {
       setVerifiedCount(verifiedResult.count || 0)
       const { data: categoryData } = await sb
         .from('reddit_subreddits')
-        .select('category_text')
+        .select('primary_category')
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
-        .not('category_text', 'is', null)
-        .not('category_text', 'eq', '')
+        .not('primary_category', 'is', null)
+        .not('primary_category', 'eq', '')
       const counts: Record<string, number> = {}
       if (categoryData && Array.isArray(categoryData)) {
         categoryData.forEach(item => {
-          if (item && item.category_text) {
-            counts[item.category_text] = (counts[item.category_text] || 0) + 1
+          if (item && item.primary_category) {
+            counts[item.primary_category] = (counts[item.primary_category] || 0) + 1
           }
         })
       }
@@ -182,7 +164,7 @@ export default function PostingPage() {
         .select(`
           id, name, display_name_prefixed, title, public_description,
           subscribers, avg_upvotes_per_post, subscriber_engagement_ratio,
-          best_posting_hour, best_posting_day, over18, category_text,
+          best_posting_hour, best_posting_day, over18, primary_category,
           image_post_avg_score, video_post_avg_score, text_post_avg_score,
           last_scraped_at, min_account_age_days, min_comment_karma,
           min_post_karma, allow_images, icon_img, community_icon,
@@ -195,10 +177,10 @@ export default function PostingPage() {
       // Apply category filter server-side
       if (selectedCategories.length === 0) {
         // Show only uncategorized
-        query = query.or('category_text.is.null,category_text.eq.')
+        query = query.or('primary_category.is.null,primary_category.eq.')
       } else if (selectedCategories.length < availableCategories.length) {
         // Show only selected categories
-        query = query.in('category_text', selectedCategories)
+        query = query.in('primary_category', selectedCategories)
       }
       // If all categories selected, no additional filter needed
       
@@ -234,7 +216,7 @@ export default function PostingPage() {
         ...subreddit,
         recent_posts: [], // Will be loaded lazily when expanded
         review: subreddit.review ?? null,
-        category_text: subreddit.category_text || null, // Explicitly preserve category_text
+        primary_category: subreddit.primary_category || null, // Explicitly preserve primary_category
         created_at: new Date().toISOString()
       })) as SubredditWithPosts[]
 
@@ -415,7 +397,7 @@ export default function PostingPage() {
         subreddit.display_name_prefixed.toLowerCase().includes(q) ||
         (subreddit.public_description || subreddit.title || '').toLowerCase().includes(q) ||
         (subreddit.top_content_type || '').toLowerCase().includes(q) ||
-        (subreddit.category_text || '').toLowerCase().includes(q)
+        (subreddit.primary_category || '').toLowerCase().includes(q)
       ))
     }
     
@@ -482,11 +464,35 @@ export default function PostingPage() {
   }, [handleLoadMore])
 
 
+  // Load available categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await fetch('/api/categories?limit=1000')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.categories && Array.isArray(data.categories)) {
+            const categoryNames = data.categories
+              .map((c: any) => c.name)
+              .filter((name: any) => typeof name === 'string' && name.trim().length > 0)
+              .sort((a: string, b: string) => a.localeCompare(b))
+            setAvailableCategories(categoryNames)
+            setSelectedCategories(categoryNames) // Select all by default
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error)
+      }
+    }
+    loadCategories()
+  }, [])
+
   // Initial load
   useEffect(() => {
     setCurrentPage(0)
     fetchOkSubreddits(0, false)
     fetchCreators()
+    loadFilterCounts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   

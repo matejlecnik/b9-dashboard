@@ -11,8 +11,7 @@ export interface Post {
   thumbnail: string | null
   url: string
   author_username: string
-  category_text?: string | null
-  sub_category_text?: string | null  // Mirrored from subreddit's category_text
+  sub_primary_category?: string | null  // Mirrored from subreddit's primary_category
   sub_over18?: boolean | null  // Mirrored from subreddit's over18
   preview_data?: {
     images?: Array<{
