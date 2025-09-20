@@ -34,25 +34,25 @@ class TagCategorizationResult:
 class TagCategorizationService:
     """AI-powered multi-tag subreddit categorization service"""
 
-    # New simplified tag structure (88 tags total)
+    # New simplified tag structure (83 tags total - removed duplicates)
     TAG_STRUCTURE = {
-        "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm", "feet",
-                 "amateur", "verified", "teen", "selfie", "sellers", "cnc", "daddy", "voyeur",
+        "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm",
+                 "amateur", "verified", "sellers", "cnc", "voyeur",
                  "rating", "general"],
-        "focus": ["breasts", "ass", "pussy", "legs", "thighs", "feet", "face", "belly",
+        "focus": ["breasts", "ass", "pussy", "legs", "thighs", "face", "belly",
                  "curves", "full_body"],
         "body": ["petite", "slim", "athletic", "average", "curvy", "thick", "slim_thick",
                 "bbw", "ssbbw"],
-        "ass": ["small", "bubble", "pawg", "thick", "jiggly"],
+        "ass": ["small", "bubble", "jiggly"],
         "breasts": ["small", "medium", "large", "huge", "natural", "enhanced", "perky"],
-        "age": ["teen", "college", "milf", "mature", "gilf"],
+        "age": ["college", "milf", "mature", "gilf"],
         "ethnicity": ["asian", "latina", "ebony", "white", "indian", "middle_eastern", "mixed"],
         "style": ["alt", "goth", "egirl", "tattooed", "pierced", "natural", "bimbo",
-                 "tomboy", "femdom", "submissive", "cosplay", "lingerie", "uniform"],
+                 "tomboy", "femdom", "submissive", "lingerie", "uniform"],
         "hair": ["blonde", "redhead", "brunette", "colored"],
         "special": ["hairy", "shaved", "pregnant", "lactating", "squirter", "flexible",
-                   "tall", "short", "pawg", "breeding", "daddy", "slutty", "clothed", "bent_over"],
-        "content": ["oc", "selfies", "professional"]
+                   "tall", "short", "breeding", "slutty", "clothed", "bent_over"],
+        "content": ["oc", "professional"]
     }
 
     def __init__(self, supabase_client: Client, openai_api_key: str):
@@ -87,7 +87,7 @@ class TagCategorizationService:
         return valid_tags
 
     def _generate_complete_tag_reference(self) -> str:
-        """Generate complete list of all available tags - shows ALL 88 tags"""
+        """Generate complete list of all available tags - shows ALL 83 tags"""
         lines = []
         category_names = {
             "niche": "CONTENT/NICHE",
@@ -140,17 +140,20 @@ AVAILABLE TAGS (choose from these ONLY):
 {tag_reference}
 
 Instructions:
-1. Select EXACTLY 2 tags (no more, no less) that best describe this subreddit
-2. Priority order: niche/focus first, then body/demographic, then style
-3. For cosplay subreddits, ONLY use "niche:cosplay" (prevents inappropriate matches)
-4. Consider the rules - "no sellers" means this is NOT "niche:sellers"
-5. Return ONLY a JSON array of exactly 2 tags, nothing else
+1. PREFER 1 TAG when it sufficiently describes the subreddit's core focus
+2. Use 2 tags ONLY when both are absolutely essential to prevent mismatches
+3. Priority order: niche/focus first, then body/demographic, then style
+4. For highly specific subreddits (e.g., cosplay-only), 1 tag is often sufficient
+5. Consider the rules - "no sellers" means this is NOT "niche:sellers"
+6. Return ONLY a JSON array of 1 or 2 tags, nothing else
 
 Example responses:
-- r/AsianHotties: ["ethnicity:asian", "focus:full_body"]
+- r/AsianHotties: ["ethnicity:asian"]
 - r/gothsluts: ["style:goth", "special:slutty"]
 - r/XMenCosplayers: ["niche:cosplay"]
-- r/paag: ["ass:pawg", "ethnicity:asian"]
+- r/paag: ["ethnicity:asian"]
+- r/BigBoobsGW: ["focus:breasts", "breasts:large"]
+- r/fuckdoll: ["special:slutty"]
 
 Tags for r/{name}:"""
 
@@ -306,7 +309,7 @@ Tags for r/{name}:"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert at tagging adult content subreddits for marketing. Always respond with a JSON array of 2-6 relevant tags in the format category:subcategory:value."
+                        "content": "You are an expert at tagging adult content subreddits for marketing. Always respond with a JSON array of 1-2 relevant tags in the format category:value. Prefer 1 tag when sufficient."
                     },
                     {"role": "user", "content": prompt}
                 ],

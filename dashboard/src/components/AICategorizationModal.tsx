@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { X, Sparkles, Info, Terminal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 import { useToast } from '@/components/ui/toast'
 
 interface AICategorizationModalProps {
@@ -165,20 +165,79 @@ export function AICategorizationModal({
               <div className="space-y-3">
                 
                 {/* Max Items - Only setting user can change */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="limit" className="text-xs text-gray-700">
-                    Items to Process
-                    <span className="ml-1 text-pink-400 text-[10px]">({uncategorizedCount} available)</span>
-                  </Label>
-                  <Input
-                    id="limit"
-                    type="number"
-                    min={1}
-                    max={Math.min(1000, uncategorizedCount)}
-                    value={settings.limit}
-                    onChange={(e) => setSettings(prev => ({ ...prev, limit: parseInt(e.target.value) || 1 }))}
-                    className="w-full h-8 text-sm border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                  />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium text-gray-700">
+                      Items to Process
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                        {settings.limit}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        / {uncategorizedCount} available
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Slider
+                      value={[settings.limit]}
+                      onValueChange={(value) => setSettings(prev => ({ ...prev, limit: value[0] }))}
+                      min={1}
+                      max={Math.min(1000, uncategorizedCount)}
+                      step={10}
+                      className="w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-pink-500 [&_[role=slider]]:to-purple-500 [&_[role=slider]]:border-0 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-pink-500/20 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[data-orientation]]:bg-gray-200 [&_[data-orientation]_span]:bg-gradient-to-r [&_[data-orientation]_span]:from-pink-500 [&_[data-orientation]_span]:to-purple-500"
+                    />
+
+                    {/* Tick marks for quarters */}
+                    <div className="flex justify-between mt-1 px-2">
+                      <span className="text-[9px] text-gray-400">1</span>
+                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.25)}</span>
+                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.5)}</span>
+                      <span className="text-[9px] text-gray-400">{Math.round(uncategorizedCount * 0.75)}</span>
+                      <span className="text-[9px] text-gray-400">{uncategorizedCount}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick select buttons */}
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(50, uncategorizedCount) }))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(100, uncategorizedCount) }))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      100
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(250, uncategorizedCount) }))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      250
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(500, uncategorizedCount) }))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      500
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, limit: uncategorizedCount }))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      All
+                    </button>
+                  </div>
                 </div>
               </div>
               

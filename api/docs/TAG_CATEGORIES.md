@@ -8,9 +8,9 @@ Tags follow the format: `category:value` or `category:subcategory`
 
 Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
-## Complete Tag Hierarchy (88 Total Tags)
+## Complete Tag Hierarchy (83 Total Tags)
 
-### 1️⃣ CONTENT/NICHE (18 tags)
+### 1️⃣ CONTENT/NICHE (14 tags)
 *Primary content type or niche focus*
 
 - `niche:cosplay` - Cosplay content
@@ -20,19 +20,15 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `niche:yoga` - Yoga specific content
 - `niche:outdoors` - Outdoor/public content
 - `niche:bdsm` - BDSM/kink content
-- `niche:feet` - Feet fetish content
 - `niche:amateur` - Amateur/real content emphasis
 - `niche:verified` - Verified accounts only
-- `niche:teen` - Teen/barely-legal focus (18+)
-- `niche:selfie` - Face/selfie focused
 - `niche:sellers` - For selling services
 - `niche:cnc` - CNC/rape fantasy content
-- `niche:daddy` - Daddy/DDLG themed
 - `niche:voyeur` - Upskirt/candid/voyeur
 - `niche:rating` - Rating/feedback subs
 - `niche:general` - General NSFW content
 
-### 2️⃣ BODY FOCUS (10 tags)
+### 2️⃣ BODY FOCUS (9 tags)
 *Primary body part emphasis*
 
 - `focus:breasts` - Breast/chest focused
@@ -40,7 +36,6 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `focus:pussy` - Pussy focused
 - `focus:legs` - Legs focused
 - `focus:thighs` - Thigh specific
-- `focus:feet` - Feet focused
 - `focus:face` - Face/portrait focused
 - `focus:belly` - Belly/tummy focused
 - `focus:curves` - Overall curves emphasis
@@ -59,13 +54,11 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `body:bbw` - Big beautiful women
 - `body:ssbbw` - Super-sized BBW
 
-### 4️⃣ ASS SPECIFIC (5 tags)
+### 4️⃣ ASS SPECIFIC (3 tags)
 *Specific ass characteristics*
 
 - `ass:small` - Small/cute butts
 - `ass:bubble` - Bubble butts
-- `ass:pawg` - Phat ass white girls
-- `ass:thick` - Thick/big asses
 - `ass:jiggly` - Jiggly/bouncy
 
 ### 5️⃣ BREASTS SPECIFIC (7 tags)
@@ -79,10 +72,9 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `breasts:enhanced` - Implants/enhanced
 - `breasts:perky` - Perky/upright
 
-### 6️⃣ DEMOGRAPHICS - AGE (5 tags)
+### 6️⃣ DEMOGRAPHICS - AGE (4 tags)
 *Age groups*
 
-- `age:teen` - 18-19 years
 - `age:college` - College age (20-24)
 - `age:milf` - MILF age (30-45)
 - `age:mature` - 40-49 years
@@ -99,7 +91,7 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `ethnicity:middle_eastern` - Middle Eastern/Arab
 - `ethnicity:mixed` - Mixed race
 
-### 8️⃣ STYLE/AESTHETIC (13 tags)
+### 8️⃣ STYLE/AESTHETIC (12 tags)
 *Visual style and modifications*
 
 - `style:alt` - Alternative style
@@ -112,7 +104,6 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `style:tomboy` - Tomboy style
 - `style:femdom` - Dominant aesthetic
 - `style:submissive` - Submissive aesthetic
-- `style:cosplay` - Cosplay style
 - `style:lingerie` - Lingerie focused
 - `style:uniform` - Uniforms (school, nurse, etc.)
 
@@ -124,7 +115,7 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `hair:brunette` - Brown hair
 - `hair:colored` - Dyed/unnatural colors
 
-### 🔟 SPECIAL ATTRIBUTES (14 tags)
+### 🔟 SPECIAL ATTRIBUTES (12 tags)
 *Specific attributes or themes*
 
 - `special:hairy` - Hairy/bush
@@ -135,25 +126,24 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `special:flexible` - Flexibility focus
 - `special:tall` - Tall girls (5'10"+)
 - `special:short` - Short girls (under 5'2")
-- `special:pawg` - PAWG specific
 - `special:breeding` - Breeding kink
-- `special:daddy` - Daddy themes
 - `special:slutty` - Slut themes
 - `special:clothed` - Clothed/teasing
 - `special:bent_over` - Bent over poses
 
-### 1️⃣1️⃣ CONTENT TYPE (3 tags)
+### 1️⃣1️⃣ CONTENT TYPE (2 tags)
 *Content creation style*
 
 - `content:oc` - Original content only
-- `content:selfies` - Selfie content
 - `content:professional` - Professional photography
 
 ## Tag Assignment Rules
 
-### Maximum Tags
-- **STRICT LIMIT: 2 tags per subreddit**
-- Choose the 2 most defining characteristics
+### Tag Quantity Guidelines
+- **PREFERRED: 1 tag when it sufficiently describes the subreddit**
+- **MAXIMUM: 2 tags when absolutely necessary for precision**
+- Use 1 tag when the subreddit has a single clear focus
+- Use 2 tags only when both are essential to prevent mismatches
 - Priority order: niche/focus → body/demographic → style
 
 ### Examples
@@ -165,8 +155,9 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
 #### r/paag
 ```json
-["ass:pawg", "ethnicity:asian"]
+["ethnicity:asian"]
 ```
+*Note: Asian-specific, PAWG concept implied*
 
 #### r/gothsluts
 ```json
@@ -175,8 +166,9 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
 #### r/DadWouldBeProud
 ```json
-["niche:daddy", "age:teen"]
+["age:college"]
 ```
+*Note: Young adult theme, not necessarily teen*
 
 #### r/XMenCosplayers
 ```json
@@ -230,6 +222,6 @@ All existing tags in the database will be cleared and recategorized using this n
 ---
 
 *Last Updated: January 2025*
-*Total Tags: 88*
+*Total Tags: 83*
 *Categories: 11*
-*Max Tags per Subreddit: 2*
+*Tags per Subreddit: 1-2 (prefer 1)*

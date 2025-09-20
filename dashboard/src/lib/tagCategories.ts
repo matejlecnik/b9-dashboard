@@ -22,14 +22,10 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: 'niche:yoga', label: 'Yoga', category: 'niche' },
       { value: 'niche:outdoors', label: 'Outdoors', category: 'niche' },
       { value: 'niche:bdsm', label: 'BDSM', category: 'niche' },
-      { value: 'niche:feet', label: 'Feet', category: 'niche' },
       { value: 'niche:amateur', label: 'Amateur', category: 'niche' },
       { value: 'niche:verified', label: 'Verified', category: 'niche' },
-      { value: 'niche:teen', label: 'Teen (18+)', category: 'niche' },
-      { value: 'niche:selfie', label: 'Selfie', category: 'niche' },
       { value: 'niche:sellers', label: 'Sellers', category: 'niche' },
       { value: 'niche:cnc', label: 'CNC', category: 'niche' },
-      { value: 'niche:daddy', label: 'Daddy/DDLG', category: 'niche' },
       { value: 'niche:voyeur', label: 'Voyeur', category: 'niche' },
       { value: 'niche:rating', label: 'Rating', category: 'niche' },
       { value: 'niche:general', label: 'General', category: 'niche' }
@@ -44,7 +40,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: 'focus:pussy', label: 'Pussy', category: 'focus' },
       { value: 'focus:legs', label: 'Legs', category: 'focus' },
       { value: 'focus:thighs', label: 'Thighs', category: 'focus' },
-      { value: 'focus:feet', label: 'Feet', category: 'focus' },
       { value: 'focus:face', label: 'Face', category: 'focus' },
       { value: 'focus:belly', label: 'Belly', category: 'focus' },
       { value: 'focus:curves', label: 'Curves', category: 'focus' },
@@ -72,8 +67,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
     tags: [
       { value: 'ass:small', label: 'Small', category: 'ass' },
       { value: 'ass:bubble', label: 'Bubble', category: 'ass' },
-      { value: 'ass:pawg', label: 'PAWG', category: 'ass' },
-      { value: 'ass:thick', label: 'Thick', category: 'ass' },
       { value: 'ass:jiggly', label: 'Jiggly', category: 'ass' }
     ]
   },
@@ -94,7 +87,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
     name: 'age',
     label: 'Age Group',
     tags: [
-      { value: 'age:teen', label: 'Teen (18-19)', category: 'age' },
       { value: 'age:college', label: 'College (20-24)', category: 'age' },
       { value: 'age:milf', label: 'MILF (30-45)', category: 'age' },
       { value: 'age:mature', label: 'Mature (40-49)', category: 'age' },
@@ -128,7 +120,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: 'style:tomboy', label: 'Tomboy', category: 'style' },
       { value: 'style:femdom', label: 'Femdom', category: 'style' },
       { value: 'style:submissive', label: 'Submissive', category: 'style' },
-      { value: 'style:cosplay', label: 'Cosplay', category: 'style' },
       { value: 'style:lingerie', label: 'Lingerie', category: 'style' },
       { value: 'style:uniform', label: 'Uniform', category: 'style' }
     ]
@@ -155,9 +146,7 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: 'special:flexible', label: 'Flexible', category: 'special' },
       { value: 'special:tall', label: 'Tall (5\'10"+)', category: 'special' },
       { value: 'special:short', label: 'Short (<5\'2")', category: 'special' },
-      { value: 'special:pawg', label: 'PAWG', category: 'special' },
       { value: 'special:breeding', label: 'Breeding Kink', category: 'special' },
-      { value: 'special:daddy', label: 'Daddy Themes', category: 'special' },
       { value: 'special:slutty', label: 'Slut Themes', category: 'special' },
       { value: 'special:clothed', label: 'Clothed/Teasing', category: 'special' },
       { value: 'special:bent_over', label: 'Bent Over', category: 'special' }
@@ -168,7 +157,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
     label: 'Content Type',
     tags: [
       { value: 'content:oc', label: 'Original Content', category: 'content' },
-      { value: 'content:selfies', label: 'Selfies', category: 'content' },
       { value: 'content:professional', label: 'Professional', category: 'content' }
     ]
   }
