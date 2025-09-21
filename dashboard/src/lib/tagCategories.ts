@@ -68,6 +68,7 @@ export const TAG_CATEGORIES: TagCategory[] = [
     tags: [
       { value: 'ass:small', label: 'Small', category: 'ass' },
       { value: 'ass:bubble', label: 'Bubble', category: 'ass' },
+      { value: 'ass:big', label: 'Big/Thick', category: 'ass' },
       { value: 'ass:jiggly', label: 'Jiggly', category: 'ass' }
     ]
   },
@@ -89,6 +90,7 @@ export const TAG_CATEGORIES: TagCategory[] = [
     label: 'Age Group',
     tags: [
       { value: 'age:college', label: 'College (20-24)', category: 'age' },
+      { value: 'age:adult', label: 'Adult (25-30)', category: 'age' },
       { value: 'age:milf', label: 'MILF (30-45)', category: 'age' },
       { value: 'age:mature', label: 'Mature (40-49)', category: 'age' },
       { value: 'age:gilf', label: 'GILF (50+)', category: 'age' }
@@ -140,10 +142,6 @@ export const TAG_CATEGORIES: TagCategory[] = [
     label: 'Special Attributes',
     tags: [
       { value: 'special:hairy', label: 'Hairy', category: 'special' },
-      { value: 'special:shaved', label: 'Shaved', category: 'special' },
-      { value: 'special:pregnant', label: 'Pregnant', category: 'special' },
-      { value: 'special:lactating', label: 'Lactating', category: 'special' },
-      { value: 'special:squirter', label: 'Squirter', category: 'special' },
       { value: 'special:flexible', label: 'Flexible', category: 'special' },
       { value: 'special:tall', label: 'Tall (5\'10"+)', category: 'special' },
       { value: 'special:short', label: 'Short (<5\'2")', category: 'special' },

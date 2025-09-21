@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
-import { TAG_CATEGORIES } from '@/lib/tagCategories'
+import { Loader2, ChevronDown, ChevronUp, Plus, X, Info, AlertCircle } from 'lucide-react'
+import { TAG_CATEGORIES, getAllTags, findTagByValue } from '@/lib/tagCategories'
+import { createClient } from '@supabase/supabase-js'
 
 interface ModelFormProps {
   model?: {
@@ -36,6 +37,8 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [newRedditAccount, setNewRedditAccount] = useState('')
+  const [matchingSubreddits, setMatchingSubreddits] = useState<number>(0)
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false)
 
   // Auto-expand categories that have selected tags
   useEffect(() => {
@@ -45,6 +48,41 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
       if (category) categoriesWithTags.add(category)
     })
     setExpandedCategories(categoriesWithTags)
+  }, [formData.assigned_tags])
+
+  // Fetch matching subreddits count when tags change
+  useEffect(() => {
+    async function fetchMatchingSubreddits() {
+      if (formData.assigned_tags.length === 0) {
+        setMatchingSubreddits(0)
+        return
+      }
+
+      setIsLoadingMatches(true)
+      try {
+        // Create a client-side Supabase instance
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+        // Query subreddits that have at least one matching tag and are marked as "Ok"
+        const { count, error } = await supabase
+          .from('reddit_subreddits')
+          .select('*', { count: 'exact', head: true })
+          .overlaps('tags', formData.assigned_tags)
+          .eq('review', 'Ok')
+
+        if (!error && count !== null) {
+          setMatchingSubreddits(count)
+        }
+      } catch (error) {
+        console.error('Error fetching matching subreddits:', error)
+      } finally {
+        setIsLoadingMatches(false)
+      }
+    }
+
+    fetchMatchingSubreddits()
   }, [formData.assigned_tags])
 
   const validateForm = () => {
@@ -259,7 +297,46 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
       {/* Tags */}
       <Card>
         <CardHeader>
-          <CardTitle>Content Tags</CardTitle>
+          <div className="flex items-start justify-between">
+            <CardTitle>Content Tags</CardTitle>
+            <div className="flex items-center gap-2">
+              {/* Tag count indicator */}
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
+                formData.assigned_tags.length === 0 ? 'bg-gray-100 text-gray-500' :
+                formData.assigned_tags.length <= 3 ? 'bg-green-100 text-green-700' :
+                formData.assigned_tags.length <= 5 ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-100 text-red-700'
+              }`}>
+                <span>{formData.assigned_tags.length}</span>
+                <span className="text-[10px]">tag{formData.assigned_tags.length !== 1 ? 's' : ''}</span>
+              </div>
+
+              {/* Info tooltip */}
+              <div className="group relative">
+                <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                <div className="absolute right-0 top-6 w-64 p-3 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <h4 className="text-xs font-semibold text-gray-700 mb-1">Tag Guidelines</h4>
+                  <ul className="text-[10px] text-gray-600 space-y-1">
+                    <li className="flex items-start gap-1">
+                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span><strong>Optimal: 1-3 tags</strong> - Better matching with precise tags</span>
+                    </li>
+                    <li className="flex items-start gap-1">
+                      <span className="text-yellow-500 mt-0.5">⚠</span>
+                      <span><strong>Ok: 4-5 tags</strong> - May dilute matching effectiveness</span>
+                    </li>
+                    <li className="flex items-start gap-1">
+                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span><strong>Too many: 6+ tags</strong> - Reduces precision significantly</span>
+                    </li>
+                    <li className="mt-2 pt-2 border-t border-gray-100">
+                      <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model's content
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -311,31 +388,76 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
           </div>
 
           {formData.assigned_tags.length > 0 && (
-            <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-              <p className="text-sm font-medium text-purple-700 mb-2">
-                Selected Tags ({formData.assigned_tags.length})
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {formData.assigned_tags.map(tag => {
-                  // Find the tag label
-                  let tagLabel = tag
-                  for (const category of TAG_CATEGORIES) {
-                    const found = category.tags.find(t => t.value === tag)
-                    if (found) {
-                      tagLabel = found.label
-                      break
+            <div className="mt-4 space-y-3">
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-purple-700">
+                    Selected Tags ({formData.assigned_tags.length})
+                  </p>
+                  {formData.assigned_tags.length > 5 && (
+                    <div className="flex items-center gap-1 text-[10px] text-red-600">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>Too many tags - consider removing some</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.assigned_tags.map(tag => {
+                    // Find the tag label
+                    let tagLabel = tag
+                    for (const category of TAG_CATEGORIES) {
+                      const found = category.tags.find(t => t.value === tag)
+                      if (found) {
+                        tagLabel = found.label
+                        break
+                      }
                     }
-                  }
-                  return (
-                    <Badge
-                      key={tag}
-                      variant="default"
-                      className="bg-purple-500"
-                    >
-                      {tagLabel}
-                    </Badge>
-                  )
-                })}
+                    return (
+                      <Badge
+                        key={tag}
+                        variant="default"
+                        className="bg-purple-500"
+                      >
+                        {tagLabel}
+                      </Badge>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Matching subreddits preview */}
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-blue-700">Matching Subreddits</p>
+                    <p className="text-[10px] text-blue-600 mt-0.5">
+                      Approved subreddits that share at least one tag
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {isLoadingMatches ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                        <span className="text-xs text-blue-600">Loading...</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-2xl font-bold text-blue-700">{matchingSubreddits}</p>
+                        <p className="text-[10px] text-blue-600">
+                          {matchingSubreddits === 1 ? 'subreddit' : 'subreddits'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {matchingSubreddits === 0 && !isLoadingMatches && formData.assigned_tags.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-blue-200">
+                    <p className="text-[10px] text-blue-600">
+                      <AlertCircle className="w-3 h-3 inline mr-1" />
+                      No matching subreddits found. Consider using different tags.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

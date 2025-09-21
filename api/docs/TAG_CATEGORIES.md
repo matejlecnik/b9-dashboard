@@ -8,7 +8,7 @@ Tags follow the format: `category:value` or `category:subcategory`
 
 Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 
-## Complete Tag Hierarchy (84 Total Tags)
+## Complete Tag Hierarchy (82 Total Tags)
 
 ### 1️⃣ CONTENT/NICHE (14 tags)
 *Primary content type or niche focus*
@@ -55,11 +55,12 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `body:bbw` - Big beautiful women
 - `body:ssbbw` - Super-sized BBW
 
-### 4️⃣ ASS SPECIFIC (3 tags)
+### 4️⃣ ASS SPECIFIC (4 tags)
 *Specific ass characteristics*
 
 - `ass:small` - Small/cute butts
 - `ass:bubble` - Bubble butts
+- `ass:big` - Big/thick asses (PAWG)
 - `ass:jiggly` - Jiggly/bouncy
 
 ### 5️⃣ BREASTS SPECIFIC (7 tags)
@@ -73,10 +74,11 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `breasts:enhanced` - Implants/enhanced
 - `breasts:perky` - Perky/upright
 
-### 6️⃣ DEMOGRAPHICS - AGE (4 tags)
+### 6️⃣ DEMOGRAPHICS - AGE (5 tags)
 *Age groups*
 
 - `age:college` - College age (20-24)
+- `age:adult` - Adult (25-30)
 - `age:milf` - MILF age (30-45)
 - `age:mature` - 40-49 years
 - `age:gilf` - 50+ years
@@ -116,14 +118,10 @@ Examples: `niche:cosplay`, `ethnicity:asian`, `ass:pawg`
 - `hair:brunette` - Brown hair
 - `hair:colored` - Dyed/unnatural colors
 
-### 🔟 SPECIAL ATTRIBUTES (12 tags)
+### 🔟 SPECIAL ATTRIBUTES (8 tags)
 *Specific attributes or themes*
 
 - `special:hairy` - Hairy/bush
-- `special:shaved` - Shaved/smooth
-- `special:pregnant` - Pregnancy content
-- `special:lactating` - Lactation content
-- `special:squirter` - Squirting
 - `special:flexible` - Flexibility focus
 - `special:tall` - Tall girls (5'10"+)
 - `special:short` - Short girls (under 5'2")
@@ -223,6 +221,6 @@ All existing tags in the database will be cleared and recategorized using this n
 ---
 
 *Last Updated: January 2025*
-*Total Tags: 84*
+*Total Tags: 82*
 *Categories: 11*
 *Tags per Subreddit: 1-2 (prefer 1)*

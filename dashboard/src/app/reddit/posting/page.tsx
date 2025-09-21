@@ -168,9 +168,8 @@ export default function PostingPage() {
       if (selectedAccount && selectedAccount.model && selectedAccount.model.assigned_tags && selectedAccount.model.assigned_tags.length > 0) {
         const modelTags = selectedAccount.model.assigned_tags
         // Use JSONB overlap operator - subreddit must have at least one tag from model
-        // We need to build a JSONB array string for the overlap operator
-        const tagsJsonArray = JSON.stringify(modelTags)
-        query = query.overlaps('tags', tagsJsonArray)
+        // Pass the array directly, not as JSON string
+        query = query.overlaps('tags', modelTags)
       }
 
       // Apply search filter (server-side)

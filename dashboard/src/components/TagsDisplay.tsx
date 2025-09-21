@@ -11,7 +11,7 @@ import {
   Check
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { TAG_CATEGORIES, getAllTags, searchTags } from '@/lib/tagCategories'
+import { TAG_CATEGORIES, getAllTags, searchTags, getTagLabel } from '@/lib/tagCategories'
 
 interface TagsDisplayProps {
   tags: string[]
@@ -21,112 +21,83 @@ interface TagsDisplayProps {
   onAddTag?: (tag: string) => void
 }
 
-// Emoji icons for each subcategory
-const SUBCATEGORY_EMOJIS: { [key: string]: string } = {
-  // Physical
-  'body_type': '💪',
-  'hair': '💇‍♀️',
-  'skin': '🎨',
-  'mod': '💉',
-  'feature': '👁️',
-  'age_look': '🕰️',
-
-  // Body Focus
+// Category emojis for the new 11-category system
+const CATEGORY_EMOJIS: { [key: string]: string } = {
+  'niche': '🎯',
+  'focus': '👁️',
+  'body': '💪',
   'ass': '🍑',
   'breasts': '🍒',
-  'legs': '🦵',
-  'feet': '👣',
-  'core': '🔷',
-  'pussy': '🌸',
-  'full': '👤',
-  'other': '👄',
-  'face': '👄',
-  'lips': '👄',
-  'tongue': '👄',
-  'hands': '👄',
-  'armpits': '👄',
-
-  // Demographics
   'age': '📅',
   'ethnicity': '🌍',
-  'asian': '🌏',
-  'geo': '📍',
-
-  // Style
-  'clothing': '👗',
-  'nudity': '🔥',
-  'aesthetic': '✨',
-  'subculture': '🎭',
-  'cosplay': '🦸‍♀️',
-
-  // Themes
-  'dynamic': '⚡',
-  'roleplay': '🎬',
-  'fetish': '🔒',
-  'lifestyle': '🏡',
-  'mood': '💭',
-
-  // Platform
-  'type': '📸',
-  'of': '💰',
-  'interaction': '💬',
-
-  // Demographics alternate naming
-  'demo': '🌍',
-
-  // Default
+  'style': '✨',
+  'hair': '💇‍♀️',
+  'special': '⭐',
+  'content': '📸',
   'default': '🏷️'
 }
 
-// Brand-aligned color schemes with pink/purple theme
-const TAG_COLORS: { [key: string]: { bg: string; text: string; border: string; icon: string } } = {
-  'physical': {
-    bg: 'from-pink-50 to-rose-50',
-    text: 'text-pink-700',
-    border: 'border-pink-200/50',
-    icon: 'text-pink-500'
-  },
-  'body': {
+// Brand-aligned color schemes for the 11 categories
+const CATEGORY_COLORS: { [key: string]: { bg: string; text: string; border: string } } = {
+  'niche': {
     bg: 'from-purple-50 to-pink-50',
     text: 'text-purple-700',
-    border: 'border-purple-200/50',
-    icon: 'text-purple-500'
+    border: 'border-purple-200/50'
   },
-  'style': {
+  'focus': {
+    bg: 'from-pink-50 to-rose-50',
+    text: 'text-pink-700',
+    border: 'border-pink-200/50'
+  },
+  'body': {
     bg: 'from-fuchsia-50 to-purple-50',
     text: 'text-fuchsia-700',
-    border: 'border-fuchsia-200/50',
-    icon: 'text-fuchsia-500'
+    border: 'border-fuchsia-200/50'
   },
-  'theme': {
-    bg: 'from-violet-50 to-purple-50',
-    text: 'text-violet-700',
-    border: 'border-violet-200/50',
-    icon: 'text-violet-500'
-  },
-  'platform': {
-    bg: 'from-slate-50 to-gray-50',
-    text: 'text-slate-600',
-    border: 'border-slate-200/50',
-    icon: 'text-slate-500'
-  },
-  'location': {
+  'ass': {
     bg: 'from-rose-50 to-pink-50',
     text: 'text-rose-700',
-    border: 'border-rose-200/50',
-    icon: 'text-rose-500'
+    border: 'border-rose-200/50'
   },
-  'demographic': {
+  'breasts': {
+    bg: 'from-pink-50 to-fuchsia-50',
+    text: 'text-pink-700',
+    border: 'border-pink-200/50'
+  },
+  'age': {
     bg: 'from-indigo-50 to-purple-50',
     text: 'text-indigo-700',
-    border: 'border-indigo-200/50',
-    icon: 'text-indigo-500'
+    border: 'border-indigo-200/50'
+  },
+  'ethnicity': {
+    bg: 'from-blue-50 to-indigo-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200/50'
+  },
+  'style': {
+    bg: 'from-violet-50 to-purple-50',
+    text: 'text-violet-700',
+    border: 'border-violet-200/50'
+  },
+  'hair': {
+    bg: 'from-amber-50 to-orange-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200/50'
+  },
+  'special': {
+    bg: 'from-emerald-50 to-teal-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200/50'
+  },
+  'content': {
+    bg: 'from-slate-50 to-gray-50',
+    text: 'text-slate-600',
+    border: 'border-slate-200/50'
   },
   'default': {
     bg: 'from-gray-50 to-slate-50',
     text: 'text-gray-600',
-    border: 'border-gray-200/50',
-    icon: 'text-gray-500'
+    border: 'border-gray-200/50'
   }
 }
 
@@ -151,10 +122,8 @@ function TagEditDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Extract category and subcategory from the current tag
-  const tagParts = tag.split(':')
-  const tagCategory = tagParts[0] || ''
-  const tagSubcategory = tagParts[1] || ''
+  // Extract category from the current tag
+  const tagCategory = tag.split(':')[0] || ''
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -197,12 +166,9 @@ function TagEditDropdown({
   const filteredTags = useMemo(() => {
     let tags = searchQuery ? searchTags(searchQuery) : getAllTags()
 
-    // When editing, restrict to same subcategory only
-    if (isEditing && tagCategory && tagSubcategory) {
-      tags = tags.filter(t => {
-        const parts = t.value.split(':')
-        return parts[0] === tagCategory && parts[1] === tagSubcategory
-      })
+    // When editing, restrict to same category only
+    if (isEditing && tagCategory) {
+      tags = tags.filter(t => t.category === tagCategory)
     }
 
     // Filter out already existing tags
@@ -214,7 +180,7 @@ function TagEditDropdown({
     }
 
     return tags
-  }, [searchQuery, selectedCategory, existingTags, tag, isEditing, tagCategory, tagSubcategory])
+  }, [searchQuery, selectedCategory, existingTags, tag, isEditing, tagCategory])
 
   // Group tags by category for display
   const groupedTags = useMemo(() => {
@@ -254,8 +220,8 @@ function TagEditDropdown({
             <div className="w-80">
               {/* Search input */}
               <div className="p-2 border-b border-gray-100">
-                {/* Show which subcategory is being edited */}
-                {tagCategory && tagSubcategory && (
+                {/* Show which category is being edited */}
+                {tagCategory && (
                   <div className="mb-2">
                     <div className="text-[10px] font-semibold text-gray-500">
                       Editing: {(() => {
@@ -264,7 +230,7 @@ function TagEditDropdown({
                       })()}
                     </div>
                     <div className="text-[9px] text-gray-400 mt-0.5">
-                      You can only change to other options within this group
+                      You can only change to other options within this category
                     </div>
                   </div>
                 )}
@@ -283,19 +249,17 @@ function TagEditDropdown({
                         setSelectedCategory(null)
                       }
                     }}
-                    placeholder={`Search ${tagSubcategory?.replace(/_/g, ' ')} options...`}
+                    placeholder={`Search ${tagCategory} options...`}
                     className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-500"
                   />
                 </div>
-
-                {/* No category filters in edit mode - restricted to subcategory */}
               </div>
 
               {/* Tags list */}
               <div className="max-h-64 overflow-y-auto p-2">
                 {filteredTags.length === 0 ? (
                   <div className="text-xs text-gray-500 text-center py-4">
-                    No other options available in this group
+                    No other options available in this category
                   </div>
                 ) : (
                   <div className="space-y-0.5">
@@ -503,13 +467,13 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
                   className={cn(
-                    "px-2 py-0.5 text-[10px] rounded capitalize",
+                    "px-2 py-0.5 text-[10px] rounded",
                     selectedCategory === cat.name
                       ? "bg-pink-500 text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   )}
                 >
-                  {cat.name}
+                  {cat.label}
                 </button>
               ))}
             </div>
@@ -528,7 +492,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                 const categoryInfo = TAG_CATEGORIES.find(c => c.name === category)
                 return (
                   <div key={category} className="mb-3">
-                    <div className="text-[10px] font-semibold text-gray-500 mb-1 capitalize">
+                    <div className="text-[10px] font-semibold text-gray-500 mb-1">
                       {categoryInfo?.label || category}
                     </div>
                     <div className="space-y-0.5">
@@ -541,7 +505,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                           <Plus className="w-3 h-3 text-gray-400 flex-shrink-0" />
                           <span className="truncate">{tagOption.label}</span>
                           <span className="text-[9px] text-gray-400 ml-auto flex-shrink-0">
-                            {tagOption.category}
+                            {categoryInfo?.label || tagOption.category}
                           </span>
                         </button>
                       ))}
@@ -572,19 +536,15 @@ export function TagsDisplay({
     return tags.map(tag => {
       const parts = tag.split(':')
       const category = parts[0] || 'default'
-      const subcategory = parts[1] || 'default'
 
-      // Create more concise display text
-      let display = tag
-      if (parts.length >= 3) {
-        // Show last part only for 3+ part tags
-        display = parts[parts.length - 1]
-      } else if (parts.length === 2) {
-        // Show second part for 2 part tags
-        display = parts[1]
+      // Get the display label from the tag system
+      const label = getTagLabel(tag)
+
+      return {
+        full: tag,
+        display: label,
+        category
       }
-
-      return { full: tag, display, category, subcategory }
     })
   }, [tags])
 
@@ -600,14 +560,14 @@ export function TagsDisplay({
   return (
     <div className="flex flex-wrap gap-1 w-full">
       {processedTags.map((tag, index) => {
-        const colors = TAG_COLORS[tag.category] || TAG_COLORS.default
-        const emoji = SUBCATEGORY_EMOJIS[tag.subcategory] || SUBCATEGORY_EMOJIS.default
+        const colors = CATEGORY_COLORS[tag.category] || CATEGORY_COLORS.default
+        const emoji = CATEGORY_EMOJIS[tag.category] || CATEGORY_EMOJIS.default
 
         return (
           <div
             key={`${tag.full}-${index}`}
             className={cn(
-              "group relative inline-flex items-center gap-1 px-1 py-0.5 rounded-md",
+              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md",
               "text-[9px] font-medium transition-all duration-200",
               "hover:shadow-sm cursor-default",
               "bg-gradient-to-r border",
@@ -624,7 +584,7 @@ export function TagsDisplay({
             </span>
 
             {/* Tag text */}
-            <span className="truncate max-w-[60px]">
+            <span className="truncate max-w-[80px]">
               {tag.display}
             </span>
 

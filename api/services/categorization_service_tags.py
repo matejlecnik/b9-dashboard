@@ -34,7 +34,7 @@ class TagCategorizationResult:
 class TagCategorizationService:
     """AI-powered multi-tag subreddit categorization service"""
 
-    # New simplified tag structure (84 tags total - removed duplicates, kept focus:feet)
+    # New simplified tag structure (82 tags total - removed duplicates, kept focus:feet)
     TAG_STRUCTURE = {
         "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm",
                  "amateur", "verified", "sellers", "cnc", "voyeur",
@@ -43,15 +43,15 @@ class TagCategorizationService:
                  "curves", "full_body"],
         "body": ["petite", "slim", "athletic", "average", "curvy", "thick", "slim_thick",
                 "bbw", "ssbbw"],
-        "ass": ["small", "bubble", "jiggly"],
+        "ass": ["small", "bubble", "big", "jiggly"],
         "breasts": ["small", "medium", "large", "huge", "natural", "enhanced", "perky"],
-        "age": ["college", "milf", "mature", "gilf"],
+        "age": ["college", "adult", "milf", "mature", "gilf"],
         "ethnicity": ["asian", "latina", "ebony", "white", "indian", "middle_eastern", "mixed"],
         "style": ["alt", "goth", "egirl", "tattooed", "pierced", "natural", "bimbo",
                  "tomboy", "femdom", "submissive", "lingerie", "uniform"],
         "hair": ["blonde", "redhead", "brunette", "colored"],
-        "special": ["hairy", "shaved", "pregnant", "lactating", "squirter", "flexible",
-                   "tall", "short", "breeding", "slutty", "clothed", "bent_over"],
+        "special": ["hairy", "flexible", "tall", "short",
+                   "breeding", "slutty", "clothed", "bent_over"],
         "content": ["oc", "professional"]
     }
 
