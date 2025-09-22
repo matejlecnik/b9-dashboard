@@ -50,9 +50,10 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Force rebuild - cache bust 2024-09-22-23:02
-ARG CACHEBUST=1
-# Copy application code
+# Force rebuild - cache bust 2024-09-22-23:10-v2
+ARG CACHEBUST=2
+RUN echo "Cache busted at $(date)" > /tmp/cachebust.txt
+# Copy application code - FRESH COPY v2.2.0
 COPY --chown=app:app api/ ./api/
 
 # Create necessary directories
