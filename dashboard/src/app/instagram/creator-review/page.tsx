@@ -128,7 +128,7 @@ export default function CreatorReviewPage() {
       let query = supabase
         .from('instagram_creators')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order(currentFilter === 'pending' ? 'follower_count' : 'created_at', { ascending: false })
 
       // Apply filter
       if (currentFilter === 'pending') {
