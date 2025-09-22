@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Slider } from '@/components/ui/slider'
 import { Play, Pause, Users, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
@@ -19,7 +20,6 @@ interface ProcessingStatus {
   total: number
   current_creator: string | null
   new_creators_found: number
-  creators_with_no_related: number
   errors: string[]
 }
 
@@ -31,15 +31,18 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     total: 0,
     current_creator: null,
     new_creators_found: 0,
-    creators_with_no_related: 0,
     errors: []
   })
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
   const [showLogs, setShowLogs] = useState(false)
+  const [batchSize, setBatchSize] = useState(10)
+  const [unprocessedCount, setUnprocessedCount] = useState(0)
+  const [loadingCount, setLoadingCount] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       checkStatus()
+      fetchUnprocessedCount()
     }
     return () => {
       if (pollingInterval) {
@@ -62,6 +65,23 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     }
   }, [isProcessing])
 
+  const fetchUnprocessedCount = async () => {
+    setLoadingCount(true)
+    try {
+      const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/unprocessed-count')
+      if (response.ok) {
+        const data = await response.json()
+        setUnprocessedCount(data.count)
+        // Set batch size to minimum of 10 or available count
+        setBatchSize(Math.min(10, data.count))
+      }
+    } catch (error) {
+      console.error('Error fetching unprocessed count:', error)
+    } finally {
+      setLoadingCount(false)
+    }
+  }
+
   const checkStatus = async () => {
     try {
       const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/status')
@@ -72,6 +92,8 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
         if (!data.is_running && data.current > 0 && data.current === data.total) {
           toast.success(`Discovery complete! Found ${data.new_creators_found} new creators`)
+          // Refresh unprocessed count after completion
+          fetchUnprocessedCount()
         }
       }
     } catch (error) {
@@ -84,7 +106,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
       const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch_size: 10, delay_seconds: 2 })
+        body: JSON.stringify({ batch_size: batchSize, delay_seconds: 2 })
       })
 
       if (response.ok) {
@@ -173,6 +195,69 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
           {/* Content */}
           <div className="px-5 py-3 overflow-y-auto max-h-[calc(70vh-140px)]">
             <div className="space-y-4">
+              {/* Batch Size Selector - Only show when not processing */}
+              {!isProcessing && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium text-gray-700">
+                      Creators to Process
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                        {batchSize}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        / {loadingCount ? '...' : unprocessedCount} available
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Slider
+                      value={[batchSize]}
+                      onValueChange={(value) => setBatchSize(value[0])}
+                      min={1}
+                      max={Math.min(100, unprocessedCount)}
+                      step={1}
+                      disabled={unprocessedCount === 0}
+                      className="w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-pink-500 [&_[role=slider]]:to-purple-500 [&_[role=slider]]:border-0 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-pink-500/20 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[data-orientation]]:bg-gray-200 [&_[data-orientation]_span]:bg-gradient-to-r [&_[data-orientation]_span]:from-pink-500 [&_[data-orientation]_span]:to-purple-500"
+                    />
+                  </div>
+
+                  {/* Quick select buttons */}
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setBatchSize(Math.min(10, unprocessedCount))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchSize(Math.min(25, unprocessedCount))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      25
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchSize(Math.min(50, unprocessedCount))}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchSize(unprocessedCount)}
+                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                    >
+                      All
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Status Summary */}
               {(status.current > 0 || isProcessing) && (
                 <div className="space-y-3">
@@ -213,19 +298,11 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                     </div>
                   )}
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="px-3 py-2 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg border border-pink-100">
-                      <div className="text-xs text-gray-600">New Creators</div>
-                      <div className="text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-                        {status.new_creators_found}
-                      </div>
-                    </div>
-                    <div className="px-3 py-2 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg border border-orange-100">
-                      <div className="text-xs text-gray-600">No Related</div>
-                      <div className="text-lg font-bold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
-                        {status.creators_with_no_related}
-                      </div>
+                  {/* Stats - Only show new creators found */}
+                  <div className="px-3 py-2 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg border border-pink-100">
+                    <div className="text-xs text-gray-600">New Creators Found</div>
+                    <div className="text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                      {status.new_creators_found}
                     </div>
                   </div>
                 </div>
@@ -240,6 +317,11 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                   <div className="text-xs text-gray-500">
                     Processing takes 2-5 seconds per creator to avoid rate limits
                   </div>
+                  {unprocessedCount === 0 && !loadingCount && (
+                    <div className="text-xs text-orange-600 font-medium">
+                      No unprocessed approved creators available
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -284,7 +366,8 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
               {!isProcessing ? (
                 <Button
                   onClick={startProcessing}
-                  className="text-xs h-7 px-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
+                  disabled={unprocessedCount === 0}
+                  className="text-xs h-7 px-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="h-3 w-3 mr-1.5" />
                   Start Discovery

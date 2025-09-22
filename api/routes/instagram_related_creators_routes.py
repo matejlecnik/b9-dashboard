@@ -59,7 +59,6 @@ processing_state = {
     "processed_count": 0,
     "total_count": 0,
     "new_creators_found": 0,
-    "creators_with_no_related": 0,
     "errors": []
 }
 
@@ -273,7 +272,7 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
             related_profiles = get_related_profiles(creator["ig_user_id"], supabase)
 
             if not related_profiles:
-                processing_state["creators_with_no_related"] += 1
+                # No related creators found - already logged above
 
                 # Log no related profiles found
                 supabase.table('system_logs').insert({
@@ -360,8 +359,7 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
             'context': {
                 'action': 'process_completed',
                 'creators_processed': processing_state["processed_count"],
-                'new_creators_found': processing_state["new_creators_found"],
-                'creators_with_no_related': processing_state["creators_with_no_related"]
+                'new_creators_found': processing_state["new_creators_found"]
             },
             'duration_ms': total_duration,
             'items_processed': processing_state["processed_count"]
@@ -413,7 +411,6 @@ def start_related_creators_discovery(
             "processed_count": 0,
             "total_count": 0,
             "new_creators_found": 0,
-            "creators_with_no_related": 0,
             "errors": []
         }
 
@@ -461,6 +458,39 @@ def start_related_creators_discovery(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/unprocessed-count")
+def get_unprocessed_count(request: Request):
+    """Get count of unprocessed approved creators"""
+    try:
+        supabase = get_supabase()
+
+        # Get count of unprocessed approved creators
+        result = supabase.table("instagram_creators") \
+            .select("id", count="exact") \
+            .eq("review_status", "ok") \
+            .eq("related_creators_processed", False) \
+            .limit(1) \
+            .execute()
+
+        count = result.count or 0
+
+        # Log API call
+        if log_api_call:
+            log_api_call(
+                request=request,
+                endpoint="/api/instagram/related-creators/unprocessed-count",
+                method="GET",
+                status_code=200,
+                response_data={"count": count}
+            )
+
+        return {"count": count}
+
+    except Exception as e:
+        logger.error(f"Error getting unprocessed count: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/status")
 def get_related_creators_status(request: Request):
     """Get current status of related creators discovery"""
@@ -474,7 +504,6 @@ def get_related_creators_status(request: Request):
             "total": processing_state["total_count"],
             "current_creator": processing_state["current_creator"],
             "new_creators_found": processing_state["new_creators_found"],
-            "creators_with_no_related": processing_state["creators_with_no_related"],
             "errors": processing_state["errors"][-5:] if processing_state["errors"] else []
         }
 
