@@ -272,17 +272,23 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
   const [postErrors, setPostErrors] = useState<Record<number, string>>({})
-  const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({ 
-    isOpen: false, 
-    subreddit: null 
+  const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({
+    isOpen: false,
+    subreddit: null
   })
+
+  // Clear cache on mount to ensure fresh 7-day data
+  useEffect(() => {
+    setPostCache({})
+  }, [])
 
   // Fetch posts for a subreddit
   const fetchPosts = useCallback(async (subredditId: number, subredditName: string) => {
-    // Check cache first
-    if (postCache[subredditId]) {
-      return
-    }
+    // Skip cache check to always fetch fresh 7-day data
+    // TODO: Implement smarter cache invalidation
+    // if (postCache[subredditId]) {
+    //   return
+    // }
 
     // Check if already loading
     if (loadingPosts.has(subredditId)) {
@@ -297,20 +303,32 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         throw new Error('Supabase client not initialized')
       }
 
-      // Calculate 30 days ago
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      // Calculate 7 days ago using the same method as usePostAnalysis hook
+      const hoursAgo = 168 // 7 days * 24 hours
+      const sevenDaysAgo = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
+      const cutoffDate = sevenDaysAgo.toISOString()
+
+      console.log(`[DiscoveryTable] Fetching posts for ${subredditName} from last 7 days (cutoff: ${cutoffDate})`)
 
       // Fetch posts without category filtering since all shown subreddits are already filtered
       const { data: posts, error } = await supabase
         .from('reddit_posts')
         .select('*')
         .eq('subreddit_name', subredditName)
-        .gte('created_utc', thirtyDaysAgo.toISOString())
+        .gte('created_utc', cutoffDate)
         .order('score', { ascending: false })
         .limit(10)
 
       if (error) throw error
+
+      // Debug: Log the posts to verify they're from last 7 days
+      if (posts && posts.length > 0) {
+        console.log(`[DiscoveryTable] Got ${posts.length} posts for ${subredditName}`)
+        console.log(`[DiscoveryTable] First post date: ${posts[0].created_utc}`)
+        console.log(`[DiscoveryTable] Last post date: ${posts[posts.length - 1].created_utc}`)
+      } else {
+        console.log(`[DiscoveryTable] No posts found for ${subredditName} in last 7 days`)
+      }
 
       setPostCache(prev => ({
         ...prev,
@@ -329,16 +347,17 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         return newSet
       })
     }
-  }, [postCache, loadingPosts, selectedCategories, availableCategories, sfwOnly])
+  }, [selectedCategories, availableCategories, sfwOnly])
 
   // Auto-load posts on mount for all visible subreddits
   useEffect(() => {
     subreddits.forEach(subreddit => {
-      if (!postCache[subreddit.id] && !loadingPosts.has(subreddit.id)) {
+      // Always fetch fresh posts (7-day filter), skip cache check
+      if (!loadingPosts.has(subreddit.id) && !postCache[subreddit.id]) {
         fetchPosts(subreddit.id, subreddit.name)
       }
     })
-  }, [subreddits, postCache, loadingPosts, fetchPosts])
+  }, [subreddits, fetchPosts, loadingPosts, postCache])
 
   // Handle showing rules modal
   const handleShowRules = useCallback((subreddit: SubredditWithPosts) => {
@@ -437,7 +456,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                             </span>
                           )}
                           {subreddit.over18 ? (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-4 font-semibold">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 bg-red-100 text-red-800 border-red-200 font-semibold">
                               NSFW
                             </Badge>
                           ) : (
@@ -452,74 +471,6 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                         </p>
                       </div>
                     </a>
-                  </div>
-
-                  {/* Key Stats with Rules Button - Glass Morphism Style */}
-                  <div className="relative mb-1.5 rounded-lg overflow-hidden">
-                    {/* Glass morphism background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-pink-100/50 to-pink-50/30 backdrop-blur-sm" />
-                    <div className="absolute inset-0 bg-white/30" />
-                    
-                    <div className="relative flex items-center gap-1 p-1.5 border border-pink-200/50">
-                      <div className="flex-1 grid grid-cols-3 gap-2">
-                        {/* Members */}
-                        <div className="flex items-center justify-center gap-1">
-                          <Users className="h-3 w-3 text-b9-pink flex-shrink-0" />
-                          <span className="text-[11px] font-bold text-gray-900">
-                            {formatNumber(subreddit.subscribers || 0)}
-                          </span>
-                        </div>
-                        
-                        {/* Engagement */}
-                        <div className="flex items-center justify-center gap-1">
-                          <TrendingUp className="h-3 w-3 text-b9-pink flex-shrink-0" />
-                          <span className="text-[11px] font-bold text-gray-900">
-                            {((subreddit.subscriber_engagement_ratio || 0) * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        
-                        {/* Avg Upvotes */}
-                        <div className="flex items-center justify-center gap-1">
-                          <ArrowUpCircle className="h-3 w-3 text-b9-pink flex-shrink-0" />
-                          <span className="text-[11px] font-bold text-gray-900">
-                            {Math.round(subreddit.avg_upvotes_per_post || 0)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Rules Button with spacing */}
-                      <div className="px-1">
-                        {(() => {
-                          const hasRulesData = subreddit.rules_data &&
-                            typeof subreddit.rules_data === 'object' && (
-                              (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
-                              (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
-                               Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
-                            )
-
-                          return (
-                            <button
-                              onClick={() => {
-                                if (hasRulesData) {
-                                  handleShowRules(subreddit)
-                                } else {
-                                  const confirmOpen = window.confirm(
-                                    `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
-                                  )
-                                  if (confirmOpen) {
-                                    window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
-                                  }
-                                }
-                              }}
-                              className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
-                              title="View Rules"
-                            >
-                              <BookOpen className={`h-3.5 w-3.5 ${hasRulesData ? 'text-b9-pink' : 'text-gray-300'}`} />
-                            </button>
-                          )
-                        })()}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Tags Display - Two Small Rows */}
@@ -605,6 +556,74 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                         }
                       }}
                     />
+                  </div>
+
+                  {/* Key Stats with Rules Button - Glass Morphism Style */}
+                  <div className="relative mb-1.5 rounded-lg overflow-hidden">
+                    {/* Glass morphism background */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-pink-100/50 to-pink-50/30 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-white/30" />
+                    
+                    <div className="relative flex items-center gap-1 p-1.5 border border-pink-200/50">
+                      <div className="flex-1 grid grid-cols-3 gap-2">
+                        {/* Members */}
+                        <div className="flex items-center justify-center gap-1">
+                          <Users className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-gray-900">
+                            {formatNumber(subreddit.subscribers || 0)}
+                          </span>
+                        </div>
+                        
+                        {/* Engagement */}
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-gray-900">
+                            {((subreddit.subscriber_engagement_ratio || 0) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        
+                        {/* Avg Upvotes */}
+                        <div className="flex items-center justify-center gap-1">
+                          <ArrowUpCircle className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-gray-900">
+                            {Math.round(subreddit.avg_upvotes_per_post || 0)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Rules Button with spacing */}
+                      <div className="px-1">
+                        {(() => {
+                          const hasRulesData = subreddit.rules_data &&
+                            typeof subreddit.rules_data === 'object' && (
+                              (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
+                              (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
+                               Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
+                            )
+
+                          return (
+                            <button
+                              onClick={() => {
+                                if (hasRulesData) {
+                                  handleShowRules(subreddit)
+                                } else {
+                                  const confirmOpen = window.confirm(
+                                    `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
+                                  )
+                                  if (confirmOpen) {
+                                    window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
+                                  }
+                                }
+                              }}
+                              className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
+                              title="View Rules"
+                            >
+                              <BookOpen className={`h-3.5 w-3.5 ${hasRulesData ? 'text-b9-pink' : 'text-gray-300'}`} />
+                            </button>
+                          )
+                        })()}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Best Posting Time */}

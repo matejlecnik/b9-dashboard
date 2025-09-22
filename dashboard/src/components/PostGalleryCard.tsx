@@ -118,13 +118,44 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
     }
   }, [post.created_utc])
 
-  // Get the best image URL - prioritize full-size images over thumbnails
+  // Get the best image URL - prioritize based on content type
   const getImageUrl = () => {
     // Helper function to check if URL is an image
     const isImageUrl = (url: string) => {
       return /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
     }
 
+    // Helper to check if thumbnail is valid
+    const isValidThumbnail = (thumb: string | null | undefined) => {
+      if (!thumb) return false
+      const invalidValues = ['self', 'default', 'nsfw', 'spoiler', 'image', '']
+      return !invalidValues.includes(thumb)
+    }
+
+    // For videos, prioritize thumbnail for preview
+    if (post.is_video || post.content_type === 'video') {
+      // Try thumbnail first for videos
+      if (isValidThumbnail(post.thumbnail) && !imageError) {
+        return sanitizeImageUrl(post.thumbnail)
+      }
+
+      // Try preview_data as fallback
+      if (post.preview_data?.images?.[0]) {
+        const image = post.preview_data.images[0]
+        if (image.source?.url) {
+          return sanitizeImageUrl(image.source.url)
+        }
+        if (image.resolutions && image.resolutions.length > 0) {
+          const highRes = image.resolutions[image.resolutions.length - 1]
+          return sanitizeImageUrl(highRes.url)
+        }
+      }
+
+      // No thumbnail available for video
+      return null
+    }
+
+    // For regular images (non-video content)
     // First, try the main URL if it's an image (highest quality)
     if (post.url && isImageUrl(post.url) && !imageError) {
       return sanitizeImageUrl(post.url)
@@ -144,7 +175,7 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
     }
 
     // Fallback to thumbnail (lower quality but better than nothing)
-    if (post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' && !imageError) {
+    if (isValidThumbnail(post.thumbnail) && !imageError) {
       return sanitizeImageUrl(post.thumbnail)
     }
 

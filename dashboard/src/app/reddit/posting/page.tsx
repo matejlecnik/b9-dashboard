@@ -111,6 +111,7 @@ export default function PostingPage() {
   const [nsfwCount, setNsfwCount] = useState(0)
   const [verifiedCount, setVerifiedCount] = useState(0)
   const [subreddits, setSubreddits] = useState<SubredditWithPosts[]>([])
+  const [allFetchedSubreddits, setAllFetchedSubreddits] = useState<SubredditWithPosts[]>([])
 
   // Load filter counts for UI
   const loadFilterCounts = useCallback(async () => {
@@ -168,29 +169,81 @@ export default function PostingPage() {
 
       // Use RPC function to filter by tags if account has tags
       if (accountTags.length > 0) {
-        // Use the RPC function for tag filtering
-        const { data: subreddits, error } = await sb.rpc('filter_subreddits_by_tags', {
-          tag_array: accountTags,
-          search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
-          review_filter: 'Ok',
-          filter_type: 'all',
-          limit_count: PAGE_SIZE,
-          offset_count: page * PAGE_SIZE
-        })
+        // Fetch ALL matching subreddits on first page or when filters change
+        const shouldFetchAll = page === 0 && !append
 
-        if (error) {
-          console.error('Supabase RPC error:', error.message || 'Unknown error')
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
+        let allSubreddits: any[] = []
+
+        if (shouldFetchAll) {
+          // Fetch all data in batches to overcome 1000 row limit
+          const BATCH_SIZE = 1000
+          let currentOffset = 0
+          let hasMoreData = true
+
+          console.log('[Posting] Fetching all subreddits matching account tags...')
+
+          while (hasMoreData) {
+            const { data: batch, error } = await sb.rpc('filter_subreddits_by_tags', {
+              tag_array: accountTags,
+              search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
+              review_filter: 'Ok',
+              filter_type: 'all',
+              limit_count: BATCH_SIZE,
+              offset_count: currentOffset
+            })
+
+            if (error) {
+              console.error('Supabase RPC error:', error.message || 'Unknown error')
+              console.error('Error details:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+              })
+              throw error
+            }
+
+            const batchData = batch || []
+            allSubreddits = [...allSubreddits, ...batchData]
+
+            console.log(`[Posting] Fetched batch: ${batchData.length} subreddits (total: ${allSubreddits.length})`)
+
+            // Check if we should continue fetching
+            if (batchData.length < BATCH_SIZE) {
+              hasMoreData = false
+            } else {
+              currentOffset += BATCH_SIZE
+            }
+          }
+
+          console.log(`[Posting] Total subreddits fetched: ${allSubreddits.length}`)
+          setAllFetchedSubreddits(allSubreddits)
+        } else {
+          // Regular paginated fetch for load more
+          const { data: subreddits, error } = await sb.rpc('filter_subreddits_by_tags', {
+            tag_array: accountTags,
+            search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
+            review_filter: 'Ok',
+            filter_type: 'all',
+            limit_count: PAGE_SIZE,
+            offset_count: page * PAGE_SIZE
           })
-          throw error
+
+          if (error) {
+            console.error('Supabase RPC error:', error.message || 'Unknown error')
+            throw error
+          }
+
+          allSubreddits = subreddits || []
+
+          // When appending, use existing all fetched subreddits
+          if (append) {
+            allSubreddits = allFetchedSubreddits
+          }
         }
 
-        // Apply client-side filters to RPC results
-        let filteredSubreddits = subreddits || []
+        // Apply filters to all subreddits
+        let filteredSubreddits = allSubreddits
 
         // Apply SFW filter
         if (sfwOnly) {
@@ -201,6 +254,15 @@ export default function PostingPage() {
         if (verifiedOnly) {
           filteredSubreddits = filteredSubreddits.filter((s: any) => s.verification_required === true)
         }
+
+        // Update counts based on filtered results
+        const sfwSubs = allSubreddits.filter((s: any) => !s.over18)
+        const nsfwSubs = allSubreddits.filter((s: any) => s.over18)
+        const verifiedSubs = allSubreddits.filter((s: any) => s.verification_required === true)
+
+        setSfwCount(sfwSubs.length)
+        setNsfwCount(nsfwSubs.length)
+        setVerifiedCount(verifiedSubs.length)
 
         // Sort the results
         filteredSubreddits.sort((a: any, b: any) => {
@@ -214,8 +276,15 @@ export default function PostingPage() {
           }
         })
 
+        // Apply pagination to filtered results
+        const startIdx = page * PAGE_SIZE
+        const endIdx = startIdx + PAGE_SIZE
+        const paginatedSubreddits = shouldFetchAll
+          ? filteredSubreddits.slice(startIdx, endIdx)
+          : filteredSubreddits // When not fetching all, results are already paginated from RPC
+
         // Process and set the results
-        const processedSubreddits: SubredditWithPosts[] = filteredSubreddits.map((subreddit: any) => ({
+        const processedSubreddits: SubredditWithPosts[] = paginatedSubreddits.map((subreddit: any) => ({
           ...subreddit,
           recent_posts: [],
           review: subreddit.review ?? null,
@@ -229,13 +298,10 @@ export default function PostingPage() {
           setOkSubreddits(processedSubreddits)
         }
 
-        setHasMore(processedSubreddits.length === PAGE_SIZE)
+        // Check if there are more results
+        const totalFilteredCount = shouldFetchAll ? filteredSubreddits.length : processedSubreddits.length
+        setHasMore(shouldFetchAll ? endIdx < totalFilteredCount : processedSubreddits.length === PAGE_SIZE)
         setLastUpdated(new Date())
-
-        // Load counts for filters on first page
-        if (page === 0) {
-          await loadFilterCounts()
-        }
 
         return // Exit early since we handled everything
       }
@@ -326,7 +392,7 @@ export default function PostingPage() {
     } finally {
       setLoading(false)
     }
-  }, [sortBy, sortDirection, addToast, loadFilterCounts, sfwOnly, verifiedOnly, selectedAccount])
+  }, [sortBy, sortDirection, addToast, loadFilterCounts, sfwOnly, verifiedOnly, selectedAccount, allFetchedSubreddits])
 
 
 
@@ -587,36 +653,87 @@ export default function PostingPage() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Refresh when sort or search or account changes (but not filters - they work client-side)
+  // Refresh when sort, search, account, or filters change
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return
     }
-    // Reset to first page and re-fetch when sort, search, or account changes
+    // Reset to first page and re-fetch when sort, search, account, or filters change
     setCurrentPage(0)
     fetchOkSubreddits(0, false, debouncedSearchQuery)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortDirection, debouncedSearchQuery, selectedAccount])
+  }, [sortBy, sortDirection, debouncedSearchQuery, selectedAccount, sfwOnly, verifiedOnly])
 
 
 
-  // Apply client-side filtering for real-time updates
+  // Apply client-side filtering when we have all fetched data
   const filteredOkSubreddits = useMemo(() => {
-    let filtered = [...okSubreddits]
+    // If we have account-based filtering with allFetchedSubreddits, apply filters
+    if (selectedAccount?.model?.assigned_tags && allFetchedSubreddits.length > 0) {
+      let filtered = [...allFetchedSubreddits]
 
-    // Apply SFW filter
-    if (sfwOnly) {
-      filtered = filtered.filter(s => !s.over18)
+      // Apply SFW filter
+      if (sfwOnly) {
+        filtered = filtered.filter(s => !s.over18)
+      }
+
+      // Apply Verified filter
+      if (verifiedOnly) {
+        filtered = filtered.filter(s => s.verification_required === true)
+      }
+
+      // Apply search filter
+      if (debouncedSearchQuery) {
+        const search = debouncedSearchQuery.toLowerCase()
+        filtered = filtered.filter(s =>
+          s.name?.toLowerCase().includes(search) ||
+          s.display_name_prefixed?.toLowerCase().includes(search) ||
+          s.title?.toLowerCase().includes(search) ||
+          s.public_description?.toLowerCase().includes(search)
+        )
+      }
+
+      // Sort the results
+      const sortColumnMap: Record<SortField, string> = {
+        'avg_upvotes': 'avg_upvotes_per_post',
+        'min_post_karma': 'min_post_karma',
+        'engagement': 'subscriber_engagement_ratio'
+      }
+      const sortColumn = sortColumnMap[sortBy]
+
+      filtered.sort((a: any, b: any) => {
+        const aVal = a[sortColumn] || 0
+        const bVal = b[sortColumn] || 0
+
+        if (sortDirection === 'asc') {
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+        } else {
+          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
+        }
+      })
+
+      // Apply pagination
+      const startIdx = currentPage * PAGE_SIZE
+      const endIdx = startIdx + PAGE_SIZE
+      const paginated = filtered.slice(0, endIdx) // Show all up to current page
+
+      // Update counts
+      const sfwSubs = allFetchedSubreddits.filter((s: any) => !s.over18)
+      const nsfwSubs = allFetchedSubreddits.filter((s: any) => s.over18)
+      const verifiedSubs = allFetchedSubreddits.filter((s: any) => s.verification_required === true)
+
+      // Update hasMore state
+      if (filtered.length !== okSubreddits.length || endIdx < filtered.length) {
+        setHasMore(endIdx < filtered.length)
+      }
+
+      return paginated
     }
 
-    // Apply Verified filter
-    if (verifiedOnly) {
-      filtered = filtered.filter(s => s.verification_required === true)
-    }
-
-    return filtered
-  }, [okSubreddits, sfwOnly, verifiedOnly])
+    // Otherwise use server-filtered data
+    return okSubreddits
+  }, [okSubreddits, allFetchedSubreddits, selectedAccount, sfwOnly, verifiedOnly, debouncedSearchQuery, sortBy, sortDirection, currentPage])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
@@ -690,9 +807,8 @@ export default function PostingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchQuery])
 
-  // Use server-sorted subreddits directly (already sorted from database)
+  // Use filtered subreddits (either client-side filtered or server-filtered)
   const sortedSubreddits = useMemo(() => {
-    // Data is already sorted from the server/database, no need to re-sort
     return filteredOkSubreddits
   }, [filteredOkSubreddits])
 

@@ -147,18 +147,66 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
         setLoadingMore(true)
       }
 
+      // Get account tags if an account is selected
+      let accountTags: string[] = []
+      let matchingSubreddits: string[] = []
+
+      if (selectedAccount?.model?.assigned_tags) {
+        accountTags = selectedAccount.model.assigned_tags
+        console.log('[PostAnalysis] Fetching with account:', selectedAccount.username, 'Tags:', accountTags.length)
+
+        // First, get all subreddits that match the account tags
+        try {
+          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
+            tag_array: accountTags,
+            search_term: null,
+            review_filter: 'Ok',
+            filter_type: 'all',
+            limit_count: 10000, // Get all matching subreddits
+            offset_count: 0
+          })
+
+          if (error) {
+            console.error('[PostAnalysis] Error fetching matching subreddits:', error)
+            throw error
+          }
+
+          if (subreddits && subreddits.length > 0) {
+            matchingSubreddits = subreddits.map((s: any) => s.name)
+            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'matching subreddits for tags')
+          } else {
+            console.log('[PostAnalysis] No subreddits match the account tags')
+            // No matching subreddits, return empty results
+            setPosts([])
+            setHasMore(false)
+            setError(null)
+            return
+          }
+        } catch (error) {
+          console.error('[PostAnalysis] Failed to fetch matching subreddits:', error)
+          // Continue without tag filtering if RPC fails
+          matchingSubreddits = []
+        }
+      }
+
       // Build optimized query using mirror columns without JOIN for better performance
       let query = supabase
         .from('reddit_posts')
         .select(`
           id, reddit_id, title, score, num_comments, created_utc, subreddit_name,
           content_type, upvote_ratio, thumbnail, url, author_username, preview_data,
-          domain, is_video, is_self, over_18, sub_primary_category, sub_over18
+          domain, is_video, is_self, over_18, sub_primary_category, sub_over18, sub_tags
         `)
         // Filter by review status using the mirror column (assuming posts are synced)
         .not('subreddit_name', 'ilike', 'u_%')
         // Only get posts that have been categorized (have mirror data)
         .not('sub_primary_category', 'is', null)
+
+      // Apply subreddit filtering based on account tags
+      if (matchingSubreddits.length > 0) {
+        console.log('[PostAnalysis] Filtering posts by subreddits:', matchingSubreddits.length)
+        query = query.in('subreddit_name', matchingSubreddits)
+      }
 
       // Apply category filter using mirror column
       if (debouncedCategories.length === 0) {
@@ -239,6 +287,8 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
       setCurrentPage(page)
       setError(null)
 
+      console.log('[PostAnalysis] Fetched', newPosts.length, 'posts', selectedAccount ? `for account ${selectedAccount.username}` : 'without account filter')
+
     } catch (err) {
       console.error('Error fetching posts:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch posts')
@@ -257,12 +307,57 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
     if (!supabase) return 0
 
     try {
+      // Get account tags if an account is selected
+      let accountTags: string[] = []
+      let matchingSubreddits: string[] = []
+
+      if (selectedAccount?.model?.assigned_tags) {
+        accountTags = selectedAccount.model.assigned_tags
+        console.log('[PostAnalysis] Fetching counts with tags:', accountTags.length)
+
+        // First, get all subreddits that match the account tags
+        try {
+          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
+            tag_array: accountTags,
+            search_term: null,
+            review_filter: 'Ok',
+            filter_type: 'all',
+            limit_count: 10000,
+            offset_count: 0
+          })
+
+          if (error) {
+            console.error('[PostAnalysis] Error fetching matching subreddits for counts:', error)
+            throw error
+          }
+
+          if (subreddits && subreddits.length > 0) {
+            matchingSubreddits = subreddits.map((s: any) => s.name)
+            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'subreddits for count filtering')
+          } else {
+            // No matching subreddits, set counts to 0
+            setSfwCount(0)
+            setNsfwCount(0)
+            setTotalPostCount(0)
+            return 0
+          }
+        } catch (error) {
+          console.error('[PostAnalysis] Failed to fetch subreddits for counts:', error)
+          matchingSubreddits = []
+        }
+      }
+
       // Build base query using mirror columns for better performance
       let baseQuery = supabase
         .from('reddit_posts')
         .select('*', { count: 'exact', head: true })
         .not('subreddit_name', 'ilike', 'u_%')
         .not('sub_primary_category', 'is', null) // Only posts with category data
+
+      // Apply subreddit filtering based on account tags
+      if (matchingSubreddits.length > 0) {
+        baseQuery = baseQuery.in('subreddit_name', matchingSubreddits)
+      }
 
       // Apply category filter
       if (debouncedCategories.length === 0) {
@@ -287,12 +382,17 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
       }
 
       // Get SFW count using mirror column
-      const sfwQuery = supabase
+      let sfwQuery = supabase
         .from('reddit_posts')
         .select('*', { count: 'exact', head: true })
         .not('subreddit_name', 'ilike', 'u_%')
         .not('sub_primary_category', 'is', null)
         .eq('sub_over18', false)
+
+      // Apply subreddit filtering to SFW query
+      if (matchingSubreddits.length > 0) {
+        sfwQuery = sfwQuery.in('subreddit_name', matchingSubreddits)
+      }
 
       // Apply same filters to SFW query
       if (debouncedCategories.length === 0) {
@@ -318,12 +418,17 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
       }
 
       // Get NSFW count using mirror column
-      const nsfwQuery = supabase
+      let nsfwQuery = supabase
         .from('reddit_posts')
         .select('*', { count: 'exact', head: true })
         .not('subreddit_name', 'ilike', 'u_%')
         .not('sub_primary_category', 'is', null)
         .eq('sub_over18', true)
+
+      // Apply subreddit filtering to NSFW query
+      if (matchingSubreddits.length > 0) {
+        nsfwQuery = nsfwQuery.in('subreddit_name', matchingSubreddits)
+      }
 
       // Apply same filters to NSFW query
       if (debouncedCategories.length === 0) {
@@ -374,14 +479,68 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
     try {
       setMetricsLoading(true)
 
+      // Get account tags if an account is selected
+      let accountTags: string[] = []
+      let matchingSubreddits: string[] = []
+
+      if (selectedAccount?.model?.assigned_tags) {
+        accountTags = selectedAccount.model.assigned_tags
+        console.log('[PostAnalysis] Fetching metrics with tags:', accountTags.length)
+
+        // First, get all subreddits that match the account tags
+        try {
+          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
+            tag_array: accountTags,
+            search_term: null,
+            review_filter: 'Ok',
+            filter_type: 'all',
+            limit_count: 10000,
+            offset_count: 0
+          })
+
+          if (error) {
+            console.error('[PostAnalysis] Error fetching matching subreddits for metrics:', error)
+            throw error
+          }
+
+          if (subreddits && subreddits.length > 0) {
+            matchingSubreddits = subreddits.map((s: any) => s.name)
+            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'subreddits for metrics filtering')
+          } else {
+            // No matching subreddits, set empty metrics
+            setMetrics({
+              total_posts_count: 0,
+              total_subreddits_count: 0,
+              avg_score_value: 0,
+              avg_comments_value: 0,
+              best_avg_upvotes_subreddit: 'N/A',
+              best_avg_upvotes_value: 0,
+              best_engagement_subreddit: 'N/A',
+              best_engagement_value: 0,
+              top_content_type: 'N/A',
+              best_performing_hour: 0
+            })
+            return
+          }
+        } catch (error) {
+          console.error('[PostAnalysis] Failed to fetch subreddits for metrics:', error)
+          matchingSubreddits = []
+        }
+      }
+
       // Build metrics query using mirror columns for better performance
       let metricsQuery = supabase
         .from('reddit_posts')
         .select(`
-          score, num_comments, created_utc, subreddit_name, over_18, sub_over18, sub_primary_category
+          score, num_comments, created_utc, subreddit_name, over_18, sub_over18, sub_primary_category, sub_tags
         `)
         .not('subreddit_name', 'ilike', 'u_%')
         .not('sub_primary_category', 'is', null) // Only posts with category data
+
+      // Apply subreddit filtering based on account tags
+      if (matchingSubreddits.length > 0) {
+        metricsQuery = metricsQuery.in('subreddit_name', matchingSubreddits)
+      }
 
       // Apply category filter
       if (debouncedCategories.length === 0) {
@@ -531,7 +690,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
     } finally {
       setMetricsLoading(false)
     }
-  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount])
+  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount, totalPostCount])
 
   // Load more posts
   const loadMorePosts = useCallback(() => {

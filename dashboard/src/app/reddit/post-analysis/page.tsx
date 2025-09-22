@@ -13,20 +13,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { supabase } from '@/lib/supabase'
-import dynamic from 'next/dynamic'
 import {
-  X,
-  UserPlus,
   AlertCircle,
-  Sparkles
+  Info
 } from 'lucide-react'
 import Image from 'next/image'
-
-// Dynamic import for AddUserModal
-const AddUserModal = dynamic(
-  () => import('@/components/AddUserModal').then(mod => ({ default: mod.AddUserModal })),
-  { ssr: false }
-)
 
 interface Creator {
   id: number
@@ -56,8 +47,6 @@ export default function PostAnalysisPage() {
   const [creators, setCreators] = useState<Creator[]>([])
   const [selectedAccount, setSelectedAccount] = useState<Creator | null>(null)
   const [loadingCreators, setLoadingCreators] = useState(true)
-  const [showAddUserModal, setShowAddUserModal] = useState(false)
-  const [removingCreator, setRemovingCreator] = useState<number | null>(null)
 
   const {
     // Data
@@ -170,43 +159,6 @@ export default function PostAnalysisPage() {
     fetchCreators()
   }, [fetchCreators])
 
-  // Toggle creator status
-  const toggleCreator = async (userId: number, makeActive: boolean, username: string) => {
-    if (!supabase) return
-
-    setRemovingCreator(userId)
-    try {
-      const { error } = await supabase
-        .from('reddit_users')
-        .update({ status: makeActive ? 'active' : 'inactive' })
-        .eq('id', userId)
-
-      if (error) throw error
-
-      // Update local state
-      if (!makeActive) {
-        setCreators(prev => prev.filter(c => c.id !== userId))
-        if (selectedAccount?.id === userId) {
-          setSelectedAccount(null)
-        }
-      }
-
-      addToast({
-        title: 'Success',
-        description: `${username} has been ${makeActive ? 'activated' : 'deactivated'}`,
-        type: 'success'
-      })
-    } catch (error) {
-      console.error('Error toggling creator:', error)
-      addToast({
-        title: 'Error',
-        description: 'Failed to update account status',
-        type: 'error'
-      })
-    } finally {
-      setRemovingCreator(null)
-    }
-  }
 
   // Get Reddit profile URL
   const getRedditProfileUrl = (username: string) => {
@@ -226,26 +178,10 @@ export default function PostAnalysisPage() {
                   {creators.length}
                 </Badge>
               </div>
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="group relative px-3 py-1.5 overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.02] flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                  backdropFilter: 'blur(16px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 8px 24px -8px rgba(236, 72, 153, 0.2)'
-                }}
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-                <div className="relative z-10 flex items-center">
-                  <UserPlus className="h-3.5 w-3.5 text-pink-500 mr-1" />
-                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Add
-                  </span>
-                </div>
-              </button>
+              <div className="flex items-center text-xs text-gray-500">
+                <Info className="h-3 w-3 mr-1" />
+                <span>Select to filter</span>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0 pb-3">
@@ -262,12 +198,7 @@ export default function PostAnalysisPage() {
               <div className="text-center py-4">
                 <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600 mb-1">No active accounts</p>
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="text-xs text-pink-600 hover:text-pink-700 font-medium"
-                >
-                  Add your first account
-                </button>
+                <p className="text-xs text-gray-500">Manage accounts in the Posting page</p>
               </div>
             ) : (
               <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-1.5">
@@ -293,20 +224,6 @@ export default function PostAnalysisPage() {
                         }
                       }}
                     >
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="no-select absolute -top-1 -right-1 h-3.5 w-3.5 p-0 bg-white rounded-full shadow text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        onClick={() => toggleCreator(creator.id, false, creator.username)}
-                        disabled={removingCreator === creator.id}
-                      >
-                        {removingCreator === creator.id ? (
-                          <div className="animate-spin rounded-full h-2 w-2 border-b border-gray-400" />
-                        ) : (
-                          <X className="h-2 w-2" />
-                        )}
-                      </Button>
-
                       <div className="p-1.5">
                         {/* Compact Avatar and Name */}
                         <div className="flex flex-col items-center text-center">
@@ -402,14 +319,6 @@ export default function PostAnalysisPage() {
         </ComponentErrorBoundary>
       </div>
 
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <AddUserModal
-          isOpen={showAddUserModal}
-          onClose={() => setShowAddUserModal(false)}
-          onUserAdded={fetchCreators}
-        />
-      )}
     </DashboardLayout>
   )
 }
