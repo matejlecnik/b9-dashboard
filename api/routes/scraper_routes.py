@@ -175,31 +175,40 @@ async def start_scraper(request: Request):
 async def force_kill_scraper(request: Request):
     """Forcefully kill any Reddit scraper processes"""
     import subprocess
+    import glob
     try:
         supabase = get_supabase()
+        killed_pids = []
 
         # Try to find and kill any python processes running reddit_scraper.py
         try:
-            # Get all Python processes
-            result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
-            processes = result.stdout.split('\n')
+            # Method 1: Try to find PIDs from /proc filesystem
+            for proc_dir in glob.glob('/proc/[0-9]*'):
+                try:
+                    pid = int(os.path.basename(proc_dir))
+                    with open(f'{proc_dir}/cmdline', 'r') as f:
+                        cmdline = f.read()
+                        if 'reddit_scraper' in cmdline or 'core/reddit_scraper.py' in cmdline:
+                            try:
+                                os.kill(pid, signal.SIGKILL)  # Force kill
+                                killed_pids.append(pid)
+                                logger.info(f"💀 Force killed Reddit scraper process {pid}")
+                            except:
+                                pass
+                except:
+                    continue
 
-            killed_pids = []
-            for process in processes:
-                if 'python' in process and 'reddit_scraper.py' in process:
-                    # Extract PID (second column)
-                    parts = process.split()
-                    if len(parts) > 1:
-                        pid = int(parts[1])
-                        try:
-                            os.kill(pid, signal.SIGKILL)  # Force kill
-                            killed_pids.append(pid)
-                            logger.info(f"💀 Force killed Reddit scraper process {pid}")
-                        except:
-                            pass
+            # Method 2: Try pkill as backup (may work on some systems)
+            try:
+                subprocess.run(['pkill', '-9', '-f', 'reddit_scraper'], capture_output=True)
+            except:
+                pass
 
-            # Also try pkill as backup
-            subprocess.run(['pkill', '-f', 'reddit_scraper.py'], capture_output=True)
+            # Method 3: Try killall
+            try:
+                subprocess.run(['killall', '-9', 'reddit_scraper.py'], capture_output=True)
+            except:
+                pass
 
             # Clear any stored PID and disable scraper
             supabase.table('system_control').update({
