@@ -899,20 +899,21 @@ async def get_reddit_api_stats():
         supabase = get_supabase()
 
         # Query specifically for Reddit API request logs (success and failure patterns)
-        # Only look for actual success/failure messages, not request initiations
+        # Get more logs to ensure we can find 1000 unique requests
         result = supabase.table('system_logs')\
             .select('message, timestamp')\
             .eq('source', 'reddit_scraper')\
             .like('message', '%Reddit API request%')\
             .order('timestamp', desc=True)\
-            .limit(1500)\
+            .limit(10000)\
             .execute()
 
         reddit_logs = result.data if result.data else []
 
         # Process logs to count successes and failures
         successful_requests = 0
-        failed_requests = 0
+        failed_requests = 0  # Only count final failures
+        initial_attempts = 0  # Count initial attempts
         rate_limit_errors = 0
         forbidden_errors = 0
         timeout_errors = 0
@@ -920,11 +921,11 @@ async def get_reddit_api_stats():
         other_errors = 0
 
         # Track actual Reddit API requests only
-        api_requests_processed = 0
+        unique_requests_processed = 0
         max_requests_to_analyze = 1000
 
         for log in reddit_logs:
-            if api_requests_processed >= max_requests_to_analyze:
+            if unique_requests_processed >= max_requests_to_analyze:
                 break
 
             msg = log.get('message', '')
@@ -932,14 +933,19 @@ async def get_reddit_api_stats():
             # Pattern 1: "✅ Reddit API request successful: ... - 200 in Xms"
             if '✅ Reddit API request successful' in msg:
                 successful_requests += 1
-                api_requests_processed += 1
+                unique_requests_processed += 1
 
-            # Pattern 2: "⚠️ Reddit API request failed (attempt X/10): ..."
-            elif '⚠️ Reddit API request failed' in msg or '❌ Reddit API request failed' in msg:
+            # Pattern 2: Count only initial attempts as unique requests
+            elif '⚠️ Reddit API request failed (attempt 1/10)' in msg:
+                initial_attempts += 1
+                unique_requests_processed += 1
+
+            # Pattern 3: Count final failures (after all retries exhausted)
+            elif '❌ Reddit API request failed after' in msg:
                 failed_requests += 1
-                api_requests_processed += 1
+                # Don't increment unique_requests_processed as this was already counted in initial attempt
 
-                # Parse the error type
+                # Parse the error type from the final failure
                 if '403' in msg:
                     forbidden_errors += 1
                 elif '429' in msg:
@@ -951,18 +957,20 @@ async def get_reddit_api_stats():
                 else:
                     other_errors += 1
 
-            # Pattern 3: Count "Request to:" logs if they have a corresponding success/fail (skip for now as they don't indicate result)
-            # elif '🔍 Request to: https://www.reddit.com' in msg:
-            #     # These are just request initiation logs, not results
-            #     pass
+            # Skip retry attempts (attempt 2-10) as they're already counted in initial attempt
 
-        total_requests = successful_requests + failed_requests
-        success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 0
+        # Calculate the correct total and success rate
+        # Total unique requests = successful + final failures
+        # Initial attempts that succeeded after retries are in successful_requests
+        total_unique_requests = successful_requests + failed_requests
+
+        # Calculate true success rate based on unique requests
+        success_rate = (successful_requests / total_unique_requests * 100) if total_unique_requests > 0 else 0
 
         return {
             "success": True,
             "stats": {
-                "total_requests": total_requests,
+                "total_requests": total_unique_requests,
                 "successful_requests": successful_requests,
                 "failed_requests": failed_requests,
                 "success_rate": round(success_rate, 2),
@@ -973,8 +981,9 @@ async def get_reddit_api_stats():
                     "timeouts": timeout_errors,
                     "other": other_errors
                 },
-                "time_period": "last_1000_requests",
-                "logs_analyzed": api_requests_processed
+                "time_period": "last_1000_unique_requests",
+                "logs_analyzed": unique_requests_processed,
+                "initial_attempts_found": initial_attempts
             }
         }
 

@@ -67,7 +67,7 @@ export default function CategorizationPage() {
   const fetchingPageRef = useRef<number | null>(null)
   const [lastAction, setLastAction] = useState<{
     type: 'single' | 'bulk'
-    items: Array<{ id: number, prevReview: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null }>
+    items: Array<{ id: number, prevReview: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null }>
   } | null>(null)
   const recentlyUpdatedIdsRef = useRef<Set<number>>(new Set())
   
@@ -328,7 +328,7 @@ export default function CategorizationPage() {
   // Update review for single subreddit - matching subreddit-review page pattern
   const updateReview = useCallback(async (id: number, reviewText: string) => {
     const subreddit = subreddits.find(sub => sub.id === id)
-    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related'
+    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related' | 'Banned'
 
     await handleAsyncOperation(async () => {
       const response = await fetch(`/api/subreddits/${id}`, {

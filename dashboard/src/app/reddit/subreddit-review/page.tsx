@@ -33,8 +33,8 @@ const AddSubredditModal = dynamic(
 // Import createSubredditReviewTable for use in the component
 import { createSubredditReviewTable } from '@/components/UniversalTable'
 
-type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller'
-type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
+type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller' | 'banned'
+type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null
 
 const PAGE_SIZE = 50 // Standard page size
 
@@ -53,6 +53,7 @@ export default function SubredditReviewPage() {
     ok: 0,
     non_related: 0,
     no_seller: 0,
+    banned: 0,
     total: 0
   })
   const [newTodayCount, setNewTodayCount] = useState(0)
@@ -145,6 +146,7 @@ export default function SubredditReviewPage() {
           ok: result.stats.ok || 0,
           non_related: result.stats.non_related || 0,
           no_seller: result.stats.no_seller || 0,
+          banned: result.stats.banned || 0,
           total: result.stats.total || 0
         })
         setNewTodayCount(result.stats.new_today || 0)
@@ -379,6 +381,8 @@ export default function SubredditReviewPage() {
               updates.non_related = Math.max(0, prev.non_related - 1)
             } else if (currentFilter === 'no_seller') {
               updates.no_seller = Math.max(0, prev.no_seller - 1)
+            } else if (currentFilter === 'banned') {
+              updates.banned = Math.max(0, prev.banned - 1)
             }
 
             // Increase the new category count
@@ -388,6 +392,8 @@ export default function SubredditReviewPage() {
               updates.non_related = prev.non_related + 1
             } else if (review === 'No Seller') {
               updates.no_seller = prev.no_seller + 1
+            } else if (review === 'Banned') {
+              updates.banned = prev.banned + 1
             }
 
             // If moving from unreviewed, decrease unreviewed count
@@ -521,6 +527,8 @@ export default function SubredditReviewPage() {
                 updates.non_related = updates.non_related + 1
               } else if (review === 'No Seller') {
                 updates.no_seller = updates.no_seller + 1
+              } else if (review === 'Banned') {
+                updates.banned = updates.banned + 1
               }
             }
           })
@@ -532,7 +540,8 @@ export default function SubredditReviewPage() {
         if (currentFilter === 'unreviewed' ||
             (currentFilter === 'ok' && review !== 'Ok') ||
             (currentFilter === 'non_related' && review !== 'Non Related') ||
-            (currentFilter === 'no_seller' && review !== 'No Seller')) {
+            (currentFilter === 'no_seller' && review !== 'No Seller') ||
+            (currentFilter === 'banned' && review !== 'Banned')) {
 
           // Add to removing list for fade effect
           ids.forEach(id => {
@@ -619,6 +628,9 @@ export default function SubredditReviewPage() {
                 return prev.filter(sub => sub.id !== updatedId)
               }
               if (currentFilter === 'no_seller' && newReview !== 'No Seller') {
+                return prev.filter(sub => sub.id !== updatedId)
+              }
+              if (currentFilter === 'banned' && newReview !== 'Banned') {
                 return prev.filter(sub => sub.id !== updatedId)
               }
               // Otherwise, update the item in place

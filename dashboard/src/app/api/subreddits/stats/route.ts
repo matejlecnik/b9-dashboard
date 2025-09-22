@@ -53,16 +53,17 @@ export async function GET(request: NextRequest) {
 
       const [
         unreviewedResult,
-        okResult, 
+        okResult,
         nonRelatedResult,
         noSellerResult,
+        bannedResult,
         newTodayResult,
         totalResult
       ] = await Promise.all([
         // Count unreviewed (review is null)
         buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .is('review', null),
-        // Count Ok reviewed  
+        // Count Ok reviewed
         buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .eq('review', 'Ok'),
         // Count Non Related
@@ -71,6 +72,9 @@ export async function GET(request: NextRequest) {
         // Count No Seller
         buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .eq('review', 'No Seller'),
+        // Count Banned
+        buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
+          .eq('review', 'Banned'),
         // Count new today (all states)
         buildBaseQuery(supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }))
           .gte('created_utc', today),
@@ -86,6 +90,7 @@ export async function GET(request: NextRequest) {
         ok: okResult.count || 0,
         non_related: nonRelatedResult.count || 0,
         no_seller: noSellerResult.count || 0,
+        banned: bannedResult.count || 0,
         new_today: newTodayResult.count || 0,
         total: totalResult.count || 0
       }

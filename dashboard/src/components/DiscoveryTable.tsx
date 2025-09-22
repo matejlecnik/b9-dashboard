@@ -44,7 +44,7 @@ interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
   video_post_avg_score?: number | null
   text_post_avg_score?: number | null
   created_at?: string
-  review?: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
+  review?: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null
   posts_loading?: boolean
   posts_error?: string | null
   thumbnail?: string | null

@@ -269,20 +269,26 @@ class PublicRedditAPI:
                     timeout=30
                 )
                 response_time_ms = int((time.time() - start_time) * 1000)
-                response.raise_for_status()
 
-                # Log successful request
-                logger.info(f"✅ Reddit API request successful: {url.split('/')[-3]}/{url.split('/')[-2]} - {response.status_code} in {response_time_ms}ms")
+                # Check specific status codes before raise_for_status
+                # Check if the response status code is 404 (Not Found)
+                if response.status_code == 404:
+                    # Try to parse the response to check if it's a banned subreddit
+                    try:
+                        json_response = response.json()
+                        if json_response.get('reason') == 'banned':
+                            logger.warning(f"🚫 Banned subreddit: {url}")
+                            return {'error': 'banned', 'status': 404, 'reason': 'banned'}
+                    except:
+                        pass  # Not JSON or doesn't have the banned structure
+
+                    logger.warning(f"❓ Not found: {url} (user/subreddit may be deleted)")
+                    return {'error': 'not_found', 'status': 404}
 
                 # Check if the response status code is 403 (Forbidden)
                 if response.status_code == 403:
                     logger.warning(f"🚫 Forbidden access: {url} (user/subreddit may be suspended)")
                     return {'error': 'forbidden', 'status': 403}
-
-                # Check if the response status code is 404 (Not Found)
-                if response.status_code == 404:
-                    logger.warning(f"❓ Not found: {url} (user/subreddit may be deleted)")
-                    return {'error': 'not_found', 'status': 404}
 
                 # Check if the response status code is 429 (Rate Limited)
                 if response.status_code == 429:
@@ -297,8 +303,11 @@ class PublicRedditAPI:
                     retries += 1
                     continue
 
+                # Now check for other HTTP errors
+                response.raise_for_status()
+
                 # Success case
-                logger.debug(f"✅ Success: {url} ({response.status_code})")
+                logger.info(f"✅ Reddit API request successful: {url.split('/')[-3]}/{url.split('/')[-2]} - {response.status_code} in {response_time_ms}ms")
                 return response.json()
                 
             except requests.RequestException as e:
@@ -2650,6 +2659,24 @@ class ProxyEnabledMultiScraper:
             if subreddit_info and 'error' in subreddit_info:
                 if subreddit_info['error'] == 'forbidden':
                     logger.warning(f"🚫 r/{subreddit_name} is private/banned - skipping")
+                    return set()
+                elif subreddit_info['error'] == 'banned':
+                    logger.warning(f"🚫 r/{subreddit_name} is banned - marking as Banned")
+                    # Save the banned status to database
+                    try:
+                        payload = {
+                            'name': subreddit_name,
+                            'display_name_prefixed': f"r/{subreddit_name}",
+                            'review': 'Banned',
+                            'last_scraped_at': datetime.now(timezone.utc).isoformat(),
+                        }
+                        resp = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
+                        if hasattr(resp, 'error') and resp.error:
+                            logger.error(f"❌ Error marking r/{subreddit_name} as banned: {resp.error}")
+                        else:
+                            logger.info(f"💾 Marked r/{subreddit_name} as Banned in database")
+                    except Exception as e:
+                        logger.error(f"❌ Exception marking r/{subreddit_name} as banned: {e}")
                     return set()
                 elif subreddit_info['error'] == 'not_found':
                     logger.warning(f"❓ r/{subreddit_name} not found - skipping")
