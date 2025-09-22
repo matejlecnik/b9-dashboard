@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Play, Pause, Users, UserCheck, UserX, AlertCircle, Loader2, X } from 'lucide-react'
+import { Play, Pause, Users, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 
 interface RelatedCreatorsModalProps {
   isOpen: boolean
@@ -34,6 +35,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     errors: []
   })
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  const [showLogs, setShowLogs] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +52,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     if (isProcessing) {
       const interval = setInterval(checkStatus, 2000)
       setPollingInterval(interval)
+      setShowLogs(true)
       return () => clearInterval(interval)
     } else {
       if (pollingInterval) {
@@ -88,6 +91,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
         const data = await response.json()
         toast.success(data.message || 'Processing started')
         setIsProcessing(true)
+        setShowLogs(true)
       } else {
         const error = await response.text()
         toast.error(error || 'Failed to start processing')
@@ -132,143 +136,168 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-3xl bg-white"
+          className="relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl"
           style={{
+            background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.98), rgba(229, 231, 235, 0.95), rgba(209, 213, 219, 0.92))',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(255, 255, 255, 0.5)',
-            boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08)'
+            boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04)'
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50/50 to-pink-50/50">
+          <div className="relative px-5 py-3 border-b border-pink-200/30 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 shadow-sm">
-                  <Users className="h-5 w-5 text-purple-500" />
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
+                  <Users className="h-4 w-4 text-pink-500" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Discover Related Creators
-                </h2>
+                <div>
+                  <h2 className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Related Creators Discovery
+                  </h2>
+                  <p className="text-[10px] text-gray-500">Automated discovery</p>
+                </div>
               </div>
-              <Button
+              <button
                 onClick={onClose}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-gray-100/50"
+                className="p-1 rounded-lg hover:bg-pink-100/50 transition-colors"
                 disabled={isProcessing}
               >
-                <X className="h-4 w-4" />
-              </Button>
+                <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
+              </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(80vh-80px)]">
-          {/* Status Overview */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
-              <UserCheck className="h-6 w-6 text-purple-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-purple-700">
-                {status.new_creators_found}
-              </div>
-              <div className="text-sm text-gray-600">New Creators Found</div>
-            </div>
+          <div className="px-5 py-3 overflow-y-auto max-h-[calc(70vh-140px)]">
+            <div className="space-y-4">
+              {/* Status Summary */}
+              {(status.current > 0 || isProcessing) && (
+                <div className="space-y-3">
+                  {/* Progress */}
+                  {status.total > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium text-gray-700">
+                          Processing Progress
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                            {status.current}
+                          </span>
+                          <span className="text-[10px] text-gray-500">
+                            / {status.total} creators
+                          </span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-500"
+                            style={{ width: `${progressPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-            <div className="bg-orange-50 rounded-lg p-4 text-center">
-              <UserX className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-orange-700">
-                {status.creators_with_no_related}
-              </div>
-              <div className="text-sm text-gray-600">No Related Found</div>
-            </div>
+                  {/* Current Creator */}
+                  {status.current_creator && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Currently processing:</span>
+                      <Badge variant="secondary" className="text-[10px] font-mono">
+                        @{status.current_creator}
+                      </Badge>
+                    </div>
+                  )}
 
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <Users className="h-6 w-6 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-700">
-                {status.current}/{status.total}
-              </div>
-              <div className="text-sm text-gray-600">Processed</div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="px-3 py-2 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg border border-pink-100">
+                      <div className="text-xs text-gray-600">New Creators</div>
+                      <div className="text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                        {status.new_creators_found}
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg border border-orange-100">
+                      <div className="text-xs text-gray-600">No Related</div>
+                      <div className="text-lg font-bold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
+                        {status.creators_with_no_related}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Info Message when not processing */}
+              {!isProcessing && status.current === 0 && (
+                <div className="py-4 text-center space-y-2">
+                  <div className="text-sm text-gray-600">
+                    Discover creators related to your approved accounts
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Processing takes 2-5 seconds per creator to avoid rate limits
+                  </div>
+                </div>
+              )}
+
+              {/* Live Logs Section */}
+              {(showLogs || isProcessing) && (
+                <div className="space-y-2">
+                  <LogViewerSupabase
+                    title="Processing Logs"
+                    height="200px"
+                    autoScroll={true}
+                    refreshInterval={2000}
+                    maxLogs={50}
+                    useSystemLogs={true}
+                    sourceFilter="instagram_related_creators"
+                  />
+                </div>
+              )}
+
+              {/* Errors */}
+              {status.errors.length > 0 && (
+                <div className="text-[10px] text-red-600 space-y-1 p-2 bg-red-50 rounded-lg">
+                  <div className="font-medium">Recent Errors:</div>
+                  {status.errors.slice(-3).map((error, index) => (
+                    <div key={index} className="text-red-500">{error}</div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Progress Bar */}
-          {status.total > 0 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Progress</span>
-                <span>{Math.round(progressPercentage)}%</span>
-              </div>
-              <Progress value={progressPercentage} className="h-2" />
-            </div>
-          )}
-
-          {/* Current Processing */}
-          {status.current_creator && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-                <span className="text-sm text-gray-600">Currently processing:</span>
-                <Badge variant="secondary" className="font-mono">
-                  @{status.current_creator}
-                </Badge>
-              </div>
-            </div>
-          )}
-
-          {/* Errors */}
-          {status.errors.length > 0 && (
-            <div className="bg-red-50 rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-red-700 mb-1">Errors:</div>
-                  <div className="text-xs text-red-600 space-y-1">
-                    {status.errors.slice(-3).map((error, index) => (
-                      <div key={index}>{error}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isProcessing}
-            >
-              Close
-            </Button>
-
-            <div className="flex gap-2">
+          {/* Footer */}
+          <div className="px-5 py-3 border-t border-pink-200/30 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={isProcessing}
+                className="text-xs h-7 px-3 border-pink-200 hover:bg-pink-50 hover:border-pink-300"
+              >
+                Close
+              </Button>
               {!isProcessing ? (
                 <Button
                   onClick={startProcessing}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="text-xs h-7 px-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-3 w-3 mr-1.5" />
                   Start Discovery
                 </Button>
               ) : (
                 <Button
                   onClick={stopProcessing}
-                  variant="destructive"
+                  className="text-xs h-7 px-3 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all"
                 >
-                  <Pause className="h-4 w-4 mr-2" />
+                  <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
                   Stop Processing
                 </Button>
               )}
-            </div>
-          </div>
-
-            {/* Info Text */}
-            <div className="text-xs text-gray-500 text-center">
-              This process discovers creators related to your approved accounts.
-              Each discovery takes 2-5 seconds to avoid rate limits.
             </div>
           </div>
         </div>
