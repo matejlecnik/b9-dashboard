@@ -12,7 +12,7 @@ interface ScraperLog {
 interface SubredditQualityData {
   name: string
   description: string | null
-  subscriber_engagement_ratio: number | null
+  engagement: number | null
   total_posts_last_30: number | null
 }
 

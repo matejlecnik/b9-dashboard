@@ -324,7 +324,7 @@ export default function SubredditReviewPage() {
   }, [undoLastAction])
 
   // Update review for single subreddit
-  const updateReview = useCallback(async (id: number, review: 'Ok' | 'No Seller' | 'Non Related') => {
+  const updateReview = useCallback(async (id: number, review: 'Ok' | 'No Seller' | 'Non Related' | 'Banned') => {
     const subreddit = subreddits.find(sub => sub.id === id)
     await handleAsyncOperation(async () => {
       const response = await fetch(`/api/subreddits/${id}`, {
@@ -442,7 +442,7 @@ export default function SubredditReviewPage() {
     })
   }, [subreddits, handleAsyncOperation, addToast, currentFilter])
   // Bulk update reviews for selected subreddits via API
-  const bulkUpdateReview = useCallback(async (review: 'Ok' | 'No Seller' | 'Non Related') => {
+  const bulkUpdateReview = useCallback(async (review: 'Ok' | 'No Seller' | 'Non Related' | 'Banned') => {
     if (selectedSubreddits.size === 0) return
     
     const ids = Array.from(selectedSubreddits)

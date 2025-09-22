@@ -15,7 +15,7 @@ export interface Subreddit {
   category_id?: string | null // Foreign key reference to categories table
   primary_category?: string | null // Primary category from tag system (e.g., "body", "style", "physical")
   tags?: string[] | null // Array of hierarchical tags (e.g., ["body:ass:general", "style:clothing:lingerie"])
-  subscriber_engagement_ratio?: number | null
+  engagement?: number | null
   avg_engagement_velocity?: number | null // Posts per day velocity
   comment_to_upvote_ratio?: number | null // Comment to upvote ratio
   avg_upvotes_per_post: number

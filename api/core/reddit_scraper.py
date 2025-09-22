@@ -34,7 +34,7 @@ else:
         log_scraper_activity = None
 
 # Version tracking
-SCRAPER_VERSION = "2.1.0"
+SCRAPER_VERSION = "2.2.0"
 
 
 # Load environment variables
@@ -542,7 +542,7 @@ class ProxyEnabledMultiScraper:
             },
             {
                 'service': 'rapidproxy',  # lowercase to match request_with_retry
-                'proxy': 'admin123-residential-GLOBAL:admin123@us.rapidproxy.io:5001',
+                'proxy': 'admin123-residential-GLOBAL:admin123@eu.rapidproxy.io:5001',
                 'auth': None,  # Auth now embedded in proxy string
                 'display_name': 'RapidProxy'
             }
@@ -792,7 +792,7 @@ class ProxyEnabledMultiScraper:
             logger.info(f"   🌐 3 proxy services with load distribution:")
             logger.info(f"      🔵 BeyondProxy (proxy.beyondproxy.io)")  
             logger.info(f"      🟢 NyronProxy (residential-ww.nyronproxies.com)")
-            logger.info(f"      🟠 RapidProxy (us.rapidproxy.io)")
+            logger.info(f"      🟠 RapidProxy (eu.rapidproxy.io)")
             logger.info(f"   🔄 Public JSON API enabled with 10x retry logic")
             logger.info(f"   ⚡ 18-worker concurrent processing (6 per proxy service)")
             logger.info(f"   🎲 Unique user agent per request for maximum stealth")
@@ -1089,7 +1089,7 @@ class ProxyEnabledMultiScraper:
                 },
                 {
                     'service': 'rapidproxy',
-                    'proxy': 'admin123-residential-GLOBAL:admin123@us.rapidproxy.io:5001',
+                    'proxy': 'admin123-residential-GLOBAL:admin123@eu.rapidproxy.io:5001',
                     'auth': None,
                     'display_name': 'RapidProxy'
                 }
@@ -1199,7 +1199,7 @@ class ProxyEnabledMultiScraper:
         logger.info(f"🌐 Enhanced thread distribution:")
         logger.info(f"   🔵🔷💙 BeyondProxy: Threads 0-2 (proxy.beyondproxy.io:12321)")
         logger.info(f"   🟢🟩💚 NyronProxy: Threads 3-5 (residential-ww.nyronproxies.com:16666)")  
-        logger.info(f"   🟠🧡🟤 RapidProxy: Threads 6-8 (us.rapidproxy.io:5001)")
+        logger.info(f"   🟠🧡🟤 RapidProxy: Threads 6-8 (eu.rapidproxy.io:5001)")
         
         user_start_time = time.time()
         discovered_subreddits = set()
@@ -1381,7 +1381,7 @@ class ProxyEnabledMultiScraper:
                         },
                         {
                             'service': 'rapidproxy',
-                            'proxy': 'admin123-residential-GLOBAL:admin123@us.rapidproxy.io:5001',
+                            'proxy': 'admin123-residential-GLOBAL:admin123@eu.rapidproxy.io:5001',
                             'auth': None,
                             'display_name': 'RapidProxy'
                         }

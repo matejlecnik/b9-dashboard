@@ -183,7 +183,7 @@ export interface Subreddit {
   subscribers?: number | null
   review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null // Review status for subreddit-review page
   category_id?: string | null // Foreign key reference to categories table
-  subscriber_engagement_ratio?: number | null
+  engagement?: number | null
   avg_upvotes_per_post: number
   best_posting_day?: string | null
   best_posting_hour?: number | null
