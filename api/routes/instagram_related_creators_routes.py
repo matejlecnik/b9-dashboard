@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 from supabase import create_client
-import redis
 
 # Import system logger
 try:
@@ -28,13 +27,7 @@ logger = logging.getLogger(__name__)
 # Create router
 router = APIRouter(prefix="/api/instagram/related-creators", tags=["instagram-related-creators"])
 
-# Redis client for progress tracking
-redis_client = None
-try:
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    redis_client = redis.from_url(redis_url, decode_responses=True)
-except Exception as e:
-    logger.warning(f"Redis connection failed: {e}")
+# Progress tracking is done in-memory since scripts run on Render
 
 # RapidAPI Configuration
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "75f3fede68msh4ac39896fdd4ed6p185621jsn83e2bdaabc08")
@@ -353,20 +346,6 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
                 'duration_ms': creator_duration
             }).execute()
 
-            # Update Redis progress if available
-            if redis_client:
-                redis_client.setex(
-                    "instagram:related_creators:progress",
-                    300,  # 5 minutes expiry
-                    json.dumps({
-                        "current": processing_state["processed_count"],
-                        "total": processing_state["total_count"],
-                        "current_creator": processing_state["current_creator"],
-                        "new_creators": processing_state["new_creators_found"],
-                        "no_related": processing_state["creators_with_no_related"]
-                    })
-                )
-
         processing_state["is_running"] = False
         processing_state["current_creator"] = None
 
@@ -488,37 +467,16 @@ def get_related_creators_status(request: Request):
     global processing_state
 
     try:
-        # Try to get progress from Redis first
-        progress_data = None
-        if redis_client:
-            try:
-                progress_json = redis_client.get("instagram:related_creators:progress")
-                if progress_json:
-                    progress_data = json.loads(progress_json)
-            except:
-                pass
-
-        # Use Redis data if available, otherwise use global state
-        if progress_data:
-            status = {
-                "is_running": processing_state["is_running"],
-                "current": progress_data["current"],
-                "total": progress_data["total"],
-                "current_creator": progress_data["current_creator"],
-                "new_creators_found": progress_data["new_creators"],
-                "creators_with_no_related": progress_data["no_related"],
-                "errors": processing_state["errors"][-5:] if processing_state["errors"] else []
-            }
-        else:
-            status = {
-                "is_running": processing_state["is_running"],
-                "current": processing_state["processed_count"],
-                "total": processing_state["total_count"],
-                "current_creator": processing_state["current_creator"],
-                "new_creators_found": processing_state["new_creators_found"],
-                "creators_with_no_related": processing_state["creators_with_no_related"],
-                "errors": processing_state["errors"][-5:] if processing_state["errors"] else []
-            }
+        # Return the in-memory processing state
+        status = {
+            "is_running": processing_state["is_running"],
+            "current": processing_state["processed_count"],
+            "total": processing_state["total_count"],
+            "current_creator": processing_state["current_creator"],
+            "new_creators_found": processing_state["new_creators_found"],
+            "creators_with_no_related": processing_state["creators_with_no_related"],
+            "errors": processing_state["errors"][-5:] if processing_state["errors"] else []
+        }
 
         # Log API call
         if log_api_call:
