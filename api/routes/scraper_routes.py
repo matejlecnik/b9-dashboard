@@ -171,6 +171,88 @@ async def start_scraper(request: Request):
             "status": "error"
         }
 
+@router.post("/force-kill")
+async def force_kill_scraper(request: Request):
+    """Forcefully kill any Reddit scraper processes"""
+    import subprocess
+    try:
+        supabase = get_supabase()
+
+        # Try to find and kill any python processes running reddit_scraper.py
+        try:
+            # Get all Python processes
+            result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+            processes = result.stdout.split('\n')
+
+            killed_pids = []
+            for process in processes:
+                if 'python' in process and 'reddit_scraper.py' in process:
+                    # Extract PID (second column)
+                    parts = process.split()
+                    if len(parts) > 1:
+                        pid = int(parts[1])
+                        try:
+                            os.kill(pid, signal.SIGKILL)  # Force kill
+                            killed_pids.append(pid)
+                            logger.info(f"💀 Force killed Reddit scraper process {pid}")
+                        except:
+                            pass
+
+            # Also try pkill as backup
+            subprocess.run(['pkill', '-f', 'reddit_scraper.py'], capture_output=True)
+
+            # Clear any stored PID and disable scraper
+            supabase.table('system_control').update({
+                'enabled': False,
+                'status': 'stopped',
+                'pid': None,
+                'stopped_at': datetime.now(timezone.utc).isoformat(),
+                'last_error': 'Force killed via API',
+                'last_error_at': datetime.now(timezone.utc).isoformat(),
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'updated_by': 'api'
+            }).eq('script_name', 'reddit_scraper').execute()
+
+            # Log the action
+            supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'scraper_routes',
+                'level': 'warning',
+                'message': f'💀 Force killed scraper processes: {killed_pids}',
+                'context': {'action': 'force_kill', 'killed_pids': killed_pids}
+            }).execute()
+
+            return {
+                "success": True,
+                "message": f"Force killed {len(killed_pids)} Reddit scraper processes",
+                "killed_pids": killed_pids
+            }
+
+        except Exception as kill_error:
+            logger.error(f"Error during force kill: {kill_error}")
+
+            # Still try to disable in database
+            supabase.table('system_control').update({
+                'enabled': False,
+                'status': 'stopped',
+                'pid': None,
+                'stopped_at': datetime.now(timezone.utc).isoformat()
+            }).eq('script_name', 'reddit_scraper').execute()
+
+            return {
+                "success": False,
+                "message": f"Force kill attempted with errors: {str(kill_error)}",
+                "killed_pids": []
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to force kill scraper: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to force kill: {str(e)}"
+        }
+
 @router.post("/stop")
 async def stop_scraper(request: Request):
     """Disable the Reddit scraper by updating control table"""
