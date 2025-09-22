@@ -156,7 +156,7 @@ export default function PostingPage() {
       const sortColumnMap: Record<SortField, string> = {
         'avg_upvotes': 'avg_upvotes_per_post',
         'min_post_karma': 'min_post_karma',
-        'engagement': 'subscriber_engagement_ratio'
+        'engagement': 'engagement'
       }
 
       const sortColumn = sortColumnMap[sortBy]

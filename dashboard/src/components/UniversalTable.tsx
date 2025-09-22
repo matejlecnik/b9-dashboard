@@ -494,14 +494,14 @@ export const UniversalTable = memo(function UniversalTable({
         
         {/* Engagement */}
         <div className="w-24 text-center">
-          {typeof subreddit.subscriber_engagement_ratio === 'number' ? (
+          {typeof subreddit.engagement === 'number' ? (
             <span className={cn(
               "font-medium",
               compactMode ? "text-xs" : "text-sm",
-              subreddit.subscriber_engagement_ratio > 0.15 ? 'text-pink-600' :
-              subreddit.subscriber_engagement_ratio > 0.05 ? 'text-gray-700' : 'text-gray-500'
+              subreddit.engagement > 0.15 ? 'text-pink-600' :
+              subreddit.engagement > 0.05 ? 'text-gray-700' : 'text-gray-500'
             )}>
-              {(subreddit.subscriber_engagement_ratio * 100).toFixed(1)}%
+              {(subreddit.engagement * 100).toFixed(1)}%
             </span>
           ) : (
             <span className="text-gray-400">—</span>

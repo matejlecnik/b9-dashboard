@@ -165,7 +165,7 @@ class ProxyRequestor(asyncprawcore.Requestor):
 class PublicRedditAPI:
     """Public Reddit JSON API client with retry logic and proxy support"""
     
-    def __init__(self, max_retries: int = 10, base_delay: float = 1.0):
+    def __init__(self, max_retries: int = 5, base_delay: float = 1.0):
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.session = None
@@ -1602,14 +1602,43 @@ class ProxyEnabledMultiScraper:
 
         self.stats['posts_analyzed'] += hot_count
 
-        # Calculate standard averages
-        avg_upvotes_per_post = round(total_score / max(1, hot_count), 2)
+        # Process top 10 weekly posts for new metrics
+        weekly_total_score = 0
+        weekly_total_comments = 0
+        weekly_posts_count = 0
+        weekly_posts_to_save = []
+
+        # Get top 10 weekly posts
+        top_posts_weekly = await subreddit.top(time_filter='week', limit=10)
+        async for post in top_posts_weekly:
+            weekly_posts_count += 1
+            score = getattr(post, 'score', 0) or 0
+            num_comments = getattr(post, 'num_comments', 0) or 0
+            weekly_total_score += score
+            weekly_total_comments += num_comments
+
+            # Convert post data for database
+            post_data = await self.convert_post_data(post, name)
+            if post_data:
+                weekly_posts_to_save.append(post_data)
+
+        # Save weekly posts to database
+        if weekly_posts_to_save:
+            await self.save_posts_batch(weekly_posts_to_save)
+            logger.info(f"💾 Saved {len(weekly_posts_to_save)} top weekly posts from r/{name}")
+
+        # NEW CALCULATIONS:
+        # avg_upvotes_per_post now uses top 10 weekly posts
+        avg_upvotes_per_post = round(weekly_total_score / max(1, weekly_posts_count), 2) if weekly_posts_count > 0 else 0
+
+        # engagement is the comment to upvote ratio for top 10 weekly posts
+        engagement = round(weekly_total_comments / max(1, weekly_total_score), 6) if weekly_total_score > 0 else 0
+
+        # Keep avg_comments_per_post from hot posts
         avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
-        subscriber_engagement_ratio = round((total_score / max(1, subscribers)), 6)
-        comment_to_upvote_ratio = round((total_comments / max(1, total_score if total_score else 1)), 6)
 
         # Calculate new metrics
-        avg_engagement_velocity = round(sum(engagement_velocities) / len(engagement_velocities), 2) if engagement_velocities else 0
+        # Note: engagement_velocities is calculated but not used since we now use weekly posts for engagement metric
 
         # Calculate content type averages
         image_post_avg_score = round(sum(content_type_scores['image']) / len(content_type_scores['image']), 2) if content_type_scores['image'] else 0
@@ -1715,9 +1744,7 @@ class ProxyEnabledMultiScraper:
                 'total_posts_hot_30': hot_count,
                 'avg_upvotes_per_post': avg_upvotes_per_post,
                 'avg_comments_per_post': avg_comments_per_post,
-                'subscriber_engagement_ratio': subscriber_engagement_ratio,
-                'comment_to_upvote_ratio': comment_to_upvote_ratio,
-                'avg_engagement_velocity': avg_engagement_velocity,  # New metric
+                'engagement': engagement,  # NEW: comment to upvote ratio for top 10 weekly posts
                 'top_content_type': top_content_type,  # New metric
                 'image_post_avg_score': image_post_avg_score,  # New metric
                 'video_post_avg_score': video_post_avg_score,  # New metric
@@ -2653,6 +2680,7 @@ class ProxyEnabledMultiScraper:
             subreddit_info = self.public_api.get_subreddit_info(subreddit_name, proxy_config)
             hot_posts = self.public_api.get_subreddit_hot_posts(subreddit_name, 30, proxy_config)
             top_posts = self.public_api.get_subreddit_top_posts(subreddit_name, 'year', 100, proxy_config)
+            top_posts_weekly = self.public_api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy_config)
             rules = self.public_api.get_subreddit_rules(subreddit_name, proxy_config)
             
             # Handle errors gracefully
@@ -2815,18 +2843,44 @@ class ProxyEnabledMultiScraper:
             # Save posts to database (synchronous version for threading)
             if posts_to_save:
                 self.save_posts_batch_sync(posts_to_save)
-                logger.info(f"💾 Saved {len(posts_to_save)} posts from r/{name}")
+                logger.info(f"💾 Saved {len(posts_to_save)} hot posts from r/{name}")
 
             self.stats['posts_analyzed'] += hot_count
 
-            # Calculate standard averages
-            avg_upvotes_per_post = round(total_score / max(1, hot_count), 2)
-            avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
-            subscriber_engagement_ratio = round((total_score / max(1, subscribers)), 6)
-            comment_to_upvote_ratio = round((total_comments / max(1, total_score if total_score else 1)), 6)
+            # Process top 10 weekly posts for new metrics
+            weekly_total_score = 0
+            weekly_total_comments = 0
+            weekly_posts_count = 0
+            weekly_posts_to_save = []
 
-            # Calculate new metrics
-            avg_engagement_velocity = round(sum(engagement_velocities) / len(engagement_velocities), 2) if engagement_velocities else 0
+            for post in top_posts_weekly[:10]:  # Ensure we only use top 10
+                weekly_posts_count += 1
+                score = post.get('score', 0) or 0
+                num_comments = post.get('num_comments', 0) or 0
+                weekly_total_score += score
+                weekly_total_comments += num_comments
+
+                # Convert post data for database
+                post_data = self.convert_public_post_data(post, name)
+                if post_data:
+                    weekly_posts_to_save.append(post_data)
+
+            # Save weekly posts to database
+            if weekly_posts_to_save:
+                self.save_posts_batch_sync(weekly_posts_to_save)
+                logger.info(f"💾 Saved {len(weekly_posts_to_save)} top weekly posts from r/{name}")
+
+            # NEW CALCULATIONS:
+            # avg_upvotes_per_post now uses top 10 weekly posts
+            avg_upvotes_per_post = round(weekly_total_score / max(1, weekly_posts_count), 2) if weekly_posts_count > 0 else 0
+
+            # engagement is the comment to upvote ratio for top 10 weekly posts
+            engagement = round(weekly_total_comments / max(1, weekly_total_score), 6) if weekly_total_score > 0 else 0
+
+            # Keep avg_comments_per_post from hot posts
+            avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
+
+            # REMOVED: subscriber_engagement_ratio, comment_to_upvote_ratio, avg_engagement_velocity
 
             # Calculate content type averages
             image_post_avg_score = round(sum(content_type_scores['image']) / len(content_type_scores['image']), 2) if content_type_scores['image'] else 0
@@ -2926,9 +2980,7 @@ class ProxyEnabledMultiScraper:
                     'total_posts_hot_30': hot_count,
                     'avg_upvotes_per_post': avg_upvotes_per_post,
                     'avg_comments_per_post': avg_comments_per_post,
-                    'subscriber_engagement_ratio': subscriber_engagement_ratio,
-                    'comment_to_upvote_ratio': comment_to_upvote_ratio,
-                    'avg_engagement_velocity': avg_engagement_velocity,  # New metric
+                    'engagement': engagement,  # NEW: comment to upvote ratio for top 10 weekly posts
                     'top_content_type': top_content_type,  # New metric
                     'image_post_avg_score': image_post_avg_score,  # New metric
                     'video_post_avg_score': video_post_avg_score,  # New metric

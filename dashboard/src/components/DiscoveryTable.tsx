@@ -578,7 +578,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                         <div className="flex items-center justify-center gap-1">
                           <TrendingUp className="h-3 w-3 text-b9-pink flex-shrink-0" />
                           <span className="text-[11px] font-bold text-gray-900">
-                            {((subreddit.subscriber_engagement_ratio || 0) * 100).toFixed(1)}%
+                            {((subreddit.engagement || 0) * 100).toFixed(1)}%
                           </span>
                         </div>
                         
