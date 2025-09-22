@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   // Performance optimizations
   trailingSlash: false,
   poweredByHeader: false,
-  
-  // Experimental features for performance  
+  reactStrictMode: true, // Enable React strict mode for better error detection
+  productionBrowserSourceMaps: false, // Disable source maps in production
+
+  // Experimental features for performance
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb', // Set body size limit for server actions
@@ -13,6 +15,7 @@ const nextConfig: NextConfig = {
     },
     // optimizeCss: true, // Disabled - requires critters package
     webVitalsAttribution: ['CLS', 'LCP'],
+    optimizePackageImports: ['@radix-ui/react-*', 'lucide-react'], // Optimize common imports
   },
   
   // Fix workspace root to prevent lockfile conflicts

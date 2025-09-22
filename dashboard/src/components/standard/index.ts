@@ -49,11 +49,6 @@ export {
   SocialIcon,
   IconWithBackground,
   InstagramIcon,
-  TikTokIcon,
-  OnlyFansIcon,
-  YouTubeIcon,
-  XTwitterIcon,
-  ThreadsIcon,
   RedditIcon
 } from './IconLibrary'
 export type { IconSize } from './IconLibrary'

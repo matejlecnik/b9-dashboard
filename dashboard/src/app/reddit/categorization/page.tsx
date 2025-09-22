@@ -1,21 +1,38 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase, type Subreddit } from '@/lib/supabase/index'
-import { UniversalTable, createCategorizationTable } from '@/components/UniversalTable'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { TableSkeleton } from '@/components/UniversalLoading'
 import { useErrorHandler } from '@/lib/errorUtils'
 import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
-import { CategoryFilterDropdown } from '@/components/CategoryFilterDropdown'
+import { TagFilterDropdown } from '@/components/TagFilterDropdown'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles } from 'lucide-react'
-import { AICategorizationModal, type AICategorizationSettings } from '@/components/AICategorizationModal'
 import { formatNumber } from '@/lib/utils'
+
+// Dynamic imports for heavy components
+const UniversalTable = dynamic(
+  () => import('@/components/UniversalTable').then(mod => ({
+    default: mod.UniversalTable,
+    createCategorizationTable: mod.createCategorizationTable
+  })),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
+
+const AICategorizationModal = dynamic(
+  () => import('@/components/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
+  { ssr: false }
+)
+
+// Import createCategorizationTable for use in the component
+import { createCategorizationTable } from '@/components/UniversalTable'
+import type { AICategorizationSettings } from '@/components/AICategorizationModal'
 
 
 const PAGE_SIZE = 50 // Standard page size
@@ -28,9 +45,9 @@ export default function CategorizationPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
-  const [categoryCounts, setCategoryCounts] = useState({
-    uncategorized: 0,
-    categorized: 0
+  const [tagCounts, setTagCounts] = useState({
+    untagged: 0,
+    tagged: 0
   })
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
@@ -40,8 +57,9 @@ export default function CategorizationPage() {
     isOpen: false,
     subreddit: null
   })
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [availableTags, setAvailableTags] = useState<string[]>([])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]) // Add this for categories
   const [bulkCategory, setBulkCategory] = useState('')
   const [categorizingAll, setCategorizingAll] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
@@ -84,10 +102,10 @@ export default function CategorizationPage() {
     })
   }, [])
 
-  // Handle category filter change
-  const handleCategoryChange = useCallback((categories: string[]) => {
+  // Handle tag filter change
+  const handleTagChange = useCallback((tags: string[]) => {
     React.startTransition(() => {
-      setSelectedCategories(categories)
+      setSelectedTags(tags)
     })
   }, [])
 
@@ -101,43 +119,47 @@ export default function CategorizationPage() {
     setRulesModal({ isOpen: true, subreddit })
   }, [])
 
-  // Load available categories from actual subreddit data
+  // Load available tags using optimized endpoint
   useEffect(() => {
     let isMounted = true
     ;(async () => {
       try {
-        // Fetch unique primary_category values directly from Supabase
-        if (!supabase) {
-          console.error('Supabase client not initialized')
-          return
-        }
-
-        const { data, error } = await supabase
-          .from('reddit_subreddits')
-          .select('primary_category')
-          .eq('review', 'Ok')
-          .not('primary_category', 'is', null)
-          .neq('primary_category', '')
-
-        if (error) {
-          console.error('Failed to fetch categories:', error)
-          return
-        }
-
-        // Extract unique categories
-        const uniqueCategories = new Set<string>()
-        data?.forEach(item => {
-          if (item.primary_category && item.primary_category.trim()) {
-            uniqueCategories.add(item.primary_category.trim())
+        const res = await fetch('/api/tags/unique')
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && json.tags && isMounted) {
+            React.startTransition(() => {
+              setAvailableTags(json.tags)
+            })
           }
-        })
+        }
+      } catch (error) {
+        console.error('Error loading tags:', error)
+      }
+    })()
+    return () => { isMounted = false }
+  }, [])
 
-        const categoriesArray = Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b))
+  // Load available categories once on mount
+  useEffect(() => {
+    let isMounted = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/categories?limit=500')
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && json.categories) {
+            const categoryNames = json.categories
+              .filter((c: any) => c?.name)
+              .map((c: any) => c.name)
+              .sort((a: string, b: string) => a.localeCompare(b))
 
-        if (isMounted && categoriesArray.length > 0) {
-          React.startTransition(() => {
-            setAvailableCategories(categoriesArray)
-          })
+            if (isMounted) {
+              React.startTransition(() => {
+                setAvailableCategories(categoryNames)
+              })
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading categories:', error)
@@ -150,7 +172,7 @@ export default function CategorizationPage() {
   const fetchSubreddits = useCallback(async (page = 0, append = false) => {
     // Prevent duplicate fetches
     if (fetchingPageRef.current === page) {
-      console.log('🚫 [CATEGORIZATION] Skipping duplicate fetch for page', page)
+      // console.log('🚫 [CATEGORIZATION] Skipping duplicate fetch for page', page)
       return
     }
     
@@ -167,13 +189,13 @@ export default function CategorizationPage() {
       const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
         offset: (page * PAGE_SIZE).toString(),
-        filter: selectedCategories.length === 0 ? 'uncategorized' : 'categorized',
+        filter: selectedTags.length === 0 ? 'uncategorized' : 'categorized',
         stats: page === 0 ? 'true' : 'false', // Get stats on first page
       })
 
-      // Add category filter if categories are selected
-      if (selectedCategories.length > 0) {
-        params.append('categories', selectedCategories.join(','))
+      // Add tag filter if tags are selected
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
       }
 
       // Always restrict to reviewed Ok subreddits for categorization
@@ -185,54 +207,58 @@ export default function CategorizationPage() {
       }
 
       const apiUrl = `/api/subreddits?${params.toString()}`
-      console.log('🔄 [CATEGORIZATION] API request URL:', apiUrl)
+      // console.log('🔄 [CATEGORIZATION] API request URL:', apiUrl)
       
       const response = await fetch(apiUrl)
       const result = await response.json()
       
-      console.log('🔄 [CATEGORIZATION] API result:', { 
-        success: result.success, 
-        dataLength: result.subreddits?.length || 0,
-        hasError: !response.ok,
-        errorMessage: result.error
-      })
+      // console.log('🔄 [CATEGORIZATION] API result:', {
+      //   success: result.success,
+      //   dataLength: result.subreddits?.length || 0,
+      //   hasError: !response.ok,
+      //   errorMessage: result.error
+      // })
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to fetch subreddits')
       }
 
       const newData = result.subreddits || []
-      console.log('✅ [CATEGORIZATION] Fetched subreddits successfully:', { 
-        count: newData.length, 
-        page, 
-        sampleData: newData.slice(0, 2).map((s: { name?: string; primary_category?: string | null }) => ({name: s.name, category: s.primary_category})) 
-      })
+      // console.log('✅ [CATEGORIZATION] Fetched subreddits successfully:', {
+      //   count: newData.length,
+      //   page,
+      //   sampleData: newData.slice(0, 2).map((s: { name?: string; primary_category?: string | null }) => ({name: s.name, category: s.primary_category}))
+      // })
       setHasMore(result.hasMore || false)
       
       if (append) {
         setSubreddits(prev => {
-          const updated = [...prev, ...newData]
-          console.log('✅ [CATEGORIZATION] Updated subreddits (append):', { 
-            previousCount: prev.length, 
-            newCount: newData.length, 
-            totalCount: updated.length 
-          })
+          // Create a map to deduplicate by ID
+          const existingIds = new Set(prev.map(s => s.id))
+          const uniqueNewData = newData.filter((s: Subreddit) => !existingIds.has(s.id))
+          const updated = [...prev, ...uniqueNewData]
+          // console.log('✅ [CATEGORIZATION] Updated subreddits (append):', {
+          //   previousCount: prev.length,
+          //   newCount: uniqueNewData.length,
+          //   totalCount: updated.length,
+          //   duplicatesFiltered: newData.length - uniqueNewData.length
+          // })
           return updated
         })
       } else {
         setSubreddits(newData)
         setCurrentPage(0)
-        console.log('✅ [CATEGORIZATION] Updated subreddits (replace):', { 
-          newCount: newData.length,
-          firstItem: newData[0]?.name || 'none'
-        })
+        // console.log('✅ [CATEGORIZATION] Updated subreddits (replace):', {
+        //   newCount: newData.length,
+        //   firstItem: newData[0]?.name || 'none'
+        // })
       }
 
       // Update counts if available - these are already filtered for OK subreddits
       if (page === 0 && result.stats) {
-        setCategoryCounts({
-          uncategorized: result.stats.uncategorized || 0,
-          categorized: result.stats.categorized || 0
+        setTagCounts({
+          untagged: result.stats.untagged || 0,
+          tagged: result.stats.tagged || 0
         })
       }
       
@@ -246,16 +272,16 @@ export default function CategorizationPage() {
     } finally {
       // Always update loading states in finally block
       if (page === 0) {
-        console.log('✅ [CATEGORIZATION] Setting loading to false for page 0 (finally)')
+        // console.log('✅ [CATEGORIZATION] Setting loading to false for page 0 (finally)')
         setLoading(false)
       } else {
-        console.log('✅ [CATEGORIZATION] Setting loadingMore to false for page', page, '(finally)')
+        // console.log('✅ [CATEGORIZATION] Setting loadingMore to false for page', page, '(finally)')
         setLoadingMore(false)
       }
       // Clear the fetching flag
       fetchingPageRef.current = null
     }
-  }, [debouncedSearchQuery, selectedCategories, addToast])
+  }, [debouncedSearchQuery, selectedTags, addToast])
 
   // Undo last action (single review update)
   const undoLastAction = useCallback(async () => {
@@ -343,17 +369,17 @@ export default function CategorizationPage() {
           setRemovingIds(prev => new Set([...prev, id]))
 
           // Update counts immediately for better UX
-          if (selectedCategories.length === 0) {
-            // We're in uncategorized view
-            setCategoryCounts(prev => ({
+          if (selectedTags.length === 0) {
+            // We're in untagged view
+            setTagCounts(prev => ({
               ...prev,
-              uncategorized: Math.max(0, prev.uncategorized - 1)
+              untagged: Math.max(0, prev.untagged - 1)
             }))
           } else {
-            // We're in categorized view
-            setCategoryCounts(prev => ({
+            // We're in tagged view
+            setTagCounts(prev => ({
               ...prev,
-              categorized: Math.max(0, prev.categorized - 1)
+              tagged: Math.max(0, prev.tagged - 1)
             }))
           }
 
@@ -396,7 +422,7 @@ export default function CategorizationPage() {
         })
       }
     })
-  }, [subreddits, handleAsyncOperation, addToast, selectedCategories, undoLastAction])
+  }, [subreddits, handleAsyncOperation, addToast, selectedTags, undoLastAction])
 
   // Update tags for a subreddit
   const updateTags = useCallback(async (id: number, oldTag: string, newTag: string) => {
@@ -562,8 +588,8 @@ export default function CategorizationPage() {
 
         // Check if item should be removed from current view
         const shouldRemove = (
-          (selectedCategories.length === 0 && nowCategorized) ||
-          (selectedCategories.length > 0 && !nowCategorized)
+          (selectedTags.length === 0 && nowCategorized) ||
+          (selectedTags.length > 0 && !nowCategorized)
         )
 
         if (shouldRemove) {
@@ -583,9 +609,9 @@ export default function CategorizationPage() {
 
         // Update counts
         if (wasCategorized !== nowCategorized) {
-          setCategoryCounts(prev => ({
-            uncategorized: Math.max(0, prev.uncategorized + (nowCategorized ? -1 : 1)),
-            categorized: Math.max(0, prev.categorized + (nowCategorized ? 1 : -1))
+          setTagCounts(prev => ({
+            untagged: Math.max(0, prev.untagged + (nowCategorized ? -1 : 1)),
+            tagged: Math.max(0, prev.tagged + (nowCategorized ? 1 : -1))
           }))
         }
 
@@ -608,11 +634,11 @@ export default function CategorizationPage() {
         })
       }
     })
-  }, [subreddits, handleAsyncOperation, selectedCategories, addToast])
+  }, [subreddits, handleAsyncOperation, selectedTags, addToast])
 
   // Handle opening AI categorization modal
   const handleCategorizeAll = useCallback(() => {
-    if (categoryCounts.uncategorized === 0) {
+    if (tagCounts.untagged === 0) {
       addToast({
         type: 'info',
         title: 'No Uncategorized Items',
@@ -622,7 +648,7 @@ export default function CategorizationPage() {
       return
     }
     setShowAIModal(true)
-  }, [categoryCounts.uncategorized, addToast])
+  }, [tagCounts.untagged, addToast])
   
   // Handle starting AI categorization with settings
   const handleStartAICategorization = useCallback(async (settings: AICategorizationSettings) => {
@@ -649,14 +675,7 @@ export default function CategorizationPage() {
       const data = await response.json()
       
       // Comprehensive logging
-      console.log('=== FRONTEND RECEIVED DATA ===')
-      console.log('Full data:', JSON.stringify(data, null, 2))
-      console.log('Data keys:', Object.keys(data))
-      if (data.render_response) {
-        console.log('Render response keys:', Object.keys(data.render_response))
-        console.log('Render response:', JSON.stringify(data.render_response, null, 2))
-      }
-      console.log('==============================')
+      // Debug logging removed for production
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to start AI categorization')
@@ -669,9 +688,7 @@ export default function CategorizationPage() {
         // We have the complete results from the backend
         const results = renderResponse.results  // This is the array of individual results
         const stats = renderResponse.stats  // Stats are at the renderResponse level, not results level
-        console.log('Processing completed results:', results)
-        console.log('Stats:', stats)
-        console.log('Individual results:', results)
+        // Debug logging removed for production
 
         setCategorizationLogs(prev => [...prev, `✅ Categorization completed successfully!`])
         setCategorizationLogs(prev => [...prev, `📊 Processed: ${stats?.total_processed || 0} items`])
@@ -711,8 +728,7 @@ export default function CategorizationPage() {
         }, 10000) // Keep modal open for 10 seconds to show results
       } else if (data.success) {
         // The categorization has been started but we don't have results yet
-        console.log('Processing success response without completed status')
-        console.log('Render response:', renderResponse)
+        // Debug logging removed for production
         
         setCategorizationLogs(prev => [...prev, `📋 Job ID: ${data.job_id || 'N/A'}`])
         setCategorizationLogs(prev => [...prev, `🔄 Processing ${data.estimated_subreddits || settings.limit} subreddits...`])
@@ -735,7 +751,7 @@ export default function CategorizationPage() {
           // Check if results are directly in renderResponse (not nested)
           if (renderResponse.stats) {
             const stats = renderResponse.stats
-            console.log('Found stats directly in renderResponse:', stats)
+            // console.log('Found stats directly in renderResponse:', stats)
             setCategorizationLogs(prev => [...prev, `✅ Categorization completed!`])
             setCategorizationLogs(prev => [...prev, `📊 Processed: ${stats.total_processed || 0} items`])
             setCategorizationLogs(prev => [...prev, `✓ Successful: ${stats.successful || 0}`])
@@ -882,22 +898,22 @@ export default function CategorizationPage() {
 
   // Simplified data loading on mount and filter changes
   useEffect(() => {
-    console.log('🔄 [CATEGORIZATION] useEffect triggered - initializing data fetch', { 
-      currentFilter: selectedCategories.length === 0 ? 'uncategorized' : 'categorized', 
-      selectedCategories: selectedCategories.length, 
-      debouncedSearchQuery
-    })
+    // console.log('🔄 [CATEGORIZATION] useEffect triggered - initializing data fetch', {
+    //   currentFilter: selectedTags.length === 0 ? 'untagged' : 'tagged',
+    //   selectedTags: selectedTags.length,
+    //   debouncedSearchQuery
+    // })
     setCurrentPage(0)
     setHasMore(true)
     
     // Simple loading: just fetch the data
-    console.log('🔄 [CATEGORIZATION] Calling fetchSubreddits...')
+    // console.log('🔄 [CATEGORIZATION] Calling fetchSubreddits...')
     fetchSubreddits(0, false).catch((error) => {
       console.error('❌ [CATEGORIZATION] fetchSubreddits failed:', error)
     })
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchQuery, selectedCategories])
+  }, [debouncedSearchQuery, selectedTags])
 
   return (
     <DashboardLayout>
@@ -922,16 +938,16 @@ export default function CategorizationPage() {
                     </h3>
                     <div className="text-right">
                       <span className="text-lg font-bold text-gray-900">
-                        {Math.round((categoryCounts.categorized / Math.max(1, categoryCounts.categorized + categoryCounts.uncategorized)) * 100)}%
+                        {Math.round((tagCounts.tagged / Math.max(1, tagCounts.tagged + tagCounts.untagged)) * 100)}%
                       </span>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {formatNumber(categoryCounts.categorized)} / {formatNumber(categoryCounts.categorized + categoryCounts.uncategorized)}
+                        {formatNumber(tagCounts.tagged)} / {formatNumber(tagCounts.tagged + tagCounts.untagged)}
                       </p>
                     </div>
                   </div>
                   <Progress 
-                    value={categoryCounts.categorized + categoryCounts.uncategorized > 0 
-                      ? (categoryCounts.categorized / (categoryCounts.categorized + categoryCounts.uncategorized)) * 100
+                    value={tagCounts.tagged + tagCounts.untagged > 0
+                      ? (tagCounts.tagged / (tagCounts.tagged + tagCounts.untagged)) * 100
                       : 0
                     }
                     className="h-3"
@@ -941,7 +957,7 @@ export default function CategorizationPage() {
                 {/* AI Review Button using standardized component */}
                 <button
                   onClick={handleCategorizeAll}
-                  disabled={loading || categorizingAll || categoryCounts.uncategorized === 0}
+                  disabled={loading || categorizingAll || tagCounts.untagged === 0}
                   className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
@@ -968,13 +984,13 @@ export default function CategorizationPage() {
                     <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent text-center">
                       {categorizingAll
                         ? 'Processing...'
-                        : categoryCounts.uncategorized === 0
+                        : tagCounts.untagged === 0
                         ? 'All done!'
                         : `AI Tagging`}
                     </span>
-                    {!categorizingAll && categoryCounts.uncategorized > 0 && (
+                    {!categorizingAll && tagCounts.untagged > 0 && (
                       <span className="text-[10px] text-gray-500 mt-0.5">
-                        {Math.min(categoryCounts.uncategorized, 500)} items
+                        {Math.min(tagCounts.untagged, 500)} items
                       </span>
                     )}
                   </div>
@@ -1020,15 +1036,15 @@ export default function CategorizationPage() {
           {/* Spacer to push filter to the right */}
           <div className="flex-1" />
 
-          {/* Category Filter Dropdown - Right Side */}
+          {/* Tag Filter Dropdown - Right Side */}
           <div className="flex items-center gap-2 ml-auto">
-            <CategoryFilterDropdown
-              availableCategories={availableCategories}
-              selectedCategories={selectedCategories}
-              onCategoriesChange={handleCategoryChange}
+            <TagFilterDropdown
+              availableTags={availableTags}
+              selectedTags={selectedTags}
+              onTagsChange={handleTagChange}
               loading={loading}
-              uncategorizedCount={categoryCounts.uncategorized}
-              categorizedCount={categoryCounts.categorized}
+              untaggedCount={tagCounts.untagged}
+              taggedCount={tagCounts.tagged}
             />
           </div>
         </div>
@@ -1098,7 +1114,7 @@ export default function CategorizationPage() {
                     onUpdateTags: updateTags,
                     onRemoveTag: removeTag,
                     onAddTag: addTag,
-                    availableCategories,
+                    availableCategories: availableCategories, // Pass actual categories, not tags
                     loading,
                     hasMore,
                     loadingMore,
@@ -1291,8 +1307,8 @@ export default function CategorizationPage() {
           isOpen={showAIModal}
           onClose={() => setShowAIModal(false)}
           onStart={handleStartAICategorization}
-          uncategorizedCount={categoryCounts.uncategorized}
-          availableCategories={availableCategories}
+          uncategorizedCount={tagCounts.untagged}
+          availableCategories={availableCategories} // Pass actual categories, not tags
           isProcessing={categorizingAll}
           logs={categorizationLogs}
         />

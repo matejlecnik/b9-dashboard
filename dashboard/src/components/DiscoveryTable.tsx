@@ -81,6 +81,9 @@ interface DiscoveryTableProps {
   availableCategories?: string[]
   sfwOnly?: boolean
   onUpdate?: (id: number, updates: Partial<SubredditWithPosts>) => void
+  onTagUpdate?: (id: number, oldTag: string, newTag: string) => void
+  onTagRemove?: (id: number, tag: string) => void
+  onAddTag?: (id: number, tag: string) => void
 }
 
 interface PostGridProps {
@@ -261,7 +264,10 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   selectedCategories = [],
   availableCategories = [],
   sfwOnly = false,
-  onUpdate
+  onUpdate,
+  onTagUpdate,
+  onTagRemove,
+  onAddTag
 }: DiscoveryTableProps) {
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
@@ -397,16 +403,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
               <div className="flex items-stretch min-h-[140px]">
                 {/* Left Section - Subreddit Info (35%) - More Compact */}
                 <div className="w-[35%] p-3 border-r border-pink-100 relative">
-                  {/* Category Badge - Upper Right Corner */}
-                  {subreddit.primary_category && (
-                    <div
-                      className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-medium z-10 ring-1 ring-gray-300/50"
-                      style={getCategoryStyles(subreddit.primary_category)}
-                    >
-                      {subreddit.primary_category}
-                    </div>
-                  )}
-                  
+
                   {/* Subreddit Header */}
                   <div className="flex items-start justify-between mb-2 pr-12">
                     <a 
@@ -440,11 +437,11 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                             </span>
                           )}
                           {subreddit.over18 ? (
-                            <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5">
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-4 font-semibold">
                               NSFW
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-green-500 text-green-600">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 border-green-500 text-green-700 bg-green-50 font-semibold">
                               SFW
                             </Badge>
                           )}
@@ -531,62 +528,79 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                       tags={Array.isArray(subreddit.tags) ? subreddit.tags : []}
                       compactMode={true}
                       onTagUpdate={async (oldTag, newTag) => {
-                        // Update tags in database directly via Supabase
-                        if (!supabase) return
+                        // Use parent-provided handler if available, otherwise use local logic
+                        if (onTagUpdate) {
+                          onTagUpdate(subreddit.id, oldTag, newTag)
+                        } else {
+                          // Fallback to direct database update
+                          if (!supabase) return
 
-                        const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
-                        const index = currentTags.indexOf(oldTag)
-                        if (index !== -1) {
-                          currentTags[index] = newTag
+                          const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
+                          const index = currentTags.indexOf(oldTag)
+                          if (index !== -1) {
+                            currentTags[index] = newTag
 
-                          const { error } = await supabase
-                            .from('reddit_subreddits')
-                            .update({ tags: currentTags })
-                            .eq('id', subreddit.id)
+                            const { error } = await supabase
+                              .from('reddit_subreddits')
+                              .update({ tags: currentTags })
+                              .eq('id', subreddit.id)
 
-                          if (!error) {
-                            // Update local state by creating new array reference
-                            subreddit.tags = [...currentTags]
-                            // Force re-render by updating parent if callback exists
-                            if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                            if (!error) {
+                              // Update local state by creating new array reference
+                              subreddit.tags = [...currentTags]
+                              // Force re-render by updating parent if callback exists
+                              if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                            }
                           }
                         }
                       }}
                       onTagRemove={async (tag) => {
-                        if (!supabase) return
+                        // Use parent-provided handler if available, otherwise use local logic
+                        if (onTagRemove) {
+                          onTagRemove(subreddit.id, tag)
+                        } else {
+                          // Fallback to direct database update
+                          if (!supabase) return
 
-                        const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
-                        const newTags = currentTags.filter(t => t !== tag)
-
-                        const { error } = await supabase
-                          .from('reddit_subreddits')
-                          .update({ tags: newTags })
-                          .eq('id', subreddit.id)
-
-                        if (!error) {
-                          // Update local state by creating new array reference
-                          subreddit.tags = [...newTags]
-                          // Force re-render by updating parent if callback exists
-                          if (onUpdate) onUpdate(subreddit.id, { tags: newTags })
-                        }
-                      }}
-                      onAddTag={async (tag) => {
-                        if (!supabase) return
-
-                        const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
-                        if (!currentTags.includes(tag)) {
-                          currentTags.push(tag)
+                          const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
+                          const newTags = currentTags.filter(t => t !== tag)
 
                           const { error } = await supabase
                             .from('reddit_subreddits')
-                            .update({ tags: currentTags })
+                            .update({ tags: newTags })
                             .eq('id', subreddit.id)
 
                           if (!error) {
                             // Update local state by creating new array reference
-                            subreddit.tags = [...currentTags]
+                            subreddit.tags = [...newTags]
                             // Force re-render by updating parent if callback exists
-                            if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                            if (onUpdate) onUpdate(subreddit.id, { tags: newTags })
+                          }
+                        }
+                      }}
+                      onAddTag={async (tag) => {
+                        // Use parent-provided handler if available, otherwise use local logic
+                        if (onAddTag) {
+                          onAddTag(subreddit.id, tag)
+                        } else {
+                          // Fallback to direct database update
+                          if (!supabase) return
+
+                          const currentTags = Array.isArray(subreddit.tags) ? [...subreddit.tags] : []
+                          if (!currentTags.includes(tag)) {
+                            currentTags.push(tag)
+
+                            const { error } = await supabase
+                              .from('reddit_subreddits')
+                              .update({ tags: currentTags })
+                              .eq('id', subreddit.id)
+
+                            if (!error) {
+                              // Update local state by creating new array reference
+                              subreddit.tags = [...currentTags]
+                              // Force re-render by updating parent if callback exists
+                              if (onUpdate) onUpdate(subreddit.id, { tags: currentTags })
+                            }
                           }
                         }
                       }}

@@ -64,6 +64,7 @@ const ThreadsIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
   </svg>
 )
 
+
 interface Dashboard {
   id: string
   name: string
@@ -173,7 +174,7 @@ export default function DashboardsPage() {
         name: 'TikTok Dashboard',
         description: 'TikTok trend analysis and viral content optimization',
         icon: TikTokIcon,
-        href: '/tiktok',
+        href: '#',
         status: 'coming-soon',
         color: 'border-black hover:border-gray-700',
         gradient: 'from-black/10 via-gray-900/5 to-black/10',
@@ -189,7 +190,7 @@ export default function DashboardsPage() {
         name: 'X Dashboard',
         description: 'X (Twitter) engagement and audience analysis platform',
         icon: XIcon,
-        href: '/x',
+        href: '#',
         status: 'coming-soon',
         color: 'border-black hover:border-gray-700',
         gradient: 'from-black/10 via-gray-900/5 to-black/10',
@@ -205,7 +206,7 @@ export default function DashboardsPage() {
         name: 'OnlyFans Dashboard',
         description: 'Revenue tracking and subscriber growth optimization',
         icon: OnlyFansIcon,
-        href: '/onlyfans',
+        href: '#',
         status: 'coming-soon',
         color: 'border-cyan-200 hover:border-cyan-300',
         gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
@@ -221,7 +222,7 @@ export default function DashboardsPage() {
         name: 'Tracking Dashboard',
         description: 'Cross-platform performance tracking and analytics',
         icon: Target,
-        href: '/tracking',
+        href: '#',
         status: 'coming-soon',
         color: 'border-purple-200 hover:border-purple-300',
         gradient: 'from-purple-500/10 via-purple-400/5 to-purple-500/10',
@@ -237,7 +238,7 @@ export default function DashboardsPage() {
         name: 'YouTube Dashboard',
         description: 'YouTube channel analytics and video performance optimization',
         icon: YouTubeIcon,
-        href: '/youtube',
+        href: '#',
         status: 'coming-soon',
         color: 'border-red-200 hover:border-red-300',
         gradient: 'from-red-500/10 via-red-400/5 to-red-500/10',
@@ -253,7 +254,7 @@ export default function DashboardsPage() {
         name: 'Threads Dashboard',
         description: 'Threads engagement monitoring and community growth tracking',
         icon: ThreadsIcon,
-        href: '/threads',
+        href: '#',
         status: 'coming-soon',
         color: 'border-gray-200 hover:border-gray-300',
         gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',

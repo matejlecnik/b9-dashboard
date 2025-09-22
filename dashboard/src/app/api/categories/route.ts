@@ -115,40 +115,59 @@ export async function GET(request: Request) {
       } as CategoriesResponse)
     }
     
-    // Fall back to extracting unique categories from primary_category field
-    // Only select the primary_category column and distinct values
+    // Fall back to extracting unique tags from tags JSONB field
+    // Get all subreddits with tags
     const { data, error } = await supabase
       .from('reddit_subreddits')
-      .select('primary_category')
-      .not('primary_category', 'is', null)
-      .neq('primary_category', '')
+      .select('tags')
+      .not('tags', 'is', null)
       .eq('review', 'Ok')
       .limit(5000) // Limit to prevent overwhelming queries
-    
+
     if (error) {
       console.error('Database error:', error)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to fetch categories' 
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch categories'
       }, { status: 500 })
     }
 
-    // Extract unique categories and count their usage (normalized)
+    // Extract unique category values (the part before the colon in tags)
+    // This matches what's stored in primary_category field
     const dedupCounts = new Map<string, { name: string; count: number }>()
+
+    // Predefined category list that matches the tag structure
+    const validCategories = [
+      'niche', 'focus', 'body', 'ass', 'breasts',
+      'age', 'ethnicity', 'style', 'hair', 'special', 'content'
+    ]
+
     for (const item of data) {
-      if (!item || !item.primary_category) continue
-      const key = normalizationKey(item.primary_category)
-      if (!key) continue
-      const canonicalName = normalizeCategoryName(item.primary_category)
-      const existing = dedupCounts.get(key)
-      if (existing) {
-        existing.count += 1
-        // Prefer the most common casing by count; keep name with higher frequency
-        if (canonicalName.length > 0 && existing.name !== canonicalName && existing.count % 5 === 0) {
-          existing.name = canonicalName
+      if (!item || !item.tags || !Array.isArray(item.tags)) continue
+
+      // Process each tag in the tags array
+      for (const tag of item.tags) {
+        if (typeof tag !== 'string') continue
+
+        // Extract the category part before the colon (e.g., "niche" from "niche:cosplay")
+        const parts = tag.split(':')
+        if (parts.length < 2) continue
+
+        const category = parts[0].trim().toLowerCase()
+
+        // Only include valid categories
+        if (!validCategories.includes(category)) continue
+
+        const key = normalizationKey(category)
+        if (!key) continue
+
+        const canonicalName = category // Categories are lowercase
+        const existing = dedupCounts.get(key)
+        if (existing) {
+          existing.count += 1
+        } else {
+          dedupCounts.set(key, { name: canonicalName, count: 1 })
         }
-      } else {
-        dedupCounts.set(key, { name: canonicalName, count: 1 })
       }
     }
 
@@ -175,10 +194,17 @@ export async function GET(request: Request) {
     })
     if (limit) categoryList = categoryList.slice(0, limit)
 
-    return NextResponse.json({ 
-      success: true, 
-      categories: categoryList 
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        categories: categoryList
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600'
+        }
+      }
+    )
 
   } catch (error) {
     console.error('Error fetching categories:', error)

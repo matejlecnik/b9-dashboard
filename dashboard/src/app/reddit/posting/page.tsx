@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type React from 'react'
 import { supabase, type Subreddit, type Post } from '../../../lib/supabase'
+import { useErrorHandler } from '@/lib/errorUtils'
 
 interface Creator {
   id: number
@@ -32,7 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
-import { DiscoveryTable } from '@/components/DiscoveryTable'
+import dynamic from 'next/dynamic'
 import {
   ChevronDown,
   X,
@@ -41,7 +42,17 @@ import {
   Sparkles
 } from 'lucide-react'
 import Image from 'next/image'
-import { AddUserModal } from '@/components/AddUserModal'
+
+// Dynamic imports for heavy components
+const DiscoveryTable = dynamic(
+  () => import('@/components/DiscoveryTable').then(mod => ({ default: mod.DiscoveryTable })),
+  { ssr: false, loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" /> }
+)
+
+const AddUserModal = dynamic(
+  () => import('@/components/AddUserModal').then(mod => ({ default: mod.AddUserModal })),
+  { ssr: false }
+)
 
 type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
 type SortField = 'avg_upvotes' | 'min_post_karma' | 'engagement'
@@ -73,6 +84,7 @@ const PAGE_SIZE = 30
 
 export default function PostingPage() {
   const { addToast } = useToast()
+  const { handleError } = useErrorHandler()
   const [okSubreddits, setOkSubreddits] = useState<SubredditWithPosts[]>([])
   const [creators, setCreators] = useState<Creator[]>([])
   const [selectedAccount, setSelectedAccount] = useState<Creator | null>(null)
@@ -98,6 +110,7 @@ export default function PostingPage() {
   const [sfwCount, setSfwCount] = useState(0)
   const [nsfwCount, setNsfwCount] = useState(0)
   const [verifiedCount, setVerifiedCount] = useState(0)
+  const [subreddits, setSubreddits] = useState<SubredditWithPosts[]>([])
 
   // Load filter counts for UI
   const loadFilterCounts = useCallback(async () => {
@@ -147,7 +160,87 @@ export default function PostingPage() {
 
       const sortColumn = sortColumnMap[sortBy]
 
-      // Build the base query
+      // Get account tags if an account is selected
+      let accountTags: string[] = []
+      if (selectedAccount?.model?.assigned_tags) {
+        accountTags = selectedAccount.model.assigned_tags
+      }
+
+      // Use RPC function to filter by tags if account has tags
+      if (accountTags.length > 0) {
+        // Use the RPC function for tag filtering
+        const { data: subreddits, error } = await sb.rpc('filter_subreddits_by_tags', {
+          tag_array: accountTags,
+          search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
+          review_filter: 'Ok',
+          filter_type: 'all',
+          limit_count: PAGE_SIZE,
+          offset_count: page * PAGE_SIZE
+        })
+
+        if (error) {
+          console.error('Supabase RPC error:', error.message || 'Unknown error')
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          })
+          throw error
+        }
+
+        // Apply client-side filters to RPC results
+        let filteredSubreddits = subreddits || []
+
+        // Apply SFW filter
+        if (sfwOnly) {
+          filteredSubreddits = filteredSubreddits.filter((s: any) => !s.over18)
+        }
+
+        // Apply verification filter
+        if (verifiedOnly) {
+          filteredSubreddits = filteredSubreddits.filter((s: any) => s.verification_required === true)
+        }
+
+        // Sort the results
+        filteredSubreddits.sort((a: any, b: any) => {
+          const aVal = a[sortColumn] || 0
+          const bVal = b[sortColumn] || 0
+
+          if (sortDirection === 'asc') {
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+          } else {
+            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
+          }
+        })
+
+        // Process and set the results
+        const processedSubreddits: SubredditWithPosts[] = filteredSubreddits.map((subreddit: any) => ({
+          ...subreddit,
+          recent_posts: [],
+          review: subreddit.review ?? null,
+          primary_category: subreddit.primary_category || null,
+          created_at: new Date().toISOString()
+        })) as SubredditWithPosts[]
+
+        if (append) {
+          setOkSubreddits(prev => [...prev, ...processedSubreddits])
+        } else {
+          setOkSubreddits(processedSubreddits)
+        }
+
+        setHasMore(processedSubreddits.length === PAGE_SIZE)
+        setLastUpdated(new Date())
+
+        // Load counts for filters on first page
+        if (page === 0) {
+          await loadFilterCounts()
+        }
+
+        return // Exit early since we handled everything
+      }
+
+      // Build the base query (no account tags case)
       let query = sb
         .from('reddit_subreddits')
         .select(`
@@ -162,15 +255,6 @@ export default function PostingPage() {
         `)
         .eq('review', 'Ok')
         .not('name', 'ilike', 'u_%')
-
-      // Apply tag filtering if account is selected and has tags
-      // If no tags assigned, show all subreddits
-      if (selectedAccount && selectedAccount.model && selectedAccount.model.assigned_tags && selectedAccount.model.assigned_tags.length > 0) {
-        const modelTags = selectedAccount.model.assigned_tags
-        // Use JSONB overlap operator - subreddit must have at least one tag from model
-        // Pass the array directly, not as JSON string
-        query = query.overlaps('tags', modelTags)
-      }
 
       // Apply search filter (server-side)
       if (searchTerm && searchTerm.trim()) {
@@ -194,12 +278,12 @@ export default function PostingPage() {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
       if (error) {
-        console.error('Supabase query error:', {
+        console.error('Supabase query error:', error.message || 'Unknown error')
+        console.error('Error details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
-          code: error.code,
-          fullError: JSON.stringify(error, null, 2)
+          code: error.code
         })
         throw error
       }
@@ -228,11 +312,11 @@ export default function PostingPage() {
         await loadFilterCounts()
       }
     } catch (error) {
-      console.error('Error fetching Ok subreddits:', error)
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      })
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error fetching Ok subreddits:', errorMessage)
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack)
+      }
       addToast({
         type: 'error',
         title: 'Error Loading Posting Data',
@@ -384,6 +468,113 @@ export default function PostingPage() {
     }
   }, [fetchCreators, addToast])
 
+  // Tag management functions
+  const updateTags = useCallback(async (id: number, oldTag: string, newTag: string) => {
+    if (!id || !oldTag || !newTag || oldTag === newTag) return
+
+    const subreddit = okSubreddits.find(s => s.id === id)
+    if (!subreddit) return
+
+    const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
+    const newTags = currentTags.map(tag => tag === oldTag ? newTag : tag)
+
+    // Optimistic update
+    setOkSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+    setSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+
+    const { error } = await supabase!
+      .from('reddit_subreddits')
+      .update({ tags: newTags })
+      .eq('id', id)
+
+    if (error) {
+      handleError(error, 'Failed to update tag')
+      // Revert on error
+      setOkSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+      setSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+    }
+  }, [okSubreddits, handleError])
+
+  const removeTag = useCallback(async (id: number, tagToRemove: string) => {
+    if (!id || !tagToRemove) return
+
+    const subreddit = okSubreddits.find(s => s.id === id)
+    if (!subreddit) return
+
+    const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
+    const newTags = currentTags.filter(tag => tag !== tagToRemove)
+
+    // Optimistic update
+    setOkSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+    setSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+
+    const { error } = await supabase!
+      .from('reddit_subreddits')
+      .update({ tags: newTags })
+      .eq('id', id)
+
+    if (error) {
+      handleError(error, 'Failed to remove tag')
+      // Revert on error
+      setOkSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+      setSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+    }
+  }, [okSubreddits, handleError])
+
+  const addTag = useCallback(async (id: number, tagToAdd: string) => {
+    if (!id || !tagToAdd) return
+
+    const subreddit = okSubreddits.find(s => s.id === id)
+    if (!subreddit) return
+
+    const currentTags = Array.isArray(subreddit.tags) ? subreddit.tags : []
+
+    // Don't add duplicate tags
+    if (currentTags.includes(tagToAdd)) return
+
+    const newTags = [...currentTags, tagToAdd]
+
+    // Optimistic update
+    setOkSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+    setSubreddits(prev => prev.map(s =>
+      s.id === id ? { ...s, tags: newTags } : s
+    ))
+
+    const { error } = await supabase!
+      .from('reddit_subreddits')
+      .update({ tags: newTags })
+      .eq('id', id)
+
+    if (error) {
+      handleError(error, 'Failed to add tag')
+      // Revert on error
+      setOkSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+      setSubreddits(prev => prev.map(s =>
+        s.id === id ? { ...s, tags: currentTags } : s
+      ))
+    }
+  }, [okSubreddits, handleError])
+
   // Track if this is the initial mount
   const isInitialMount = useRef(true)
 
@@ -396,24 +587,36 @@ export default function PostingPage() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Refresh when sort or filters change (after initial load)
+  // Refresh when sort or search or account changes (but not filters - they work client-side)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return
     }
-    // Reset to first page and re-fetch when filters change
+    // Reset to first page and re-fetch when sort, search, or account changes
     setCurrentPage(0)
     fetchOkSubreddits(0, false, debouncedSearchQuery)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortDirection, sfwOnly, verifiedOnly, debouncedSearchQuery, selectedAccount])
+  }, [sortBy, sortDirection, debouncedSearchQuery, selectedAccount])
 
 
 
-  // Since filtering is now done server-side, we just pass through the data
+  // Apply client-side filtering for real-time updates
   const filteredOkSubreddits = useMemo(() => {
-    return okSubreddits
-  }, [okSubreddits])
+    let filtered = [...okSubreddits]
+
+    // Apply SFW filter
+    if (sfwOnly) {
+      filtered = filtered.filter(s => !s.over18)
+    }
+
+    // Apply Verified filter
+    if (verifiedOnly) {
+      filtered = filtered.filter(s => s.verification_required === true)
+    }
+
+    return filtered
+  }, [okSubreddits, sfwOnly, verifiedOnly])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
@@ -487,33 +690,11 @@ export default function PostingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchQuery])
 
-  // Final sorted subreddits (already sorted from server, just apply client filters)
+  // Use server-sorted subreddits directly (already sorted from database)
   const sortedSubreddits = useMemo(() => {
-    let sorted = [...filteredOkSubreddits]
-
-    sorted.sort((a, b) => {
-      let aValue = 0, bValue = 0
-
-      switch(sortBy) {
-        case 'avg_upvotes':
-          aValue = a.avg_upvotes_per_post || 0
-          bValue = b.avg_upvotes_per_post || 0
-          break
-        case 'min_post_karma':
-          aValue = a.min_post_karma || 0
-          bValue = b.min_post_karma || 0
-          break
-        case 'engagement':
-          aValue = a.subscriber_engagement_ratio || 0
-          bValue = b.subscriber_engagement_ratio || 0
-          break
-      }
-
-      return sortDirection === 'desc' ? bValue - aValue : aValue - bValue
-    })
-
-    return sorted
-  }, [filteredOkSubreddits, sortBy, sortDirection])
+    // Data is already sorted from the server/database, no need to re-sort
+    return filteredOkSubreddits
+  }, [filteredOkSubreddits])
 
 
   // Summary stats
@@ -734,27 +915,6 @@ export default function PostingPage() {
                   })}
                 </div>
 
-                {/* Show selected account's tags */}
-                {selectedAccount && selectedAccount.model && selectedAccount.model.assigned_tags.length > 0 && (
-                  <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-                    <p className="text-xs font-medium text-purple-700 mb-2">
-                      Showing subreddits matching {selectedAccount.model.stage_name}'s tags
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {selectedAccount.model.assigned_tags.map(tag => {
-                        const [category, value] = tag.split(':')
-                        return (
-                          <span
-                            key={tag}
-                            className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium"
-                          >
-                            {value ? value.replace(/_/g, ' ') : tag}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </CardContent>
@@ -979,10 +1139,9 @@ export default function PostingPage() {
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 font-medium mb-2">No matching subreddits</p>
               <p className="text-sm text-gray-500">
-                {selectedAccount.model && selectedAccount.model.assigned_tags && selectedAccount.model.assigned_tags.length > 0
-                  ? `No subreddits match the tags assigned to ${selectedAccount.model?.stage_name}`
-                  : `No approved subreddits found. Try adjusting your filters.`
-                }
+                {selectedAccount?.model?.assigned_tags && selectedAccount.model.assigned_tags.length > 0
+                  ? "No approved subreddits match this account's tags. Try adjusting your filters."
+                  : "No approved subreddits found. Try adjusting your filters."}
               </p>
             </CardContent>
           </Card>
@@ -1003,6 +1162,9 @@ export default function PostingPage() {
                     : sub
                 ))
               }}
+              onTagUpdate={updateTags}
+              onTagRemove={removeTag}
+              onAddTag={addTag}
             />
 
             {/* Loading indicator for infinite scroll */}

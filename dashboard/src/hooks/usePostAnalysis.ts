@@ -5,6 +5,15 @@ import type { PostSortField, AgeFilter } from '@/components/PostAnalysisToolbar'
 
 interface UsePostAnalysisOptions {
   initialPostsPerPage?: number
+  selectedAccount?: {
+    id: number
+    username: string
+    model?: {
+      id: number
+      stage_name: string
+      assigned_tags: string[]
+    }
+  } | null
 }
 
 interface UsePostAnalysisReturn {
@@ -46,7 +55,7 @@ interface UsePostAnalysisReturn {
 
 const PAGE_SIZE = 30 // Match Posting page size
 
-export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnalysisOptions = {}): UsePostAnalysisReturn {
+export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccount }: UsePostAnalysisOptions = {}): UsePostAnalysisReturn {
   // State management
   const [posts, setPosts] = useState<Post[]>([])
   const [metrics, setMetrics] = useState<PostMetrics | null>(null)
@@ -241,7 +250,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       setLoadingMore(false)
       fetchingRef.current = false
     }
-  }, [sortBy, debouncedSearchQuery, sfwOnly, ageFilter, debouncedCategories, allCategories.length, initialPostsPerPage])
+  }, [sortBy, debouncedSearchQuery, sfwOnly, ageFilter, debouncedCategories, allCategories.length, initialPostsPerPage, selectedAccount])
 
   // Fetch actual total post count with all filters applied
   const fetchTotalCount = useCallback(async () => {
@@ -356,7 +365,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       console.error('Failed to fetch total count:', err)
       return 0
     }
-  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery])
+  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount])
 
   // Fetch metrics
   const fetchMetrics = useCallback(async (currentTotalCount?: number) => {
@@ -522,7 +531,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     } finally {
       setMetricsLoading(false)
     }
-  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery])
+  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount])
 
   // Load more posts
   const loadMorePosts = useCallback(() => {
@@ -536,7 +545,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     setCurrentPage(0)
     fetchPosts(0, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, debouncedCategories])
+  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, debouncedCategories, selectedAccount])
 
   // Fetch counts and metrics when filters change
   useEffect(() => {
@@ -549,7 +558,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
     fetchCountsAndMetrics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sfwOnly, ageFilter, sortBy, debouncedCategories, debouncedSearchQuery])
+  }, [sfwOnly, ageFilter, sortBy, debouncedCategories, debouncedSearchQuery, selectedAccount])
 
   return {
     // Data

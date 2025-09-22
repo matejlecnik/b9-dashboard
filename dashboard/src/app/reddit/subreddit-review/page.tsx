@@ -1,10 +1,10 @@
   'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase, type Subreddit } from '@/lib/supabase/index'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { MetricsCards } from '@/components/MetricsCards'
-import { UniversalTable, createSubredditReviewTable } from '@/components/UniversalTable'
 import { StandardToolbar } from '@/components/standard'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'
@@ -15,7 +15,23 @@ import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { UnifiedFilters } from '@/components/UnifiedFilters'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { AddSubredditModal } from '@/components/AddSubredditModal'
+
+// Dynamic imports for heavy components
+const UniversalTable = dynamic(
+  () => import('@/components/UniversalTable').then(mod => ({
+    default: mod.UniversalTable,
+    createSubredditReviewTable: mod.createSubredditReviewTable
+  })),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
+
+const AddSubredditModal = dynamic(
+  () => import('@/components/AddSubredditModal').then(mod => ({ default: mod.AddSubredditModal })),
+  { ssr: false }
+)
+
+// Import createSubredditReviewTable for use in the component
+import { createSubredditReviewTable } from '@/components/UniversalTable'
 
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller'
 type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | null
@@ -743,8 +759,8 @@ export default function SubredditReviewPage() {
                 })
               }}
               counts={reviewCounts}
-              searchQuery=""
-              onSearchChange={() => {}}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
               loading={loading}
             />
           </div>

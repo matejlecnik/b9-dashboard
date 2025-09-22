@@ -653,24 +653,6 @@ async def get_job_status(request: Request, job_id: str):
 # =============================================================================
 # INSTAGRAM SCRAPER ENDPOINTS (LEGACY)
 # =============================================================================
-# Note: If INSTAGRAM_SCRAPER_ROUTES_AVAILABLE, these are overridden by new subprocess-based endpoints
-# These thread-based endpoints only used when new routes aren't available
-
-# Instagram scraper endpoints are now handled by instagram_scraper_routes.py router
-# Control via Supabase system_control table:
-# UPDATE system_control SET enabled = true/false WHERE script_name = 'instagram_scraper'
-
-# REMOVED: Duplicate Instagram endpoints (now in instagram_scraper_routes.py)
-# The following endpoints were removed to prevent routing conflicts:
-# - /api/instagram/scraper/status
-# - /api/instagram/scraper/success-rate
-# - /api/instagram/scraper/cost-metrics
-# - /api/instagram/scraper/metrics
-# - /api/instagram/scraper/logs
-# All Instagram scraper endpoints are now handled by the instagram_scraper_router
-
-
-# =============================================================================
 # MAIN ENTRY POINT
 # =============================================================================
 

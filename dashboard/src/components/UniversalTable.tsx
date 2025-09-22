@@ -299,7 +299,11 @@ export const UniversalTable = memo(function UniversalTable({
           onReachEnd()
         }
       },
-      { root: rootEl, rootMargin: '200px 0px', threshold: 0.01 }
+      {
+        root: null, // Use viewport instead of the scrollable container
+        rootMargin: '200px 0px',
+        threshold: 0.1 // Increase threshold for more reliable triggering
+      }
     )
     
     observer.observe(target)
@@ -407,7 +411,7 @@ export const UniversalTable = memo(function UniversalTable({
           )}>
             {safeDisplayName}
             {/* Verification Badge */}
-            {subreddit.verification_required_detected && (
+            {(subreddit as any).verification_required && (
               <span title="Verification Required">
                 <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
               </span>
@@ -490,14 +494,14 @@ export const UniversalTable = memo(function UniversalTable({
         
         {/* Engagement */}
         <div className="w-24 text-center">
-          {typeof subreddit.comment_to_upvote_ratio === 'number' ? (
+          {typeof subreddit.subscriber_engagement_ratio === 'number' ? (
             <span className={cn(
               "font-medium",
               compactMode ? "text-xs" : "text-sm",
-              subreddit.comment_to_upvote_ratio > 0.15 ? 'text-pink-600' :
-              subreddit.comment_to_upvote_ratio > 0.05 ? 'text-gray-700' : 'text-gray-500'
+              subreddit.subscriber_engagement_ratio > 0.15 ? 'text-pink-600' :
+              subreddit.subscriber_engagement_ratio > 0.05 ? 'text-gray-700' : 'text-gray-500'
             )}>
-              {(subreddit.comment_to_upvote_ratio * 100).toFixed(1)}%
+              {(subreddit.subscriber_engagement_ratio * 100).toFixed(1)}%
             </span>
           ) : (
             <span className="text-gray-400">—</span>
@@ -642,7 +646,7 @@ export const UniversalTable = memo(function UniversalTable({
               <div className="w-32 px-2 font-medium text-gray-700" role="columnheader">
                 Category
               </div>
-              <div className="w-64 px-2 font-medium text-gray-700" role="columnheader">
+              <div className="w-96 px-2 font-medium text-gray-700" role="columnheader">
                 Tags
               </div>
             </>

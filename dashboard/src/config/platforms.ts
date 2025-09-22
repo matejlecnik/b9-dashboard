@@ -49,38 +49,6 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     features: ['engagement-tracking', 'influencer-discovery', 'content-analysis'],
     status: 'coming-soon'
   },
-  tiktok: {
-    id: 'tiktok',
-    name: 'TikTok Intelligence',
-    description: 'TikTok trend analysis and viral content optimization',
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.NEXT_PUBLIC_API_URL,
-    theme: {
-      primary: '#000000',
-      secondary: '#FE2C55',
-      accent: '#25F4EE'
-    },
-    features: ['trend-analysis', 'viral-optimization', 'hashtag-research'],
-    status: 'coming-soon'
-  },
-  twitter: {
-    id: 'twitter',
-    name: 'X (Twitter) Monitor',
-    description: 'Twitter engagement and audience analysis platform',
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    apiUrl: process.env.NEXT_PUBLIC_API_URL,
-    theme: {
-      primary: '#1DA1F2',
-      secondary: '#14171A',
-      accent: '#657786'
-    },
-    features: ['engagement-analytics', 'audience-insights', 'trend-monitoring'],
-    status: 'coming-soon'
-  },
   tracking: {
     id: 'tracking',
     name: 'Tracking Dashboard',
