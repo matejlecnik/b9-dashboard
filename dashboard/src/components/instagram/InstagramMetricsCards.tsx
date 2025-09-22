@@ -46,7 +46,7 @@ const InstagramMetricsCards = memo(function InstagramMetricsCards({
       value: loading ? '...' : error ? 'Error' : totalCreators.toLocaleString('en-US'),
       subtitle: error ? 'Failed to load' : 'In Database',
       icon: Users,
-      iconColor: error ? 'text-purple-800' : 'text-purple-700',
+      iconColor: 'text-black',
       testId: 'total-creators'
     },
     {
@@ -54,7 +54,7 @@ const InstagramMetricsCards = memo(function InstagramMetricsCards({
       value: loading ? '...' : pendingCount.toLocaleString('en-US'),
       subtitle: pendingCount > 0 ? 'Need Review' : 'All Done!',
       icon: Clock,
-      iconColor: pendingCount > 0 ? 'text-[#FF8395]' : 'text-pink-600',
+      iconColor: 'text-black',
       isHighlight: pendingCount > 0,
       testId: 'pending-count'
     },
@@ -63,7 +63,7 @@ const InstagramMetricsCards = memo(function InstagramMetricsCards({
       value: loading ? '...' : approvedCount.toLocaleString('en-US'),
       subtitle: 'Ready to track',
       icon: CheckCircle,
-      iconColor: 'text-green-600',
+      iconColor: 'text-black',
       hasActivity: approvedCount > 0,
       testId: 'approved-count'
     },
@@ -72,7 +72,7 @@ const InstagramMetricsCards = memo(function InstagramMetricsCards({
       value: loading ? '...' : `${completedCount}/${totalCreators}`,
       subtitle: 'Complete',
       icon: BarChart3,
-      iconColor: 'text-gray-700',
+      iconColor: 'text-pink-500',
       showProgress: true,
       percentage: completionPercentage,
       testId: 'completion-percentage'
