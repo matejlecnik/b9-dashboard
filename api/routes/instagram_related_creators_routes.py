@@ -71,7 +71,7 @@ processing_state = {
 }
 
 
-def get_related_profiles(user_id: str) -> Optional[List[Dict]]:
+def get_related_profiles(user_id: str, supabase=None) -> Optional[List[Dict]]:
     """Get related profiles from RapidAPI"""
     try:
         url = f"https://{RAPIDAPI_HOST}/related-profiles"
@@ -87,13 +87,44 @@ def get_related_profiles(user_id: str) -> Optional[List[Dict]]:
             if data and "data" in data and "user" in data["data"]:
                 edges = data["data"]["user"].get("edge_related_profiles", {}).get("edges", [])
                 return [edge["node"] for edge in edges]
+        else:
+            # Log API error
+            if supabase:
+                supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'instagram_related_creators',
+                    'script_name': 'instagram_related_creators_routes',
+                    'level': 'error',
+                    'message': f'API error getting related profiles: {response.status_code}',
+                    'context': {
+                        'action': 'api_error',
+                        'endpoint': 'related-profiles',
+                        'user_id': user_id,
+                        'status_code': response.status_code
+                    }
+                }).execute()
         return None
     except Exception as e:
         logger.error(f"Error getting related profiles for {user_id}: {e}")
+        # Log exception
+        if supabase:
+            supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_related_creators',
+                'script_name': 'instagram_related_creators_routes',
+                'level': 'error',
+                'message': f'Exception getting related profiles: {str(e)}',
+                'context': {
+                    'action': 'api_exception',
+                    'endpoint': 'related-profiles',
+                    'user_id': user_id,
+                    'error': str(e)
+                }
+            }).execute()
         return None
 
 
-def get_user_profile(username: str) -> Optional[Dict]:
+def get_user_profile(username: str, supabase=None) -> Optional[Dict]:
     """Get full user profile from RapidAPI"""
     try:
         url = f"https://{RAPIDAPI_HOST}/profile"
@@ -108,9 +139,40 @@ def get_user_profile(username: str) -> Optional[Dict]:
             data = response.json()
             if data and "status" in data and data["status"]:
                 return data
+        else:
+            # Log API error
+            if supabase:
+                supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'instagram_related_creators',
+                    'script_name': 'instagram_related_creators_routes',
+                    'level': 'error',
+                    'message': f'API error getting user profile: {response.status_code}',
+                    'context': {
+                        'action': 'api_error',
+                        'endpoint': 'profile',
+                        'username': username,
+                        'status_code': response.status_code
+                    }
+                }).execute()
         return None
     except Exception as e:
         logger.error(f"Error getting profile for {username}: {e}")
+        # Log exception
+        if supabase:
+            supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_related_creators',
+                'script_name': 'instagram_related_creators_routes',
+                'level': 'error',
+                'message': f'Exception getting user profile: {str(e)}',
+                'context': {
+                    'action': 'api_exception',
+                    'endpoint': 'profile',
+                    'username': username,
+                    'error': str(e)
+                }
+            }).execute()
         return None
 
 
@@ -164,6 +226,7 @@ def save_creator_to_db(supabase, profile_data: Dict) -> bool:
 def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds: int = 2):
     """Process a batch of approved creators to find related creators"""
     global processing_state
+    start_time = time.time()
 
     try:
         # Get unprocessed approved creators
@@ -177,17 +240,60 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
         creators = result.data if result.data else []
         processing_state["total_count"] = len(creators)
 
+        # Log process start
+        supabase.table('system_logs').insert({
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'instagram_related_creators',
+            'script_name': 'instagram_related_creators_routes',
+            'level': 'info',
+            'message': f'Started processing {len(creators)} approved creators',
+            'context': {
+                'action': 'process_start',
+                'batch_size': batch_size,
+                'delay_seconds': delay_seconds,
+                'total_creators': len(creators)
+            }
+        }).execute()
+
         for creator in creators:
             if processing_state["should_stop"]:
                 break
 
             processing_state["current_creator"] = creator["username"]
+            creator_start_time = time.time()
+
+            # Log starting to process creator
+            supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_related_creators',
+                'script_name': 'instagram_related_creators_routes',
+                'level': 'info',
+                'message': f'Processing creator: {creator["username"]}',
+                'context': {
+                    'action': 'process_creator',
+                    'creator': creator["username"],
+                    'ig_user_id': creator["ig_user_id"]
+                }
+            }).execute()
 
             # Get related profiles
-            related_profiles = get_related_profiles(creator["ig_user_id"])
+            related_profiles = get_related_profiles(creator["ig_user_id"], supabase)
 
             if not related_profiles:
                 processing_state["creators_with_no_related"] += 1
+
+                # Log no related profiles found
+                supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'instagram_related_creators',
+                    'script_name': 'instagram_related_creators_routes',
+                    'level': 'warning',
+                    'message': f'No related profiles found for {creator["username"]}',
+                    'context': {
+                        'action': 'no_related_found',
+                        'creator': creator["username"]
+                    }
+                }).execute()
             else:
                 # Process each related profile
                 for profile in related_profiles:
@@ -197,11 +303,26 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
                     username = profile.get("username")
                     if username:
                         # Get full profile info
-                        full_profile = get_user_profile(username)
+                        full_profile = get_user_profile(username, supabase)
                         if full_profile:
                             # Save to database
                             if save_creator_to_db(supabase, full_profile):
                                 processing_state["new_creators_found"] += 1
+
+                                # Log new creator saved
+                                supabase.table('system_logs').insert({
+                                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                                    'source': 'instagram_related_creators',
+                                    'script_name': 'instagram_related_creators_routes',
+                                    'level': 'info',
+                                    'message': f'New creator discovered: {username}',
+                                    'context': {
+                                        'action': 'creator_saved',
+                                        'new_creator': username,
+                                        'source_creator': creator["username"],
+                                        'followers': full_profile.get('edge_followed_by', {}).get('count', 0)
+                                    }
+                                }).execute()
 
                         # Rate limiting delay
                         time.sleep(delay_seconds)
@@ -213,6 +334,24 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
                 .execute()
 
             processing_state["processed_count"] += 1
+
+            # Log creator processing completed
+            creator_duration = int((time.time() - creator_start_time) * 1000)
+            related_count = len(related_profiles) if related_profiles else 0
+
+            supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'instagram_related_creators',
+                'script_name': 'instagram_related_creators_routes',
+                'level': 'info',
+                'message': f'Completed processing {creator["username"]} - found {related_count} related profiles',
+                'context': {
+                    'action': 'creator_completed',
+                    'creator': creator["username"],
+                    'related_profiles_count': related_count
+                },
+                'duration_ms': creator_duration
+            }).execute()
 
             # Update Redis progress if available
             if redis_client:
@@ -231,10 +370,44 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
         processing_state["is_running"] = False
         processing_state["current_creator"] = None
 
+        # Log process completion
+        total_duration = int((time.time() - start_time) * 1000)
+        supabase.table('system_logs').insert({
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'instagram_related_creators',
+            'script_name': 'instagram_related_creators_routes',
+            'level': 'info',
+            'message': f'Completed batch processing - processed {processing_state["processed_count"]} creators, found {processing_state["new_creators_found"]} new creators',
+            'context': {
+                'action': 'process_completed',
+                'creators_processed': processing_state["processed_count"],
+                'new_creators_found': processing_state["new_creators_found"],
+                'creators_with_no_related': processing_state["creators_with_no_related"]
+            },
+            'duration_ms': total_duration,
+            'items_processed': processing_state["processed_count"]
+        }).execute()
+
     except Exception as e:
         logger.error(f"Error processing related creators: {e}")
         processing_state["errors"].append(str(e))
         processing_state["is_running"] = False
+
+        # Log error
+        supabase.table('system_logs').insert({
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': 'instagram_related_creators',
+            'script_name': 'instagram_related_creators_routes',
+            'level': 'error',
+            'message': f'Error in batch processing: {str(e)}',
+            'context': {
+                'action': 'process_error',
+                'error': str(e),
+                'current_creator': processing_state.get("current_creator"),
+                'processed_count': processing_state.get("processed_count", 0)
+            }
+        }).execute()
+
         raise
 
 
