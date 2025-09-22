@@ -48,6 +48,14 @@ except ImportError as e:
     print(f"Instagram scraper routes not available: {e}")
     INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
 
+# Import Instagram related creators routes
+try:
+    from routes.instagram_related_creators_routes import router as instagram_related_router
+    INSTAGRAM_RELATED_ROUTES_AVAILABLE = True
+except ImportError as e:
+    print(f"Instagram related creators routes not available: {e}")
+    INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
+
 # Instagram scraper now uses subprocess architecture via instagram_scraper_routes.py
 # Control is done via Supabase system_control table only
 INSTAGRAM_SCRAPER_AVAILABLE = False  # Thread-based scraper disabled
@@ -247,6 +255,11 @@ app.include_router(user_router)
 if INSTAGRAM_SCRAPER_ROUTES_AVAILABLE:
     app.include_router(instagram_scraper_router)
     logger.info("✅ Instagram scraper routes registered")
+
+# Include Instagram related creators routes if available
+if INSTAGRAM_RELATED_ROUTES_AVAILABLE:
+    app.include_router(instagram_related_router)
+    logger.info("✅ Instagram related creators routes registered")
 
 # Security middleware
 app.add_middleware(

@@ -19,6 +19,7 @@ import { InstagramSidebar } from '@/components/InstagramSidebar'
 import { StandardToolbar } from '@/components/standard'
 import { InstagramMetricsCards } from '@/components/instagram/InstagramMetricsCards'
 import { InstagramTable } from '@/components/instagram/InstagramTable'
+import { RelatedCreatorsModal } from '@/components/instagram/RelatedCreatorsModal'
 import { useDebounce } from '@/hooks/useDebounce'
 
 type FilterType = 'pending' | 'ok' | 'non_related'
@@ -62,6 +63,7 @@ export default function CreatorReviewPage() {
   })
   const [countsLoading, setCountsLoading] = useState(true)
   const [postsMetrics, setPostsMetrics] = useState<Map<string, { avgLikes: number, avgComments: number }>>(new Map())
+  const [isRelatedCreatorsModalOpen, setIsRelatedCreatorsModalOpen] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Debounced search for better performance
@@ -407,7 +409,7 @@ export default function CreatorReviewPage() {
                 {/* Action Button - Aligned with cards */}
                 <div className="flex items-stretch">
                   <Button
-                    onClick={() => toast.info('Get related creators feature coming soon!')}
+                    onClick={() => setIsRelatedCreatorsModalOpen(true)}
                     disabled={loading}
                     className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] h-auto min-h-[100px] px-6"
                   >
@@ -544,6 +546,12 @@ export default function CreatorReviewPage() {
           </div>
         </main>
       </div>
+
+      {/* Related Creators Modal */}
+      <RelatedCreatorsModal
+        isOpen={isRelatedCreatorsModalOpen}
+        onClose={() => setIsRelatedCreatorsModalOpen(false)}
+      />
     </div>
   )
 }
