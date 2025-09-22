@@ -25,6 +25,15 @@ const UniversalTable = dynamic(
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
+// Virtual scrolling table for large datasets
+const VirtualizedUniversalTable = dynamic(
+  () => import('@/components/VirtualizedUniversalTable').then(mod => ({
+    default: mod.VirtualizedUniversalTable,
+    createVirtualizedCategorizationTable: mod.createVirtualizedCategorizationTable
+  })),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
+
 const AICategorizationModal = dynamic(
   () => import('@/components/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
   { ssr: false }
@@ -32,6 +41,7 @@ const AICategorizationModal = dynamic(
 
 // Import createCategorizationTable for use in the component
 import { createCategorizationTable } from '@/components/UniversalTable'
+import { createVirtualizedCategorizationTable } from '@/components/VirtualizedUniversalTable'
 import type { AICategorizationSettings } from '@/components/AICategorizationModal'
 
 
@@ -77,11 +87,9 @@ export default function CategorizationPage() {
   // Use server-side filtering
   const displayedSubreddits = subreddits
 
-  // Handle search query change with performance optimization
+  // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
-    React.startTransition(() => {
-      setSearchQuery(query)
-    })
+    setSearchQuery(query)
   }, [])
 
   // Handle broken icon URLs
@@ -104,9 +112,7 @@ export default function CategorizationPage() {
 
   // Handle tag filter change
   const handleTagChange = useCallback((tags: string[]) => {
-    React.startTransition(() => {
-      setSelectedTags(tags)
-    })
+    setSelectedTags(tags)
   }, [])
 
   // Close rules modal
@@ -128,9 +134,7 @@ export default function CategorizationPage() {
         if (res.ok) {
           const json = await res.json()
           if (json.success && json.tags && isMounted) {
-            React.startTransition(() => {
-              setAvailableTags(json.tags)
-            })
+            setAvailableTags(json.tags)
           }
         }
       } catch (error) {
@@ -155,9 +159,7 @@ export default function CategorizationPage() {
               .sort((a: string, b: string) => a.localeCompare(b))
 
             if (isMounted) {
-              React.startTransition(() => {
-                setAvailableCategories(categoryNames)
-              })
+              setAvailableCategories(categoryNames)
             }
           }
         }

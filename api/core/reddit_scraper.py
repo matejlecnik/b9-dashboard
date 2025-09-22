@@ -33,8 +33,8 @@ else:
         system_logger = None
         log_scraper_activity = None
 
-# Version tracking
-SCRAPER_VERSION = "2.2.0"
+# Version tracking - FORCE UPDATE 2024-09-22-23:11
+SCRAPER_VERSION = "2.2.0"  # EU RapidProxy update
 
 
 # Load environment variables

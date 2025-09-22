@@ -190,84 +190,129 @@ export function LogViewerSupabase({
     // Determine which table to use
     const actualTableName = useSystemLogs ? 'system_logs' : tableName
 
-    // Subscribe to new logs
-    const channel = supabase
-      .channel(`${actualTableName}_changes`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: actualTableName
-        },
-        (payload) => {
-          if (!isPaused && payload.new) {
-            // Handle both table structures
-            const newLog: LogEntry = useSystemLogs ? {
-              id: payload.new.id.toString(),
-              timestamp: payload.new.timestamp,
-              level: payload.new.level || 'info',
-              message: formatLogMessage(payload.new.message, payload.new.context),
-              source: payload.new.source || payload.new.script_name || 'unknown',
-              context: payload.new.context
-            } : {
-              id: payload.new.id.toString(),
-              timestamp: payload.new.timestamp,
-              level: payload.new.level || 'info',
-              message: formatLogMessage(payload.new.message, payload.new.context),
-              source: payload.new.source || 'scraper',
-              context: payload.new.context
-            }
+    // Subscribe to new logs with proper error handling
+    let isSubscribed = false
 
-            // Apply filters based on table type
-            if (useSystemLogs && sourceFilter) {
-              // Map legacy source filters to new source values
-              const sourceMap: Record<string, string> = {
-                'scraper': 'reddit_scraper',
-                'reddit_scraper': 'reddit_scraper',
-                'instagram_scraper': 'instagram_scraper',
-                'categorization': 'reddit_categorizer',
-                'user_discovery': 'user_discovery',
-                'api_user_discovery': 'api_user_discovery'
+    const setupSubscription = () => {
+      if (!supabase) return
+
+      const channel = supabase
+        .channel(`${actualTableName}_changes`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: actualTableName
+          },
+          (payload) => {
+            if (!isPaused && payload.new) {
+              // Handle both table structures
+              const newLog: LogEntry = useSystemLogs ? {
+                id: payload.new.id.toString(),
+                timestamp: payload.new.timestamp,
+                level: payload.new.level || 'info',
+                message: formatLogMessage(payload.new.message, payload.new.context),
+                source: payload.new.source || payload.new.script_name || 'unknown',
+                context: payload.new.context
+              } : {
+                id: payload.new.id.toString(),
+                timestamp: payload.new.timestamp,
+                level: payload.new.level || 'info',
+                message: formatLogMessage(payload.new.message, payload.new.context),
+                source: payload.new.source || 'scraper',
+                context: payload.new.context
               }
-              const mappedSource = sourceMap[sourceFilter] || sourceFilter
-              if (newLog.source !== mappedSource) return
-            } else if (!useSystemLogs && sourceFilter) {
-              if (newLog.source !== sourceFilter) return
-            }
 
-            if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
-            if (searchQuery && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
+              // Apply filters based on table type
+              if (useSystemLogs && sourceFilter) {
+                // Map legacy source filters to new source values
+                const sourceMap: Record<string, string> = {
+                  'scraper': 'reddit_scraper',
+                  'reddit_scraper': 'reddit_scraper',
+                  'instagram_scraper': 'instagram_scraper',
+                  'categorization': 'reddit_categorizer',
+                  'user_discovery': 'user_discovery',
+                  'api_user_discovery': 'api_user_discovery'
+                }
+                const mappedSource = sourceMap[sourceFilter] || sourceFilter
+                if (newLog.source !== mappedSource) return
+              } else if (!useSystemLogs && sourceFilter) {
+                if (newLog.source !== sourceFilter) return
+              }
 
-            // Add new log to the beginning
-            setLogs(prev => {
-              const updated = [newLog, ...prev]
-              return updated.slice(0, maxLogs)
-            })
+              if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
+              if (searchQuery && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
 
-            // Auto-scroll if at bottom
-            if (shouldAutoScroll.current && scrollAreaRef.current) {
-              const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
-              const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-              if (isNearBottom) {
-                setTimeout(() => {
-                  if (scrollAreaRef.current) {
-                    scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
-                  }
-                }, 100)
+              // Add new log to the beginning
+              setLogs(prev => {
+                const updated = [newLog, ...prev]
+                return updated.slice(0, maxLogs)
+              })
+
+              // Auto-scroll if at bottom
+              if (shouldAutoScroll.current && scrollAreaRef.current) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
+                const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+                if (isNearBottom) {
+                  setTimeout(() => {
+                    if (scrollAreaRef.current) {
+                      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+                    }
+                  }, 100)
+                }
               }
             }
           }
-        }
-      )
-      .subscribe()
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error(`❌ [LogViewer] Subscription error for ${actualTableName}:`, err)
+            isSubscribed = false
+            // Attempt reconnection after delay
+            setTimeout(() => {
+              if (!isSubscribed) {
+                console.log(`🔄 [LogViewer] Attempting to reconnect subscription for ${actualTableName}...`)
+                setupSubscription()
+              }
+            }, 5000)
+          } else {
+            console.log(`✅ [LogViewer] Subscription status for ${actualTableName}:`, status)
+            isSubscribed = status === 'SUBSCRIBED'
+          }
+        })
 
-    subscriptionRef.current = channel
+      subscriptionRef.current = channel
+    }
+
+    setupSubscription()
 
     // Cleanup on unmount
     return () => {
+      isSubscribed = false
       if (subscriptionRef.current && supabase) {
-        supabase.removeChannel(subscriptionRef.current)
+        const channelToRemove = subscriptionRef.current
+        subscriptionRef.current = null
+
+        // Proper cleanup with error handling
+        channelToRemove.unsubscribe()
+          .then(() => {
+            if (supabase) {
+              supabase.removeChannel(channelToRemove)
+              console.log(`🧹 [LogViewer] Subscription for ${actualTableName} cleaned up`)
+            }
+          })
+          .catch((err) => {
+            console.error(`❌ [LogViewer] Error during cleanup for ${actualTableName}:`, err)
+            // Force cleanup anyway
+            try {
+              if (supabase) {
+                supabase.removeChannel(channelToRemove)
+              }
+            } catch (e) {
+              console.error(`❌ [LogViewer] Force cleanup failed for ${actualTableName}:`, e)
+            }
+          })
       }
     }
   }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])

@@ -140,6 +140,95 @@ function getOptimizedRedditImageUrl(url: string, size: 'small' | 'medium' | 'lar
 }
 
 // ============================================================================
+// MEMOIZATION HELPER - CUSTOM PROPS COMPARISON
+// ============================================================================
+
+/**
+ * Custom comparison function for UniversalTable to prevent unnecessary re-renders.
+ * Properly compares complex data types like Sets and arrays.
+ */
+const areUniversalTablePropsEqual = (
+  prevProps: UniversalTableProps,
+  nextProps: UniversalTableProps
+): boolean => {
+  // 1. Compare primitive values and simple references
+  if (prevProps.loading !== nextProps.loading) return false
+  if (prevProps.mode !== nextProps.mode) return false
+  if (prevProps.variant !== nextProps.variant) return false
+  if (prevProps.allowSelectionInReview !== nextProps.allowSelectionInReview) return false
+  if (prevProps.hasMore !== nextProps.hasMore) return false
+  if (prevProps.loadingMore !== nextProps.loadingMore) return false
+  if (prevProps.searchQuery !== nextProps.searchQuery) return false
+  if (prevProps.highlightedIndex !== nextProps.highlightedIndex) return false
+  if (prevProps.className !== nextProps.className) return false
+  if (prevProps.testId !== nextProps.testId) return false
+  if (prevProps.showHeader !== nextProps.showHeader) return false
+  if (prevProps.showSelection !== nextProps.showSelection) return false
+  if (prevProps.showIcons !== nextProps.showIcons) return false
+  if (prevProps.compactMode !== nextProps.compactMode) return false
+
+  // 2. Compare arrays by reference and length
+  // For subreddits array, we check reference first (most common case)
+  // If reference changed, check if actual content changed
+  if (prevProps.subreddits !== nextProps.subreddits) {
+    if (!prevProps.subreddits || !nextProps.subreddits) return false
+    if (prevProps.subreddits.length !== nextProps.subreddits.length) return false
+    // For large arrays, we only do reference check to avoid expensive deep comparison
+    // Parent should ensure stable references when data hasn't changed
+    return false
+  }
+
+  // Compare availableCategories array
+  if (prevProps.availableCategories !== nextProps.availableCategories) {
+    if (!prevProps.availableCategories || !nextProps.availableCategories) return false
+    if (prevProps.availableCategories.length !== nextProps.availableCategories.length) return false
+    // For small arrays like categories, we can do a deeper check
+    for (let i = 0; i < prevProps.availableCategories.length; i++) {
+      if (prevProps.availableCategories[i] !== nextProps.availableCategories[i]) return false
+    }
+  }
+
+  // 3. Helper function to compare Sets efficiently
+  const areSetsEqual = (a: Set<any> | undefined, b: Set<any> | undefined): boolean => {
+    // Handle undefined cases
+    if (a === b) return true // Both undefined or same reference
+    if (!a || !b) return false // One is undefined
+
+    // Compare size first (fast check)
+    if (a.size !== b.size) return false
+
+    // Compare contents
+    for (const item of a) {
+      if (!b.has(item)) return false
+    }
+    return true
+  }
+
+  // 4. Compare Set props
+  if (!areSetsEqual(prevProps.selectedSubreddits, nextProps.selectedSubreddits)) return false
+  if (!areSetsEqual(prevProps.brokenIcons, nextProps.brokenIcons)) return false
+  if (!areSetsEqual(prevProps.removingIds, nextProps.removingIds)) return false
+
+  // 5. Compare callback functions
+  // We allow callback changes as they're necessary for functionality
+  // But we check if they're the same reference for optimization
+  if (prevProps.setSelectedSubreddits !== nextProps.setSelectedSubreddits) return false
+  if (prevProps.onUpdateCategory !== nextProps.onUpdateCategory) return false
+  if (prevProps.onBulkUpdateCategory !== nextProps.onBulkUpdateCategory) return false
+  if (prevProps.onUpdateReview !== nextProps.onUpdateReview) return false
+  if (prevProps.onBulkUpdateReview !== nextProps.onBulkUpdateReview) return false
+  if (prevProps.onUpdateTags !== nextProps.onUpdateTags) return false
+  if (prevProps.onRemoveTag !== nextProps.onRemoveTag) return false
+  if (prevProps.onAddTag !== nextProps.onAddTag) return false
+  if (prevProps.onReachEnd !== nextProps.onReachEnd) return false
+  if (prevProps.onShowRules !== nextProps.onShowRules) return false
+  if (prevProps.handleIconError !== nextProps.handleIconError) return false
+
+  // All props are equal, prevent re-render
+  return true
+}
+
+// ============================================================================
 // UNIVERSAL TABLE COMPONENT
 // ============================================================================
 
@@ -583,13 +672,16 @@ export const UniversalTable = memo(function UniversalTable({
     onShowRules,
     handleUpdate,
     availableCategories,
-    removingIds
+    removingIds,
+    onUpdateTags,
+    onRemoveTag,
+    onAddTag
   ])
-  
+
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
-  
+
   if (loading && processedSubreddits.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -598,21 +690,21 @@ export const UniversalTable = memo(function UniversalTable({
       </div>
     )
   }
-  
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className={cn(
         "flex flex-col h-full rounded-2xl border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden",
         className
       )}
-      role="table" 
-      aria-busy={loadingMore} 
+      role="table"
+      aria-busy={loadingMore}
       data-testid={testId}
     >
       {/* Header */}
       {showHeader && (
-        <div 
+        <div
           className="flex items-center px-4 py-3 bg-gray-50/80 border-b border-gray-200/50 font-medium text-gray-700 text-sm sticky top-0 z-10"
           role="row"
           aria-label="Table header"
@@ -658,7 +750,7 @@ export const UniversalTable = memo(function UniversalTable({
           </div>
         </div>
       )}
-      
+
       {/* Body */}
       <div ref={wrapperRef} className="flex-1 overflow-auto min-h-[320px]">
         {loading ? (
@@ -680,7 +772,7 @@ export const UniversalTable = memo(function UniversalTable({
                 {renderRow(subreddit, index)}
               </div>
             ))}
-            
+
             {/* Infinite scroll sentinel */}
             {hasMore && (
               <div ref={sentinelRef} className="h-20 flex items-center justify-center">
@@ -699,7 +791,7 @@ export const UniversalTable = memo(function UniversalTable({
       </div>
     </div>
   )
-})
+}, areUniversalTablePropsEqual)
 
 // ============================================================================
 // PRESET CONFIGURATIONS

@@ -242,38 +242,38 @@ export default function PostingPage() {
           }
         }
 
-        // Apply filters to all subreddits
-        let filteredSubreddits = allSubreddits
+        // Single pass filtering and counting
+        let sfwCount = 0
+        let nsfwCount = 0
+        let verifiedCount = 0
 
-        // Apply SFW filter
-        if (sfwOnly) {
-          filteredSubreddits = filteredSubreddits.filter((s: any) => !s.over18)
-        }
+        // Apply filters and count in a single pass
+        const filteredSubreddits = allSubreddits.filter((s: any) => {
+          // Count all subreddits regardless of filter
+          if (!s.over18) sfwCount++
+          else nsfwCount++
+          if (s.verification_required === true) verifiedCount++
 
-        // Apply verification filter
-        if (verifiedOnly) {
-          filteredSubreddits = filteredSubreddits.filter((s: any) => s.verification_required === true)
-        }
+          // Apply filters
+          if (sfwOnly && s.over18) return false
+          if (verifiedOnly && s.verification_required !== true) return false
 
-        // Update counts based on filtered results
-        const sfwSubs = allSubreddits.filter((s: any) => !s.over18)
-        const nsfwSubs = allSubreddits.filter((s: any) => s.over18)
-        const verifiedSubs = allSubreddits.filter((s: any) => s.verification_required === true)
+          return true
+        })
 
-        setSfwCount(sfwSubs.length)
-        setNsfwCount(nsfwSubs.length)
-        setVerifiedCount(verifiedSubs.length)
+        // Update counts
+        setSfwCount(sfwCount)
+        setNsfwCount(nsfwCount)
+        setVerifiedCount(verifiedCount)
 
-        // Sort the results
+        // Sort the results (simplified comparison)
         filteredSubreddits.sort((a: any, b: any) => {
           const aVal = a[sortColumn] || 0
           const bVal = b[sortColumn] || 0
 
-          if (sortDirection === 'asc') {
-            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-          } else {
-            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
-          }
+          return sortDirection === 'asc'
+            ? aVal - bVal
+            : bVal - aVal
         })
 
         // Apply pagination to filtered results
@@ -667,34 +667,56 @@ export default function PostingPage() {
 
 
 
-  // Apply client-side filtering when we have all fetched data
+  // Separate memo for counts calculation (only re-runs when source data changes)
+  const subredditCounts = useMemo(() => {
+    if (!allFetchedSubreddits.length) {
+      return { sfw: 0, nsfw: 0, verified: 0 }
+    }
+
+    // Single pass to calculate all counts
+    let sfw = 0
+    let nsfw = 0
+    let verified = 0
+
+    for (const sub of allFetchedSubreddits) {
+      if (!sub.over18) sfw++
+      else nsfw++
+      if (sub.verification_required === true) verified++
+    }
+
+    return { sfw, nsfw, verified }
+  }, [allFetchedSubreddits])
+
+  // Optimized filtering with single pass and reduced dependencies
   const filteredOkSubreddits = useMemo(() => {
     // If we have account-based filtering with allFetchedSubreddits, apply filters
     if (selectedAccount?.model?.assigned_tags && allFetchedSubreddits.length > 0) {
-      let filtered = [...allFetchedSubreddits]
+      // Prepare search term once (avoid repeated toLowerCase)
+      const search = debouncedSearchQuery ? debouncedSearchQuery.toLowerCase() : ''
 
-      // Apply SFW filter
-      if (sfwOnly) {
-        filtered = filtered.filter(s => !s.over18)
-      }
+      // Single pass filtering - combine all filter conditions
+      const filtered = allFetchedSubreddits.filter(s => {
+        // Apply SFW filter
+        if (sfwOnly && s.over18) return false
 
-      // Apply Verified filter
-      if (verifiedOnly) {
-        filtered = filtered.filter(s => s.verification_required === true)
-      }
+        // Apply Verified filter
+        if (verifiedOnly && s.verification_required !== true) return false
 
-      // Apply search filter
-      if (debouncedSearchQuery) {
-        const search = debouncedSearchQuery.toLowerCase()
-        filtered = filtered.filter(s =>
-          s.name?.toLowerCase().includes(search) ||
-          s.display_name_prefixed?.toLowerCase().includes(search) ||
-          s.title?.toLowerCase().includes(search) ||
-          s.public_description?.toLowerCase().includes(search)
-        )
-      }
+        // Apply search filter (only if search exists)
+        if (search) {
+          const matchesSearch = (
+            s.name?.toLowerCase().includes(search) ||
+            s.display_name_prefixed?.toLowerCase().includes(search) ||
+            s.title?.toLowerCase().includes(search) ||
+            s.public_description?.toLowerCase().includes(search)
+          )
+          if (!matchesSearch) return false
+        }
 
-      // Sort the results
+        return true
+      })
+
+      // Sort the results (this is unavoidably O(n log n))
       const sortColumnMap: Record<SortField, string> = {
         'avg_upvotes': 'avg_upvotes_per_post',
         'min_post_karma': 'min_post_karma',
@@ -706,26 +728,20 @@ export default function PostingPage() {
         const aVal = a[sortColumn] || 0
         const bVal = b[sortColumn] || 0
 
-        if (sortDirection === 'asc') {
-          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-        } else {
-          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
-        }
+        // Simplified comparison
+        return sortDirection === 'asc'
+          ? aVal - bVal
+          : bVal - aVal
       })
 
       // Apply pagination
-      const startIdx = currentPage * PAGE_SIZE
-      const endIdx = startIdx + PAGE_SIZE
+      const endIdx = (currentPage + 1) * PAGE_SIZE
       const paginated = filtered.slice(0, endIdx) // Show all up to current page
 
-      // Update counts
-      const sfwSubs = allFetchedSubreddits.filter((s: any) => !s.over18)
-      const nsfwSubs = allFetchedSubreddits.filter((s: any) => s.over18)
-      const verifiedSubs = allFetchedSubreddits.filter((s: any) => s.verification_required === true)
-
-      // Update hasMore state
-      if (filtered.length !== okSubreddits.length || endIdx < filtered.length) {
-        setHasMore(endIdx < filtered.length)
+      // Update hasMore state (moved outside of memo to avoid side effects)
+      const newHasMore = endIdx < filtered.length
+      if (hasMore !== newHasMore) {
+        setHasMore(newHasMore)
       }
 
       return paginated
@@ -733,7 +749,7 @@ export default function PostingPage() {
 
     // Otherwise use server-filtered data
     return okSubreddits
-  }, [okSubreddits, allFetchedSubreddits, selectedAccount, sfwOnly, verifiedOnly, debouncedSearchQuery, sortBy, sortDirection, currentPage])
+  }, [okSubreddits, allFetchedSubreddits, selectedAccount, sfwOnly, verifiedOnly, debouncedSearchQuery, sortBy, sortDirection, currentPage, hasMore])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {

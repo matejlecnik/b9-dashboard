@@ -19,7 +19,7 @@ else:
     from .reddit_scraper import ProxyEnabledMultiScraper, SupabaseLogHandler
 
 # Version tracking
-SCRAPER_VERSION = "2.1.0"
+SCRAPER_VERSION = "2.2.0"  # Updated with EU RapidProxy
 
 
 # Load environment variables

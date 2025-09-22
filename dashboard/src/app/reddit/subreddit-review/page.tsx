@@ -25,6 +25,15 @@ const UniversalTable = dynamic(
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
+// Virtual scrolling table for large datasets
+const VirtualizedUniversalTable = dynamic(
+  () => import('@/components/VirtualizedUniversalTable').then(mod => ({
+    default: mod.VirtualizedUniversalTable,
+    createVirtualizedReviewTable: mod.createVirtualizedReviewTable
+  })),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
+
 const AddSubredditModal = dynamic(
   () => import('@/components/AddSubredditModal').then(mod => ({ default: mod.AddSubredditModal })),
   { ssr: false }
@@ -32,6 +41,7 @@ const AddSubredditModal = dynamic(
 
 // Import createSubredditReviewTable for use in the component
 import { createSubredditReviewTable } from '@/components/UniversalTable'
+import { createVirtualizedReviewTable } from '@/components/VirtualizedUniversalTable'
 
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller' | 'banned'
 type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null
@@ -84,11 +94,9 @@ export default function SubredditReviewPage() {
   // Use server-side filtering; client filtering kept as a safety net when search is empty
   const displayedSubreddits = subreddits
 
-  // Handle search query change with performance optimization
+  // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
-    React.startTransition(() => {
-      setSearchQuery(query)
-    })
+    setSearchQuery(query)
   }, [])
 
   // Handle broken icon URLs
@@ -140,18 +148,16 @@ export default function SubredditReviewPage() {
       
       console.log('✅ [REVIEW] Stats fetched successfully:', result.stats)
       
-      React.startTransition(() => {
-        setReviewCounts({
-          unreviewed: result.stats.unreviewed || 0,
-          ok: result.stats.ok || 0,
-          non_related: result.stats.non_related || 0,
-          no_seller: result.stats.no_seller || 0,
-          banned: result.stats.banned || 0,
-          total: result.stats.total || 0
-        })
-        setNewTodayCount(result.stats.new_today || 0)
-        setTotalSubreddits(result.stats.total || 0)
+      setReviewCounts({
+        unreviewed: result.stats.unreviewed || 0,
+        ok: result.stats.ok || 0,
+        non_related: result.stats.non_related || 0,
+        no_seller: result.stats.no_seller || 0,
+        banned: result.stats.banned || 0,
+        total: result.stats.total || 0
       })
+      setNewTodayCount(result.stats.new_today || 0)
+      setTotalSubreddits(result.stats.total || 0)
       
     } catch (error) {
       console.error('❌ [REVIEW] Failed to fetch stats:', error)
@@ -593,73 +599,118 @@ export default function SubredditReviewPage() {
     
     // Smart Supabase subscription that only handles external updates
     let channel: RealtimeChannel | null = null
-    if (supabase) {
-      channel = supabase
-        .channel('subreddit-changes')
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'reddit_subreddits' },
-          (payload) => {
-            const updatedId = payload.new.id as number
+    let isSubscribed = false // Track subscription status
 
-            // Check if this was our own update
-            if (recentlyUpdatedIdsRef.current.has(updatedId)) {
-              console.log('🔄 [REVIEW] Ignoring own update for subreddit', updatedId)
-              return
+    const setupSubscription = async () => {
+      if (!supabase || isSubscribed) return
+
+      try {
+        channel = supabase
+          .channel('subreddit-changes')
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'reddit_subreddits' },
+            (payload) => {
+              const updatedId = payload.new.id as number
+
+              // Check if this was our own update
+              if (recentlyUpdatedIdsRef.current.has(updatedId)) {
+                console.log('🔄 [REVIEW] Ignoring own update for subreddit', updatedId)
+                return
+              }
+
+              // For external updates, handle them smartly based on filter
+              const newReview = payload.new.review as ReviewValue
+              const oldReview = payload.old.review as ReviewValue
+
+              console.log('🔄 [REVIEW] External update detected:', { id: updatedId, oldReview, newReview })
+
+              // Handle the update based on current filter
+              setSubreddits(prev => {
+                // If we're in unreviewed filter and item becomes reviewed, remove it
+                if (currentFilter === 'unreviewed' && newReview !== null) {
+                  return prev.filter(sub => sub.id !== updatedId)
+                }
+                // If we're in a specific review filter and item no longer matches, remove it
+                if (currentFilter === 'ok' && newReview !== 'Ok') {
+                  return prev.filter(sub => sub.id !== updatedId)
+                }
+                if (currentFilter === 'non_related' && newReview !== 'Non Related') {
+                  return prev.filter(sub => sub.id !== updatedId)
+                }
+                if (currentFilter === 'no_seller' && newReview !== 'No Seller') {
+                  return prev.filter(sub => sub.id !== updatedId)
+                }
+                if (currentFilter === 'banned' && newReview !== 'Banned') {
+                  return prev.filter(sub => sub.id !== updatedId)
+                }
+                // Otherwise, update the item in place
+                return prev.map(sub =>
+                  sub.id === updatedId
+                    ? { ...sub, ...payload.new } as Subreddit
+                    : sub
+                )
+              })
+
+              // Update counts if needed
+              if (oldReview !== newReview) {
+                fetchCounts().catch(console.error)
+              }
             }
-
-            // For external updates, handle them smartly based on filter
-            const newReview = payload.new.review as ReviewValue
-            const oldReview = payload.old.review as ReviewValue
-
-            console.log('🔄 [REVIEW] External update detected:', { id: updatedId, oldReview, newReview })
-
-            // Handle the update based on current filter
-            setSubreddits(prev => {
-              // If we're in unreviewed filter and item becomes reviewed, remove it
-              if (currentFilter === 'unreviewed' && newReview !== null) {
-                return prev.filter(sub => sub.id !== updatedId)
-              }
-              // If we're in a specific review filter and item no longer matches, remove it
-              if (currentFilter === 'ok' && newReview !== 'Ok') {
-                return prev.filter(sub => sub.id !== updatedId)
-              }
-              if (currentFilter === 'non_related' && newReview !== 'Non Related') {
-                return prev.filter(sub => sub.id !== updatedId)
-              }
-              if (currentFilter === 'no_seller' && newReview !== 'No Seller') {
-                return prev.filter(sub => sub.id !== updatedId)
-              }
-              if (currentFilter === 'banned' && newReview !== 'Banned') {
-                return prev.filter(sub => sub.id !== updatedId)
-              }
-              // Otherwise, update the item in place
-              return prev.map(sub =>
-                sub.id === updatedId
-                  ? { ...sub, ...payload.new } as Subreddit
-                  : sub
-              )
-            })
-
-            // Update counts if needed
-            if (oldReview !== newReview) {
-              fetchCounts().catch(console.error)
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.error('❌ [REVIEW] Subscription error:', err)
+              isSubscribed = false
+              // Attempt reconnection after delay
+              setTimeout(() => setupSubscription(), 5000)
+            } else {
+              console.log('✅ [REVIEW] Subscription status:', status)
+              isSubscribed = status === 'SUBSCRIBED'
             }
-          }
-        )
-        .subscribe()
+          })
+      } catch (error) {
+        console.error('❌ [REVIEW] Failed to setup subscription:', error)
+        isSubscribed = false
+      }
     }
+
+    // Setup subscription
+    setupSubscription()
 
     // Keep longer interval refresh for catching external changes (15 minutes instead of 5)
     // This reduces jarring refreshes while still catching external updates
     const refreshInterval = setInterval(() => {
       // Only refresh counts, not the whole list
       fetchCounts()
-    }, 900000)  
+
+      // Check subscription health
+      if (!isSubscribed && supabase) {
+        console.log('🔄 [REVIEW] Attempting to reconnect subscription...')
+        setupSubscription()
+      }
+    }, 900000)
 
     return () => {
+      // Proper cleanup
+      isSubscribed = false
       if (channel && supabase) {
-        supabase.removeChannel(channel)
+        channel.unsubscribe().then(() => {
+          if (supabase) {
+            supabase.removeChannel(channel!)
+            console.log('🧹 [REVIEW] Subscription cleaned up')
+          }
+        }).catch((err) => {
+          console.error('❌ [REVIEW] Error during cleanup:', err)
+          // Force cleanup anyway
+          try {
+            if (supabase) {
+              supabase.removeChannel(channel!)
+            }
+          } catch (e) {
+            console.error('❌ [REVIEW] Force cleanup failed:', e)
+          }
+        })
       }
       clearInterval(refreshInterval)
     }
@@ -766,9 +817,7 @@ export default function SubredditReviewPage() {
             <UnifiedFilters
               currentFilter={currentFilter}
               onFilterChange={(value) => {
-                React.startTransition(() => {
-                  setCurrentFilter(value as FilterType)
-                })
+                setCurrentFilter(value as FilterType)
               }}
               counts={reviewCounts}
               searchQuery={searchQuery}
@@ -819,29 +868,47 @@ export default function SubredditReviewPage() {
           ) : (
             <>
               <ComponentErrorBoundary>
-                <UniversalTable
-                  {...createSubredditReviewTable({
-                    subreddits: displayedSubreddits,
-                    selectedSubreddits,
-                    setSelectedSubreddits,
-                    onUpdateReview: updateReviewByText,
-                    loading,
-                    hasMore,
-                    loadingMore,
-                    onReachEnd: () => {
-                      if (loading || loadingMore || !hasMore || fetchInProgressRef.current) return
-                      const nextPage = currentPage + 1
-                      setCurrentPage(nextPage)
-                      // Append next page
-                      void fetchSubreddits(nextPage, true)
-                    },
-                    searchQuery: debouncedSearchQuery,
-                    brokenIcons,
-                    handleIconError,
-                    onShowRules: handleShowRules,
-                    removingIds
-                  })}
-                />
+                {/* Use virtualized table for large datasets (>1000 rows) for better performance */}
+                {displayedSubreddits.length > 1000 ? (
+                  <VirtualizedUniversalTable
+                    {...createVirtualizedReviewTable({
+                      subreddits: displayedSubreddits,
+                      selectedSubreddits,
+                      setSelectedSubreddits,
+                      onUpdateReview: updateReviewByText,
+                      loading,
+                      searchQuery: debouncedSearchQuery,
+                      brokenIcons,
+                      handleIconError,
+                      onShowRules: handleShowRules,
+                      removingIds
+                    })}
+                  />
+                ) : (
+                  <UniversalTable
+                    {...createSubredditReviewTable({
+                      subreddits: displayedSubreddits,
+                      selectedSubreddits,
+                      setSelectedSubreddits,
+                      onUpdateReview: updateReviewByText,
+                      loading,
+                      hasMore,
+                      loadingMore,
+                      onReachEnd: () => {
+                        if (loading || loadingMore || !hasMore || fetchInProgressRef.current) return
+                        const nextPage = currentPage + 1
+                        setCurrentPage(nextPage)
+                        // Append next page
+                        void fetchSubreddits(nextPage, true)
+                      },
+                      searchQuery: debouncedSearchQuery,
+                      brokenIcons,
+                      handleIconError,
+                      onShowRules: handleShowRules,
+                      removingIds
+                    })}
+                  />
+                )}
               </ComponentErrorBoundary>
             </>
           )}

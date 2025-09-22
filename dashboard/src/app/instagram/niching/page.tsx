@@ -77,9 +77,7 @@ export default function NichingPage() {
 
   // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
-    React.startTransition(() => {
-      setSearchQuery(query)
-    })
+    setSearchQuery(query)
   }, [])
 
   // Fetch available niches and counts

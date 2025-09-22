@@ -522,9 +522,7 @@ export default function UserAnalysisPage() {
             <UserFilters
               currentFilter={qualityFilter}
               onFilterChange={(value) => {
-                React.startTransition(() => {
-                  setQualityFilter(value)
-                })
+                setQualityFilter(value)
               }}
               userCounts={stats ? {
                 total_users: stats.total_users,

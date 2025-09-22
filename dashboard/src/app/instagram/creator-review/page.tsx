@@ -69,11 +69,9 @@ export default function CreatorReviewPage() {
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
-  // Handle search query change with performance optimization
+  // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
-    React.startTransition(() => {
-      setSearchQuery(query)
-    })
+    setSearchQuery(query)
   }, [])
 
   // Fetch counts separately for accurate metrics - memoized with stable dependency
