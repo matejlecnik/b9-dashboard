@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -67,12 +67,6 @@ export default function CreatorReviewPage() {
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
-  // Memoize supabase client to prevent recreation on every render
-  const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ), [])
-
   // Handle search query change with performance optimization
   const handleSearchChange = useCallback((query: string) => {
     React.startTransition(() => {
@@ -82,6 +76,12 @@ export default function CreatorReviewPage() {
 
   // Fetch counts separately for accurate metrics - memoized with stable dependency
   const fetchCounts = useCallback(async (signal?: AbortSignal) => {
+    if (!supabase) {
+      console.error('Supabase client not available')
+      setCountsLoading(false)
+      return
+    }
+
     setCountsLoading(true)
     try {
       const queries = [
@@ -115,6 +115,12 @@ export default function CreatorReviewPage() {
   }, [supabase]) // Supabase is memoized so this is stable
 
   const fetchCreators = useCallback(async (signal?: AbortSignal) => {
+    if (!supabase) {
+      console.error('Supabase client not available')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       let query = supabase
@@ -209,7 +215,7 @@ export default function CreatorReviewPage() {
   const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
     try {
       // Query to get average likes per post for each creator
-      let query = supabase
+      let query = supabase!
         .from('instagram_posts')
         .select('creator_id, like_count, comment_count')
         .in('creator_id', creatorIds)
@@ -263,6 +269,12 @@ export default function CreatorReviewPage() {
 
   const updateCreatorStatus = async (creatorId: number, newStatus: 'ok' | 'non_related' | 'pending') => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        toast.error('Database connection not available')
+        return
+      }
+
       const { error } = await supabase
         .from('instagram_creators')
         .update({
@@ -300,6 +312,12 @@ export default function CreatorReviewPage() {
     if (selectedCreators.size === 0) return
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        toast.error('Database connection not available')
+        return
+      }
+
       const { error } = await supabase
         .from('instagram_creators')
         .update({

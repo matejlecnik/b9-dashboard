@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -75,12 +75,6 @@ export default function NichingPage() {
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
-  // Memoize supabase client
-  const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ), [])
-
   // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
     React.startTransition(() => {
@@ -90,6 +84,11 @@ export default function NichingPage() {
 
   // Fetch available niches and counts
   const fetchNicheCounts = useCallback(async (signal?: AbortSignal) => {
+    if (!supabase) {
+      console.error('Supabase client not available')
+      return
+    }
+
     try {
       // Get all approved creators for total count
       const totalQuery = supabase
@@ -154,6 +153,12 @@ export default function NichingPage() {
   // Fetch creators
   const fetchCreators = useCallback(async (signal?: AbortSignal) => {
     if (fetchingPageRef.current === 0) return
+
+    if (!supabase) {
+      console.error('Supabase client not available')
+      setLoading(false)
+      return
+    }
 
     fetchingPageRef.current = 0
     setLoading(true)
@@ -221,6 +226,11 @@ export default function NichingPage() {
     setLoadingMore(true)
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        return
+      }
+
       let query = supabase
         .from('instagram_creators')
         .select('*')
@@ -269,6 +279,11 @@ export default function NichingPage() {
   // Fetch post metrics
   const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        return
+      }
+
       let query = supabase
         .from('instagram_posts')
         .select('creator_id, like_count, comment_count')
@@ -323,6 +338,12 @@ export default function NichingPage() {
   // Update niche for single creator
   const updateNiche = useCallback(async (creatorId: number, niche: string | null) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        toast.error('Database connection not available')
+        return
+      }
+
       const { error } = await supabase
         .from('instagram_creators')
         .update({ niche })
@@ -361,6 +382,12 @@ export default function NichingPage() {
     if (selectedCreators.size === 0) return
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        toast.error('Database connection not available')
+        return
+      }
+
       const { error } = await supabase
         .from('instagram_creators')
         .update({ niche })
@@ -608,6 +635,12 @@ export default function NichingPage() {
                   onUpdateReview={async (id, status) => {
                     // Update review status
                     try {
+                      if (!supabase) {
+                        console.error('Supabase client not available')
+                        toast.error('Database connection not available')
+                        return
+                      }
+
                       const { error } = await supabase
                         .from('instagram_creators')
                         .update({
