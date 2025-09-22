@@ -7,8 +7,8 @@ Discovers related creators for approved Instagram accounts
 import os
 import json
 import logging
-import asyncio
 import requests
+import time
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -161,7 +161,7 @@ def save_creator_to_db(supabase, profile_data: Dict) -> bool:
         return False
 
 
-async def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds: int = 2):
+def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds: int = 2):
     """Process a batch of approved creators to find related creators"""
     global processing_state
 
@@ -204,7 +204,7 @@ async def process_related_creators_batch(supabase, batch_size: int = 10, delay_s
                                 processing_state["new_creators_found"] += 1
 
                         # Rate limiting delay
-                        await asyncio.sleep(delay_seconds)
+                        time.sleep(delay_seconds)
 
             # Mark creator as processed
             supabase.table("instagram_creators") \
@@ -239,7 +239,7 @@ async def process_related_creators_batch(supabase, batch_size: int = 10, delay_s
 
 
 @router.post("/start")
-async def start_related_creators_discovery(
+def start_related_creators_discovery(
     request: Request,
     params: RelatedCreatorsStartRequest,
     background_tasks: BackgroundTasks
@@ -267,9 +267,10 @@ async def start_related_creators_discovery(
 
         # Get count of unprocessed approved creators
         count_result = supabase.table("instagram_creators") \
-            .select("*", count="exact", head=True) \
+            .select("id", count="exact") \
             .eq("review_status", "ok") \
             .eq("related_creators_processed", False) \
+            .limit(1) \
             .execute()
 
         total_to_process = count_result.count or 0
@@ -309,7 +310,7 @@ async def start_related_creators_discovery(
 
 
 @router.get("/status")
-async def get_related_creators_status(request: Request):
+def get_related_creators_status(request: Request):
     """Get current status of related creators discovery"""
     global processing_state
 
@@ -364,7 +365,7 @@ async def get_related_creators_status(request: Request):
 
 
 @router.post("/stop")
-async def stop_related_creators_discovery(request: Request):
+def stop_related_creators_discovery(request: Request):
     """Stop the current related creators discovery process"""
     global processing_state
 
