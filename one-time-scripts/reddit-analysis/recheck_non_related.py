@@ -39,14 +39,14 @@ if not env_loaded:
 
 # Check for required environment variables
 SUPABASE_URL = os.environ.get('SUPABASE_URL') or os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("\n❌ ERROR: Missing Supabase credentials!")
     print("Please ensure you have the following environment variables set:")
     print("  - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL")
-    print("  - SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    print("  - SUPABASE_SERVICE_ROLE_KEY")
     print("\nYou can set them in dashboard/.env.local or .env file")
     sys.exit(1)
 

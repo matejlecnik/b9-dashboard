@@ -753,7 +753,7 @@ class ProxyEnabledMultiScraper:
             
             # Initialize Supabase
             supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
             self.supabase = create_client(supabase_url, supabase_key)
             
             # Set up Supabase logging handler
@@ -802,7 +802,7 @@ class ProxyEnabledMultiScraper:
             # Initialize Supabase client first if not already done
             if not self.supabase:
                 supabase_url = os.getenv('SUPABASE_URL')
-                supabase_key = os.getenv('SUPABASE_ANON_KEY')
+                supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
                 self.supabase = create_client(supabase_url, supabase_key)
                 
                 # Set up Supabase logging handler if not already done
