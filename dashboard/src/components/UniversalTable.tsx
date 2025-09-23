@@ -10,6 +10,7 @@ import { TagsDisplay } from '@/components/TagsDisplay'
 import { cn } from '@/lib/utils'
 import { BookOpen, BadgeCheck } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
+import { useLRUSet } from '@/lib/lru-cache'
 
 // Performance constants inline since @/lib/performance was removed
 const PERFORMANCE_CONSTANTS = {
@@ -283,7 +284,8 @@ export const UniversalTable = memo(function UniversalTable({
   
   const [sortField] = useState<keyof Subreddit>('avg_upvotes_per_post')
   const [sortDirection] = useState<'asc' | 'desc'>('desc')
-  const [internalBrokenIcons, setInternalBrokenIcons] = useState<Set<number>>(new Set())
+  // Use LRU Set to prevent memory leaks (max 200 broken icons cached)
+  const brokenIconsLRU = useLRUSet<number>(200)
   
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -310,8 +312,11 @@ export const UniversalTable = memo(function UniversalTable({
   // ============================================================================
   
   const finalBrokenIcons = useMemo(() => {
-    return new Set([...Array.from(brokenIcons), ...Array.from(internalBrokenIcons)])
-  }, [brokenIcons, internalBrokenIcons])
+    // Combine external broken icons with LRU-cached broken icons
+    const lruArray = brokenIconsLRU.toArray()
+    const externalArray = brokenIcons ? Array.from(brokenIcons) : []
+    return new Set([...externalArray, ...lruArray])
+  }, [brokenIcons, brokenIconsLRU.version])
   
   const handleUpdate = useCallback((id: number, value: string) => {
     if (onUpdateReview) return onUpdateReview(id, value)
@@ -327,11 +332,8 @@ export const UniversalTable = memo(function UniversalTable({
       // Convert to number for internal tracking
       const numericId = typeof id === 'string' ? parseInt(id) : id
       if (!isNaN(numericId)) {
-        setInternalBrokenIcons(prev => {
-          const updated = new Set([...prev, numericId])
-          console.log(`🖼️ [Image] Added ${numericId} to broken icons set. Total broken: ${updated.size}`)
-          return updated
-        })
+        brokenIconsLRU.add(numericId)
+        console.log(`🖼️ [Image] Added ${numericId} to LRU broken icons. Total broken: ${brokenIconsLRU.size}`)
       }
     }
   }, [handleIconError])

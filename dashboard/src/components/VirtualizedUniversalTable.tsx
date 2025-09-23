@@ -11,6 +11,7 @@ import { TagsDisplay } from '@/components/TagsDisplay'
 import { cn } from '@/lib/utils'
 import { BookOpen, BadgeCheck } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
+import { useLRUSet } from '@/lib/lru-cache'
 
 // ============================================================================
 // PERFORMANCE CONSTANTS
@@ -214,15 +215,19 @@ export const VirtualizedUniversalTable = memo(function VirtualizedUniversalTable
   // ============================================================================
 
   const parentRef = useRef<HTMLDivElement>(null)
-  const [internalBrokenIcons, setInternalBrokenIcons] = useState<Set<number>>(new Set())
+  // Use LRU Set to prevent memory leaks (max 200 broken icons cached)
+  const brokenIconsLRU = useLRUSet<number>(200)
 
   // ============================================================================
   // COMPUTED VALUES
   // ============================================================================
 
   const finalBrokenIcons = useMemo(() => {
-    return new Set([...Array.from(brokenIcons), ...Array.from(internalBrokenIcons)])
-  }, [brokenIcons, internalBrokenIcons])
+    // Combine external broken icons with LRU-cached broken icons
+    const lruArray = brokenIconsLRU.toArray()
+    const externalArray = brokenIcons ? Array.from(brokenIcons) : []
+    return new Set([...externalArray, ...lruArray])
+  }, [brokenIcons, brokenIconsLRU.version])
 
   const handleUpdate = useCallback((id: number, value: string) => {
     if (onUpdateReview) return onUpdateReview(id, value)
@@ -235,15 +240,8 @@ export const VirtualizedUniversalTable = memo(function VirtualizedUniversalTable
     } else {
       const numericId = typeof id === 'string' ? parseInt(id) : id
       if (!isNaN(numericId)) {
-        setInternalBrokenIcons(prev => {
-          const updated = new Set([...prev, numericId])
-          // Limit size to prevent memory leak
-          if (updated.size > 100) {
-            const sorted = Array.from(updated).slice(-50)
-            return new Set(sorted)
-          }
-          return updated
-        })
+        brokenIconsLRU.add(numericId)
+        // LRU automatically handles size limits (200 max)
       }
     }
   }, [handleIconError])

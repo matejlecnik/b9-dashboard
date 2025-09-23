@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase, type Subreddit } from '@/lib/supabase/index'
+import { useLRUSet } from '@/lib/lru-cache'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { MetricsCards } from '@/components/MetricsCards'
 import { StandardToolbar } from '@/components/standard'
@@ -73,7 +74,8 @@ export default function SubredditReviewPage() {
     subreddit: null
   })
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
-  const [brokenIcons, setBrokenIcons] = useState<Set<string>>(new Set())
+  // Use LRU Set for broken icons to prevent memory leaks (max 200 cached)
+  const brokenIconsLRU = useLRUSet<string>(200)
   const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
   const [lastAction, setLastAction] = useState<{
     type: 'single' | 'bulk'
@@ -101,18 +103,9 @@ export default function SubredditReviewPage() {
 
   // Handle broken icon URLs
   const handleIconError = useCallback((id: string | number) => {
-    setBrokenIcons(prev => {
-      const next = new Set(prev)
-      next.add(String(id))
-      // Auto cleanup when hitting limit to prevent memory leak
-      if (next.size > 100) {
-        // Keep only the most recent 50 entries
-        const sorted = Array.from(next).slice(-50)
-        return new Set(sorted)
-      }
-      return next
-    })
-  }, [])
+    brokenIconsLRU.add(String(id))
+    // LRU automatically handles size limits (200 max)
+  }, [brokenIconsLRU.add])
 
   // Toggle selection of individual subreddit
 
@@ -878,7 +871,7 @@ export default function SubredditReviewPage() {
                       onUpdateReview: updateReviewByText,
                       loading,
                       searchQuery: debouncedSearchQuery,
-                      brokenIcons,
+                      brokenIcons: new Set(brokenIconsLRU.toArray()),
                       handleIconError,
                       onShowRules: handleShowRules,
                       removingIds
@@ -902,7 +895,7 @@ export default function SubredditReviewPage() {
                         void fetchSubreddits(nextPage, true)
                       },
                       searchQuery: debouncedSearchQuery,
-                      brokenIcons,
+                      brokenIcons: new Set(brokenIconsLRU.toArray()),
                       handleIconError,
                       onShowRules: handleShowRules,
                       removingIds

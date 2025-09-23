@@ -12,6 +12,7 @@ import random
 import time
 import threading
 import sys
+import math
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from typing import Dict, List, Optional
@@ -34,7 +35,7 @@ else:
         log_scraper_activity = None
 
 # Version tracking
-SCRAPER_VERSION = "2.3.0"  # Updated with all fixes and optimizations
+SCRAPER_VERSION = "2.4.0"  # Added subreddit_score calculation using balanced formula
 
 
 # Load environment variables
@@ -1637,6 +1638,11 @@ class ProxyEnabledMultiScraper:
         # Keep avg_comments_per_post from hot posts
         avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
 
+        # Calculate subreddit score using balanced formula (Option 4)
+        subreddit_score = 0
+        if engagement > 0 and avg_upvotes_per_post > 0:
+            subreddit_score = round(math.sqrt(engagement * avg_upvotes_per_post * 1000), 2)
+
         # Calculate new metrics
         # Note: engagement_velocities is calculated but not used since we now use weekly posts for engagement metric
 
@@ -1750,6 +1756,7 @@ class ProxyEnabledMultiScraper:
                 'video_post_avg_score': video_post_avg_score,  # New metric
                 'text_post_avg_score': text_post_avg_score,  # New metric
                 'link_post_avg_score': link_post_avg_score,  # New metric
+                'subreddit_score': subreddit_score,  # Balanced score metric
                 'best_posting_hour': best_hour,
                 'best_posting_day': best_day,
                 'last_scraped_at': datetime.now(timezone.utc).isoformat(),
@@ -2880,6 +2887,11 @@ class ProxyEnabledMultiScraper:
             # Keep avg_comments_per_post from hot posts
             avg_comments_per_post = round(total_comments / max(1, hot_count), 2)
 
+            # Calculate subreddit score using balanced formula (Option 4)
+            subreddit_score = 0
+            if engagement > 0 and avg_upvotes_per_post > 0:
+                subreddit_score = round(math.sqrt(engagement * avg_upvotes_per_post * 1000), 2)
+
             # REMOVED: subscriber_engagement_ratio, comment_to_upvote_ratio, avg_engagement_velocity
 
             # Calculate content type averages
@@ -2986,6 +2998,7 @@ class ProxyEnabledMultiScraper:
                     'video_post_avg_score': video_post_avg_score,  # New metric
                     'text_post_avg_score': text_post_avg_score,  # New metric
                     'link_post_avg_score': link_post_avg_score,  # New metric
+                    'subreddit_score': subreddit_score,  # Balanced score metric
                     'best_posting_hour': best_hour,
                     'best_posting_day': best_day,
                     'last_scraped_at': datetime.now(timezone.utc).isoformat(),

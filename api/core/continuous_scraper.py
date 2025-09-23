@@ -19,7 +19,7 @@ else:
     from .reddit_scraper import ProxyEnabledMultiScraper, SupabaseLogHandler
 
 # Version tracking
-SCRAPER_VERSION = "2.3.0"  # Updated with all fixes and optimizations
+SCRAPER_VERSION = "2.4.0"  # Added subreddit_score calculation using balanced formula
 
 
 # Load environment variables

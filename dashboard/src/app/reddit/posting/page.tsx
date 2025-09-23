@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type React from 'react'
 import { supabase, type Subreddit, type Post } from '../../../lib/supabase'
 import { useErrorHandler } from '@/lib/errorUtils'
+import { useThrottledCallback, useRequestDeduplicator, PERFORMANCE_SETTINGS } from '@/lib/performance-utils'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface Creator {
   id: number
@@ -97,7 +99,8 @@ export default function PostingPage() {
   const [loading, setLoading] = useState(true)
   const [, setLastUpdated] = useState<Date>(new Date())
   const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, PERFORMANCE_SETTINGS.SEARCH_DEBOUNCE)
+  const requestDeduplicator = useRequestDeduplicator()
   // Filters & sorting
   const [sfwOnly, setSfwOnly] = useState<boolean>(false)
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false)
@@ -111,38 +114,43 @@ export default function PostingPage() {
   const [nsfwCount, setNsfwCount] = useState(0)
   const [verifiedCount, setVerifiedCount] = useState(0)
   const [subreddits, setSubreddits] = useState<SubredditWithPosts[]>([])
-  const [allFetchedSubreddits, setAllFetchedSubreddits] = useState<SubredditWithPosts[]>([])
 
-  // Load filter counts for UI
+  // Load filter counts for UI - now using optimized single query
   const loadFilterCounts = useCallback(async () => {
     if (!supabase) return
     try {
       const sb = supabase as NonNullable<typeof supabase>
-      const [sfwResult, nsfwResult, verifiedResult] = await Promise.all([
-        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
-          .eq('review', 'Ok')
-          .not('name', 'ilike', 'u_%')
-          .eq('over18', false),
-        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
-          .eq('review', 'Ok')
-          .not('name', 'ilike', 'u_%')
-          .eq('over18', true),
-        sb.from('reddit_subreddits').select('id', { count: 'exact', head: true })
-          .eq('review', 'Ok')
-          .not('name', 'ilike', 'u_%')
-          .eq('verification_required', true)
-      ])
-      setSfwCount(sfwResult.count || 0)
-      setNsfwCount(nsfwResult.count || 0)
-      setVerifiedCount(verifiedResult.count || 0)
+
+      // Get account tags if an account is selected
+      let accountTags: string[] = []
+      if (selectedAccount?.model?.assigned_tags) {
+        accountTags = selectedAccount.model.assigned_tags
+      }
+
+      // Use the new optimized count function
+      const { data, error } = await sb.rpc('get_posting_page_counts', {
+        tag_array: accountTags.length > 0 ? accountTags : null,
+        search_term: debouncedSearchQuery?.trim() || null
+      })
+
+      if (error) {
+        console.error('Error fetching counts:', error)
+        throw error
+      }
+
+      if (data && data[0]) {
+        setSfwCount(Number(data[0].sfw_count) || 0)
+        setNsfwCount(Number(data[0].nsfw_count) || 0)
+        setVerifiedCount(Number(data[0].verified_count) || 0)
+      }
     } catch {
       setSfwCount(0)
       setNsfwCount(0)
       setVerifiedCount(0)
     }
-  }, [])
+  }, [selectedAccount, debouncedSearchQuery])
 
-  // Optimized fetch with pagination and selective fields - now filtered by tags
+  // Optimized fetch with server-side pagination and filtering
   const fetchOkSubreddits = useCallback(async (page = 0, append = false, searchTerm = '') => {
     if (!append) setLoading(true)
     try {
@@ -152,199 +160,41 @@ export default function PostingPage() {
       }
       const sb = supabase as NonNullable<typeof supabase>
 
-      // Build sort column mapping
-      const sortColumnMap: Record<SortField, string> = {
-        'avg_upvotes': 'avg_upvotes_per_post',
-        'min_post_karma': 'min_post_karma',
-        'engagement': 'engagement'
-      }
-
-      const sortColumn = sortColumnMap[sortBy]
-
       // Get account tags if an account is selected
       let accountTags: string[] = []
       if (selectedAccount?.model?.assigned_tags) {
         accountTags = selectedAccount.model.assigned_tags
       }
 
-      // Use RPC function to filter by tags if account has tags
-      if (accountTags.length > 0) {
-        // Fetch ALL matching subreddits on first page or when filters change
-        const shouldFetchAll = page === 0 && !append
+      console.log('[Posting] Using server-side pagination:', {
+        page,
+        pageSize: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+        sortBy,
+        sortDirection,
+        sfwOnly,
+        verifiedOnly,
+        searchTerm: searchTerm?.substring(0, 20),
+        accountTags: accountTags.length
+      })
 
-        let allSubreddits: any[] = []
+      // Use request deduplication to prevent duplicate API calls (optional for now)
+      // const dedupeKey = `filter_subreddits_${page}_${searchTerm}_${sfwOnly}_${verifiedOnly}_${sortBy}_${sortDirection}_${JSON.stringify(accountTags)}`
 
-        if (shouldFetchAll) {
-          // Fetch all data in batches to overcome 1000 row limit
-          const BATCH_SIZE = 1000
-          let currentOffset = 0
-          let hasMoreData = true
-
-          console.log('[Posting] Fetching all subreddits matching account tags...')
-
-          while (hasMoreData) {
-            const { data: batch, error } = await sb.rpc('filter_subreddits_by_tags', {
-              tag_array: accountTags,
-              search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
-              review_filter: 'Ok',
-              filter_type: 'all',
-              limit_count: BATCH_SIZE,
-              offset_count: currentOffset
-            })
-
-            if (error) {
-              console.error('Supabase RPC error:', error.message || 'Unknown error')
-              console.error('Error details:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-              })
-              throw error
-            }
-
-            const batchData = batch || []
-            allSubreddits = [...allSubreddits, ...batchData]
-
-            console.log(`[Posting] Fetched batch: ${batchData.length} subreddits (total: ${allSubreddits.length})`)
-
-            // Check if we should continue fetching
-            if (batchData.length < BATCH_SIZE) {
-              hasMoreData = false
-            } else {
-              currentOffset += BATCH_SIZE
-            }
-          }
-
-          console.log(`[Posting] Total subreddits fetched: ${allSubreddits.length}`)
-          setAllFetchedSubreddits(allSubreddits)
-        } else {
-          // Regular paginated fetch for load more
-          const { data: subreddits, error } = await sb.rpc('filter_subreddits_by_tags', {
-            tag_array: accountTags,
-            search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
-            review_filter: 'Ok',
-            filter_type: 'all',
-            limit_count: PAGE_SIZE,
-            offset_count: page * PAGE_SIZE
-          })
-
-          if (error) {
-            console.error('Supabase RPC error:', error.message || 'Unknown error')
-            throw error
-          }
-
-          allSubreddits = subreddits || []
-
-          // When appending, use existing all fetched subreddits
-          if (append) {
-            allSubreddits = allFetchedSubreddits
-          }
-        }
-
-        // Single pass filtering and counting
-        let sfwCount = 0
-        let nsfwCount = 0
-        let verifiedCount = 0
-
-        // Apply filters and count in a single pass
-        const filteredSubreddits = allSubreddits.filter((s: any) => {
-          // Count all subreddits regardless of filter
-          if (!s.over18) sfwCount++
-          else nsfwCount++
-          if (s.verification_required === true) verifiedCount++
-
-          // Apply filters
-          if (sfwOnly && s.over18) return false
-          if (verifiedOnly && s.verification_required !== true) return false
-
-          return true
-        })
-
-        // Update counts
-        setSfwCount(sfwCount)
-        setNsfwCount(nsfwCount)
-        setVerifiedCount(verifiedCount)
-
-        // Sort the results (simplified comparison)
-        filteredSubreddits.sort((a: any, b: any) => {
-          const aVal = a[sortColumn] || 0
-          const bVal = b[sortColumn] || 0
-
-          return sortDirection === 'asc'
-            ? aVal - bVal
-            : bVal - aVal
-        })
-
-        // Apply pagination to filtered results
-        const startIdx = page * PAGE_SIZE
-        const endIdx = startIdx + PAGE_SIZE
-        const paginatedSubreddits = shouldFetchAll
-          ? filteredSubreddits.slice(startIdx, endIdx)
-          : filteredSubreddits // When not fetching all, results are already paginated from RPC
-
-        // Process and set the results
-        const processedSubreddits: SubredditWithPosts[] = paginatedSubreddits.map((subreddit: any) => ({
-          ...subreddit,
-          recent_posts: [],
-          review: subreddit.review ?? null,
-          primary_category: subreddit.primary_category || null,
-          created_at: new Date().toISOString()
-        })) as SubredditWithPosts[]
-
-        if (append) {
-          setOkSubreddits(prev => [...prev, ...processedSubreddits])
-        } else {
-          setOkSubreddits(processedSubreddits)
-        }
-
-        // Check if there are more results
-        const totalFilteredCount = shouldFetchAll ? filteredSubreddits.length : processedSubreddits.length
-        setHasMore(shouldFetchAll ? endIdx < totalFilteredCount : processedSubreddits.length === PAGE_SIZE)
-        setLastUpdated(new Date())
-
-        return // Exit early since we handled everything
-      }
-
-      // Build the base query (no account tags case)
-      let query = sb
-        .from('reddit_subreddits')
-        .select(`
-          id, name, display_name_prefixed, title, public_description,
-          subscribers, avg_upvotes_per_post, subscriber_engagement_ratio,
-          best_posting_hour, best_posting_day, over18, primary_category,
-          image_post_avg_score, video_post_avg_score, text_post_avg_score,
-          last_scraped_at, min_account_age_days, min_comment_karma,
-          min_post_karma, allow_images, icon_img, community_icon,
-          top_content_type, comment_to_upvote_ratio, accounts_active,
-          verification_required, tags, rules_data
-        `)
-        .eq('review', 'Ok')
-        .not('name', 'ilike', 'u_%')
-
-      // Apply search filter (server-side)
-      if (searchTerm && searchTerm.trim()) {
-        const search = searchTerm.trim()
-        query = query.or(`name.ilike.%${search}%,display_name_prefixed.ilike.%${search}%,title.ilike.%${search}%,public_description.ilike.%${search}%,top_content_type.ilike.%${search}%`)
-      }
-
-      // Apply SFW filter
-      if (sfwOnly) {
-        query = query.eq('over18', false)
-      }
-
-      // Apply verification filter
-      if (verifiedOnly) {
-        query = query.eq('verification_required', true)
-      }
-
-      // Apply sorting and pagination
-      const { data: subreddits, error } = await query
-        .order(sortColumn, { ascending: sortDirection === 'asc' })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      // Use the new optimized RPC function for server-side filtering and sorting
+      const { data: subreddits, error } = await sb.rpc('filter_subreddits_for_posting', {
+        tag_array: accountTags.length > 0 ? accountTags : null,
+        search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
+        sfw_only: sfwOnly,
+        verified_only: verifiedOnly,
+        sort_by: sortBy,
+        sort_order: sortDirection,
+        limit_count: PAGE_SIZE,
+        offset_count: page * PAGE_SIZE
+      })
 
       if (error) {
-        console.error('Supabase query error:', error.message || 'Unknown error')
+        console.error('Supabase RPC error:', error.message || 'Unknown error')
         console.error('Error details:', {
           message: error.message,
           details: error.details,
@@ -354,15 +204,15 @@ export default function PostingPage() {
         throw error
       }
 
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: any) => ({
         ...subreddit,
         recent_posts: [],
         review: subreddit.review ?? null,
         primary_category: subreddit.primary_category || null,
-        created_at: new Date().toISOString()
+        created_at: subreddit.created_at || new Date().toISOString()
       })) as SubredditWithPosts[]
+
+      console.log(`[Posting] Fetched ${processedSubreddits.length} subreddits from server`)
 
       if (append) {
         setOkSubreddits(prev => [...prev, ...processedSubreddits])
@@ -370,13 +220,16 @@ export default function PostingPage() {
         setOkSubreddits(processedSubreddits)
       }
 
+      // Update has more based on results
       setHasMore(processedSubreddits.length === PAGE_SIZE)
       setLastUpdated(new Date())
 
-      // Load counts for filters on first page
+      // Update counts when filters change (page 0)
       if (page === 0) {
-        await loadFilterCounts()
+        loadFilterCounts()
       }
+
+      return // Success
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('Error fetching Ok subreddits:', errorMessage)
@@ -392,7 +245,7 @@ export default function PostingPage() {
     } finally {
       setLoading(false)
     }
-  }, [sortBy, sortDirection, addToast, loadFilterCounts, sfwOnly, verifiedOnly, selectedAccount, allFetchedSubreddits])
+  }, [sortBy, sortDirection, addToast, loadFilterCounts, sfwOnly, verifiedOnly, selectedAccount])
 
 
 
@@ -645,13 +498,7 @@ export default function PostingPage() {
   const isInitialMount = useRef(true)
 
   // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+  // Search query effect is now handled by useDebounce hook
 
   // Refresh when sort, search, account, or filters change
   useEffect(() => {
@@ -667,89 +514,15 @@ export default function PostingPage() {
 
 
 
-  // Separate memo for counts calculation (only re-runs when source data changes)
+  // Separate memo for counts calculation (using server-provided counts)
   const subredditCounts = useMemo(() => {
-    if (!allFetchedSubreddits.length) {
-      return { sfw: 0, nsfw: 0, verified: 0 }
-    }
+    return { sfw: sfwCount, nsfw: nsfwCount, verified: verifiedCount }
+  }, [sfwCount, nsfwCount, verifiedCount])
 
-    // Single pass to calculate all counts
-    let sfw = 0
-    let nsfw = 0
-    let verified = 0
-
-    for (const sub of allFetchedSubreddits) {
-      if (!sub.over18) sfw++
-      else nsfw++
-      if (sub.verification_required === true) verified++
-    }
-
-    return { sfw, nsfw, verified }
-  }, [allFetchedSubreddits])
-
-  // Optimized filtering with single pass and reduced dependencies
+  // Since we're using server-side filtering and pagination, just pass through the data
   const filteredOkSubreddits = useMemo(() => {
-    // If we have account-based filtering with allFetchedSubreddits, apply filters
-    if (selectedAccount?.model?.assigned_tags && allFetchedSubreddits.length > 0) {
-      // Prepare search term once (avoid repeated toLowerCase)
-      const search = debouncedSearchQuery ? debouncedSearchQuery.toLowerCase() : ''
-
-      // Single pass filtering - combine all filter conditions
-      const filtered = allFetchedSubreddits.filter(s => {
-        // Apply SFW filter
-        if (sfwOnly && s.over18) return false
-
-        // Apply Verified filter
-        if (verifiedOnly && s.verification_required !== true) return false
-
-        // Apply search filter (only if search exists)
-        if (search) {
-          const matchesSearch = (
-            s.name?.toLowerCase().includes(search) ||
-            s.display_name_prefixed?.toLowerCase().includes(search) ||
-            s.title?.toLowerCase().includes(search) ||
-            s.public_description?.toLowerCase().includes(search)
-          )
-          if (!matchesSearch) return false
-        }
-
-        return true
-      })
-
-      // Sort the results (this is unavoidably O(n log n))
-      const sortColumnMap: Record<SortField, string> = {
-        'avg_upvotes': 'avg_upvotes_per_post',
-        'min_post_karma': 'min_post_karma',
-        'engagement': 'subscriber_engagement_ratio'
-      }
-      const sortColumn = sortColumnMap[sortBy]
-
-      filtered.sort((a: any, b: any) => {
-        const aVal = a[sortColumn] || 0
-        const bVal = b[sortColumn] || 0
-
-        // Simplified comparison
-        return sortDirection === 'asc'
-          ? aVal - bVal
-          : bVal - aVal
-      })
-
-      // Apply pagination
-      const endIdx = (currentPage + 1) * PAGE_SIZE
-      const paginated = filtered.slice(0, endIdx) // Show all up to current page
-
-      // Update hasMore state (moved outside of memo to avoid side effects)
-      const newHasMore = endIdx < filtered.length
-      if (hasMore !== newHasMore) {
-        setHasMore(newHasMore)
-      }
-
-      return paginated
-    }
-
-    // Otherwise use server-filtered data
     return okSubreddits
-  }, [okSubreddits, allFetchedSubreddits, selectedAccount, sfwOnly, verifiedOnly, debouncedSearchQuery, sortBy, sortDirection, currentPage, hasMore])
+  }, [okSubreddits])
 
   // Handler functions for toolbar
   const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
@@ -775,9 +548,9 @@ export default function PostingPage() {
     }
   }, [currentPage, hasMore, loading, fetchOkSubreddits, debouncedSearchQuery])
 
-  // Infinite scroll implementation
-  useEffect(() => {
-    const handleScroll = () => {
+  // Optimized infinite scroll with proper throttling
+  const throttledHandleScroll = useThrottledCallback(
+    () => {
       // Check if we're near the bottom of the page
       const scrollTop = window.scrollY || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight
@@ -787,21 +560,17 @@ export default function PostingPage() {
       if (scrollHeight - scrollTop - clientHeight < 500) {
         handleLoadMore()
       }
-    }
+    },
+    PERFORMANCE_SETTINGS.SCROLL_THROTTLE,
+    [handleLoadMore]
+  )
 
-    // Add throttling to prevent excessive calls
-    let timeoutId: NodeJS.Timeout
-    const throttledScroll = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(handleScroll, 100)
-    }
-
-    window.addEventListener('scroll', throttledScroll)
+  useEffect(() => {
+    window.addEventListener('scroll', throttledHandleScroll)
     return () => {
-      window.removeEventListener('scroll', throttledScroll)
-      clearTimeout(timeoutId)
+      window.removeEventListener('scroll', throttledHandleScroll)
     }
-  }, [handleLoadMore])
+  }, [throttledHandleScroll])
 
 
   // Initial load
