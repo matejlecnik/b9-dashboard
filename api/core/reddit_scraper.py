@@ -778,7 +778,7 @@ class ProxyEnabledMultiScraper:
             await self.load_proxy_configs()
             
             # Initialize Public JSON API client (requests-based)
-            self.public_api = PublicRedditAPI(max_retries=10, base_delay=4.0)
+            self.public_api = PublicRedditAPI(max_retries=5, base_delay=4.0)
             
             # Test proxy connectivity at startup
             working_proxies = self.test_proxies_at_startup()
@@ -1070,7 +1070,7 @@ class ProxyEnabledMultiScraper:
             proxy_colors = ["🔵", "🔷", "💙", "🟢", "🟩", "💚", "🟠", "🧡", "🟤"]
             
             # SOLUTION: Create dedicated API instance per thread to eliminate shared resource contention
-            thread_api = PublicRedditAPI(max_retries=10, base_delay=4.0)
+            thread_api = PublicRedditAPI(max_retries=5, base_delay=4.0)
             logger.debug(f"🔧 Thread {thread_id} created dedicated API instance")
             
             # Get proxy config for this specific thread (thread-safe)
@@ -1362,7 +1362,7 @@ class ProxyEnabledMultiScraper:
                     proxy_colors = ["🔵", "🔷", "💙", "🟢", "🟩", "💚", "🟠", "🧡", "🟤"]
                     
                     # SOLUTION: Create dedicated API instance per thread to eliminate shared resource contention
-                    thread_api = PublicRedditAPI(max_retries=10, base_delay=4.0)
+                    thread_api = PublicRedditAPI(max_retries=5, base_delay=4.0)
                     logger.debug(f"🔧 New Thread {thread_id} created dedicated API instance")
                     
                     # Get proxy config for this thread (thread-safe)
