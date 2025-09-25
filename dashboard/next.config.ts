@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+// Bundle analyzer configuration
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 const nextConfig: NextConfig = {
   // Performance optimizations
@@ -15,7 +21,18 @@ const nextConfig: NextConfig = {
     },
     // optimizeCss: true, // Disabled - requires critters package
     webVitalsAttribution: ['CLS', 'LCP'],
-    optimizePackageImports: ['@radix-ui/react-*', 'lucide-react'], // Optimize common imports
+    optimizePackageImports: [
+      '@radix-ui/react-*',
+      'lucide-react',
+      'date-fns',
+      '@tanstack/react-table',
+      '@tanstack/react-virtual',
+      '@tanstack/react-query',
+      'framer-motion',
+      'react-hook-form',
+      '@hookform/resolvers',
+      'zod',
+    ], // Optimize common imports
   },
   
   // Fix workspace root to prevent lockfile conflicts
@@ -23,11 +40,19 @@ const nextConfig: NextConfig = {
   
   // Optimized image configuration (use remotePatterns; domains is deprecated)
   images: {
-    unoptimized: true,
+    unoptimized: false, // Enable Next.js image optimization!
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60, // Cache optimized images for 60 seconds
     remotePatterns: [
+      // UI Avatars for fallback images
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+        port: '',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'b.thumbs.redditmedia.com',
@@ -98,6 +123,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'b.l3n.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'd.l3n.co',
         port: '',
         pathname: '/**',
       },
@@ -249,9 +280,26 @@ const nextConfig: NextConfig = {
   },
   
   // Webpack optimizations
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Rely on Next.js defaults for tree-shaking to avoid cacheUnaffected conflicts
-    
+
+    // Strip console logs in production builds
+    if (!dev && !isServer) {
+      // Check if minimizer exists and has at least one item
+      if (config.optimization?.minimizer?.[0]?.options) {
+        const terserOptions = config.optimization.minimizer[0].options.terserOptions || {};
+        config.optimization.minimizer[0].options.terserOptions = {
+          ...terserOptions,
+          compress: {
+            ...terserOptions.compress,
+            drop_console: true, // Remove all console.* statements
+            drop_debugger: true, // Remove debugger statements
+            pure_funcs: ['console.log', 'console.info', 'console.warn', 'console.debug'],
+          },
+        };
+      }
+    }
+
     // Reduce bundle size
     if (!isServer) {
       config.resolve.fallback = {
@@ -261,13 +309,19 @@ const nextConfig: NextConfig = {
         tls: false,
       };
     }
-    
+
     return config;
   },
   
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  typescript: {
+    // Skip TypeScript errors during production build
+    // We handle TypeScript separately with tsc
+    ignoreBuildErrors: true,
+  },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

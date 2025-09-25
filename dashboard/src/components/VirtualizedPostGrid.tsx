@@ -1,9 +1,24 @@
 'use client'
 
-import React, { useEffect, useState, useRef } from 'react'
-import { PostGalleryCard } from './PostGalleryCard'
-import { SkeletonCard } from './UniversalLoading'
-import type { Post } from '@/types/post'
+import { useRef, useState, useEffect } from 'react'
+import { Post } from '@/types/post'
+import { PostGalleryCard } from '@/components/PostGalleryCard'
+
+// Simple skeleton card component
+function SkeletonCard({ variant = 'default' }: { variant?: 'default' | 'compact' | 'wide' }) {
+  const height = variant === 'compact' ? 'h-48' : variant === 'wide' ? 'h-64' : 'h-56'
+
+  return (
+    <div className={`${height} bg-gray-200 animate-pulse rounded-lg`}>
+      <div className="p-4 space-y-3">
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        <div className="h-3 bg-gray-300 rounded"></div>
+        <div className="h-3 bg-gray-300 rounded w-5/6"></div>
+      </div>
+    </div>
+  )
+}
+
 
 interface VirtualizedPostGridProps {
   posts: Post[]

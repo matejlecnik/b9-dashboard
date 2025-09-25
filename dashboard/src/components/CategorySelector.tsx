@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useToast } from '@/components/ui/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tag } from 'lucide-react'
+import { logger } from '@/lib/logger'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useToast } from '@/components/ui/toast'
-import { getCategoryStyles } from '@/lib/colors'
+import { normalizeCategoryName, FALLBACK_CATEGORIES } from '@/lib/categories'
+import { getCategoryStyles } from '@/lib/categoryColors'
 
 // Enhanced caching with timestamp
 interface CachedCategories {
@@ -33,7 +35,7 @@ interface ApiCategory {
   usage_count?: number
 }
 
-import { FALLBACK_CATEGORIES, normalizeCategoryName } from '@/lib/categories'
+
 
 export function CategorySelector({ 
   subredditId, 
@@ -79,7 +81,7 @@ export function CategorySelector({
 
     const fetchPromise: Promise<string[]> = (async () => {
       try {
-        const res = await fetch('/api/categories?limit=500', { cache: 'no-store' })
+        const res = await fetch('/api/reddit/categories?limit=500', { cache: 'no-store' })
         if (!res.ok) throw new Error(`Failed to load categories: ${res.status}`)
         
         const json = await res.json()
@@ -123,7 +125,7 @@ export function CategorySelector({
         
         return sortedNames
       } catch (error) {
-        console.warn('Failed to fetch categories from API, using fallback:', error)
+        logger.warn('Failed to fetch categories from API, using fallback:', error)
         return [...FALLBACK_CATEGORIES]
       }
     })()
@@ -180,7 +182,7 @@ export function CategorySelector({
         }
         // Load base set (limited) if nothing cached
         try {
-          const res = await fetch('/api/categories?limit=500', { cache: 'no-store' })
+          const res = await fetch('/api/reddit/categories?limit=500', { cache: 'no-store' })
           if (!res.ok) return
           const json = await res.json()
           if (!json.success) return
@@ -214,7 +216,7 @@ export function CategorySelector({
         return
       }
       try {
-        const res = await fetch(`/api/categories?search=${encodeURIComponent(q)}&limit=500`, { cache: 'no-store' })
+        const res = await fetch(`/api/reddit/categories?search=${encodeURIComponent(q)}&limit=500`, { cache: 'no-store' })
         if (!res.ok) return
         const json = await res.json()
         if (!json.success) return
@@ -261,7 +263,7 @@ export function CategorySelector({
     try {
       await onUpdateCategory(subredditId, nextCategoryText)
     } catch (error) {
-      console.error('Error updating category:', error)
+      logger.error('Error updating category:', error)
       addToast({
         type: 'error',
         title: 'Update failed',

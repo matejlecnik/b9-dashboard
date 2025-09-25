@@ -1,9 +1,11 @@
 'use client'
 
-import { login } from './actions'
-import Image from 'next/image'
 import { useState, useEffect } from 'react'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useFormStatus } from 'react-dom'
+import { useActionState } from 'react'
+import Image from 'next/image'
+import { login } from './actions'
+import { logger } from '@/lib/logger'
 
 // Submit button component to handle loading state
 function SubmitButton() {
@@ -59,11 +61,11 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [envWarning, setEnvWarning] = useState('')
-  const [state, formAction] = useFormState(login, { error: '' })
+  const [state, formAction] = useActionState(login, { error: '' })
   
   // Defensive programming: ensure formAction is available
   const safeFormAction = formAction || (() => {
-    console.warn('Form action not available, possibly due to server action configuration')
+    logger.warn('Form action not available, possibly due to server action configuration')
   })
 
   useEffect(() => {

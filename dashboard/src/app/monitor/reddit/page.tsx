@@ -1,67 +1,26 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Play,
   Square
 } from 'lucide-react'
-import { useToast } from '@/components/ui/toast'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
-import { RedditMonitorSidebar } from '@/components/RedditMonitorSidebar'
-import { Button } from '@/components/ui/button'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { ApiActivityLog } from '@/components/ApiActivityLog'
-import { supabase } from '@/lib/supabase/index'
-
-interface SystemMetrics {
-  enabled: boolean
-  status: 'running' | 'stopped' | 'error'
-  statistics: {
-    total_requests: number
-    successful_requests: number
-    failed_requests: number
-    subreddits_processed: number
-    posts_collected: number
-    users_discovered: number
-    daily_requests: number
-    processing_rate_per_hour: number
-  }
-  queue_depths: {
-    priority: number
-    new_discovery: number
-    update: number
-    user_analysis: number
-  }
-  total_queue_depth: number
-  accounts: {
-    count: number
-    proxies: number
-  }
-  last_activity: string | null
-  config: {
-    batch_size: number
-    delay_between_batches: number
-    max_daily_requests: number
-  }
-  cycle?: {
-    current_cycle: number
-    cycle_start: string | null
-    elapsed_seconds: number | null
-    elapsed_formatted: string | null
-    last_cycle_duration: number | null
-    last_cycle_formatted: string | null
-    items_processed: number
-    errors: number
-  }
-}
+import { useToast } from '@/components/ui/toast'
+import { logger } from '@/lib/logger'
+import { supabase } from '@/lib/supabase'
 
 export default function RedditMonitor() {
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
   const [successRate, setSuccessRate] = useState<{ percentage: number; successful: number; total: number } | null>(null)
   const [cycleData, setCycleData] = useState<{ elapsed_formatted: string; start_time: string | null } | null>(null)
   const { addToast } = useToast()
+  const manualOverrideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch cycle data from API
   const fetchCycleData = useCallback(async () => {
@@ -88,7 +47,7 @@ export default function RedditMonitor() {
               elapsed_formatted: data.cycle.elapsed_formatted || 'Unknown',
               start_time: data.cycle.start_time
             })
-            console.log('Cycle data from API:', data.cycle)
+            logger.log('Cycle data from API:', data.cycle)
           } else if (data.success && !data.running) {
             // Scraper is disabled
             setCycleData({
@@ -99,20 +58,20 @@ export default function RedditMonitor() {
             setCycleData(null)
           }
         } else {
-          console.error('Failed to fetch cycle data from API')
+          logger.error('Failed to fetch cycle data from API')
           setCycleData(null)
         }
-      } catch (fetchError: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId)
-        if (fetchError.name === 'AbortError') {
-          console.log('API timeout fetching cycle data')
+        if ((error as Error).name === 'AbortError') {
+          logger.log('API timeout fetching cycle data')
         } else {
-          console.error('Error fetching cycle data:', fetchError)
+          logger.error('Error fetching cycle data:', error)
         }
         setCycleData(null)
       }
     } catch (error) {
-      console.error('Error fetching cycle data:', error)
+      logger.error('Error fetching cycle data:', error)
       setCycleData(null)
     }
   }, [])
@@ -147,25 +106,25 @@ export default function RedditMonitor() {
             })
 
             // Log for debugging
-            console.log(`Reddit API Success Rate from API: ${stats.successful_requests}/${stats.total_requests} (${stats.success_rate}%)`)
+            logger.log(`Reddit API Success Rate from API: ${stats.successful_requests}/${stats.total_requests} (${stats.success_rate}%)`)
           } else {
             setSuccessRate(null)
           }
         } else {
-          console.error('Failed to fetch success rate from API')
+          logger.error('Failed to fetch success rate from API')
           setSuccessRate(null)
         }
-      } catch (fetchError: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId)
-        if (fetchError.name === 'AbortError') {
-          console.log('API timeout fetching success rate')
+        if ((error as Error).name === 'AbortError') {
+          logger.log('API timeout fetching success rate')
         } else {
-          console.error('Error fetching success rate:', fetchError)
+          logger.error('Error fetching success rate:', error)
         }
         setSuccessRate(null)
       }
     } catch (error) {
-      console.error('Error calculating success rate:', error)
+      logger.error('Error calculating success rate:', error)
       setSuccessRate(null)
     }
   }, [])
@@ -188,7 +147,7 @@ export default function RedditMonitor() {
           }
         }
       } catch (supabaseError) {
-        console.warn('Supabase status check failed:', supabaseError)
+        logger.warn('Supabase status check failed:', supabaseError)
       }
 
       // Always try to fetch from production API on Render for scraper status
@@ -208,11 +167,11 @@ export default function RedditMonitor() {
 
         if (statusRes.ok) {
           const data = await statusRes.json()
-          setMetrics(data)
+          // Process the response data without storing unused metrics
 
           // Debug log to check if cycle data is present
           if (data.cycle) {
-            console.log('Cycle data received:', data.cycle)
+            logger.log('Cycle data received:', data.cycle)
           }
 
           // Only update running state if we haven't manually overridden it
@@ -221,51 +180,23 @@ export default function RedditMonitor() {
             setIsRunning(data.enabled === true)
           }
         }
-      } catch (fetchError: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId)
         // Silently handle timeout errors (API might be cold starting)
-        if (fetchError.name === 'AbortError') {
+        if ((error as Error).name === 'AbortError') {
           // API is slow to respond, continue silently
         } else {
           // API fetch failed, continue silently
         }
 
-        // Set minimal metrics from what we know
-        setMetrics({
-          enabled: isRunning,
-          status: isRunning ? 'running' : 'stopped',
-          statistics: {
-            total_requests: 0,
-            successful_requests: 0,
-            failed_requests: 0,
-            subreddits_processed: 0,
-            posts_collected: 0,
-            users_discovered: 0,
-            daily_requests: 0,
-            processing_rate_per_hour: 0
-          },
-          queue_depths: {
-            priority: 0,
-            new_discovery: 0,
-            update: 0,
-            user_analysis: 0
-          },
-          total_queue_depth: 0,
-          accounts: { count: 0, proxies: 0 },
-          last_activity: null,
-          config: {
-            batch_size: 0,
-            delay_between_batches: 0,
-            max_daily_requests: 0
-          }
-        })
+        // Continue without setting metrics on error
       }
     } catch (error) {
-      console.error('Failed to fetch metrics:', error)
+      logger.error('Failed to fetch metrics:', error)
     } finally {
       setLoading(false)
     }
-  }, [manualOverride, isRunning])
+  }, [manualOverride])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -301,8 +232,12 @@ export default function RedditMonitor() {
           })
 
           // Clear manual override after 30 seconds to allow status updates again
-          setTimeout(() => {
+          if (manualOverrideTimeoutRef.current) {
+            clearTimeout(manualOverrideTimeoutRef.current)
+          }
+          manualOverrideTimeoutRef.current = setTimeout(() => {
             setManualOverride(false)
+            manualOverrideTimeoutRef.current = null
           }, 30000)
         } else {
           // Revert optimistic update on failure
@@ -334,7 +269,7 @@ export default function RedditMonitor() {
       setIsRunning(action !== 'start')
       setManualOverride(false) // Clear override on error
 
-      console.error('Scraper control error:', error)
+      logger.error('Scraper control error:', error)
       addToast({
         title: `Failed to ${action} scraper`,
         description: 'Network error or server is not responding',
@@ -361,7 +296,7 @@ export default function RedditMonitor() {
         if (controlStatus.data !== null) {
           // Always use Supabase as the source of truth for initial state
           setIsRunning(controlStatus.data.enabled === true)
-          console.log('Scraper initial state from Supabase:', controlStatus.data.enabled ? 'running' : 'stopped')
+          logger.log('Scraper initial state from Supabase:', controlStatus.data.enabled ? 'running' : 'stopped')
         } else {
           // Default to stopped if no control record exists
           setIsRunning(false)
@@ -387,13 +322,13 @@ export default function RedditMonitor() {
               setIsRunning(isScraperRunning === true)
             }
           }
-        } catch (fetchError) {
+        } catch {
           clearTimeout(timeoutId)
           // Silently ignore API errors on initial load
           // API not responding on initial load, continue silently
         }
       } catch (error) {
-        console.log('Error checking initial status:', error)
+        logger.log('Error checking initial status:', error)
         // Default to stopped on error
         setIsRunning(false)
       }
@@ -414,15 +349,19 @@ export default function RedditMonitor() {
 
     return () => {
       clearInterval(metricsInterval)
+      if (manualOverrideTimeoutRef.current) {
+        clearTimeout(manualOverrideTimeoutRef.current)
+      }
     }
-  }, []) // Empty dependency array - only run once on mount
+  }, [fetchMetrics, calculateSuccessRate, fetchCycleData]) // Include all called functions
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
-      {/* Apple-style background texture */}
-      <div
-        className="fixed inset-0 opacity-30 pointer-events-none"
-        style={{
+    <DashboardLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+        {/* Apple-style background texture */}
+        <div
+          className="fixed inset-0 opacity-30 pointer-events-none"
+          style={{
           backgroundImage: `
             radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
             radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
@@ -432,7 +371,6 @@ export default function RedditMonitor() {
 
       {/* Sidebar */}
       <div className="relative z-50">
-        <RedditMonitorSidebar />
       </div>
 
       {/* Main Content */}
@@ -448,43 +386,15 @@ export default function RedditMonitor() {
             {/* Left Column - Button and Success Rate */}
             <div className="flex flex-col gap-3 flex-shrink-0">
               {/* Start/Stop Scraper Button */}
-              <button
+              <StandardActionButton
                 onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
+                label={isRunning ? 'Stop Scraper' : 'Start Scraper'}
+                icon={isRunning ? Square : Play}
+                variant={isRunning ? 'danger' : 'primary'}
                 disabled={loading}
-                className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  background: isRunning
-                    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15))'
-                    : 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                  backdropFilter: 'blur(16px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-
-                {/* Glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  {isRunning ? (
-                    <Square className="h-5 w-5 text-red-500 mb-1 group-hover:text-red-600 transition-colors" />
-                  ) : (
-                    <Play className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                  )}
-                  <span className={`text-xs font-semibold bg-gradient-to-r ${isRunning ? 'from-red-600 to-red-700' : 'from-pink-600 to-purple-600'} bg-clip-text text-transparent`}>
-                    {isRunning ? 'Stop Scraper' : 'Start Scraper'}
-                  </span>
-                </div>
-              </button>
+                size="large"
+                className="w-[140px]"
+              />
 
               {/* Success Rate Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
@@ -556,5 +466,6 @@ export default function RedditMonitor() {
         </main>
       </div>
     </div>
+    </DashboardLayout>
   )
 }

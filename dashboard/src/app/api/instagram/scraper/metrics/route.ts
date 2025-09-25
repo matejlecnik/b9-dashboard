@@ -1,10 +1,13 @@
+
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
+import { scraperApi } from '@/lib/api-wrapper'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function GET() {
+export const GET = scraperApi(async () => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -41,7 +44,7 @@ export async function GET() {
       .eq('source', 'instagram_scraper')
 
     // Helper function to extract metrics from context
-    const extractMetrics = (logs: any[]) => {
+    const extractMetrics = (logs: Array<{ context?: unknown }>) => {
       const creators = new Set<string>()
       let apiCalls = 0
       let itemsFetched = 0
@@ -50,7 +53,14 @@ export async function GET() {
       let errorCount = 0
 
       logs?.forEach(log => {
-        const ctx = log.context as any
+        const ctx = log.context as {
+          creator_id?: string
+          api_calls_made?: number
+          items_fetched?: number
+          items_saved?: number
+          success?: boolean
+          error_message?: string
+        }
         if (ctx) {
           if (ctx.creator_id) creators.add(ctx.creator_id)
           apiCalls += ctx.api_calls_made || 0
@@ -133,11 +143,11 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error fetching Instagram scraper metrics:', error)
+    logger.error('Error fetching Instagram scraper metrics:', error)
 
     return NextResponse.json(
       { error: 'Failed to fetch Instagram scraper metrics' },
       { status: 500 }
     )
   }
-}
+})

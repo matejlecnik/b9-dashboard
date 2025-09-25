@@ -4,6 +4,10 @@
 
 FastAPI backend service for B9 Dashboard - Reddit & Instagram analytics for OnlyFans creator discovery.
 
+## Overview
+
+Production-ready FastAPI backend deployed on Render that powers the B9 Dashboard. Provides Reddit and Instagram scraping, AI-powered categorization, and analytics endpoints. Runs 24/7 continuous scrapers with database-controlled enable/disable.
+
 ## ✅ Current Status
 
 **All systems operational:**
@@ -154,19 +158,26 @@ api/
 ├── routes/                     # API endpoints
 │   ├── scraper_routes.py          # Reddit scraper control
 │   ├── instagram_scraper_routes.py # Instagram scraper control
+│   ├── instagram_related_creators_routes.py # Related creators discovery
 │   └── user_routes.py             # User discovery
 │
 ├── services/                   # Business logic
-│   ├── categorization_service.py  # OpenAI integration
-│   ├── database.py                # Supabase client
+│   ├── categorization_service_tags.py  # OpenAI integration with tag system
+│   ├── single_subreddit_fetcher.py # Single subreddit analysis
 │   └── instagram/
 │       └── unified_scraper.py     # Instagram scraping logic
+│
+├── middleware/                 # API middleware
+│   └── error_handler.py           # Global error handling
 │
 ├── utils/                      # Utilities
 │   ├── system_logger.py           # Centralized logging
 │   ├── cache.py                   # Redis caching
 │   ├── rate_limit.py              # Rate limiting
 │   └── monitoring.py              # Health checks
+│
+├── docs/                       # API documentation
+│   └── TAG_CATEGORIES.md          # 84-tag categorization reference
 │
 ├── main.py                     # FastAPI application
 ├── start.py                    # Deployment startup script
@@ -197,6 +208,28 @@ api/
 3. **Database polling** - 30-second interval is optimal
 4. **Auto-deployment** - Every GitHub push triggers Render deployment
 5. **Logs** - Check `system_logs` table in Supabase for debugging
+
+## TODO List
+
+- [ ] Implement request caching for frequently accessed endpoints
+- [ ] Add comprehensive API documentation with Swagger UI
+- [ ] Create health check dashboard endpoint
+- [ ] Implement webhook notifications for scraper status changes
+- [ ] Add bulk operations for categorization
+- [ ] Create backup/restore utilities for system_control state
+
+## Current Errors
+
+- **None in production** - System is stable and operational
+- **Known limitation**: Rate limiting may affect bulk operations during peak usage
+
+## Potential Improvements
+
+- **WebSocket support** - Real-time updates for scraper status (needs architecture discussion)
+- **GraphQL endpoint** - More flexible data querying (evaluate if needed)
+- **Distributed task queue** - Replace threading with Celery/RQ (major refactor)
+- **API versioning** - Implement /v1, /v2 endpoints (discuss versioning strategy)
+- **Prometheus metrics** - Enhanced monitoring capabilities (requires infrastructure setup)
 
 ## ⚠️ Memory Requirements
 

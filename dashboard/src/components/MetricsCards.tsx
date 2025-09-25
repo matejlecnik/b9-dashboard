@@ -1,12 +1,12 @@
 'use client'
 
-import React, { memo, useMemo } from 'react'
 import { 
   Database, 
   Tags, 
   BarChart3,
   Calendar
 } from 'lucide-react'
+import { memo, useMemo } from 'react'
 
 interface MetricsCardsProps {
   totalSubreddits: number
@@ -111,7 +111,7 @@ const MetricsCards = memo(function MetricsCards({
       {metrics.map((metric, index) => {
         const IconComponent = metric.icon
         return (
-          <div 
+          <div
             key={index} 
             data-testid={metric.testId}
             className={`

@@ -1,916 +1,415 @@
-  'use client'
+'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { supabase, type Subreddit } from '@/lib/supabase/index'
-import { useLRUSet } from '@/lib/lru-cache'
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import { MetricsCards } from '@/components/MetricsCards'
-import { StandardToolbar } from '@/components/standard'
-import { DashboardLayout } from '@/components/DashboardLayout'
 import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
-import { MetricsCardsSkeleton, TableSkeleton } from '@/components/UniversalLoading'
-import { useErrorHandler } from '@/lib/errorUtils'
-import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
-import { UnifiedFilters } from '@/components/UnifiedFilters'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+
+// Import React Query hooks
+import {
+  useSubredditsForReview,
+  useReviewStats,
+  useUpdateReviewStatus,
+  useBulkUpdateReview,
+  type ReviewStatus
+} from '@/hooks/queries/useRedditReview'
+
+// Import types
+// Use ReviewStatus from hook to avoid divergence
+
+// Import components
+import { TableSkeleton, MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
+import { createSubredditReviewTable, type Subreddit as TableSubreddit } from '@/components/shared/tables/UniversalTable'
+import type { Subreddit as DbSubreddit } from '@/lib/supabase'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { MetricsCards } from '@/components/MetricsCards'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
+import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { Plus, Check, UserX, X, Ban } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 // Dynamic imports for heavy components
 const UniversalTable = dynamic(
-  () => import('@/components/UniversalTable').then(mod => ({
-    default: mod.UniversalTable,
-    createSubredditReviewTable: mod.createSubredditReviewTable
-  })),
-  { ssr: false, loading: () => <TableSkeleton /> }
-)
-
-// Virtual scrolling table for large datasets
-const VirtualizedUniversalTable = dynamic(
-  () => import('@/components/VirtualizedUniversalTable').then(mod => ({
-    default: mod.VirtualizedUniversalTable,
-    createVirtualizedReviewTable: mod.createVirtualizedReviewTable
-  })),
+  () => import('@/components/shared/tables/UniversalTable').then(mod => mod.UniversalTable),
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
 const AddSubredditModal = dynamic(
-  () => import('@/components/AddSubredditModal').then(mod => ({ default: mod.AddSubredditModal })),
+  () => import('@/components/AddSubredditModal').then(mod => mod.AddSubredditModal),
   { ssr: false }
 )
 
-// Import createSubredditReviewTable for use in the component
-import { createSubredditReviewTable } from '@/components/UniversalTable'
-import { createVirtualizedReviewTable } from '@/components/VirtualizedUniversalTable'
-
 type FilterType = 'unreviewed' | 'ok' | 'non_related' | 'no_seller' | 'banned'
-type ReviewValue = 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null
 
-const PAGE_SIZE = 50 // Standard page size
+// Map filter type to review status - moved outside component to avoid recreation
+const getReviewFromFilter = (filter: FilterType): ReviewStatus => {
+  switch (filter) {
+    case 'unreviewed':
+      return null
+    case 'ok':
+      return 'Ok'
+    case 'non_related':
+      return 'Non Related'
+    case 'no_seller':
+      return 'No Seller'
+    case 'banned':
+      return 'User Feed' // Note: 'banned' filter maps to 'User Feed' status
+    default:
+      return null
+  }
+}
 
 export default function SubredditReviewPage() {
   const { addToast } = useToast()
-  const { handleAsyncOperation } = useErrorHandler()
-  const [subreddits, setSubreddits] = useState<Subreddit[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [totalSubreddits, setTotalSubreddits] = useState(0)
+
+  // State
   const [currentFilter, setCurrentFilter] = useState<FilterType>('unreviewed')
-  const [reviewCounts, setReviewCounts] = useState({
-    unreviewed: 0,
-    ok: 0,
-    non_related: 0,
-    no_seller: 0,
-    banned: 0,
-    total: 0
-  })
-  const [newTodayCount, setNewTodayCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({
+  const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
+  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
+  const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: (TableSubreddit | DbSubreddit) | null }>({
     isOpen: false,
     subreddit: null
   })
-  const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
-  // Use LRU Set for broken icons to prevent memory leaks (max 200 cached)
-  const brokenIconsLRU = useLRUSet<string>(200)
-  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
-  const [lastAction, setLastAction] = useState<{
-    type: 'single' | 'bulk'
-    items: Array<{ id: number, prevReview: ReviewValue }>
-  } | null>(null)
+  // Removed undo state; undo action not exposed in UI
   const [showAddModal, setShowAddModal] = useState(false)
 
-  // Ref to break circular dependency with undoLastAction
-  const undoLastActionRef = useRef<() => Promise<void>>(() => Promise.resolve())
-  // Ref to track if a fetch is already in progress
-  const fetchInProgressRef = useRef(false)
-  // Ref to track our own updates to avoid refetching
-  const recentlyUpdatedIdsRef = useRef<Set<number>>(new Set())
-  
+  // Set for broken icons to prevent repeated attempts (clear periodically to prevent memory leaks)
+  const [brokenIcons, setBrokenIcons] = useState<Set<number | string>>(new Set())
+
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
-  
-  // Use server-side filtering; client filtering kept as a safety net when search is empty
-  const displayedSubreddits = subreddits
 
-  // Handle search query change
+  // React Query hooks
+  const {
+    data: infiniteData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchSubreddits
+  } = useSubredditsForReview({
+    search: debouncedSearchQuery,
+    review: getReviewFromFilter(currentFilter),
+    orderBy: 'subscribers',
+    order: 'desc'
+  })
+
+  // Flatten pages for display and filter out items being removed
+  const subreddits = useMemo(
+    () => {
+      const allSubreddits = infiniteData?.pages.flat() || []
+      // Filter out items that are currently being removed (fading out)
+      return allSubreddits.filter((sub: DbSubreddit) => !removingIds.has(sub.id))
+    },
+    [infiniteData, removingIds]
+  )
+
+  // Clean up removingIds when data changes (items have been actually removed from backend)
+  useEffect(() => {
+    if (removingIds.size > 0 && infiniteData) {
+      const allSubreddits = infiniteData.pages.flat()
+      const currentIds = new Set(allSubreddits.map((sub: DbSubreddit) => sub.id))
+      setRemovingIds(prev => {
+        if (prev.size === 0) return prev
+        const next = new Set<number>()
+        // Keep only IDs that are still in the current data
+        prev.forEach(id => {
+          if (currentIds.has(id)) {
+            next.add(id)
+          }
+        })
+        return next.size === prev.size ? prev : next
+      })
+    }
+  }, [infiniteData, removingIds.size]) // Depend on size to trigger cleanup
+
+  // Review stats
+  const { data: reviewStats } = useReviewStats()
+
+  // Map stats to the expected format
+  const reviewCounts = useMemo(() => ({
+    unreviewed: reviewStats?.unreviewed || 0,
+    ok: reviewStats?.ok || 0,
+    non_related: reviewStats?.nonRelated || 0,
+    no_seller: reviewStats?.noSeller || 0,
+    banned: reviewStats?.userFeed || 0, // userFeed maps to banned
+    total: reviewStats?.total || 0
+  }), [reviewStats])
+
+  // Use computed "new today" from stats
+  const newTodayCount = reviewStats?.newToday || 0
+
+  // Mutations
+  const updateReviewMutation = useUpdateReviewStatus()
+  const bulkUpdateMutation = useBulkUpdateReview()
+
+  // Handle search change
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query)
   }, [])
 
+  // Handle filter change
+  const handleFilterChange = useCallback((filter: FilterType) => {
+    setCurrentFilter(filter)
+    setSelectedSubreddits(new Set()) // Clear selections when switching filters
+    setRemovingIds(new Set()) // Clear removing items when switching filters
+  }, [])
+
   // Handle broken icon URLs
   const handleIconError = useCallback((id: string | number) => {
-    brokenIconsLRU.add(String(id))
-    // LRU automatically handles size limits (200 max)
-  }, [brokenIconsLRU.add])
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id
+    setBrokenIcons(prev => {
+      const next = new Set(prev)
+      if (Number.isFinite(numericId)) {
+        next.add(numericId as number)
+      } else {
+        next.add(String(id))
+      }
+      return next
+    })
+  }, [])
 
-  // Toggle selection of individual subreddit
-
+  // Show rules modal for a subreddit
+  const handleShowRules = useCallback((subreddit: TableSubreddit) => {
+    setRulesModal({ isOpen: true, subreddit })
+  }, [])
 
   // Close rules modal
   const handleCloseRules = useCallback(() => {
     setRulesModal({ isOpen: false, subreddit: null })
   }, [])
 
-  // Show rules modal for a subreddit
-  const handleShowRules = useCallback((subreddit: Subreddit) => {
-    setRulesModal({ isOpen: true, subreddit })
-  }, [])
-
-  // We need to define these functions later after all dependencies are available
-
-  // Fetch counts using API endpoint - NOT affected by search
-  const fetchCounts = React.useCallback(async () => {
-    try {
-      console.log('🔄 [REVIEW] Fetching stats via API...')
-      
-      // Build API request URL - NO search parameter (stats should show totals)
-      const params = new URLSearchParams({
-        type: 'review'
-      })
-      
-      const response = await fetch(`/api/subreddits/stats?${params.toString()}`)
-      const result = await response.json()
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to fetch stats')
-      }
-      
-      console.log('✅ [REVIEW] Stats fetched successfully:', result.stats)
-      
-      setReviewCounts({
-        unreviewed: result.stats.unreviewed || 0,
-        ok: result.stats.ok || 0,
-        non_related: result.stats.non_related || 0,
-        no_seller: result.stats.no_seller || 0,
-        banned: result.stats.banned || 0,
-        total: result.stats.total || 0
-      })
-      setNewTodayCount(result.stats.new_today || 0)
-      setTotalSubreddits(result.stats.total || 0)
-      
-    } catch (error) {
-      console.error('❌ [REVIEW] Failed to fetch stats:', error)
-      // Keep existing counts on error to avoid UI disruption
-    }
-  }, [])
-
-  // Simplified subreddit fetching
-  const fetchSubreddits = useCallback(async (page = 0, append = false) => {
-    // Prevent concurrent fetches
-    if (fetchInProgressRef.current) {
-      console.log('🔄 [REVIEW] Fetch already in progress, skipping...')
-      return
-    }
-    fetchInProgressRef.current = true
-
-    if (page === 0) {
-      setLoading(true)
-    } else {
-      setLoadingMore(true)
-    }
-
-    try {
-      // Build API request URL with query parameters
-      const params = new URLSearchParams({
-        limit: PAGE_SIZE.toString(),
-        offset: (page * PAGE_SIZE).toString(),
-        filter: currentFilter,
-      })
-
-      // Add search query if active
-      if (debouncedSearchQuery.trim()) {
-        params.append('search', debouncedSearchQuery.trim())
-      }
-
-      const apiUrl = `/api/subreddits?${params.toString()}`
-      console.log('🔄 [REVIEW] API request URL:', apiUrl)
-      
-      const response = await fetch(apiUrl)
-      const result = await response.json()
-      
-      console.log('🔄 [REVIEW] API result:', { 
-        success: result.success, 
-        dataLength: result.subreddits?.length || 0,
-        hasError: !response.ok,
-        errorMessage: result.error
-      })
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to fetch subreddits')
-      }
-
-      const newData = result.subreddits || []
-      console.log('✅ [REVIEW] Fetched subreddits successfully:', { 
-        count: newData.length, 
-        page, 
-        sampleData: newData.slice(0, 2).map((s: { name?: string; review?: string | null }) => ({name: s.name, review: s.review})) 
-      })
-      setHasMore(result.hasMore || false)
-      
-      if (append) {
-        setSubreddits(prev => {
-          // Create a Set of existing IDs for fast lookup
-          const existingIds = new Set(prev.map(sub => sub.id))
-
-          // Filter out duplicates from newData
-          const uniqueNewData = newData.filter((sub: Subreddit) => !existingIds.has(sub.id))
-
-          const updated = [...prev, ...uniqueNewData]
-          console.log('✅ [REVIEW] Updated subreddits (append):', {
-            previousCount: prev.length,
-            newCount: newData.length,
-            uniqueNewCount: uniqueNewData.length,
-            duplicatesRemoved: newData.length - uniqueNewData.length,
-            totalCount: updated.length
-          })
-          return updated
-        })
-      } else {
-        setSubreddits(newData)
-        setCurrentPage(0)
-        console.log('✅ [REVIEW] Updated subreddits (replace):', {
-          newCount: newData.length,
-          firstItem: newData[0]?.name || 'none'
-        })
-      }
-
-      // Always use dedicated stats endpoint for accurate review counts
-      if (page === 0) {
-        // Use the dedicated stats endpoint for review counts
-        fetchCounts().catch((e) => console.error('fetchCounts failed:', e))
-      }
-      
-    } catch (error) {
-      console.error('❌ [REVIEW] fetchSubreddits error:', error)
-      addToast({
-        type: 'error',
-        title: 'Failed to load subreddits',
-        description: error instanceof Error ? error.message : 'Unknown error occurred'
-      })
-    } finally {
-      // Always update loading states in finally block
-      fetchInProgressRef.current = false // Reset the fetch flag
-      if (page === 0) {
-        console.log('✅ [REVIEW] Setting loading to false for page 0 (finally)')
-        setLoading(false)
-      } else {
-        console.log('✅ [REVIEW] Setting loadingMore to false for page', page, '(finally)')
-        setLoadingMore(false)
-      }
-    }
-  }, [currentFilter, debouncedSearchQuery, addToast, fetchCounts])
-
   // Handle successful subreddit addition
   const handleSubredditAdded = useCallback(() => {
     setShowAddModal(false)
-    // Refresh the list to show the newly added subreddit
-    fetchSubreddits(0, false)
-    fetchCounts()
+    refetchSubreddits()
     addToast({
       type: 'success',
       title: 'Subreddit Added',
       description: 'The subreddit has been added successfully.',
       duration: 3000
     })
-  }, [fetchSubreddits, fetchCounts, addToast])
+  }, [refetchSubreddits, addToast])
 
-  // Undo last single/bulk action
-  const undoLastAction = useCallback(async () => {
-    if (!lastAction) return
-    try {
-      // Apply reverts sequentially to support different prev values using API
-      for (const item of lastAction.items) {
-        const response = await fetch(`/api/subreddits/${item.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ review: item.prevReview })
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || `Failed to undo review for subreddit ${item.id}`)
-        }
-      }
-      setLastAction(null)
-      addToast({
-        type: 'success',
-        title: 'Undo Complete',
-        description: 'Reverted the last review change.',
-        duration: 3000
-      })
-      // Only refresh counts, not all data - for smoother UX
-      fetchCounts()
-    } catch (error) {
-      console.error('Undo failed:', error)
-      addToast({
-        type: 'error',
-        title: 'Undo Failed',
-        description: 'Could not revert the last change. Please try again.',
-        duration: 5000
-      })
-    }
-  }, [lastAction, fetchCounts, addToast])
-
-  // Update ref to current function
-  useEffect(() => {
-    undoLastActionRef.current = undoLastAction
-  }, [undoLastAction])
-
-  // Update review for single subreddit
+  // Update review for single subreddit using React Query mutation
   const updateReview = useCallback(async (id: number, review: 'Ok' | 'No Seller' | 'Non Related' | 'Banned') => {
-    const subreddit = subreddits.find(sub => sub.id === id)
-    await handleAsyncOperation(async () => {
-      const response = await fetch(`/api/subreddits/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ review })
-      })
-      
-      const result = await response.json()
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to update review')
-      }
-      
-      return { subreddit, review }
-    }, {
-      context: 'review_update',
-      showToast: false,
-      onSuccess: ({ subreddit, review }) => {
-        // Track this as our own update
-        recentlyUpdatedIdsRef.current.add(id)
-        // Clear after a short delay
-        setTimeout(() => {
-          recentlyUpdatedIdsRef.current.delete(id)
-        }, 2000)
+    // Ensure the row exists (no variable needed)
+    subreddits.find((sub: DbSubreddit) => sub.id === id)
 
-        // Prepare undo details
-        const prevReview: ReviewValue = subreddit?.review ?? null
-        setLastAction({ type: 'single', items: [{ id, prevReview }] })
+    // Map 'Banned' to 'User Feed' for the mutation
+    const reviewStatus = review === 'Banned' ? 'User Feed' : review as ReviewStatus
 
-        // Check if item should be removed from current filter
-        const shouldRemove = (
-          (currentFilter === 'unreviewed') ||
-          (currentFilter === 'ok' && review !== 'Ok') ||
-          (currentFilter === 'non_related' && review !== 'Non Related') ||
-          (currentFilter === 'no_seller' && review !== 'No Seller')
-        )
+    // No undo state retention
 
-        if (shouldRemove) {
-          // Add to removing list for fade effect
-          setRemovingIds(prev => new Set([...prev, id]))
+    // Check if item should be removed from current filter
+    const shouldRemove = (
+      (currentFilter === 'unreviewed') ||
+      (currentFilter === 'ok' && review !== 'Ok') ||
+      (currentFilter === 'non_related' && review !== 'Non Related') ||
+      (currentFilter === 'no_seller' && review !== 'No Seller') ||
+      (currentFilter === 'banned' && review !== 'Banned')
+    )
 
-          // Update counts locally immediately
-          setReviewCounts(prev => {
-            const updates = { ...prev }
-            // Decrease the current filter count
-            if (currentFilter === 'unreviewed') {
-              updates.unreviewed = Math.max(0, prev.unreviewed - 1)
-            } else if (currentFilter === 'ok') {
-              updates.ok = Math.max(0, prev.ok - 1)
-            } else if (currentFilter === 'non_related') {
-              updates.non_related = Math.max(0, prev.non_related - 1)
-            } else if (currentFilter === 'no_seller') {
-              updates.no_seller = Math.max(0, prev.no_seller - 1)
-            } else if (currentFilter === 'banned') {
-              updates.banned = Math.max(0, prev.banned - 1)
-            }
-
-            // Increase the new category count
-            if (review === 'Ok') {
-              updates.ok = prev.ok + 1
-            } else if (review === 'Non Related') {
-              updates.non_related = prev.non_related + 1
-            } else if (review === 'No Seller') {
-              updates.no_seller = prev.no_seller + 1
-            } else if (review === 'Banned') {
-              updates.banned = prev.banned + 1
-            }
-
-            // If moving from unreviewed, decrease unreviewed count
-            if (!subreddit?.review) {
-              updates.unreviewed = Math.max(0, prev.unreviewed - 1)
-            }
-
-            return updates
-          })
-
-          // Delay actual removal for smooth transition
-          setTimeout(() => {
-            setSubreddits(prev => prev.filter(sub => sub.id !== id))
-            setRemovingIds(prev => {
-              const next = new Set(prev)
-              next.delete(id)
-              return next
-            })
-          }, 300)
-        } else {
-          // Just update in place
-          setSubreddits(prev => prev.map(sub =>
-            sub.id === id ? { ...sub, review } : sub
-          ))
-        }
-        addToast({
-          type: 'success',
-          title: 'Review Updated',
-          description: `${subreddit?.display_name_prefixed} marked as ${review}`,
-          duration: 5000,
-          action: {
-            label: 'Undo',
-            onClick: () => { void undoLastActionRef.current?.() }
-          }
-        })
-      },
-      onError: () => {
-        addToast({
-          type: 'error',
-          title: 'Update Failed',
-          description: `Failed to update ${subreddit?.display_name_prefixed}. Please try again.`,
-          duration: 5000
-        })
-        // Don't refresh the entire page on error - let user retry
-      }
-    })
-  }, [subreddits, handleAsyncOperation, addToast, currentFilter])
-  // Bulk update reviews for selected subreddits via API
-  const bulkUpdateReview = useCallback(async (review: 'Ok' | 'No Seller' | 'Non Related' | 'Banned') => {
-    if (selectedSubreddits.size === 0) return
-    
-    const ids = Array.from(selectedSubreddits)
-    // Capture previous values for undo
-    const prevItems = subreddits
-      .filter(s => ids.includes(s.id))
-      .map(s => ({ id: s.id, prevReview: (s.review ?? null) as ReviewValue }))
-
-    await handleAsyncOperation(async () => {
-      console.log('🔄 [Frontend] Bulk review update via API:', { count: ids.length, review })
-      
-      const response = await fetch('/api/subreddits/bulk-review', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subredditIds: ids,
-          review
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `API request failed: ${response.status}`)
-      }
-
-      const result = await response.json()
-      console.log('✅ [Frontend] Bulk review update successful:', result)
-      
-      return result
-    }, {
-      context: 'bulk_review_update_api',
-      showToast: false,
-      onSuccess: (result) => {
-        // Track these as our own updates
-        ids.forEach(id => {
-          recentlyUpdatedIdsRef.current.add(id)
-        })
-        // Clear after a short delay
-        setTimeout(() => {
-          ids.forEach(id => {
-            recentlyUpdatedIdsRef.current.delete(id)
-          })
-        }, 2000)
-
-        setLastAction({ type: 'bulk', items: prevItems })
-        setSelectedSubreddits(new Set())
-        addToast({
-          type: 'success',
-          title: 'Bulk Update Complete',
-          description: result.message || `Updated ${ids.length} subreddits to ${review}`,
-          duration: 5000,
-          action: {
-            label: 'Undo',
-            onClick: () => { void undoLastActionRef.current?.() }
-          }
-        })
-        // Update counts locally for bulk changes
-        setReviewCounts(prev => {
-          const updates = { ...prev }
-
-          // Calculate count changes based on the review changes
-          ids.forEach(id => {
-            const sub = subreddits.find(s => s.id === id)
-            if (sub) {
-              // Decrease old category count
-              if (!sub.review) {
-                updates.unreviewed = Math.max(0, updates.unreviewed - 1)
-              } else if (sub.review === 'Ok') {
-                updates.ok = Math.max(0, updates.ok - 1)
-              } else if (sub.review === 'Non Related') {
-                updates.non_related = Math.max(0, updates.non_related - 1)
-              } else if (sub.review === 'No Seller') {
-                updates.no_seller = Math.max(0, updates.no_seller - 1)
-              }
-
-              // Increase new category count
-              if (review === 'Ok') {
-                updates.ok = updates.ok + 1
-              } else if (review === 'Non Related') {
-                updates.non_related = updates.non_related + 1
-              } else if (review === 'No Seller') {
-                updates.no_seller = updates.no_seller + 1
-              } else if (review === 'Banned') {
-                updates.banned = updates.banned + 1
-              }
-            }
-          })
-
-          return updates
-        })
-
-        // Remove items from view if they no longer match filter
-        if (currentFilter === 'unreviewed' ||
-            (currentFilter === 'ok' && review !== 'Ok') ||
-            (currentFilter === 'non_related' && review !== 'Non Related') ||
-            (currentFilter === 'no_seller' && review !== 'No Seller') ||
-            (currentFilter === 'banned' && review !== 'Banned')) {
-
-          // Add to removing list for fade effect
-          ids.forEach(id => {
-            setRemovingIds(prev => new Set([...prev, id]))
-          })
-
-          // Delay actual removal for smooth transition
-          setTimeout(() => {
-            setSubreddits(prev => prev.filter(sub => !ids.includes(sub.id)))
-            setRemovingIds(prev => {
-              const next = new Set(prev)
-              ids.forEach(id => next.delete(id))
-              return next
-            })
-          }, 300)
-        }
-      },
-      onError: (error) => {
-        console.error('❌ [Frontend] Bulk review update failed:', error)
-        addToast({
-          type: 'error',
-          title: 'Bulk Update Failed',
-          description: error.message || 'Could not update selected subreddits. Please try again.',
-          duration: 5000
-        })
-      }
-    })
-  }, [selectedSubreddits, subreddits, handleAsyncOperation, addToast, currentFilter])
-
-  // Wrappers for SubredditTable (accept string review labels) - memoized
-  const updateReviewByText = useCallback(async (id: number, reviewText: string) => {
-    const review = reviewText as 'Ok' | 'No Seller' | 'Non Related'
-    await updateReview(id, review)
-  }, [updateReview])
-
-  // Page-level observer removed; handled inside SubredditTable
-
-  // Simplified data loading on mount and filter changes
-  useEffect(() => {
-    console.log('🔄 [REVIEW] useEffect triggered - initializing data fetch', { currentFilter, hasSupabase: !!supabase })
-    setCurrentPage(0)
-    setHasMore(true)
-    
-    // Simple loading: just fetch the data
-    console.log('🔄 [REVIEW] Calling fetchSubreddits...')
-    fetchSubreddits(0, false).catch((error) => {
-      console.error('❌ [REVIEW] fetchSubreddits failed:', error)
-    })
-    
-    // Smart Supabase subscription that only handles external updates
-    let channel: RealtimeChannel | null = null
-    let isSubscribed = false // Track subscription status
-
-    const setupSubscription = async () => {
-      if (!supabase || isSubscribed) return
-
-      try {
-        channel = supabase
-          .channel('subreddit-changes')
-          .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'reddit_subreddits' },
-            (payload) => {
-              const updatedId = payload.new.id as number
-
-              // Check if this was our own update
-              if (recentlyUpdatedIdsRef.current.has(updatedId)) {
-                console.log('🔄 [REVIEW] Ignoring own update for subreddit', updatedId)
-                return
-              }
-
-              // For external updates, handle them smartly based on filter
-              const newReview = payload.new.review as ReviewValue
-              const oldReview = payload.old.review as ReviewValue
-
-              console.log('🔄 [REVIEW] External update detected:', { id: updatedId, oldReview, newReview })
-
-              // Handle the update based on current filter
-              setSubreddits(prev => {
-                // If we're in unreviewed filter and item becomes reviewed, remove it
-                if (currentFilter === 'unreviewed' && newReview !== null) {
-                  return prev.filter(sub => sub.id !== updatedId)
-                }
-                // If we're in a specific review filter and item no longer matches, remove it
-                if (currentFilter === 'ok' && newReview !== 'Ok') {
-                  return prev.filter(sub => sub.id !== updatedId)
-                }
-                if (currentFilter === 'non_related' && newReview !== 'Non Related') {
-                  return prev.filter(sub => sub.id !== updatedId)
-                }
-                if (currentFilter === 'no_seller' && newReview !== 'No Seller') {
-                  return prev.filter(sub => sub.id !== updatedId)
-                }
-                if (currentFilter === 'banned' && newReview !== 'Banned') {
-                  return prev.filter(sub => sub.id !== updatedId)
-                }
-                // Otherwise, update the item in place
-                return prev.map(sub =>
-                  sub.id === updatedId
-                    ? { ...sub, ...payload.new } as Subreddit
-                    : sub
-                )
-              })
-
-              // Update counts if needed
-              if (oldReview !== newReview) {
-                fetchCounts().catch(console.error)
-              }
-            }
-          )
-          .subscribe((status, err) => {
-            if (err) {
-              console.error('❌ [REVIEW] Subscription error:', err)
-              isSubscribed = false
-              // Attempt reconnection after delay
-              setTimeout(() => setupSubscription(), 5000)
-            } else {
-              console.log('✅ [REVIEW] Subscription status:', status)
-              isSubscribed = status === 'SUBSCRIBED'
-            }
-          })
-      } catch (error) {
-        console.error('❌ [REVIEW] Failed to setup subscription:', error)
-        isSubscribed = false
-      }
+    if (shouldRemove) {
+      // Add to removing list for fade effect
+      setRemovingIds(prev => new Set([...prev, id]))
+      // Don't remove from removingIds - let the data refetch handle it
     }
 
-    // Setup subscription
-    setupSubscription()
-
-    // Keep longer interval refresh for catching external changes (15 minutes instead of 5)
-    // This reduces jarring refreshes while still catching external updates
-    const refreshInterval = setInterval(() => {
-      // Only refresh counts, not the whole list
-      fetchCounts()
-
-      // Check subscription health
-      if (!isSubscribed && supabase) {
-        console.log('🔄 [REVIEW] Attempting to reconnect subscription...')
-        setupSubscription()
+    // Execute mutation with current filter to only invalidate the active query
+    updateReviewMutation.mutate(
+      {
+        subredditId: id,
+        review: reviewStatus,
+        previousFilter: getReviewFromFilter(currentFilter)
+      },
+      {
+        onError: () => {
+          // No undo state to clear
+          // Revert fade-out on error so the row is visible again
+          setRemovingIds(prev => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+          })
+        }
       }
-    }, 900000)
+    )
+  }, [subreddits, currentFilter, updateReviewMutation])
 
-    return () => {
-      // Proper cleanup
-      isSubscribed = false
-      if (channel && supabase) {
-        channel.unsubscribe().then(() => {
-          if (supabase) {
-            supabase.removeChannel(channel!)
-            console.log('🧹 [REVIEW] Subscription cleaned up')
-          }
-        }).catch((err) => {
-          console.error('❌ [REVIEW] Error during cleanup:', err)
-          // Force cleanup anyway
-          try {
-            if (supabase) {
-              supabase.removeChannel(channel!)
-            }
-          } catch (e) {
-            console.error('❌ [REVIEW] Force cleanup failed:', e)
-          }
-        })
+  // Undo functionality removed
+
+  // Bulk review update using React Query mutation
+  const updateBulkReview = useCallback(async (review: 'Ok' | 'No Seller' | 'Non Related' | 'Banned') => {
+    const selectedIds = Array.from(selectedSubreddits)
+    if (selectedIds.length === 0) return
+
+    // Map 'Banned' to 'User Feed' for the mutation
+    const reviewStatus = review === 'Banned' ? 'User Feed' : review as ReviewStatus
+
+    // No undo state retention
+
+    bulkUpdateMutation.mutate(
+      {
+        subredditIds: selectedIds,
+        review: reviewStatus
+      },
+      {
+        onSuccess: () => {
+          // Clear selection after success
+          setSelectedSubreddits(new Set())
+        },
+        onError: () => {
+          // No undo state to clear
+        }
       }
-      clearInterval(refreshInterval)
+    )
+  }, [selectedSubreddits, bulkUpdateMutation])
+
+  // Handle reaching end of list for infinite scroll
+  const handleReachEnd = useCallback(() => {
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFilter, debouncedSearchQuery])
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage])
 
+  // Build filter options (excluding User Feed/banned)
+  const filterOptions = useMemo(() => [
+    { value: 'unreviewed' as FilterType, label: 'Unreviewed', count: reviewCounts.unreviewed },
+    { value: 'ok' as FilterType, label: 'Ok', count: reviewCounts.ok },
+    { value: 'no_seller' as FilterType, label: 'No Seller', count: reviewCounts.no_seller },
+    { value: 'non_related' as FilterType, label: 'Non Related', count: reviewCounts.non_related },
+    { value: 'banned' as FilterType, label: 'User Feed', count: reviewCounts.banned },
+  ], [reviewCounts])
 
   return (
     <DashboardLayout>
       <div className="flex flex-col h-screen min-h-0">
         <h2 className="sr-only">Subreddit Review</h2>
-        {/* Title removed per request */}
 
-        {/* Metrics Cards with Add Button - Simplified */}
+        {/* Metrics Cards with Add Button */}
         <div className="mb-6">
-          <div className="flex items-stretch gap-4">
-            <div className="flex-1">
-              <ComponentErrorBoundary>
-                {loading ? (
-                  <MetricsCardsSkeleton />
-                ) : (
+          <ComponentErrorBoundary>
+            <div className="flex items-center gap-3">
+              {isLoading ? (
+                <MetricsCardsSkeleton />
+              ) : (
+                <div className="flex-1">
                   <MetricsCards
-                    totalSubreddits={totalSubreddits}
+                    totalSubreddits={reviewCounts.total}
                     statusCount={reviewCounts.unreviewed}
                     statusTitle="Unreviewed"
                     newTodayCount={newTodayCount}
                     reviewCounts={reviewCounts}
-                    loading={loading}
+                    loading={false}
                   />
-                )}
-              </ComponentErrorBoundary>
-            </div>
-            <div className="flex items-stretch">
-              <button
-                onClick={() => setShowAddModal(true)}
-                disabled={loading}
-                className="group relative h-full min-h-[100px] w-[140px] px-6 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                  backdropFilter: 'blur(16px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-
-                {/* Glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
                 </div>
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  <Plus className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Add New
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Combined Toolbar: Search on left, Filters on right - Slim Design */}
-        <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
-          {/* Search Section - Left Side - Compact */}
-          <div className="flex items-center flex-1 min-w-0 max-w-xs">
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder=""
-                title="Search subreddits by name, title, or description"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                disabled={loading || loadingMore}
-                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8 relative"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => handleSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              )}
+              {/* Add Subreddit Button */}
+              {!isLoading && (
+                <StandardActionButton
+                  onClick={() => setShowAddModal(true)}
+                  label="Add Subreddit"
+                  icon={Plus}
+                  variant="primary"
+                />
               )}
             </div>
-          </div>
-
-          {/* Filters Section - Right Side */}
-          <div className="flex items-center">
-            <UnifiedFilters
-              currentFilter={currentFilter}
-              onFilterChange={(value) => {
-                setCurrentFilter(value as FilterType)
-              }}
-              counts={reviewCounts}
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-              loading={loading}
-            />
-          </div>
+          </ComponentErrorBoundary>
         </div>
 
-        {/* Bulk Actions Toolbar (only when items selected) */}
-        {selectedSubreddits.size > 0 && (
-          <StandardToolbar
-            variant="actions"
-            selectedCount={selectedSubreddits.size}
-            onDeselectAll={() => setSelectedSubreddits(new Set())}
-            actions={[
-              {
-                id: 'ok',
-                label: 'Ok',
-                onClick: () => bulkUpdateReview('Ok'),
-                variant: 'default',
-                disabled: loading || loadingMore
-              },
-              {
-                id: 'no-seller',
-                label: 'No Seller',
-                onClick: () => bulkUpdateReview('No Seller'),
-                variant: 'secondary',
-                disabled: loading || loadingMore
-              },
-              {
-                id: 'non-related',
-                label: 'Non Related',
-                onClick: () => bulkUpdateReview('Non Related'),
-                variant: 'outline',
-                disabled: loading || loadingMore
-              }
-            ]}
-          />
-        )}
+        {/* StandardToolbar - Always visible */}
+        <div className="mb-4">
+          <ComponentErrorBoundary>
+            <StandardToolbar
+              // Search
+              searchValue={searchQuery}
+              onSearchChange={handleSearchChange}
 
-        {/* Main Review Interface - Flex grow to fill remaining space */}
+              // Filters
+              filters={filterOptions.map(f => ({
+                id: f.value,
+                label: f.label,
+                count: f.count
+              }))}
+              currentFilter={currentFilter}
+              onFilterChange={(filterId) => handleFilterChange(filterId as FilterType)}
+
+              // Bulk actions (when items selected)
+              selectedCount={selectedSubreddits.size}
+              bulkActions={selectedSubreddits.size > 0 ? [
+                {
+                  id: 'ok',
+                  label: 'Mark Ok',
+                  icon: Check,
+                  onClick: () => updateBulkReview('Ok'),
+                  variant: 'secondary'
+                },
+                {
+                  id: 'no-seller',
+                  label: 'No Seller',
+                  icon: UserX,
+                  onClick: () => updateBulkReview('No Seller'),
+                  variant: 'secondary'
+                },
+                {
+                  id: 'non-related',
+                  label: 'Non Related',
+                  icon: X,
+                  onClick: () => updateBulkReview('Non Related'),
+                  variant: 'secondary'
+                },
+                {
+                  id: 'banned',
+                  label: 'User Feed',
+                  icon: Ban,
+                  onClick: () => updateBulkReview('Banned'),
+                  variant: 'secondary'
+                }
+              ] : []}
+              onClearSelection={() => setSelectedSubreddits(new Set())}
+
+              loading={isLoading || bulkUpdateMutation.isPending}
+              accentColor="linear-gradient(135deg, #FF8395, #FF7A85)"
+            />
+          </ComponentErrorBoundary>
+        </div>
+
+        {/* Main Review Table */}
         <div className="flex-1 flex flex-col min-h-0">
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-6">
               <TableSkeleton />
             </div>
           ) : (
-            <>
-              <ComponentErrorBoundary>
-                {/* Use virtualized table for large datasets (>1000 rows) for better performance */}
-                {displayedSubreddits.length > 1000 ? (
-                  <VirtualizedUniversalTable
-                    {...createVirtualizedReviewTable({
-                      subreddits: displayedSubreddits,
-                      selectedSubreddits,
-                      setSelectedSubreddits,
-                      onUpdateReview: updateReviewByText,
-                      loading,
-                      searchQuery: debouncedSearchQuery,
-                      brokenIcons: new Set(brokenIconsLRU.toArray()),
-                      handleIconError,
-                      onShowRules: handleShowRules,
-                      removingIds
-                    })}
-                  />
-                ) : (
-                  <UniversalTable
-                    {...createSubredditReviewTable({
-                      subreddits: displayedSubreddits,
-                      selectedSubreddits,
-                      setSelectedSubreddits,
-                      onUpdateReview: updateReviewByText,
-                      loading,
-                      hasMore,
-                      loadingMore,
-                      onReachEnd: () => {
-                        if (loading || loadingMore || !hasMore || fetchInProgressRef.current) return
-                        const nextPage = currentPage + 1
-                        setCurrentPage(nextPage)
-                        // Append next page
-                        void fetchSubreddits(nextPage, true)
-                      },
-                      searchQuery: debouncedSearchQuery,
-                      brokenIcons: new Set(brokenIconsLRU.toArray()),
-                      handleIconError,
-                      onShowRules: handleShowRules,
-                      removingIds
-                    })}
-                  />
-                )}
-              </ComponentErrorBoundary>
-            </>
+            <ComponentErrorBoundary>
+              <UniversalTable
+                {...createSubredditReviewTable({
+                  subreddits: subreddits as unknown as TableSubreddit[],
+                  selectedSubreddits,
+                  setSelectedSubreddits,
+                  onUpdateReview: (id: number, reviewText: string) => updateReview(id, reviewText as 'Ok' | 'No Seller' | 'Non Related' | 'Banned'),
+                  loading: isLoading,
+                  hasMore: hasNextPage || false,
+                  loadingMore: isFetchingNextPage,
+                  onReachEnd: handleReachEnd,
+                  searchQuery: debouncedSearchQuery,
+                  brokenIcons: brokenIcons,
+                  handleIconError,
+                  onShowRules: handleShowRules,
+                  testId: 'subreddit-review-table',
+                  removingIds
+                })}
+              />
+            </ComponentErrorBoundary>
           )}
         </div>
 
-
-        {/* Enhanced Rules Modal */}
+        {/* Rules Modal */}
         {rulesModal.isOpen && rulesModal.subreddit && (
-          <div 
+          <div
             className="fixed inset-0 z-50 p-4 flex items-center justify-center"
             style={{
               background: 'rgba(255,255,255,0.25)',
@@ -919,7 +418,7 @@ export default function SubredditReviewPage() {
             }}
             onClick={handleCloseRules}
           >
-            <div 
+            <div
               className="bg-white/95 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
               onClick={(e) => e.stopPropagation()}
             >
@@ -951,19 +450,17 @@ export default function SubredditReviewPage() {
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 {(() => {
                   try {
-                    // Parse rules_data if it exists
-                    const rulesData = rulesModal.subreddit.rules_data
+                    const rulesData: unknown = rulesModal.subreddit.rules_data as unknown
                     let rules: Array<{
                       short_name?: string;
                       title?: string;
                       description?: string;
                       violation_reason?: string;
                     }> = []
-                    
-                    if (rulesData) {
+
+                    if (rulesData != null) {
                       if (typeof rulesData === 'string') {
                         try {
-                          // Skip empty strings entirely
                           if (rulesData.trim() === '') {
                             rules = []
                           } else {
@@ -971,12 +468,12 @@ export default function SubredditReviewPage() {
                             rules = Array.isArray(parsed) ? parsed : (parsed.rules && Array.isArray(parsed.rules)) ? parsed.rules : []
                           }
                         } catch (error) {
-                          console.warn('Failed to parse rules data:', error)
-                          rules = []  // Default to empty array on parse error
+                          logger.warn('Failed to parse rules data:', error)
+                          rules = []
                         }
                       } else if (Array.isArray(rulesData)) {
                         rules = rulesData
-                      } else if (typeof rulesData === 'object' && rulesData !== null && 'rules' in rulesData && Array.isArray((rulesData as {rules: unknown}).rules)) {
+                      } else if (typeof rulesData === 'object' && rulesData !== null && 'rules' in (rulesData as Record<string, unknown>) && Array.isArray((rulesData as {rules: unknown}).rules)) {
                         rules = (rulesData as {rules: typeof rules}).rules
                       }
                     }
@@ -1045,7 +542,7 @@ export default function SubredditReviewPage() {
                       )
                     }
                   } catch (error) {
-                    console.error('Error parsing rules data:', error)
+                    logger.error('Error parsing rules data:', error)
                     return (
                       <div className="text-center py-8">
                         <div className="mb-4">
@@ -1073,18 +570,12 @@ export default function SubredditReviewPage() {
         )}
 
         {/* Add Subreddit Modal */}
-        {showAddModal && (
-          <AddSubredditModal
-            isOpen={showAddModal}
-            onClose={() => setShowAddModal(false)}
-            onSuccess={handleSubredditAdded}
-          />
-        )}
+        <AddSubredditModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleSubredditAdded}
+        />
       </div>
-
-
     </DashboardLayout>
   )
 }
-
-

@@ -2,34 +2,31 @@
  * Performance utility functions for debouncing, throttling, and request optimization
  */
 
-import { useCallback, useRef, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 /**
  * Creates a debounced function that delays invoking func until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
   options: { leading?: boolean; trailing?: boolean; maxWait?: number } = {}
-): (...args: Parameters<T>) => void {
+): ((...args: Parameters<T>) => ReturnType<T> | undefined) & { cancel: () => void; flush: () => ReturnType<T> | undefined } {
   let timeout: NodeJS.Timeout | null = null
   let lastCallTime: number | null = null
   let lastInvokeTime = 0
   let lastArgs: Parameters<T> | null = null
-  let lastThis: any = null
   let result: ReturnType<T> | undefined
 
   const { leading = false, trailing = true, maxWait } = options
 
   const invokeFunc = (time: number) => {
     const args = lastArgs
-    const thisArg = lastThis
-
     lastArgs = null
-    lastThis = null
     lastInvokeTime = time
-    result = func.apply(thisArg, args!)
+    // Call without binding `this` to avoid aliasing patterns
+    result = func(...(args as Parameters<T>)) as ReturnType<T>
     return result
   }
 
@@ -75,7 +72,6 @@ export function debounce<T extends (...args: any[]) => any>(
       return invokeFunc(time)
     }
     lastArgs = null
-    lastThis = null
     return result
   }
 
@@ -86,7 +82,6 @@ export function debounce<T extends (...args: any[]) => any>(
     lastInvokeTime = 0
     lastArgs = null
     lastCallTime = null
-    lastThis = null
     timeout = null
   }
 
@@ -94,12 +89,11 @@ export function debounce<T extends (...args: any[]) => any>(
     return timeout === null ? result : trailingEdge(Date.now())
   }
 
-  const debounced = function (this: any, ...args: Parameters<T>) {
+  const debounced = (...args: Parameters<T>) => {
     const time = Date.now()
     const isInvoking = shouldInvoke(time)
 
     lastArgs = args
-    lastThis = this
     lastCallTime = time
 
     if (isInvoking) {
@@ -117,20 +111,25 @@ export function debounce<T extends (...args: any[]) => any>(
     return result
   }
 
-  debounced.cancel = cancel
-  debounced.flush = flush
+  type DebouncedReturn = ((...args: Parameters<T>) => ReturnType<T> | undefined) & {
+    cancel: () => void
+    flush: () => ReturnType<T> | undefined
+  }
+  const typedDebounced = debounced as DebouncedReturn
+  typedDebounced.cancel = cancel
+  typedDebounced.flush = flush
 
-  return debounced
+  return typedDebounced
 }
 
 /**
  * Creates a throttled function that only invokes func at most once per every wait milliseconds
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
   options: { leading?: boolean; trailing?: boolean } = {}
-): (...args: Parameters<T>) => void {
+): ((...args: Parameters<T>) => ReturnType<T> | undefined) & { cancel: () => void; flush: () => ReturnType<T> | undefined } {
   return debounce(func, wait, {
     leading: options.leading !== false,
     trailing: options.trailing !== false,
@@ -141,13 +140,19 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * React hook for debounced callbacks
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
+type DebouncedFn<T extends (...args: unknown[]) => unknown> = ((...args: Parameters<T>) => ReturnType<T> | undefined) & {
+  cancel: () => void
+  flush: () => ReturnType<T> | undefined
+}
+
+export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number,
   deps: React.DependencyList = []
 ): T {
   const callbackRef = useRef(callback)
-  const debouncedRef = useRef<any>(undefined)
+  const debouncedRef = useRef<DebouncedFn<T> | undefined>(undefined)
+  const depsKey = useMemo(() => JSON.stringify(deps), [deps])
 
   useEffect(() => {
     callbackRef.current = callback
@@ -155,36 +160,32 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
 
   useEffect(() => {
     const debounced = debounce(
-      (...args: Parameters<T>) => callbackRef.current(...args),
+      ((...args: Parameters<T>) => callbackRef.current(...args)) as T,
       delay
     )
-    debouncedRef.current = debounced
+    debouncedRef.current = debounced as DebouncedFn<T>
 
     return () => {
-      if (debouncedRef.current && typeof debouncedRef.current.cancel === 'function') {
-        debouncedRef.current.cancel()
-      }
+      debouncedRef.current?.cancel()
     }
-  }, [delay, ...deps])
+  }, [delay, depsKey])
 
-  return useCallback(
-    (...args: Parameters<T>) => {
-      return debouncedRef.current?.(...args)
-    },
-    [delay, ...deps]
-  ) as T
+  return useCallback((...args: Parameters<T>) => {
+    return debouncedRef.current?.(...args) as ReturnType<T> | undefined
+  }, []) as T
 }
 
 /**
  * React hook for throttled callbacks
  */
-export function useThrottledCallback<T extends (...args: any[]) => any>(
+export function useThrottledCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number,
   deps: React.DependencyList = []
 ): T {
   const callbackRef = useRef(callback)
-  const throttledRef = useRef<any>(undefined)
+  const throttledRef = useRef<DebouncedFn<T> | undefined>(undefined)
+  const depsKey = useMemo(() => JSON.stringify(deps), [deps])
 
   useEffect(() => {
     callbackRef.current = callback
@@ -192,24 +193,19 @@ export function useThrottledCallback<T extends (...args: any[]) => any>(
 
   useEffect(() => {
     const throttled = throttle(
-      (...args: Parameters<T>) => callbackRef.current(...args),
+      ((...args: Parameters<T>) => callbackRef.current(...args)) as T,
       delay
     )
-    throttledRef.current = throttled
+    throttledRef.current = throttled as DebouncedFn<T>
 
     return () => {
-      if (throttledRef.current && typeof throttledRef.current.cancel === 'function') {
-        throttledRef.current.cancel()
-      }
+      throttledRef.current?.cancel()
     }
-  }, [delay, ...deps])
+  }, [delay, depsKey])
 
-  return useCallback(
-    (...args: Parameters<T>) => {
-      return throttledRef.current?.(...args)
-    },
-    [delay, ...deps]
-  ) as T
+  return useCallback((...args: Parameters<T>) => {
+    return throttledRef.current?.(...args) as ReturnType<T> | undefined
+  }, []) as T
 }
 
 /**
@@ -240,7 +236,7 @@ export function useThrottle<T>(value: T, delay: number): T {
  * Prevents duplicate requests for the same key within a time window
  */
 export class RequestDeduplicator {
-  private cache: Map<string, Promise<any>> = new Map()
+  private cache: Map<string, Promise<unknown>> = new Map()
   private timeouts: Map<string, NodeJS.Timeout> = new Map()
 
   constructor(private ttl: number = 5000) {}
@@ -254,7 +250,7 @@ export class RequestDeduplicator {
     requestFn: () => Promise<T>
   ): Promise<T> {
     // Check if we have an in-flight request
-    const existing = this.cache.get(key)
+    const existing = this.cache.get(key) as Promise<T> | undefined
     if (existing) {
       return existing
     }
@@ -330,7 +326,7 @@ export function batchProcessor<T, R>(
   maxBatchSize = 100
 ) {
   let batch: T[] = []
-  let callbacks: Array<{ resolve: (value: R) => void; reject: (error: any) => void }> = []
+  let callbacks: Array<{ resolve: (value: R) => void; reject: (error: unknown) => void }> = []
   let timeout: NodeJS.Timeout | null = null
 
   const processBatch = async () => {

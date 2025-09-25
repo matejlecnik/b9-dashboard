@@ -81,9 +81,25 @@ Services use try/except blocks with:
 - Database: Connection pooling via Supabase
 - All services designed for concurrent operation
 
-## Future Improvements
+## TODO List
 
-- Add caching layer for categorization results
-- Implement user authentication service
-- Add webhook support for real-time updates
-- Enhanced error recovery mechanisms
+- [ ] Update to use 84-tag categorization system (currently using old 18 categories)
+- [ ] Add caching for frequently accessed data
+- [ ] Implement retry queue for failed operations
+- [ ] Create service health monitoring
+- [ ] Add unit tests for critical functions
+- [ ] Document API response formats
+
+## Current Errors
+
+- **Categorization outdated** - Still references 18 categories instead of 84-tag system
+- **No connection pooling** - Each service creates new connections (performance impact)
+- **Missing error recovery** - Failed operations not retried automatically
+
+## Potential Improvements
+
+- **Service orchestration** - Coordinate multiple services for complex operations (needs design)
+- **Event-driven architecture** - Use pub/sub for service communication (infrastructure change)
+- **Caching layer** - Redis/Memcached for frequently accessed data (discuss implementation)
+- **Circuit breakers** - Prevent cascading failures (resilience pattern)
+- **Service mesh** - Microservices architecture (major refactor needed)

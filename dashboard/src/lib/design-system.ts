@@ -150,9 +150,9 @@ export const designSystem = {
 export function getDesignClasses(...paths: string[]): string {
   return paths.map(path => {
     const parts = path.split('.')
-    let value: any = designSystem
+    let value: unknown = designSystem
     for (const part of parts) {
-      value = value?.[part]
+      value = (value as Record<string, unknown> | undefined)?.[part]
     }
     return typeof value === 'string' ? value : ''
   }).filter(Boolean).join(' ')

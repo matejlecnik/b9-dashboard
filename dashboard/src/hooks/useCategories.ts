@@ -1,4 +1,6 @@
+
 import { useQuery } from '@tanstack/react-query'
+import { logger } from '@/lib/logger'
 
 interface Category {
   id: string
@@ -40,7 +42,7 @@ export function useCategories() {
     queryKey: ['categories'],
     queryFn: async () => {
       try {
-        const res = await fetch('/api/categories', { cache: 'no-store' })
+        const res = await fetch('/api/reddit/categories', { cache: 'no-store' })
         
         if (!res.ok) {
           throw new Error('Failed to load categories')
@@ -56,7 +58,7 @@ export function useCategories() {
         
         return Array.from(new Set(names)).sort()
       } catch (error) {
-        console.warn('Failed to fetch categories, using fallback:', error)
+        logger.warn('Failed to fetch categories, using fallback:', error)
         return FALLBACK_CATEGORIES
       }
     },

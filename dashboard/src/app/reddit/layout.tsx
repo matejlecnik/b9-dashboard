@@ -1,6 +1,7 @@
+import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { logger } from '@/lib/logger'
 import { getAuthenticatedUser } from '@/lib/auth'
-import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Reddit Dashboard - B9 Agency',
@@ -20,7 +21,7 @@ export default async function RedditDashboardLayout({
   const bypassAuth = process.env.BYPASS_AUTH === 'true'
   
   if (isDevelopment || bypassAuth) {
-    console.log('⚠️ DEVELOPMENT MODE: Bypassing authentication for testing data loading')
+    logger.log('⚠️ DEVELOPMENT MODE: Bypassing authentication for testing data loading')
     return <>{children}</>
   }
   
@@ -34,7 +35,7 @@ export default async function RedditDashboardLayout({
 
     return <>{children}</>
   } catch (authError) {
-    console.error('Authentication layout error:', authError)
+    logger.error('Authentication layout error:', authError)
     redirect('/login')
     return null
   }

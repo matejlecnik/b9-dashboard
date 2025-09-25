@@ -2,30 +2,32 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardLayout } from '@/components/DashboardLayout'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ModelForm } from '@/components/ModelForm'
 import { useToast } from '@/components/ui/toast'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { logger } from '@/lib/logger'
 
 export default function NewModelPage() {
   const router = useRouter()
   const { addToast } = useToast()
   const [saving, setSaving] = useState(false)
 
-  const handleSave = async (data: {
-    name: string
-    stage_name?: string
-    description?: string
-    assigned_tags: string[]
-  }) => {
+  const handleSave = async (data: unknown) => {
+    const formData = data as {
+      name: string
+      stage_name?: string
+      description?: string
+      assigned_tags: string[]
+    }
     setSaving(true)
     try {
       const response = await fetch('/api/models/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(formData)
       })
 
       const result = await response.json()
@@ -34,7 +36,7 @@ export default function NewModelPage() {
         addToast({
           type: 'success',
           title: 'Model Created',
-          description: `${data.name} has been created successfully`,
+          description: `${formData.name} has been created successfully`,
           duration: 3000
         })
         router.push('/models')
@@ -42,7 +44,7 @@ export default function NewModelPage() {
         throw new Error(result.error || 'Failed to create model')
       }
     } catch (error) {
-      console.error('Error creating model:', error)
+      logger.error('Error creating model:', error)
       addToast({
         type: 'error',
         title: 'Creation Failed',

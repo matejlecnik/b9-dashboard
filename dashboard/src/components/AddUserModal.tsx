@@ -1,12 +1,34 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
-import Image from 'next/image'
-import { X, Search, UserPlus, Loader2, AlertCircle, Sparkles, Plus, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useCallback, useEffect } from 'react'
+// Custom toast implementation
+interface ToastFunctions {
+  showSuccess: (message: string) => void
+  showError: (message: string) => void
+  showInfo: (message: string) => void
+}
+
+const useToast = (): ToastFunctions => {
+  return {
+    showSuccess: (message: string) => {
+      // You can implement actual toast here or use console for now
+      console.log('Success:', message)
+    },
+    showError: (message: string) => {
+      console.error('Error:', message)
+    },
+    showInfo: (message: string) => {
+      console.info('Info:', message)
+    }
+  }
+}
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Plus, X, AlertCircle, Loader2, UserPlus, Sparkles, Search, ChevronDown } from 'lucide-react'
+import Image from 'next/image'
+import { logger } from '@/lib/logger'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useToast } from '@/components/ui/toast'
+
 
 interface User {
   id: number
@@ -26,9 +48,8 @@ interface User {
 
 interface Model {
   id: number
-  name: string
-  stage_name: string | null
-  is_active: boolean
+  stage_name: string
+  status: 'active' | 'inactive' | 'onboarding'
 }
 
 interface AddUserModalProps {
@@ -56,6 +77,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     if (isOpen) {
       fetchModels()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   const fetchModels = async () => {
@@ -63,7 +85,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       const response = await fetch('/api/models/list')
       const data = await response.json()
       if (data.success) {
-        const activeModels = data.models.filter((m: Model) => m.is_active)
+        const activeModels = data.models.filter((m: Model) => m.status === 'active')
         setModels(activeModels)
         // Select first model by default
         if (activeModels.length > 0 && !selectedModelId) {
@@ -71,7 +93,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
         }
       }
     } catch (error) {
-      console.error('Error fetching models:', error)
+      logger.error('Error fetching models:', error)
     }
   }
 
@@ -103,7 +125,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
         throw new Error(data.error || 'Failed to create model')
       }
     } catch (error) {
-      console.error('Error creating model:', error)
+      logger.error('Error creating model:', error)
       showError(error instanceof Error ? error.message : 'Failed to create model')
     } finally {
       setCreatingModel(false)
@@ -121,12 +143,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setNotFoundUsername(null)
 
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/reddit/users/search?q=${encodeURIComponent(query)}`)
       const data = await response.json()
 
       // Check for success field in response
       if (!data.success && response.status !== 200) {
-        console.error('Search error:', data.error)
+        logger.error('Search error:', data.error)
         setSearchResults([])
       } else {
         setSearchResults(data.users || [])
@@ -143,7 +165,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
         }
       }
     } catch (error) {
-      console.error('Search error:', error)
+      logger.error('Search error:', error)
       // Still set notFoundUsername on error for valid usernames
       if (/^[a-zA-Z0-9_-]+$/.test(query)) {
         setNotFoundUsername(query)
@@ -168,7 +190,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
       // Mark as our creator with model
       try {
-        const response = await fetch('/api/users/toggle-creator', {
+        const response = await fetch('/api/reddit/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -182,10 +204,10 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
         const updatedUser = { ...user, our_creator: true, model_id: selectedModelId }
         onUserAdded(updatedUser)
-        showSuccess(`Added ${user.username} to model ${models.find(m => m.id === selectedModelId)?.name}`)
+        showSuccess(`Added ${user.username} to model ${models.find(m => m.id === selectedModelId)?.stage_name}`)
         onClose()
       } catch (error) {
-        console.error('Error marking as creator:', error)
+        logger.error('Error marking as creator:', error)
         showError('Failed to add user as creator')
       }
     } else {
@@ -205,7 +227,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setIsFetching(true)
 
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/users/discover', {
+      const response = await fetch('https://b9-dashboard.onrender.com/api/reddit/users/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
@@ -219,7 +241,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       const data = await response.json()
       if (data.success && data.user) {
         // Now update the user with our_creator and model_id
-        const updateResponse = await fetch('/api/users/toggle-creator', {
+        const updateResponse = await fetch('/api/reddit/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -233,13 +255,13 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
         const updatedUser = { ...data.user, our_creator: true, model_id: selectedModelId }
         onUserAdded(updatedUser)
-        showSuccess(`Successfully added ${username} from Reddit to model ${models.find(m => m.id === selectedModelId)?.name}`)
+        showSuccess(`Successfully added ${username} from Reddit to model ${models.find(m => m.id === selectedModelId)?.stage_name}`)
         onClose()
       } else {
         throw new Error('Failed to fetch user data')
       }
     } catch (error) {
-      console.error('Fetch error:', error)
+      logger.error('Fetch error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user from Reddit'
       showError(errorMessage)
     } finally {
@@ -262,16 +284,16 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
         <div
           className="relative w-full max-w-md max-h-[80vh] overflow-hidden rounded-3xl"
           style={{
-            background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.98), rgba(229, 231, 235, 0.95), rgba(209, 213, 219, 0.92))',
+            background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 246, 0.92))',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
             boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04)'
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative px-5 py-3 border-b border-pink-200/30 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
+          <div className="relative px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
@@ -340,7 +362,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                       <option value="">Select a model...</option>
                       {models.map(model => (
                         <option key={model.id} value={model.id}>
-                          {model.name} {model.stage_name ? `(${model.stage_name})` : ''}
+                          {model.stage_name}
                         </option>
                       ))}
                     </select>

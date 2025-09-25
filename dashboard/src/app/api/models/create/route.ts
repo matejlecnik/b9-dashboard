@@ -1,7 +1,12 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/index'
+import { createClient } from '@/lib/supabase'
+import { protectedApi } from '@/lib/api-wrapper'
 
-export async function POST(req: NextRequest) {
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
+
+export const POST = protectedApi(async (req: NextRequest) => {
   try {
     const body = await req.json()
     const {
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating model:', error)
+      logger.error('Error creating model:', error)
 
       // Check for duplicate stage name
       if (error.code === '23505') {
@@ -116,15 +121,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Model ${stage_name} created successfully`,
+      title: `Model ${stage_name} created successfully`,
       model
     })
 
   } catch (error) {
-    console.error('Unexpected error in create model API:', error)
+    logger.error('Unexpected error in create model API:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
     }, { status: 500 })
   }
-}
+})

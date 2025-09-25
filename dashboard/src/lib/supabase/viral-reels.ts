@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase/index'
 
 export interface ViralReel {
   id: number
@@ -38,13 +37,16 @@ export interface ViralReelsFilters {
   sortOrder?: 'asc' | 'desc'
 }
 
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
+
 export async function getViralReels(
   filters: ViralReelsFilters = {},
   page = 1,
   limit = 20
-) {
+): Promise<{ reels: ViralReel[]; totalCount: number; page: number; totalPages: number }> {
   if (!supabase) {
-    console.error('Supabase client not initialized')
+    logger.error('Supabase client not initialized')
     return {
       reels: [],
       totalCount: 0,
@@ -116,21 +118,31 @@ export async function getViralReels(
     .range(from, to)
 
   if (error) {
-    console.error('Error fetching viral reels:', error)
+    logger.error('Error fetching viral reels:', error)
     throw error
   }
 
   return {
-    reels: data || [],
+    reels: (data || []) as unknown as ViralReel[],
     totalCount: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit)
   }
 }
 
-export async function getViralReelsStats(filters: ViralReelsFilters = {}) {
+export async function getViralReelsStats(filters: ViralReelsFilters = {}): Promise<
+  | {
+      total_reels: number
+      total_viral: number
+      ultra_viral: number
+      avg_views: number
+      avg_likes: number
+      max_views: number
+    }
+  | null
+> {
   if (!supabase) {
-    console.error('Supabase client not initialized')
+    logger.error('Supabase client not initialized')
     return null
   }
 
@@ -183,13 +195,14 @@ export async function getViralReelsStats(filters: ViralReelsFilters = {}) {
     ])
 
     if (viralData.error) {
-      console.error('Error fetching viral stats:', viralData.error)
+      logger.error('Error fetching viral stats:', viralData.error)
       return null
     }
 
-    const data = viralData.data || []
-    const totalReels = totalCount.count || 0
-    const maxViews = maxData.data?.[0]?.play_count || 0
+    type ViralRow = { play_count: number; like_count: number }
+    const data = (viralData.data || []) as ViralRow[]
+    const totalReels = (totalCount as { count: number | null }).count || 0
+    const maxViews = (maxData as { data?: Array<{ play_count: number }> }).data?.[0]?.play_count || 0
 
     if (data.length === 0) {
       return {
@@ -202,9 +215,9 @@ export async function getViralReelsStats(filters: ViralReelsFilters = {}) {
       }
     }
 
-    const ultraViral = data.filter((r: any) => r.play_count >= 50000000).length
-    const avgViews = Math.round(data.reduce((sum: number, r: any) => sum + r.play_count, 0) / data.length)
-    const avgLikes = Math.round(data.reduce((sum: number, r: any) => sum + r.like_count, 0) / data.length)
+    const ultraViral = data.filter((r) => r.play_count >= 50_000_000).length
+    const avgViews = Math.round(data.reduce((sum, r) => sum + r.play_count, 0) / data.length)
+    const avgLikes = Math.round(data.reduce((sum, r) => sum + r.like_count, 0) / data.length)
 
     return {
       total_reels: totalReels,
@@ -227,15 +240,23 @@ export async function getViralReelsStats(filters: ViralReelsFilters = {}) {
     }
 
     const { count } = await countQuery
-    stats.total_reels = count || 0
+    ;(stats as { total_reels?: number }).total_reels = count || 0
   }
 
   return stats
 }
 
-export async function getTopCreators(filters: ViralReelsFilters = {}, limit = 5) {
+export async function getTopCreators(filters: ViralReelsFilters = {}, limit = 5): Promise<
+  Array<{
+    username: string
+    creator_id: string
+    profile_pic_url: string | null
+    followers: number
+    viral_count: number
+  }>
+> {
   if (!supabase) {
-    console.error('Supabase client not initialized')
+    logger.error('Supabase client not initialized')
     return []
   }
 
@@ -273,28 +294,48 @@ export async function getTopCreators(filters: ViralReelsFilters = {}, limit = 5)
     .limit(500) // Increase limit to get more data for accurate top creators
 
   if (error) {
-    console.error('Error fetching top creators:', error)
+    logger.error('Error fetching top creators:', error)
     return []
   }
 
   // Group by creator and count viral reels
-  const creatorMap = new Map()
+  const creatorMap = new Map<
+    string,
+    {
+      username: string
+      creator_id: string
+      profile_pic_url: string | null
+      followers: number
+      viral_count: number
+    }
+  >()
 
-  data?.forEach((reel: any) => {
+  type CreatorRow = {
+    creator_id: string
+    creator_username: string
+    creator?:
+      | { profile_pic_url: string | null; followers?: number | null }
+      | Array<{ profile_pic_url: string | null; followers?: number | null }>
+  }
+
+  const rows: CreatorRow[] = ((data as unknown) ?? []) as CreatorRow[]
+
+  rows.forEach((reel) => {
     if (!reel.creator_username) return
 
     if (!creatorMap.has(reel.creator_username)) {
+      const creatorDetails = Array.isArray(reel.creator) ? reel.creator[0] : reel.creator
       creatorMap.set(reel.creator_username, {
         username: reel.creator_username,
         creator_id: reel.creator_id,
-        profile_pic_url: reel.creator?.profile_pic_url,
-        followers: reel.creator?.followers || 0,
+        profile_pic_url: creatorDetails?.profile_pic_url ?? null,
+        followers: creatorDetails?.followers || 0,
         viral_count: 0
       })
     }
 
     const creator = creatorMap.get(reel.creator_username)
-    creator.viral_count++
+    if (creator) creator.viral_count++
   })
 
   // Sort by viral count and return top creators

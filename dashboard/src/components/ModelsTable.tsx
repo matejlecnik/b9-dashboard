@@ -1,11 +1,13 @@
 'use client'
 
-import React, { memo, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import { memo, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, Trash2, Loader2, UserCircle2 } from 'lucide-react'
+import { Trash2, Loader2, Edit, UserCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ModelsTableSkeleton } from '@/components/SkeletonLoaders'
+
 
 interface Model {
   id: number
@@ -86,11 +88,7 @@ const ModelsTable = memo(function ModelsTable({
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    )
+    return <ModelsTableSkeleton />
   }
 
   if (models.length === 0) {

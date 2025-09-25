@@ -1,6 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+
 import { useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { logger } from '@/lib/logger'
+import { supabase } from '@/lib/supabase'
 
 interface PostingFilters {
   page: number
@@ -50,7 +52,7 @@ async function fetchSubreddits(filters: PostingFilters) {
   })
 
   if (error) {
-    console.error('Supabase RPC error:', error)
+    logger.error('Supabase RPC error:', error)
     throw error
   }
 
@@ -73,7 +75,7 @@ async function fetchCounts(accountTags?: string[], searchTerm?: string): Promise
   })
 
   if (error) {
-    console.error('Error fetching counts:', error)
+    logger.error('Error fetching counts:', error)
     throw error
   }
 
@@ -90,7 +92,24 @@ async function fetchCounts(accountTags?: string[], searchTerm?: string): Promise
 }
 
 // Fetch creators/users
-async function fetchCreators() {
+interface CreatorModel {
+  id: number
+  stage_name: string
+  status: string
+  assigned_tags: unknown
+}
+
+export interface RedditUserWithModel {
+  id: number
+  username?: string
+  status?: string
+  model_id?: number | null
+  models?: CreatorModel[]
+  model?: CreatorModel | null
+  [key: string]: unknown
+}
+
+async function fetchCreators(): Promise<RedditUserWithModel[]> {
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
@@ -111,11 +130,11 @@ async function fetchCreators() {
     .order('username', { ascending: true })
 
   if (error) {
-    console.error('Error fetching creators:', error)
+    logger.error('Error fetching creators:', error)
     throw error
   }
 
-  return creatorsData?.map(creator => ({
+  return creatorsData?.map((creator: RedditUserWithModel) => ({
     ...creator,
     model: creator.models?.[0] || null
   })) || []
@@ -168,19 +187,20 @@ export function useRemoveCreator() {
       return creatorId
     },
     // Optimistic update
-    onMutate: async (creatorId) => {
+    onMutate: async (creatorId: number) => {
       await queryClient.cancelQueries({ queryKey: postingKeys.creators() })
 
-      const previousCreators = queryClient.getQueryData(postingKeys.creators())
+      const previousCreators = queryClient.getQueryData<RedditUserWithModel[]>(postingKeys.creators())
 
-      queryClient.setQueryData(postingKeys.creators(), (old: any[]) =>
-        old?.filter(creator => creator.id !== creatorId) || []
+      queryClient.setQueryData<RedditUserWithModel[]>(
+        postingKeys.creators(),
+        (old) => old?.filter((creator) => creator.id !== creatorId) || []
       )
 
       return { previousCreators }
     },
     // Rollback on error
-    onError: (err, creatorId, context) => {
+    onError: (_err, _creatorId, context) => {
       if (context?.previousCreators) {
         queryClient.setQueryData(postingKeys.creators(), context.previousCreators)
       }

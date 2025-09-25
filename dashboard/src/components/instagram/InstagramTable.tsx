@@ -1,12 +1,40 @@
 'use client'
 
-import React, { memo, useState, useEffect, useRef, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ExternalLink, Users, Eye, Heart } from 'lucide-react'
+import { InstagramTableSkeleton } from '@/components/SkeletonLoaders'
 import { toProxiedImageUrl } from '@/config/images'
+
+// Avatar component with error handling
+const CreatorAvatar = ({ profilePicUrl, username }: { profilePicUrl: string | null, username: string }) => {
+  const [imageError, setImageError] = useState(false)
+
+  if (!profilePicUrl || imageError) {
+    return (
+      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm flex items-center justify-center font-semibold">
+        {username.slice(0, 2).toUpperCase()}
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative h-12 w-12">
+      <Image
+        src={toProxiedImageUrl(profilePicUrl)}
+        alt={username}
+        width={48}
+        height={48}
+        className="rounded-full object-cover"
+        loading="lazy"
+        onError={() => setImageError(true)}
+      />
+    </div>
+  )
+}
 
 interface InstagramCreator {
   id: number
@@ -29,7 +57,7 @@ interface InstagramCreator {
   engagement_rate_cached: number | null
   viral_content_count_cached: number | null
   external_url: string | null
-  bio_links: any[] | null
+  bio_links: Array<{ url: string }> | null
   avg_likes_per_post?: number | null
 }
 
@@ -156,27 +184,7 @@ const InstagramTable = memo(function InstagramTable({
             rel="noopener noreferrer"
             className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           >
-            {creator.profile_pic_url ? (
-              <img
-                src={toProxiedImageUrl(creator.profile_pic_url)}
-                alt={creator.username}
-                className="h-12 w-12 rounded-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  const fallback = target.nextElementSibling
-                  if (fallback) {
-                    (fallback as HTMLElement).style.display = 'flex'
-                  }
-                }}
-              />
-            ) : null}
-            <div
-              className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm items-center justify-center font-semibold"
-              style={{ display: creator.profile_pic_url ? 'none' : 'flex' }}
-            >
-              {creator.username.slice(0, 2).toUpperCase()}
-            </div>
+            <CreatorAvatar profilePicUrl={creator.profile_pic_url} username={creator.username} />
           </a>
 
           {/* Creator Details */}
@@ -316,7 +324,7 @@ const InstagramTable = memo(function InstagramTable({
 
       </div>
     )
-  }, [selectedCreators, onUpdateReview, setSelectedCreators, toggleSelectCreator, postsMetrics])
+  }, [selectedCreators, onUpdateReview, setSelectedCreators, toggleSelectCreator, postsMetrics, customColumns])
 
   if (loading && creators.length === 0) {
     return (
@@ -371,10 +379,7 @@ const InstagramTable = memo(function InstagramTable({
       {/* Body */}
       <div className="flex-1 overflow-auto min-h-[320px]">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-            <span className="ml-2 text-gray-500">Loading creators...</span>
-          </div>
+          <InstagramTableSkeleton />
         ) : creators.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-gray-500">
             No creators found
@@ -384,7 +389,7 @@ const InstagramTable = memo(function InstagramTable({
           </div>
         ) : (
           <>
-            {creators.map((creator, index) => renderRow(creator, index))}
+            {creators.map((creator, _index) => renderRow(creator, _index))}
 
             {/* Infinite scroll sentinel */}
             {hasMore && (

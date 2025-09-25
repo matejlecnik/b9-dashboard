@@ -1,8 +1,7 @@
 'use client'
 
-import React from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChevronUp, ChevronDown } from 'lucide-react'
 
 type SortField = 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour' | 'moderator_score' | 'health_score'
 type SortDirection = 'asc' | 'desc'

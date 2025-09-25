@@ -1,284 +1,86 @@
 'use client'
 
-import { Card, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Target,
-  Activity,
-  Search,
-  UserCircle2
-} from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { supabase } from '@/lib/supabase/index'
-import { useRouter } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import {
+  Instagram,
+  Users,
+  Activity,
+  Monitor,
+  Lock,
+  Loader2,
+  Search,
+  LogOut
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
+import { getUserDashboardsClient, DashboardInfo } from '@/lib/permissions'
+import { useDashboardTracking } from '@/hooks/useDashboardTracking'
+
 
 // Reddit Icon Component
-const RedditIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+const RedditIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
     <path d="M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z"/>
   </svg>
 )
 
-// Instagram Icon Component
-const InstagramIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/>
-  </svg>
-)
-
-// TikTok Icon Component
-const TikTokIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
-  </svg>
-)
-
-// X (Twitter) Icon Component
-const XIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
-  </svg>
-)
-
-// OnlyFans Icon Component
-const OnlyFansIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M24 4.003h-4.015c-3.45 0-5.3.197-6.748 1.957a7.996 7.996 0 1 0 2.103 9.211c3.182-.231 5.39-2.134 6.085-5.173 0 0-2.399.585-4.43 0 4.018-.777 6.333-3.037 7.005-5.995zM5.61 11.999A2.391 2.391 0 0 1 9.28 9.97a2.966 2.966 0 0 1 2.998-2.528h.008c-.92 1.778-1.407 3.352-1.998 5.263A2.392 2.392 0 0 1 5.61 12Zm2.386-7.996a7.996 7.996 0 1 0 7.996 7.996 7.996 7.996 0 0 0-7.996-7.996Zm0 10.394A2.399 2.399 0 1 1 10.395 12a2.396 2.396 0 0 1-2.399 2.398Z"/>
-  </svg>
-)
-
-// YouTube Icon Component
-const YouTubeIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-  </svg>
-)
-
-// Threads Icon Component
-const ThreadsIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221z"/>
-  </svg>
-)
-
-
-interface Dashboard {
-  id: string
-  name: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
-  href: string
-  status: 'active' | 'coming-soon' | 'beta'
-  color: string
-  gradient: string
-  accent: string
-  metrics?: {
-    label: string
-    value: string
-  }[]
+const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  reddit: RedditIcon,
+  instagram: Instagram,
+  models: Users,
+  tracking: Activity,
+  monitor: Monitor
 }
+
+const dashboardColors: Record<string, { color: string; bgColor: string; accent: string }> = {
+  reddit: {
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-50',
+    accent: 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 text-white'
+  },
+  instagram: {
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-50',
+    accent: 'bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700 text-white'
+  },
+  models: {
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-50',
+    accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600 text-white'
+  },
+  tracking: {
+    color: 'text-green-500',
+    bgColor: 'bg-green-50',
+    accent: 'bg-purple-600 text-white'
+  },
+  monitor: {
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-50',
+    accent: 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white'
+  }
+}
+
 
 export default function DashboardsPage() {
   const router = useRouter()
+  const [dashboards, setDashboards] = useState<DashboardInfo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
-  const handleLogout = async () => {
-    if (!supabase) {
-      console.error('Supabase client not available')
-      router.push('/login')
-      return
-    }
-    
-    try {
-      await supabase.auth.signOut()
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-      router.push('/login')
-    }
-  }
+  // Dashboard tracking hook
+  const { trackDashboardAccess, sortDashboardsByRecent, getRelativeTime } = useDashboardTracking()
 
-  // Filter dashboards based on search query
-  const filteredDashboards = useMemo(() => {
-    const dashboards: Dashboard[] = [
-      {
-        id: 'reddit',
-        name: 'Reddit Dashboard',
-        description: 'Subreddit categorization and OnlyFans marketing strategy optimization',
-        icon: RedditIcon,
-        href: '/reddit/subreddit-review',
-        status: 'active',
-        color: 'border-orange-200 hover:border-orange-300',
-        gradient: 'from-orange-500/10 via-orange-400/5 to-orange-500/10',
-        accent: 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 text-white',
-        metrics: [
-          { label: 'Subreddits', value: '5.8K+' },
-          { label: 'Posts', value: '500K+' },
-          { label: 'Active', value: '24/7' }
-        ]
-      },
-      {
-        id: 'models',
-        name: 'Models Dashboard',
-        description: 'Manage models and their content tag preferences across platforms',
-        icon: UserCircle2,
-        href: '/models',
-        status: 'active',
-        color: 'border-purple-200 hover:border-purple-300',
-        gradient: 'from-purple-500/10 via-purple-400/5 to-purple-500/10',
-        accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600 text-white',
-        metrics: [
-          { label: 'Models', value: 'Active' },
-          { label: 'Tags', value: '247' },
-          { label: 'Platforms', value: 'Multi' }
-        ]
-      },
-      {
-        id: 'system',
-        name: 'System Monitor',
-        description: 'Real-time monitoring of system health, scraper status, and data collection metrics',
-        icon: Activity,
-        href: '/monitor/reddit',
-        status: 'active',
-        color: 'border-blue-200 hover:border-blue-300',
-        gradient: 'from-blue-500/10 via-blue-400/5 to-blue-500/10',
-        accent: 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white',
-        metrics: [
-          { label: 'Accounts', value: '10' },
-          { label: 'Daily', value: '100+' },
-          { label: 'Uptime', value: '99.9%' }
-        ]
-      },
-      {
-        id: 'instagram',
-        name: 'Instagram Dashboard',
-        description: 'Instagram engagement tracking and influencer discovery platform',
-        icon: InstagramIcon,
-        href: '/instagram/creator-review',
-        status: 'active',
-        color: 'border-pink-200 hover:border-purple-300',
-        gradient: 'from-pink-500/10 via-pink-400/5 to-pink-500/10',
-        accent: 'bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700 text-white',
-        metrics: [
-          { label: 'Creators', value: '85' },
-          { label: 'Status', value: 'Active' },
-          { label: 'Reviews', value: 'Live' }
-        ]
-      },
-      {
-        id: 'tiktok',
-        name: 'TikTok Dashboard',
-        description: 'TikTok trend analysis and viral content optimization',
-        icon: TikTokIcon,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-black hover:border-gray-700',
-        gradient: 'from-black/10 via-gray-900/5 to-black/10',
-        accent: 'bg-black text-white',
-        metrics: [
-          { label: 'Trends', value: 'Real-time' },
-          { label: 'Content', value: 'Video AI' },
-          { label: 'Launch', value: 'Q3 2025' }
-        ]
-      },
-      {
-        id: 'x',
-        name: 'X Dashboard',
-        description: 'X (Twitter) engagement and audience analysis platform',
-        icon: XIcon,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-black hover:border-gray-700',
-        gradient: 'from-black/10 via-gray-900/5 to-black/10',
-        accent: 'bg-black text-white',
-        metrics: [
-          { label: 'Engagement', value: 'Real-time' },
-          { label: 'Audience', value: 'Analysis' },
-          { label: 'Launch', value: 'Q4 2025' }
-        ]
-      },
-      {
-        id: 'onlyfans',
-        name: 'OnlyFans Dashboard',
-        description: 'Revenue tracking and subscriber growth optimization',
-        icon: OnlyFansIcon,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-cyan-200 hover:border-cyan-300',
-        gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
-        accent: 'bg-cyan-600 text-white',
-        metrics: [
-          { label: 'Revenue', value: 'Live' },
-          { label: 'Subscribers', value: 'Growth' },
-          { label: 'Launch', value: 'Q2 2025' }
-        ]
-      },
-      {
-        id: 'tracking',
-        name: 'Tracking Dashboard',
-        description: 'Cross-platform performance tracking and analytics',
-        icon: Target,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-purple-200 hover:border-purple-300',
-        gradient: 'from-purple-500/10 via-purple-400/5 to-purple-500/10',
-        accent: 'bg-purple-600 text-white',
-        metrics: [
-          { label: 'Metrics', value: 'Multi-Platform' },
-          { label: 'Analysis', value: 'Real-time' },
-          { label: 'Launch', value: 'Q3 2025' }
-        ]
-      },
-      {
-        id: 'youtube',
-        name: 'YouTube Dashboard',
-        description: 'YouTube channel analytics and video performance optimization',
-        icon: YouTubeIcon,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-red-200 hover:border-red-300',
-        gradient: 'from-red-500/10 via-red-400/5 to-red-500/10',
-        accent: 'bg-red-600 text-white',
-        metrics: [
-          { label: 'Videos', value: 'Analytics' },
-          { label: 'Subscribers', value: 'Growth' },
-          { label: 'Launch', value: 'Q4 2025' }
-        ]
-      },
-      {
-        id: 'threads',
-        name: 'Threads Dashboard',
-        description: 'Threads engagement monitoring and community growth tracking',
-        icon: ThreadsIcon,
-        href: '#',
-        status: 'coming-soon',
-        color: 'border-gray-200 hover:border-gray-300',
-        gradient: 'from-gray-500/10 via-gray-400/5 to-gray-500/10',
-        accent: 'bg-black text-white',
-        metrics: [
-          { label: 'Posts', value: 'Tracking' },
-          { label: 'Engagement', value: 'Analytics' },
-          { label: 'Launch', value: '2026' }
-        ]
-      }
-    ]
+  useEffect(() => {
+    loadUserDashboards()
+  }, [])
 
-    if (!searchQuery.trim()) return dashboards
-    
-    const query = searchQuery.toLowerCase()
-    return dashboards.filter(dashboard => 
-      dashboard.name.toLowerCase().includes(query) ||
-      dashboard.description.toLowerCase().includes(query)
-    )
-  }, [searchQuery])
-  
-  const activeDashboards = filteredDashboards.filter(d => d.status === 'active')
-  const upcomingDashboards = filteredDashboards.filter(d => d.status !== 'active')
-  
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -290,65 +92,127 @@ export default function DashboardsPage() {
         document.getElementById('dashboard-search')?.blur()
       }
     }
-    
+
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isSearchFocused])
-  
+
+  async function loadUserDashboards() {
+    try {
+      if (!supabase) {
+        logger.error('No Supabase client available')
+        setLoading(false)
+        return
+      }
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        logger.error('Failed to get user:', userError)
+        setLoading(false)
+        return
+      }
+
+      setUserEmail(user.email || null)
+
+      // Get user's accessible dashboards
+      const userDashboards = await getUserDashboardsClient(user.email!)
+      setDashboards(userDashboards)
+    } catch (error) {
+      logger.error('Failed to load dashboards:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    if (!supabase) {
+      logger.error('Supabase client not available')
+      router.push('/login')
+      return
+    }
+
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      logger.error('Logout error:', error)
+      router.push('/login')
+    }
+  }
+
+  // Filter and sort dashboards
+  const filteredDashboards = useMemo(() => {
+    let filtered = dashboards
+
+    // Apply search filter if there's a query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = dashboards.filter(dashboard =>
+        dashboard.name.toLowerCase().includes(query) ||
+        (dashboard.description?.toLowerCase() || '').includes(query)
+      )
+    }
+
+    // Sort by most recently accessed
+    return sortDashboardsByRecent(filtered)
+  }, [searchQuery, dashboards, sortDashboardsByRecent])
+
   // Highlight search matches
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text
-    
+
     const regex = new RegExp(`(${query})`, 'gi')
     const parts = text.split(regex)
-    
-    return parts.map((part, i) => 
-      regex.test(part) ? 
-        <span key={i} className="bg-b9-pink/20 text-b9-pink font-medium">{part}</span> : 
+
+    return parts.map((part, i) =>
+      regex.test(part) ?
+        <span key={i} className="bg-yellow-200 font-medium">{part}</span> :
         part
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
           <div className="flex items-center space-x-4">
-            <Image 
-              src="/logo/logo.png" 
-              alt="B9 Dashboard" 
-              width={120}
-              height={40}
-              className="h-10 w-auto object-contain"
+            <Image
+              src="/logo/logo.png"
+              alt="B9 Dashboard"
+              width={80}
+              height={30}
+              className="h-8 w-auto object-contain"
               priority
             />
             <div>
-              <h1 
-                className="text-2xl font-semibold text-gray-900 tracking-tight"
-                style={{
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
-                }}
-              >
+              <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
                 B9 Dashboard
               </h1>
-              <p 
-                className="text-gray-500 text-sm tracking-wide"
-                style={{
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-                }}
-              >
-                Select your business intelligence platform
-              </p>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={handleLogout}
-            variant="outline" 
+            variant="outline"
+            size="sm"
             className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
           >
-            Sign Out
+            <LogOut className="w-3 h-3 mr-1.5" />
+            <span className="text-xs">Sign Out</span>
           </Button>
         </div>
 
@@ -361,31 +225,37 @@ export default function DashboardsPage() {
             <Input
               id="dashboard-search"
               type="text"
-              placeholder="Search"
+              placeholder=""
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl backdrop-blur-sm transition-all duration-300 search-input-enhanced ${
-                isSearchFocused
-                  ? 'search-glow-focus'
-                  : ''
-              } focus:outline-none`}
-              style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-              }}
+              className="w-full pl-10 pr-4 py-3 border-2 rounded-xl backdrop-blur-sm transition-all duration-300"
             />
           </div>
         </div>
 
-        {/* Empty State */}
-        {searchQuery.trim() && filteredDashboards.length === 0 && (
+        {/* Empty State - No Access */}
+        {dashboards.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <Card className="max-w-md mx-auto p-8">
+              <Lock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <h2 className="text-xl font-semibold mb-2">No Dashboards Available</h2>
+              <p className="text-gray-500">
+                You don&apos;t have access to any dashboards yet. Please contact your administrator.
+              </p>
+            </Card>
+          </div>
+        )}
+
+        {/* Empty State - No Search Results */}
+        {searchQuery.trim() && filteredDashboards.length === 0 && dashboards.length > 0 && (
           <div className="text-center py-12">
             <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No dashboards found</h3>
             <p className="text-gray-500">Try searching with different keywords</p>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setSearchQuery('')}
               className="mt-4"
             >
@@ -394,71 +264,49 @@ export default function DashboardsPage() {
           </div>
         )}
 
-        {/* Active Dashboards */}
-        {activeDashboards.length > 0 && (
-          <div className="mb-12">
-            <h2 
-              className="text-lg font-semibold text-gray-800 mb-4 text-center tracking-tight"
-              style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
-              }}
-            >
-              Available
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
-              {activeDashboards.map((dashboard, index) => {
-                const IconComponent = dashboard.icon
-                return (
-                  <Link key={dashboard.id} href={dashboard.href}>
-                    <Card 
-                      className={`group dashboard-card-active transition-all duration-300 cursor-pointer rounded-lg animate-card-fade-in hover:scale-105 hover:-translate-y-1 active:scale-95`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex items-center p-4">
-                        <div className={`p-2 rounded-lg flex-shrink-0 ${dashboard.accent}`}>
-                          <IconComponent className="h-4 w-4" />
-                        </div>
-                        <CardTitle className="text-sm font-semibold text-gray-900 ml-3 tracking-tight">
-                          {highlightText(dashboard.name, searchQuery)}
-                        </CardTitle>
-                      </div>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Coming Soon Dashboards */}
-        {upcomingDashboards.length > 0 && (
+        {/* Available Dashboards */}
+        {filteredDashboards.length > 0 && (
           <div>
-            <h2 
-              className="text-lg font-semibold text-gray-800 mb-4 text-center tracking-tight"
-              style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
-              }}
-            >
-              Coming Soon
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center tracking-tight">
+              Your Available Dashboards
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
-              {upcomingDashboards.map((dashboard, index) => {
-                const IconComponent = dashboard.icon
+              {filteredDashboards.map((dashboard: DashboardInfo, index: number) => {
+                const Icon = dashboardIcons[dashboard.dashboard_id] as React.ComponentType<{ className?: string }> || Activity
+                const colors = dashboardColors[dashboard.dashboard_id] || {
+                  color: 'text-gray-500',
+                  bgColor: 'bg-gray-50',
+                  accent: 'bg-gray-600 text-white'
+                }
+
+                const handleDashboardClick = () => {
+                  trackDashboardAccess(dashboard.dashboard_id)
+                  router.push(dashboard.path)
+                }
+
                 return (
-                  <Card 
-                    key={dashboard.id} 
-                    className={`dashboard-card-inactive transition-all duration-300 opacity-60 hover:opacity-80 rounded-lg animate-card-fade-in hover:scale-[1.02] hover:-translate-y-0.5 cursor-not-allowed`}
-                    style={{ animationDelay: `${(activeDashboards.length + index) * 0.1}s` }}
+                  <Card
+                    key={dashboard.dashboard_id}
+                    className="group dashboard-card-active transition-all duration-300 cursor-pointer rounded-lg hover:scale-105 hover:-translate-y-1 active:scale-95"
+                    onClick={handleDashboardClick}
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="flex items-center p-4">
-                      <div className="p-2 rounded-lg flex-shrink-0 bg-gray-200">
-                        <IconComponent className="h-4 w-4 text-gray-600" />
+                    <div className="p-4">
+                      <div className="flex items-start">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${colors.accent}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <CardTitle className="text-sm font-semibold text-gray-900 tracking-tight">
+                            {highlightText(dashboard.name, searchQuery)}
+                          </CardTitle>
+                          {/* Last Opened Time */}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {getRelativeTime(dashboard.dashboard_id)}
+                          </p>
+                        </div>
                       </div>
-                      <CardTitle className="text-sm font-semibold text-gray-700 ml-3 tracking-tight">
-                        {highlightText(dashboard.name, searchQuery)}
-                      </CardTitle>
                     </div>
                   </Card>
                 )
@@ -470,7 +318,7 @@ export default function DashboardsPage() {
         {/* Footer */}
         <div className="mt-16 pt-6 text-center">
           <p className="text-xs text-gray-400">
-            © 2025 B9 Dashboard
+            © 2025 B9 Dashboard · {userEmail === 'info@b9agencija.com' && 'Admin Access'}
           </p>
         </div>
       </div>

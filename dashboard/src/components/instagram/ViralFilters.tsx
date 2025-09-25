@@ -1,7 +1,5 @@
 'use client'
 
-import React from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -9,9 +7,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { TrendingUp, Calendar, SortAsc } from 'lucide-react'
-import { ViralReelsFilters } from '@/lib/supabase/viral-reels'
+import { TrendingUp, SortAsc, Calendar } from 'lucide-react'
+
+interface ViralReelsFilters {
+  minViews: number
+  sortBy: 'views' | 'likes' | 'engagement' | 'recent'
+  sortOrder: 'asc' | 'desc'
+  dateFrom?: string
+  dateTo?: string
+}
 
 interface ViralFiltersProps {
   filters: ViralReelsFilters

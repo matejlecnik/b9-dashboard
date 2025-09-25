@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react'
-import Link from 'next/link'
+import React from 'react'
 import { useRouter } from 'next/navigation'
+import { useRef, useState, useEffect } from 'react'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { supabase as supabaseClient } from '@/lib/supabase'
+import { UserCircle2, ChevronLeft, User, LogOut } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, User, LogOut, UserCircle2 } from 'lucide-react'
-import { supabase as supabaseClient } from '@/lib/supabase/index'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 type ModelsSidebarProps = Record<string, never>
 

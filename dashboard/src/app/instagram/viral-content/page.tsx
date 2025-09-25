@@ -1,10 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { TrendingUp, Play, Eye, Film, Users, Sparkles } from 'lucide-react'
-import { InstagramSidebar } from '@/components/InstagramSidebar'
-import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
+import { useState, useCallback, useEffect } from 'react'
+import {
+  Film,
+  TrendingUp,
+  Sparkles,
+  Eye,
+  Play,
+  Heart,
+  Clock
+} from 'lucide-react'
+import { StandardToolbar } from '@/components/shared'
 import { ViralFilters } from '@/components/instagram/ViralFilters'
+import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
+import { logger } from '@/lib/logger'
 import {
   getViralReels,
   getViralReelsStats,
@@ -12,6 +21,23 @@ import {
   ViralReel,
   ViralReelsFilters
 } from '@/lib/supabase/viral-reels'
+
+interface ViralStats {
+  total_reels: number
+  total_viral: number
+  ultra_viral: number
+  mega_viral?: number
+  avg_views: number
+  avg_likes: number
+  max_views: number
+}
+
+interface TopCreator {
+  username: string
+  viral_count: number
+  total_views: number
+  avg_views: number
+}
 
 function formatNumber(num: number | null | undefined): string {
   if (num === null || num === undefined) return '0'
@@ -27,8 +53,9 @@ export default function ViralContentPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [stats, setStats] = useState<any>(null)
-  const [topCreators, setTopCreators] = useState<any[]>([])
+  const [stats, setStats] = useState<ViralStats | null>(null)
+  const [topCreators, setTopCreators] = useState<TopCreator[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<ViralReelsFilters>({
     minViews: 50000,
     sortBy: 'views',
@@ -51,7 +78,7 @@ export default function ViralContentPage() {
       setTotalPages(pages)
       setPage(pageNum)
     } catch (error) {
-      console.error('Error loading reels:', error)
+      logger.error('Error loading reels:', error)
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -67,7 +94,7 @@ export default function ViralContentPage() {
       setStats(statsData)
       setTopCreators(creatorsData)
     } catch (error) {
-      console.error('Error loading stats:', error)
+      logger.error('Error loading stats:', error)
     }
   }, [])
 
@@ -111,7 +138,6 @@ export default function ViralContentPage() {
 
       {/* Sidebar */}
       <div className="relative z-50">
-        <InstagramSidebar />
       </div>
 
       {/* Main Content */}
@@ -219,7 +245,7 @@ export default function ViralContentPage() {
               {topCreators.length > 0 && (
                 <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-4">
                   <div className="flex items-center gap-4 overflow-x-auto">
-                    {topCreators.map((creator, index) => (
+                    {topCreators.map((creator) => (
                       <div
                         key={creator.username}
                         className="flex flex-col items-center group flex-shrink-0"
@@ -245,7 +271,63 @@ export default function ViralContentPage() {
                 </div>
               )}
 
-              {/* Filters */}
+              {/* StandardToolbar */}
+              <StandardToolbar
+                // Search
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+
+                // Filters
+                filters={[
+                  {
+                    id: 'all',
+                    label: 'All Reels',
+                    count: stats?.total_reels || 0
+                  },
+                  {
+                    id: 'viral',
+                    label: 'Viral (50K+)',
+                    count: stats?.total_viral || 0
+                  },
+                  {
+                    id: 'mega',
+                    label: 'Mega (1M+)',
+                    count: stats?.mega_viral || 0
+                  },
+                  {
+                    id: 'ultra',
+                    label: 'Ultra (50M+)',
+                    count: stats?.ultra_viral || 0
+                  }
+                ]}
+                currentFilter={
+                  filters?.minViews || 0 >= 50000000 ? 'ultra' :
+                  filters?.minViews || 0 >= 1000000 ? 'mega' :
+                  filters?.minViews || 0 >= 50000 ? 'viral' : 'all'
+                }
+                onFilterChange={(filterId: string) => {
+                  const minViews =
+                    filterId === 'ultra' ? 50000000 :
+                    filterId === 'mega' ? 1000000 :
+                    filterId === 'viral' ? 50000 : 0
+                  handleFiltersChange({ ...filters, minViews })
+                }}
+
+                // Sort options
+                sortOptions={[
+                  { id: 'views', label: 'Views', icon: Eye },
+                  { id: 'likes', label: 'Likes', icon: Heart },
+                  { id: 'engagement', label: 'Engagement', icon: TrendingUp },
+                  { id: 'recent', label: 'Recent', icon: Clock }
+                ]}
+                currentSort={filters.sortBy}
+                onSortChange={(sortBy: string) => handleFiltersChange({ ...filters, sortBy: sortBy as 'views' | 'likes' | 'engagement' | 'recent' })}
+
+                loading={loading}
+                accentColor="linear-gradient(135deg, #E1306C, #F77737)"
+              />
+
+              {/* Advanced Filters */}
               <ViralFilters
                 filters={filters}
                 onFiltersChange={handleFiltersChange}

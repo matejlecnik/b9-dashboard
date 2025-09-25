@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { ChevronDown, Check, Filter } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Filter, ChevronDown, Check } from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
+import { createPortal } from 'react-dom'
 
 interface NicheFilterDropdownProps {
   availableNiches: string[]

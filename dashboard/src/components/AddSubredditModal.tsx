@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, Loader2, Plus, X } from 'lucide-react'
+import { useState, useCallback } from 'react'
 import { useToast } from '@/components/ui/toast'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Plus, X, AlertCircle, Loader2 } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { logger } from '@/lib/logger'
 
 interface AddSubredditModalProps {
   isOpen: boolean
@@ -74,7 +75,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
     setLoading(true)
 
     try {
-      const response = await fetch('/api/subreddits', {
+      const response = await fetch('/api/reddit/subreddits', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
       // Success
       onSuccess()
     } catch (err) {
-      console.error('Failed to add subreddit:', err)
+      logger.error('Failed to add subreddit:', err)
       setError(err instanceof Error ? err.message : 'Failed to add subreddit')
       addToast({
         type: 'error',
@@ -129,16 +130,16 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
         <div
           className="relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl"
           style={{
-            background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.98), rgba(229, 231, 235, 0.95), rgba(209, 213, 219, 0.92))',
+            background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 246, 0.92))',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
             boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04)'
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative px-5 py-3 border-b border-pink-200/30 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
+          <div className="relative px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
@@ -233,7 +234,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-pink-200/30 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
+          <div className="px-5 py-3 border-t border-gray-200 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
             <div className="flex items-center justify-end gap-2">
               <Button
                 variant="outline"

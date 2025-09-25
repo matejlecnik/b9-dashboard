@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/index'
-import { cookies } from 'next/headers'
 // next/server types not needed here
+import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 /**
  * Clear all authentication-related cookies
@@ -56,7 +57,7 @@ export async function getAuthenticatedUser() {
     
     return { user, error: null }
   } catch (error: unknown) {
-    console.error('Auth check error:', error)
+    logger.error('Auth check error:', error)
     await clearAuthCookies()
     return { user: null, error: 'Auth check failed' }
   }
@@ -127,7 +128,7 @@ export async function isAuthenticated(): Promise<boolean> {
     const { data: { user }, error } = await supabase.auth.getUser()
     return !error && user !== null
   } catch (error) {
-    console.error('Middleware auth check error:', error)
+    logger.error('Middleware auth check error:', error)
     return false
   }
 }

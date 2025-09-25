@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ChevronDown, ChevronUp, Plus, X, Info, AlertCircle } from 'lucide-react'
-import { TAG_CATEGORIES, getAllTags, findTagByValue } from '@/lib/tagCategories'
+import { Plus, X, ChevronDown, ChevronUp, Info, Loader2, AlertCircle } from 'lucide-react'
+import { TAG_CATEGORIES } from '@/lib/tagCategories'
+import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
 
 interface ModelFormProps {
@@ -19,7 +21,15 @@ interface ModelFormProps {
     commission_rate?: number | null
     payment_type?: 'bank' | 'crypto'
   }
-  onSave: (data: any) => Promise<void>
+  onSave: (data: {
+    stage_name: string
+    status: 'active' | 'inactive' | 'onboarding'
+    description?: string
+    assigned_tags: string[]
+    platform_accounts?: Record<string, string[]>
+    commission_rate?: number | null
+    payment_type?: 'bank' | 'crypto'
+  }) => Promise<void>
   saving: boolean
   onCancel: () => void
 }
@@ -76,7 +86,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
           setMatchingSubreddits(count)
         }
       } catch (error) {
-        console.error('Error fetching matching subreddits:', error)
+        logger.error('Error fetching matching subreddits:', error)
       } finally {
         setIsLoadingMatches(false)
       }
@@ -202,7 +212,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
               <label className="text-sm font-medium text-gray-700">Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'onboarding' })}
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="inactive">Inactive</option>
@@ -330,7 +340,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                       <span><strong>Too many: 6+ tags</strong> - Reduces precision significantly</span>
                     </li>
                     <li className="mt-2 pt-2 border-t border-gray-100">
-                      <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model's content
+                      <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model&apos;s content
                     </li>
                   </ul>
                 </div>

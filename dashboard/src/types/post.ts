@@ -26,6 +26,8 @@ export interface Post {
   is_video?: boolean
   is_self?: boolean
   over_18?: boolean
+  post_type?: string  // Optional for backward compatibility
+  viral_score?: number  // From the get_viral_posts function
 }
 
 export interface PostMetrics {

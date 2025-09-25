@@ -1,7 +1,11 @@
 'use client'
 
-import React, { useState, useCallback, memo, useEffect } from 'react'
+import { useState, useCallback, useEffect, memo, type JSX } from 'react'
+import { useToast } from '@/components/ui/toast'
 import Image from 'next/image'
+import { logger } from '@/lib/logger'
+import { TagsDisplay } from '@/components/TagsDisplay'
+import { supabase } from '@/lib/supabase'
 import {
   Users,
   ArrowUpCircle,
@@ -19,18 +23,57 @@ import {
   Check,
   BadgeCheck
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+// import { cn } from '@/lib/utils'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Mousewheel } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/free-mode'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/toast'
-import { supabase } from '@/lib/supabase/index'
-import type { Subreddit, Post } from '@/lib/supabase/index'
-import { getCategoryStyles } from '@/lib/colors'
-import { TagsDisplay } from '@/components/TagsDisplay'
+import type { Subreddit } from '@/lib/supabase/reddit'
+import type { Post } from '@/types/post'
 
-interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
+// Remove local TagsDisplay; use shared component instead
+
+// Helper component for rules button
+interface RulesButtonProps {
+  subreddit: SubredditWithPosts
+  onShowRules: (subreddit: SubredditWithPosts) => void
+}
+
+const RulesButton = ({ subreddit, onShowRules }: RulesButtonProps): JSX.Element => {
+  const hasRulesData = subreddit.rules_data &&
+    typeof subreddit.rules_data === 'object' && (
+      (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
+      (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
+       Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) &&
+       ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
+    )
+
+  const handleClick = (): void => {
+    if (hasRulesData) {
+      onShowRules(subreddit)
+    } else {
+      const confirmOpen = window.confirm(
+        `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
+      )
+      if (confirmOpen) {
+        window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
+      }
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
+      title="View Rules"
+    >
+      <BookOpen className={`h-3.5 w-3.5 ${hasRulesData ? 'text-b9-pink' : 'text-gray-300'}`} />
+    </button>
+  )
+}
+
+export interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
   recent_posts?: Post[]
   public_description?: string | null
   comment_to_upvote_ratio?: number | null
@@ -59,17 +102,37 @@ interface SubredditWithPosts extends Omit<Subreddit, 'created_at' | 'review'> {
   tags?: string[] | null // Override to ensure it's treated as an array
 }
 
-interface ExtendedPost extends Post {
+// ExtendedPost - using interface to avoid any type conflicts
+interface ExtendedPost {
+  id: number
+  reddit_id: string
+  title: string
+  score: number
+  num_comments: number
+  created_utc: string
+  subreddit_name: string
+  content_type: string
+  upvote_ratio: number
   thumbnail?: string | null
+  url?: string
+  author_username: string
+  sub_primary_category?: string | null
+  sub_over18?: boolean | null
   preview_data?: {
     images?: Array<{
-      source?: {
-        url?: string
-      }
+      source?: { url?: string }
+      resolutions?: Array<{ url: string; width: number; height: number }>
     }>
+    reddit_video?: {
+      fallback_url?: string
+    }
   }
-  url?: string | null
+  domain?: string
   is_video?: boolean
+  is_self?: boolean
+  over_18?: boolean
+  post_type?: string
+  viral_score?: number
 }
 
 interface DiscoveryTableProps {
@@ -77,9 +140,6 @@ interface DiscoveryTableProps {
   loading?: boolean
   onLoadMore?: () => void
   hasMore?: boolean
-  selectedCategories?: string[]
-  availableCategories?: string[]
-  sfwOnly?: boolean
   onUpdate?: (id: number, updates: Partial<SubredditWithPosts>) => void
   onTagUpdate?: (id: number, oldTag: string, newTag: string) => void
   onTagRemove?: (id: number, tag: string) => void
@@ -93,11 +153,12 @@ interface PostGridProps {
   subredditName: string
 }
 
-const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }: PostGridProps) {
+const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }: PostGridProps): JSX.Element {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const { addToast } = useToast()
+  
 
-  const handleCopyTitle = useCallback((e: React.MouseEvent, postId: string, title: string) => {
+  const handleCopyTitle = useCallback((e: React.MouseEvent, postId: string, title: string): void => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -145,13 +206,13 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
   }
 
   // Format score for display
-  const formatScore = (score: number) => {
+  const formatScore = (score: number): string => {
     if (score >= 1000) return `${(score / 1000).toFixed(1)}k`
     return score.toString()
   }
 
   // Get thumbnail URL from post
-  const getPostThumbnail = (post: ExtendedPost) => {
+  const getPostThumbnail = (post: ExtendedPost): string | null => {
     // Try to get preview image
     if (post.preview_data?.images?.[0]?.source?.url) {
       return post.preview_data.images[0].source.url.replace(/&amp;/g, '&')
@@ -167,7 +228,7 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
   const displayPosts = posts.slice(0, 10)
 
   return (
-    <div className="p-2 h-full">
+    <div className="p-2">
       <Swiper
         modules={[FreeMode, Mousewheel]}
         spaceBetween={8}
@@ -176,6 +237,13 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
         mousewheel={true}
         grabCursor={true}
         className="h-full"
+        breakpoints={{
+          0: { slidesPerView: 2, spaceBetween: 6 },
+          480: { slidesPerView: 3, spaceBetween: 6 },
+          768: { slidesPerView: 4, spaceBetween: 8 },
+          1024: { slidesPerView: 5, spaceBetween: 8 },
+          1280: { slidesPerView: 6, spaceBetween: 8 }
+        }}
       >
         {displayPosts.map((post, idx) => {
           const thumbnail = getPostThumbnail(post)
@@ -259,16 +327,11 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
 export const DiscoveryTable = memo(function DiscoveryTable({
   subreddits,
   loading = false,
-  onLoadMore,
-  hasMore = false,
-  selectedCategories = [],
-  availableCategories = [],
-  sfwOnly = false,
   onUpdate,
   onTagUpdate,
   onTagRemove,
   onAddTag
-}: DiscoveryTableProps) {
+}: DiscoveryTableProps): JSX.Element {
   const [postCache, setPostCache] = useState<Record<number, ExtendedPost[]>>({})
   const [loadingPosts, setLoadingPosts] = useState<Set<number>>(new Set())
   const [postErrors, setPostErrors] = useState<Record<number, string>>({})
@@ -283,13 +346,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }, [])
 
   // Fetch posts for a subreddit
-  const fetchPosts = useCallback(async (subredditId: number, subredditName: string) => {
-    // Skip cache check to always fetch fresh 7-day data
-    // TODO: Implement smarter cache invalidation
-    // if (postCache[subredditId]) {
-    //   return
-    // }
-
+  const fetchPosts = useCallback(async (subredditId: number, subredditName: string): Promise<void> => {
     // Check if already loading
     if (loadingPosts.has(subredditId)) {
       return
@@ -308,7 +365,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
       const sevenDaysAgo = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
       const cutoffDate = sevenDaysAgo.toISOString()
 
-      console.log(`[DiscoveryTable] Fetching posts for ${subredditName} from last 7 days (cutoff: ${cutoffDate})`)
+      logger.log(`[DiscoveryTable] Fetching posts for ${subredditName} from last 7 days (cutoff: ${cutoffDate})`)
 
       // Fetch posts without category filtering since all shown subreddits are already filtered
       const { data: posts, error } = await supabase
@@ -323,11 +380,11 @@ export const DiscoveryTable = memo(function DiscoveryTable({
 
       // Debug: Log the posts to verify they're from last 7 days
       if (posts && posts.length > 0) {
-        console.log(`[DiscoveryTable] Got ${posts.length} posts for ${subredditName}`)
-        console.log(`[DiscoveryTable] First post date: ${posts[0].created_utc}`)
-        console.log(`[DiscoveryTable] Last post date: ${posts[posts.length - 1].created_utc}`)
+        logger.log(`[DiscoveryTable] Got ${posts.length} posts for ${subredditName}`)
+        logger.log(`[DiscoveryTable] First post date: ${posts[0].created_utc}`)
+        logger.log(`[DiscoveryTable] Last post date: ${posts[posts.length - 1].created_utc}`)
       } else {
-        console.log(`[DiscoveryTable] No posts found for ${subredditName} in last 7 days`)
+        logger.log(`[DiscoveryTable] No posts found for ${subredditName} in last 7 days`)
       }
 
       setPostCache(prev => ({
@@ -335,7 +392,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         [subredditId]: posts || []
       }))
     } catch (error) {
-      console.error('Error fetching posts:', error)
+      logger.error('Error fetching posts:', error)
       setPostErrors(prev => ({
         ...prev,
         [subredditId]: 'Failed to load posts'
@@ -347,7 +404,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
         return newSet
       })
     }
-  }, [selectedCategories, availableCategories, sfwOnly])
+  }, [loadingPosts])
 
   // Auto-load posts on mount for all visible subreddits
   useEffect(() => {
@@ -360,7 +417,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }, [subreddits, fetchPosts, loadingPosts, postCache])
 
   // Handle showing rules modal
-  const handleShowRules = useCallback((subreddit: SubredditWithPosts) => {
+  const handleShowRules = useCallback((subreddit: SubredditWithPosts): void => {
     let rules = null
     
     if (subreddit.rules_data) {
@@ -377,7 +434,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }, [])
 
   // Format number helper
-  const formatNumber = (num: number | null | undefined) => {
+  const formatNumber = (num: number | null | undefined): string => {
     if (!num) return '0'
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
@@ -385,7 +442,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }
 
   // Format large numbers for requirements
-  const formatRequirement = (num: number | null | undefined) => {
+  const formatRequirement = (num: number | null | undefined): string | null => {
     if (!num) return null
     if (num >= 1000) return `${(num / 1000).toFixed(0)}k`
     return num.toString()
@@ -393,16 +450,14 @@ export const DiscoveryTable = memo(function DiscoveryTable({
 
   if (loading && subreddits.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-pink-200 overflow-hidden">
-        <div className="animate-pulse">
-          <div className="h-12 bg-gray-50 border-b border-gray-200" />
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 border-b border-gray-100 bg-white p-4">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-2/3" />
-            </div>
-          ))}
-        </div>
+      <div className="animate-pulse">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center px-4 py-3 border-b border-gray-100">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mr-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3 mr-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -505,7 +560,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           }
                         }
                       }}
-                      onTagRemove={async (tag) => {
+                      onTagRemove={async (tag: string) => {
                         // Use parent-provided handler if available, otherwise use local logic
                         if (onTagRemove) {
                           onTagRemove(subreddit.id, tag)
@@ -529,7 +584,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           }
                         }
                       }}
-                      onAddTag={async (tag) => {
+                      onAddTag={async (tag: string) => {
                         // Use parent-provided handler if available, otherwise use local logic
                         if (onAddTag) {
                           onAddTag(subreddit.id, tag)
@@ -593,35 +648,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                       
                       {/* Rules Button with spacing */}
                       <div className="px-1">
-                        {(() => {
-                          const hasRulesData = subreddit.rules_data &&
-                            typeof subreddit.rules_data === 'object' && (
-                              (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
-                              (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
-                               Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
-                            )
-
-                          return (
-                            <button
-                              onClick={() => {
-                                if (hasRulesData) {
-                                  handleShowRules(subreddit)
-                                } else {
-                                  const confirmOpen = window.confirm(
-                                    `No rules data available for r/${subreddit.name}.\n\nWould you like to open Reddit to view the rules directly?`
-                                  )
-                                  if (confirmOpen) {
-                                    window.open(`https://www.reddit.com/r/${subreddit.name}/about/rules`, '_blank')
-                                  }
-                                }
-                              }}
-                              className="p-1 hover:bg-b9-pink/20 rounded-md transition-colors"
-                              title="View Rules"
-                            >
-                              <BookOpen className={`h-3.5 w-3.5 ${hasRulesData ? 'text-b9-pink' : 'text-gray-300'}`} />
-                            </button>
-                          )
-                        })()}
+                        <RulesButton subreddit={subreddit} onShowRules={handleShowRules} />
                       </div>
                     </div>
                   </div>

@@ -190,7 +190,7 @@ This context matters because every feature decision should help B9 Agency find a
 
 After resolving persistent errors with React 19 + Next.js 15, these patterns are **MANDATORY** to prevent future issues:
 
-### 🛠️ **Server Actions Pattern (FIXED)**
+### 🛠️ **Server Actions Pattern (React 19 + Next.js 15)**
 ```typescript
 // Server Action File (actions.ts)
 'use server'
@@ -203,12 +203,12 @@ export async function actionName(
   formData: FormData
 ) {
   // Implementation here
-  
+
   // Always handle errors properly
   if (error) {
     return { error: "User-friendly message" }
   }
-  
+
   // On success, revalidate and redirect
   revalidatePath('/', 'layout')
   redirect('/dashboard')
@@ -219,12 +219,12 @@ export async function actionName(
 // Client Component (page.tsx)
 'use client'
 
-import { useFormState } from 'react-dom' // ← NEVER use useActionState
+import { useActionState } from 'react' // ← React 19 renamed useFormState to useActionState
 import { actionName } from './actions'
 
 export default function MyPage() {
-  const [state, formAction] = useFormState(actionName, { error: "" })
-  
+  const [state, formAction] = useActionState(actionName, { error: "" })
+
   return (
     <form action={formAction}>
       {state?.error && <div>{state.error}</div>}
@@ -235,12 +235,12 @@ export default function MyPage() {
 ```
 
 ### 🚨 **NEVER Use These (Causes Errors)**
-- ❌ `useActionState` from React (experimental, incompatible with Next.js 15)
+- ❌ `useFormState` from `react-dom` (deprecated in React 19, use `useActionState` from `react`)
 - ❌ Version mismatches in package.json
 - ❌ Mixing server/client boundaries incorrectly
 
 ### ✅ **ALWAYS Use These (Stable)**
-- ✅ `useFormState` from `react-dom` for server actions
+- ✅ `useActionState` from `react` for server actions (React 19+)
 - ✅ `React.startTransition()` for performance-critical state updates
 - ✅ Exact version pinning for Next.js in package.json
 - ✅ `'use server'` and `'use client'` directives explicitly
@@ -277,7 +277,7 @@ const formatNumber = (num: number | null | undefined): string => {
 ### 📋 **Pre-Commit Checklist**
 Before every commit, ensure:
 - [ ] No experimental React hooks used
-- [ ] All server actions use `useFormState`
+- [ ] All server actions use `useActionState` (React 19+)
 - [ ] Package.json versions match installed versions
 - [ ] `npm run build` succeeds
 - [ ] No console errors in development

@@ -1,15 +1,20 @@
 'use client'
 
-import React, { memo } from 'react'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  FileText, 
+import { memo } from 'react'
+import {
+  FileText,
   Trophy,
   Target,
   Tags,
 } from 'lucide-react'
-import { PostMetrics } from '@/types/post'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+interface PostMetrics {
+  total_posts_count?: number
+  avg_score_value?: number
+  avg_comments_value?: number
+}
 
 interface PostAnalysisMetricsProps {
   metrics: PostMetrics | null
@@ -36,7 +41,7 @@ export const PostAnalysisMetrics = memo(function PostAnalysisMetrics({
     return (
       <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5 mb-1 ${className}`}>
         {[...Array(4)].map((_, index) => (
-          <div 
+          <div
             key={index}
             className="rounded-2xl p-4 h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
             style={{

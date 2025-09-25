@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Search, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
 import { formatNumber } from '@/lib/utils'
+import React from 'react'
 
 export type PostSortField = 'score' | 'comments'
 export type AgeFilter = '24h' | '7d' | '30d' | 'all'

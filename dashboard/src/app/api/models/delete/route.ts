@@ -1,7 +1,12 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/index'
+import { createClient } from '@/lib/supabase'
+import { protectedApi } from '@/lib/api-wrapper'
 
-export async function DELETE(req: NextRequest) {
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
+
+export const DELETE = protectedApi(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
@@ -44,7 +49,7 @@ export async function DELETE(req: NextRequest) {
       .eq('model_id', Number(id))
 
     if (unlinkError) {
-      console.error('Error unlinking reddit accounts:', unlinkError)
+      logger.error('Error unlinking reddit accounts:', unlinkError)
       // Continue with deletion anyway
     }
 
@@ -55,7 +60,7 @@ export async function DELETE(req: NextRequest) {
       .eq('id', Number(id))
 
     if (deleteError) {
-      console.error('Error deleting model:', deleteError)
+      logger.error('Error deleting model:', deleteError)
       return NextResponse.json({
         success: false,
         error: 'Failed to delete model'
@@ -64,14 +69,14 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Model "${model.stage_name}" deleted successfully`
+      title: `Model "${model.stage_name}" deleted successfully`
     })
 
   } catch (error) {
-    console.error('Unexpected error in delete model API:', error)
+    logger.error('Unexpected error in delete model API:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
     }, { status: 500 })
   }
-}
+})

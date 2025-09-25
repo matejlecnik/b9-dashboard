@@ -1,13 +1,18 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/index'
 
-export async function GET() {
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase'
+
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
+
+// Health check is a public endpoint (no auth required)
+export const GET = async () => {
   try {
     // Check if environment variables are available
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       return NextResponse.json({
         status: 'error',
-        message: 'Missing Supabase environment variables',
+        title: 'Missing Supabase environment variables',
         env_check: {
           url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
           key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -20,7 +25,7 @@ export async function GET() {
     if (!supabase) {
       return NextResponse.json({
         status: 'error',
-        message: 'Database connection not available'
+        title: 'Database connection not available'
       }, { status: 503 })
     }
     
@@ -32,14 +37,14 @@ export async function GET() {
     if (error) {
       return NextResponse.json({
         status: 'error',
-        message: 'Database connection failed',
+        title: 'Database connection failed',
         error: error.message
       }, { status: 500 })
     }
 
     return NextResponse.json({
       status: 'healthy',
-      message: 'Dashboard API is working',
+      title: 'Dashboard API is working',
       supabase_connection: 'connected',
       subreddits_count: count ?? 0,
       timestamp: new Date().toISOString()
@@ -48,7 +53,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({
       status: 'error',
-      message: 'Health check failed',
+      title: 'Health check failed',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }

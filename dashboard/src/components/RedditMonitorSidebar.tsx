@@ -1,7 +1,7 @@
 'use client'
 
-import { Activity, Instagram } from 'lucide-react'
-import { SidebarTemplate } from '@/components/SidebarTemplate'
+import { Activity, Instagram, type LucideIcon } from 'lucide-react'
+import { SidebarTemplate, type SidebarNavigationItem } from '@/components/shared/layouts/SidebarTemplate'
 
 // Reddit logo as a custom component
 const RedditIcon = ({ className }: { className?: string }) => (
@@ -19,37 +19,35 @@ const RedditIcon = ({ className }: { className?: string }) => (
 
 export function RedditMonitorSidebar() {
 
-  const navigationItems: any[] = [
+  const navigationItems: SidebarNavigationItem[] = [
     {
-      id: 'reddit-monitor',
       title: 'Reddit Monitor',
       href: '/monitor/reddit',
-      icon: RedditIcon,
+      icon: RedditIcon as unknown as LucideIcon,
       badge: {
-        type: 'status' as const,
+        type: 'status',
         value: (
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
           </span>
         ),
-        variant: 'custom' as any
+        variant: 'custom'
       }
     },
     {
-      id: 'instagram-monitor',
       title: 'Instagram Monitor',
       href: '/monitor/instagram',
       icon: Instagram,
       badge: {
-        type: 'status' as const,
+        type: 'status',
         value: (
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
           </span>
         ),
-        variant: 'custom' as any
+        variant: 'custom'
       }
     }
   ]

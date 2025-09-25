@@ -1,7 +1,8 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -14,7 +15,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             // 10 minutes cache time for better UX
             gcTime: 10 * 60 * 1000,
             // Retry failed requests with exponential backoff
-            retry: (failureCount, error: unknown) => {
+            retry: (failureCount: number, error: unknown) => {
               const is404 = (() => {
                 if (typeof error === 'object' && error !== null && 'status' in error) {
                   const status = (error as { status?: unknown }).status
@@ -25,7 +26,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
               if (is404) return false
               return failureCount < 3
             },
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+            retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
             // Optimize refetch behavior
             refetchOnWindowFocus: false, // Reduce unnecessary requests
             refetchOnReconnect: true,
@@ -46,6 +47,13 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools
+          initialIsOpen={false}
+          position="bottom"
+          buttonPosition="bottom-right"
+        />
+      )}
     </QueryClientProvider>
   )
 }

@@ -1,6 +1,8 @@
+
+import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/auth'
-import type { Metadata } from 'next'
+import { logger } from '@/lib/logger'
 
 export const metadata: Metadata = {
   title: 'Models Dashboard - B9 Agency',
@@ -20,7 +22,7 @@ export default async function ModelsDashboardLayout({
   const bypassAuth = process.env.BYPASS_AUTH === 'true'
 
   if (isDevelopment || bypassAuth) {
-    console.log('⚠️ DEVELOPMENT MODE: Bypassing authentication for models dashboard')
+    logger.log('⚠️ DEVELOPMENT MODE: Bypassing authentication for models dashboard')
     return <>{children}</>
   }
 
@@ -34,7 +36,7 @@ export default async function ModelsDashboardLayout({
 
     return <>{children}</>
   } catch (authError) {
-    console.error('Authentication layout error:', authError)
+    logger.error('Authentication layout error:', authError)
     redirect('/login')
     return null
   }

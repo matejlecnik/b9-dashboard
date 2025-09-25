@@ -1,12 +1,30 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ModelsDashboardLayout } from '@/components/ModelsDashboardLayout'
-import { ModelFormModal } from '@/components/ModelFormModal'
-import ModelsTable from '@/components/ModelsTable'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+import { DashboardLayout } from '@/components/shared'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
+
+// Lazy load heavy components
+const ModelFormModal = dynamic(
+  () => import('@/components/ModelFormModal').then(mod => ({ default: mod.ModelFormModal })),
+  { ssr: false }
+)
+
+const ModelsTable = dynamic(
+  () => import('@/components/ModelsTable'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+)
 
 interface Model {
   id: number
@@ -60,7 +78,7 @@ export default function ModelsPage() {
         throw new Error(data.error || 'Failed to fetch models')
       }
     } catch (error) {
-      console.error('Error fetching models:', error)
+      logger.error('Error fetching models:', error)
       addToast({
         type: 'error',
         title: 'Error Loading Models',
@@ -92,7 +110,15 @@ export default function ModelsPage() {
     })
   }
 
-  const handleSaveModel = async (data: any) => {
+  const handleSaveModel = async (data: {
+    stage_name: string
+    status: 'active' | 'inactive' | 'onboarding'
+    description?: string
+    assigned_tags: string[]
+    platform_accounts?: Record<string, string[]>
+    commission_rate?: number | null
+    payment_type?: 'bank' | 'crypto'
+  }) => {
     setModalState(prev => ({ ...prev, saving: true }))
     try {
       const url = modalState.model
@@ -124,7 +150,7 @@ export default function ModelsPage() {
         throw new Error(result.error || 'Failed to save model')
       }
     } catch (error) {
-      console.error('Error saving model:', error)
+      logger.error('Error saving model:', error)
       addToast({
         type: 'error',
         title: 'Save Failed',
@@ -160,7 +186,7 @@ export default function ModelsPage() {
         throw new Error(data.error || 'Failed to delete model')
       }
     } catch (error) {
-      console.error('Error deleting model:', error)
+      logger.error('Error deleting model:', error)
       addToast({
         type: 'error',
         title: 'Delete Failed',
@@ -184,7 +210,7 @@ export default function ModelsPage() {
 
 
   return (
-    <ModelsDashboardLayout>
+    <DashboardLayout>
       <div className="flex flex-col h-full p-6">
         {/* Combined Toolbar: Search on left, Add button on right - Slim Design */}
         <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
@@ -198,7 +224,7 @@ export default function ModelsPage() {
               </div>
               <input
                 type="text"
-                placeholder="Search models..."
+                placeholder=""
                 title="Search models by name, stage, or description"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -254,6 +280,6 @@ export default function ModelsPage() {
         onSave={handleSaveModel}
         saving={modalState.saving}
       />
-    </ModelsDashboardLayout>
+    </DashboardLayout>
   )
 }

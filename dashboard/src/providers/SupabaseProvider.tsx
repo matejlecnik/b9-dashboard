@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, useContext, useMemo, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase/index'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
 interface SupabaseContextType {
   supabase: SupabaseClient | null

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+
+import { NextRequest, NextResponse } from 'next/server'
 
 // Authentication is handled exclusively via Supabase
 // We detect session by checking for Supabase auth cookies
@@ -19,6 +19,15 @@ const SUPABASE_AUTH_COOKIES = [
   'supabase.auth.token'
 ]
 
+// Protected dashboards that require specific permissions
+const PROTECTED_DASHBOARDS = {
+  '/reddit': 'reddit',
+  '/instagram': 'instagram',
+  '/models': 'models',
+  '/monitor': 'monitor',
+  '/tracking': 'tracking'
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -29,6 +38,7 @@ export async function middleware(request: NextRequest) {
     // In development mode with auth bypass:
     // - Skip login page and redirect to dashboards
     // - Allow access to all routes without authentication
+    // - Skip permission checks
 
     if (pathname === '/login') {
       const dashboardUrl = new URL('/dashboards', request.url)
@@ -46,7 +56,7 @@ export async function middleware(request: NextRequest) {
 
   // Production mode: Enforce authentication
 
-  // Check if user has any Supabase auth cookies
+  // Check if user has unknown Supabase auth cookies
   const hasAuthCookie = SUPABASE_AUTH_COOKIES.some(name =>
     request.cookies.has(name) ||
     // Also check for project-specific cookie patterns
@@ -88,6 +98,18 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     const dashboardUrl = new URL('/dashboards', request.url)
     return NextResponse.redirect(dashboardUrl)
+  }
+
+  // Check dashboard-specific permissions
+  // Note: Detailed permission checks are performed in page components
+  // This is just a basic path-based check for the middleware layer
+  const dashboardPath = Object.keys(PROTECTED_DASHBOARDS).find(path => pathname.startsWith(path))
+  if (dashboardPath) {
+    // For now, we allow access if authenticated
+    // The actual permission check happens in the page component
+    // This is because middleware doesn't have access to Supabase client
+    // and we don't want to make async DB calls in middleware for performance
+    return NextResponse.next()
   }
 
   // User is authenticated, allow access to other routes

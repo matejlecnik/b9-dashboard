@@ -43,4 +43,4 @@ export const MARKETING_CATEGORIES = [
 ]
 
 // Note: Actual AI categorization is now handled by the API backend
-// Use the /api/categorization endpoints instead of calling OpenAI directly from the frontend
+// Use the /api/reddit/categorization endpoints instead of calling OpenAI directly from the frontend

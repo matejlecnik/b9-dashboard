@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
-import { ViralReelCard } from './ViralReelCard'
-import { ViralReel } from '@/lib/supabase/viral-reels'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ViralReelCard } from './ViralReelCard'
+import type { ViralReel } from '@/lib/supabase/viral-reels'
 
 interface ViralReelsGridProps {
   reels: ViralReel[]

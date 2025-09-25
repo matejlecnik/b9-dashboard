@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState, memo, useMemo } from 'react'
-import NextImage from 'next/image'
+import { useState, useMemo, memo } from 'react'
+import Image from 'next/image'
+import { Post } from '@/types/post'
 import { sanitizeImageUrl, isAllowedImageHost, isGifUrl, toProxiedImageUrl } from '@/config/images'
+
 import { 
   TrendingUp, 
   MessageCircle, 
@@ -16,7 +18,6 @@ import {
   Calendar
 } from 'lucide-react'
 
-import { Post } from '@/types/post'
 
 interface PostGalleryCardProps {
   post: Post
@@ -24,7 +25,7 @@ interface PostGalleryCardProps {
 }
 
 // Beautiful animated placeholder component
-function PlaceholderContent({ post, getContentIcon }: { post: Post; getContentIcon: () => React.ReactNode }) {
+function PostPlaceholderContent({ post, getContentIcon }: { post: Post; getContentIcon: () => React.ReactNode }) {
   const getSubredditInitials = (name: string) => {
     const cleanName = name.replace(/^r\//, '')
     return cleanName.substring(0, 2).toUpperCase()
@@ -182,26 +183,6 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
     return null
   }
 
-  // Check if domain is a Reddit domain (safe for optimization)
-  const isRedditDomain = (url: string) => {
-    const redditDomains = [
-      'b.thumbs.redditmedia.com',
-      'a.thumbs.redditmedia.com', 
-      'external-preview.redd.it',
-      'preview.redd.it',
-      'i.redd.it',
-      'styles.redditmedia.com',
-      'www.redditstatic.com'
-    ]
-    
-    try {
-      const hostname = new URL(url).hostname
-      return redditDomains.includes(hostname)
-    } catch {
-      return false
-    }
-  }
-
   // Check if this is a GIF that should autoplay
   const isAutoplayGif = () => {
     if (!post.url) return false
@@ -328,44 +309,38 @@ function PostGalleryCard({ post, onPostClick }: PostGalleryCardProps) {
             {(() => {
               const url = imageUrl
               const allowNextImage = !!url && isAllowedImageHost(url) && !isGifUrl(url)
-              const shouldOptimize = url && isRedditDomain(url) && !isGifUrl(url)
-              
+
               if (allowNextImage) {
                 return (
-                  <NextImage 
+                  <Image
                     src={url}
                     alt={post.title}
                     fill
-                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw"
-                    quality={shouldOptimize ? 85 : 75}
-                    priority={false}
-                    unoptimized={!shouldOptimize}
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    quality={75}
                     loading="lazy"
                     onError={() => setImageError(true)}
-                    placeholder="blur"
-                    blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyOiKOhW5gO3I3KOSIg/9k="
                   />
                 )
               }
               return (
-                <NextImage
+                <Image
                   src={url ? (isAllowedImageHost(url) ? url : toProxiedImageUrl(url)) : ''}
                   alt={post.title}
                   fill
-                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                   quality={75}
-                  priority={false}
-                  unoptimized
                   loading="lazy"
+                  unoptimized={!isAllowedImageHost(url || '')}
                   onError={() => setImageError(true)}
                 />
               )
             })()}
           </div>
         ) : (
-          <PlaceholderContent post={post} getContentIcon={getContentIcon} />
+          <PostPlaceholderContent post={post} getContentIcon={getContentIcon} />
         )}
 
         {/* Gallery Navigation */}

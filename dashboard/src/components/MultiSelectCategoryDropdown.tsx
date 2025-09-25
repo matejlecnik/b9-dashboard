@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
-import { ChevronDown, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
+import { X, ChevronDown } from 'lucide-react'
+import { getCategoryDisplayOrder } from '@/lib/categories'
 
 interface MultiSelectCategoryDropdownProps {
   selectedCategories: string[]
@@ -13,7 +14,6 @@ interface MultiSelectCategoryDropdownProps {
   className?: string
 }
 
-import { getCategoryDisplayOrder } from '@/lib/categories'
 
 const CATEGORIES = getCategoryDisplayOrder()
 

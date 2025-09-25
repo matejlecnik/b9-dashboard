@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { X, Sparkles, Info } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
+import { useState, useCallback, useEffect } from 'react'
 import { useToast } from '@/components/ui/toast'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { X, Sparkles, Info } from 'lucide-react'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
 
 interface AICategorizationModalProps {
@@ -177,7 +177,7 @@ export function AICategorizationModal({
                   <div className="relative">
                     <Slider
                       value={[settings.limit]}
-                      onValueChange={(value) => setSettings(prev => ({ ...prev, limit: value[0] }))}
+                      onValueChange={(value: number[]) => setSettings(prev => ({ ...prev, limit: value[0] }))}
                       min={1}
                       max={Math.min(1000, uncategorizedCount)}
                       step={10}

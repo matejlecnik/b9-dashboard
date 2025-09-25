@@ -1,10 +1,13 @@
+
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
+import { scraperApi } from '@/lib/api-wrapper'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function GET() {
+export const GET = scraperApi(async () => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -29,14 +32,14 @@ export async function GET() {
     // Calculate today's stats from context data
     const todayStats = todayLogs || []
     const apiCallsToday = todayStats.reduce((sum, log) => {
-      const context = log.context as any
+      const context = log.context as { api_calls_made?: number }
       return sum + (context?.api_calls_made || 0)
     }, 0)
 
     const creatorsProcessedToday = new Set(
       todayStats
-        .filter(l => l.context && (l.context as any).creator_id)
-        .map(l => (l.context as any).creator_id)
+        .filter(l => l.context && (l.context as { creator_id?: string }).creator_id)
+        .map(l => (l.context as { creator_id?: string }).creator_id)
     ).size
 
     // Default status if no control record exists
@@ -67,11 +70,11 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error fetching Instagram scraper status:', error)
+    logger.error('Error fetching Instagram scraper status:', error)
 
     return NextResponse.json(
       { error: 'Failed to fetch Instagram scraper status' },
       { status: 500 }
     )
   }
-}
+})

@@ -1,13 +1,12 @@
 'use client'
 
-import { Activity, Instagram, Monitor } from 'lucide-react'
-import { SidebarTemplate } from '@/components/SidebarTemplate'
+import { Monitor, Instagram, Activity } from 'lucide-react'
+import { SidebarTemplate } from '@/components/shared/layouts/SidebarTemplate'
 
 export function InstagramMonitorSidebar() {
 
   const navigationItems = [
     {
-      id: 'reddit-monitor',
       title: 'Reddit Monitor',
       href: '/monitor/reddit',
       icon: Monitor,
@@ -19,11 +18,10 @@ export function InstagramMonitorSidebar() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
           </span>
         ),
-        variant: 'custom' as any
+        variant: 'custom' as const
       }
     },
     {
-      id: 'instagram-monitor',
       title: 'Instagram Monitor',
       href: '/monitor/instagram',
       icon: Instagram,
@@ -35,7 +33,7 @@ export function InstagramMonitorSidebar() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
           </span>
         ),
-        variant: 'custom' as any
+        variant: 'custom' as const
       }
     }
   ]

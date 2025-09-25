@@ -1,7 +1,22 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/index'
+import { createClient } from '@/lib/supabase'
+import { protectedApi } from '@/lib/api-wrapper'
 
-export async function PUT(req: NextRequest) {
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
+
+interface ModelUpdateData {
+  updated_at: string
+  stage_name?: string
+  assigned_tags?: string[]
+  status?: string
+  commission_rate?: number | null
+  payment_type?: string
+  platform_accounts?: Record<string, unknown>
+}
+
+export const PUT = protectedApi(async (req: NextRequest) => {
   try {
     const body = await req.json()
     const {
@@ -60,7 +75,7 @@ export async function PUT(req: NextRequest) {
       .single()
 
     // Build update object
-    const updateData: any = {
+    const updateData: ModelUpdateData = {
       updated_at: new Date().toISOString()
     }
 
@@ -80,7 +95,7 @@ export async function PUT(req: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error updating model:', error)
+      logger.error('Error updating model:', error)
 
       // Check for duplicate stage name
       if (error.code === '23505') {
@@ -114,7 +129,7 @@ export async function PUT(req: NextRequest) {
         .select('username')
         .eq('model_id', id)
 
-      const currentUsernames = currentRedditUsers?.map((u: any) => u.username) || []
+      const currentUsernames = currentRedditUsers?.map((u: { username: string }) => u.username) || []
       const newUsernames = platform_accounts.reddit || []
 
       // Find accounts to add
@@ -189,10 +204,10 @@ export async function PUT(req: NextRequest) {
           .eq('model_id', id)
 
         if (updateError) {
-          console.error('Error cascading status to reddit_users:', updateError)
+          logger.error('Error cascading status to reddit_users:', updateError)
           // Don't fail the whole operation, just log the error
         } else {
-          console.log(`Updated all reddit_users for model ${id} to inactive status`)
+          logger.log(`Updated all reddit_users for model ${id} to inactive status`)
         }
       } else if (status === 'active' && currentModel.status !== 'active') {
         // When activating a model, activate all linked reddit_users
@@ -202,24 +217,24 @@ export async function PUT(req: NextRequest) {
           .eq('model_id', id)
 
         if (updateError) {
-          console.error('Error activating reddit_users:', updateError)
+          logger.error('Error activating reddit_users:', updateError)
         } else {
-          console.log(`Updated all reddit_users for model ${id} to active status`)
+          logger.log(`Updated all reddit_users for model ${id} to active status`)
         }
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Model updated successfully`,
+      title: `Model updated successfully`,
       model
     })
 
   } catch (error) {
-    console.error('Unexpected error in update model API:', error)
+    logger.error('Unexpected error in update model API:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
     }, { status: 500 })
   }
-}
+})

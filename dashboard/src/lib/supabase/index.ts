@@ -1,14 +1,16 @@
-import { createBrowserClient, createServerClient } from '@supabase/ssr'
 
-// Get environment variables with fallbacks for build time
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cetrhongdrjztsrsffuh.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldHJob25nZHJqenRzcnNmZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MTU4MTMsImV4cCI6MjA3MjM5MTgxM30.DjuEhcfDpdd7gmHFVaqcZP838FXls9-HiXJg-QF-vew'
+import { createBrowserClient, createServerClient } from '@supabase/ssr'
+import { logger } from '@/lib/logger'
+
+// Get environment variables - NEVER hardcode keys in source code
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Browser client for client-side usage
 export const supabase = (() => {
   try {
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('🚨 Supabase environment variables missing')
+      logger.error('🚨 Supabase environment variables missing')
     }
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -23,7 +25,7 @@ export const supabase = (() => {
       }
     })
   } catch (error) {
-    console.error('❌ Failed to create Supabase client:', error)
+    logger.error('❌ Failed to create Supabase client:', error)
     return null
   }
 })()
@@ -34,7 +36,7 @@ export function createServiceClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error('Missing service role environment variables')
+    logger.error('Missing service role environment variables')
     return null
   }
 
@@ -80,13 +82,13 @@ export async function withSupabaseClient<T>(
 ): Promise<T> {
   try {
     if (!supabase) {
-      console.error('🚨 Supabase client not available')
+      logger.error('🚨 Supabase client not available')
       return fallback()
     }
     const result = await operation(supabase)
     return result
   } catch (error) {
-    console.error('🚨 Supabase operation failed:', error)
+    logger.error('🚨 Supabase operation failed:', error)
     return fallback()
   }
 }

@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardLayout } from '@/components/DashboardLayout'
+import Link from 'next/link'
+import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DashboardLayout } from '@/components/shared'
 import { ModelForm } from '@/components/ModelForm'
 import { useToast } from '@/components/ui/toast'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { logger } from '@/lib/logger'
 
 interface Model {
   id: number
@@ -33,38 +34,39 @@ export default function EditModelPage({ params }: { params: Promise<{ id: string
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetchModel()
-  }, [id])
+    const fetchModel = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch('/api/models/list')
+        const data = await response.json()
 
-  const fetchModel = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/models/list')
-      const data = await response.json()
-
-      if (data.success) {
-        const foundModel = data.models.find((m: Model) => m.id === parseInt(id))
-        if (foundModel) {
-          setModel(foundModel)
+        if (data.success) {
+          const foundModel = data.models.find((m: Model) => m.id === parseInt(id))
+          if (foundModel) {
+            setModel(foundModel)
+          } else {
+            throw new Error('Model not found')
+          }
         } else {
-          throw new Error('Model not found')
+          throw new Error(data.error || 'Failed to fetch model')
         }
-      } else {
-        throw new Error(data.error || 'Failed to fetch model')
+      } catch (error) {
+        logger.error('Error fetching model:', error)
+        addToast({
+          type: 'error',
+          title: 'Error Loading Model',
+          description: error instanceof Error ? error.message : 'Failed to load model',
+          duration: 5000
+        })
+        router.push('/models')
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error fetching model:', error)
-      addToast({
-        type: 'error',
-        title: 'Error Loading Model',
-        description: error instanceof Error ? error.message : 'Failed to load model',
-        duration: 5000
-      })
-      router.push('/models')
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchModel()
+  }, [id, addToast, router])
+
 
   const handleSave = async (data: {
     stage_name: string
@@ -100,7 +102,7 @@ export default function EditModelPage({ params }: { params: Promise<{ id: string
         throw new Error(result.error || 'Failed to update model')
       }
     } catch (error) {
-      console.error('Error updating model:', error)
+      logger.error('Error updating model:', error)
       addToast({
         type: 'error',
         title: 'Update Failed',

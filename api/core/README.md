@@ -82,3 +82,26 @@ When the API starts (via `start.py`):
 3. **Check logs in Supabase** - All output goes to `system_logs`
 4. **30-second delay is optimal** - Don't reduce polling interval
 5. **Scrapers are resilient** - They auto-recover from errors
+
+## TODO List
+
+- [ ] Implement scraper health metrics endpoint
+- [ ] Add configurable polling intervals via database
+- [ ] Create scraper performance dashboard
+- [ ] Implement automatic proxy rotation on failures
+- [ ] Add retry logic with exponential backoff
+- [ ] Create data validation layer for scraped content
+
+## Current Errors
+
+- **Reddit rate limiting** - Occasionally hits rate limits during peak hours (auto-recovers)
+- **Instagram API changes** - Instagram frequently changes their API structure (monitoring required)
+- **Memory usage** - Can grow over time if not properly managed (restart helps)
+
+## Potential Improvements
+
+- **Async everything** - Convert remaining sync code to async (performance boost)
+- **Connection pooling** - Implement proper HTTP connection pooling (reduce overhead)
+- **Distributed scraping** - Multiple worker processes for parallel scraping (discuss scaling needs)
+- **Smart scheduling** - ML-based optimal scraping times (needs research)
+- **Data deduplication** - Prevent duplicate entries at scraper level (architecture decision needed)

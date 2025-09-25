@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
+import { scraperApi } from '@/lib/api-wrapper'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function GET(request: Request) {
+export const GET = scraperApi(async (request: NextRequest) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -65,7 +68,7 @@ export async function GET(request: Request) {
 
     if (summaryData) {
       summaryData.forEach(log => {
-        const action = (log.context as any)?.action || 'unknown'
+        const action = (log.context as { action?: string })?.action || 'unknown'
         summary.actions[action] = (summary.actions[action] || 0) + 1
         if (log.level === 'success' || log.level === 'info') {
           summary.success_count++
@@ -88,11 +91,11 @@ export async function GET(request: Request) {
     })
 
   } catch (error) {
-    console.error('Error fetching Instagram scraper logs:', error)
+    logger.error('Error fetching Instagram scraper logs:', error)
 
     return NextResponse.json(
       { error: 'Failed to fetch Instagram scraper logs' },
       { status: 500 }
     )
   }
-}
+})

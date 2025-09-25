@@ -1,9 +1,14 @@
+import { publicApi } from '@/lib/api-wrapper'
 import { NextRequest } from 'next/server'
-import { isAllowedImageHost } from '@/config/images'
+import { logger } from '@/lib/logger'
+import { isAllowedImageHost } from '@/lib/image-utils'
+
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
 
 export const runtime = 'edge'
 
-export async function GET(req: NextRequest) {
+export const GET = publicApi(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url)
     const raw = searchParams.get('url')
@@ -13,22 +18,22 @@ export async function GET(req: NextRequest) {
     try {
       target = new URL(raw)
     } catch (e) {
-      console.error('Invalid URL:', raw, e)
+      logger.error('Invalid URL:', raw, e)
       return new Response('Invalid url', { status: 400 })
     }
 
     if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-      console.error('Unsupported protocol:', target.protocol)
+      logger.error('Unsupported protocol:', target.protocol)
       return new Response('Unsupported protocol', { status: 400 })
     }
 
     // Restrict to known hosts
     if (!isAllowedImageHost(target.toString())) {
-      console.error('Host not allowed:', target.hostname)
+      logger.error('Host not allowed:', target.hostname)
       return new Response('Host not allowed', { status: 403 })
     }
 
-    console.log('Fetching image from:', target.toString())
+    logger.log('Fetching image from:', target.toString())
 
     const resp = await fetch(target.toString(), {
       redirect: 'follow',
@@ -41,7 +46,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (!resp.ok) {
-      console.error('Upstream error:', resp.status, resp.statusText)
+      logger.error('Upstream error:', resp.status, resp.statusText)
       return new Response(`Upstream error: ${resp.status}`, { status: resp.status })
     }
 
@@ -56,9 +61,8 @@ export async function GET(req: NextRequest) {
       headers,
     })
   } catch (error) {
-    console.error('Proxy error:', error)
+    logger.error('Proxy error:', error)
     return new Response(`Proxy error: ${error}`, { status: 500 })
   }
-}
-
+})
 

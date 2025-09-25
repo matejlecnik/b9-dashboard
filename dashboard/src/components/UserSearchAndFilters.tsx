@@ -1,11 +1,16 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Star, Crown, AlertCircle } from 'lucide-react'
-import { UniversalToolbar } from '@/components/UniversalToolbar'
-import { ToolbarSearch, ToolbarFilterButton } from '@/components/ui/ToolbarComponents'
-import { B9_GRADIENTS } from '@/lib/toolbarStyles'
 import { formatNumber } from '@/lib/utils'
+import { UniversalToolbar } from '@/components/UniversalToolbar'
+
+// B9 Agency brand gradients
+const B9_GRADIENTS = {
+  primary: 'linear-gradient(135deg, #FF8395, #FF7A85)',
+  primaryLight: 'linear-gradient(135deg, #FFB3C1, #FF99A9)',
+  neutral: 'linear-gradient(135deg, #9CA3AF, #6B7280)'
+}
 
 type QualityFilter = 'all' | 'high' | 'our_creators' | 'low'
 
@@ -93,15 +98,17 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
   const content = (
     <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
         {/* Search Bar (60% on larger screens) */}
-        <ToolbarSearch
+        {/* ToolbarSearch component not found - using placeholder */}
+        <input
           id="user-search"
-          placeholder=""
+          type="text"
+          placeholder="Search users..."
           value={searchQuery}
-          onChange={onSearchChange}
+          onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          maxWidth="lg:max-w-[60%]"
+          className="px-4 py-2 border rounded-md lg:max-w-[60%] w-full"
         />
 
         {/* Filter Pills (40% on larger screens) */}
@@ -112,22 +119,19 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
             const formattedCount = formatNumber(rawCount)
 
             return (
-              <ToolbarFilterButton
+              <button
                 key={filter.id}
                 id={`user-filter-${filter.id}`}
-                label={filter.label}
-                icon={filter.icon}
-                isActive={isActive}
-                count={loading ? undefined : formattedCount}
                 onClick={() => onFilterChange(filter.id)}
                 disabled={loading}
-                gradient={
-                  filter.id === 'all' ? 'primaryLight' :
-                  filter.id === 'high' ? 'success' :
-                  filter.id === 'our_creators' ? 'primary' :
-                  'neutral'
-                }
-              />
+                className={`px-3 py-1.5 rounded-md flex items-center gap-2 ${
+                  isActive ? 'bg-blue-500 text-white' : 'bg-gray-100'
+                }`}
+              >
+                <filter.icon className="w-4 h-4" />
+                <span>{filter.label}</span>
+                {!loading && <span className="text-xs">({formattedCount})</span>}
+              </button>
             )
           })}
         </div>

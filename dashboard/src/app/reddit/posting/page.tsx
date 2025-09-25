@@ -1,11 +1,28 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import type React from 'react'
-import { supabase, type Subreddit, type Post } from '../../../lib/supabase'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
+import {
+  AlertCircle,
+  Sparkles,
+  TrendingUp,
+  Heart,
+  Users
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
+import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { ActiveAccountsSection } from '@/components/shared/ActiveAccountsSection'
+import { TagFilterDropdown } from '@/components/TagFilterDropdown'
+import { useToast } from '@/components/ui/toast'
 import { useErrorHandler } from '@/lib/errorUtils'
-import { useThrottledCallback, useRequestDeduplicator, PERFORMANCE_SETTINGS } from '@/lib/performance-utils'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useThrottledCallback, PERFORMANCE_SETTINGS } from '@/lib/performance-utils'
+import { useAvailableTags } from '@/hooks/queries/useRedditCategorization'
+import { logger } from '@/lib/logger'
+import { supabase } from '@/lib/supabase'
+import type { SubredditWithPosts } from '@/components/DiscoveryTable'
 
 interface Creator {
   id: number
@@ -28,58 +45,50 @@ interface Creator {
     status: string
     assigned_tags: string[]
   }
+  models?: {
+    id: number
+    stage_name: string
+    status: string
+    assigned_tags: string[]
+  }
 }
 
-import { DashboardLayout } from '@/components/DashboardLayout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/components/ui/toast'
-import dynamic from 'next/dynamic'
-import {
-  ChevronDown,
-  X,
-  UserPlus,
-  AlertCircle,
-  Sparkles
-} from 'lucide-react'
-import Image from 'next/image'
+// Type for DiscoveryTable props
+interface DiscoveryTableProps {
+  subreddits: SubredditWithPosts[]
+  loading?: boolean
+  onLoadMore?: () => void
+  hasMore?: boolean
+  sfwOnly?: boolean
+  onUpdate?: (id: number, updates: Partial<SubredditWithPosts>) => void
+  onTagUpdate?: (id: number, oldTag: string, newTag: string) => void
+  onTagRemove?: (id: number, tag: string) => void
+  onAddTag?: (id: number, tag: string) => void
+}
+
+// Type for AddUserModal props
+interface AddUserModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onUserAdded: () => void
+}
 
 // Dynamic imports for heavy components
-const DiscoveryTable = dynamic(
+const DiscoveryTable = dynamic<DiscoveryTableProps>(
   () => import('@/components/DiscoveryTable').then(mod => ({ default: mod.DiscoveryTable })),
-  { ssr: false, loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" /> }
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
+  }
 )
 
-const AddUserModal = dynamic(
+const AddUserModal = dynamic<AddUserModalProps>(
   () => import('@/components/AddUserModal').then(mod => ({ default: mod.AddUserModal })),
   { ssr: false }
 )
 
-type AllowedCategory = 'Ok' | 'No Seller' | 'Non Related'
-type SortField = 'avg_upvotes' | 'min_post_karma' | 'engagement'
+type SortField = 'score' | 'avg_upvotes' | 'min_post_karma' | 'engagement'
 type SortDirection = 'asc' | 'desc'
-
-type BaseSubreddit = Omit<Subreddit, 'review'> & { review: Subreddit['review'] | AllowedCategory | null }
-
-interface SubredditWithPosts extends Omit<BaseSubreddit, 'created_at' | 'tags'> {
-  recent_posts?: Post[]
-  public_description?: string | null
-  comment_to_upvote_ratio?: number | null
-  primary_category?: string | null
-  min_account_age_days?: number | null
-  min_comment_karma?: number | null
-  min_post_karma?: number | null
-  allow_images?: boolean | null
-  moderator_activity_score?: number | null
-  community_health_score?: number | null
-  image_post_avg_score?: number | null
-  video_post_avg_score?: number | null
-  text_post_avg_score?: number | null
-  created_at?: string
-  verification_required?: boolean | null
-  tags?: string[] | null
-}
 
 const PAGE_SIZE = 30
 
@@ -100,103 +109,165 @@ export default function PostingPage() {
   const [, setLastUpdated] = useState<Date>(new Date())
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, PERFORMANCE_SETTINGS.SEARCH_DEBOUNCE)
-  const requestDeduplicator = useRequestDeduplicator()
+  // Tag filtering
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const { data: availableTags } = useAvailableTags()
   // Filters & sorting
   const [sfwOnly, setSfwOnly] = useState<boolean>(false)
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false)
-  const [sortBy, setSortBy] = useState<SortField>('avg_upvotes')
+  const [minEngagement, setMinEngagement] = useState<number>(0.005)
+  const [, setSliderPosition] = useState<number>(0) // 0-100 for UI slider - kept for future use
+  const [tempSliderPosition, setTempSliderPosition] = useState<number>(0) // Temporary position while dragging
+  const [sortBy, setSortBy] = useState<SortField>('score')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   // Pagination
   const [currentPage, setCurrentPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
-  // Counts for UI
-  const [sfwCount, setSfwCount] = useState(0)
-  const [nsfwCount, setNsfwCount] = useState(0)
-  const [verifiedCount, setVerifiedCount] = useState(0)
-  const [subreddits, setSubreddits] = useState<SubredditWithPosts[]>([])
+  // Counts for UI - currently unused but kept for future filtering UI
+  const [, setSfwCount] = useState(0)
+  const [, setNsfwCount] = useState(0)
+  const [, setVerifiedCount] = useState(0)
 
-  // Load filter counts for UI - now using optimized single query
+  // Load filter counts for UI - simplified for now without tag filtering
   const loadFilterCounts = useCallback(async () => {
     if (!supabase) return
     try {
       const sb = supabase as NonNullable<typeof supabase>
 
-      // Get account tags if an account is selected
-      let accountTags: string[] = []
-      if (selectedAccount?.model?.assigned_tags) {
-        accountTags = selectedAccount.model.assigned_tags
+      // For now, get counts without tag filtering to avoid complexity
+      // TODO: Use get_subreddit_filter_counts RPC function when available
+      let baseQuery = sb
+        .from('reddit_subreddits')
+        .select('id, over18, verification_required', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+
+      // Apply search filter if present
+      if (debouncedSearchQuery?.trim()) {
+        baseQuery = baseQuery.or(`name.ilike.%${debouncedSearchQuery}%,title.ilike.%${debouncedSearchQuery}%,public_description.ilike.%${debouncedSearchQuery}%`)
       }
 
-      // Use the new optimized count function
-      const { data, error } = await sb.rpc('get_posting_page_counts', {
-        tag_array: accountTags.length > 0 ? accountTags : null,
-        search_term: debouncedSearchQuery?.trim() || null
-      })
+      // Get total count
+      const { count: totalCount, error: totalError } = await baseQuery
 
-      if (error) {
-        console.error('Error fetching counts:', error)
-        throw error
+      if (totalError) {
+        logger.error('Error fetching total count:', totalError)
+        throw totalError
       }
 
-      if (data && data[0]) {
-        setSfwCount(Number(data[0].sfw_count) || 0)
-        setNsfwCount(Number(data[0].nsfw_count) || 0)
-        setVerifiedCount(Number(data[0].verified_count) || 0)
+      // Get SFW count (need fresh query)
+      const { count: sfwCount, error: sfwError } = await sb
+        .from('reddit_subreddits')
+        .select('id', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+        .eq('over18', false)
+        .or(debouncedSearchQuery?.trim() ? `name.ilike.%${debouncedSearchQuery}%,title.ilike.%${debouncedSearchQuery}%,public_description.ilike.%${debouncedSearchQuery}%` : 'id.gte.0')
+
+      if (sfwError) {
+        logger.error('Error fetching SFW count:', sfwError)
+        throw sfwError
       }
+
+      // Get verified count (need fresh query)
+      const { count: verifiedCount, error: verifiedError } = await sb
+        .from('reddit_subreddits')
+        .select('id', { count: 'exact', head: true })
+        .eq('review', 'Ok')
+        .eq('verification_required', true)
+        .or(debouncedSearchQuery?.trim() ? `name.ilike.%${debouncedSearchQuery}%,title.ilike.%${debouncedSearchQuery}%,public_description.ilike.%${debouncedSearchQuery}%` : 'id.gte.0')
+
+      if (verifiedError) {
+        logger.error('Error fetching verified count:', verifiedError)
+        throw verifiedError
+      }
+
+      setSfwCount(sfwCount || 0)
+      setNsfwCount((totalCount || 0) - (sfwCount || 0))
+      setVerifiedCount(verifiedCount || 0)
     } catch {
       setSfwCount(0)
       setNsfwCount(0)
       setVerifiedCount(0)
     }
-  }, [selectedAccount, debouncedSearchQuery])
+  }, [debouncedSearchQuery])
 
   // Optimized fetch with server-side pagination and filtering
-  const fetchOkSubreddits = useCallback(async (page = 0, append = false, searchTerm = '') => {
+  const fetchOkSubreddits = useCallback(async (
+    page = 0,
+    append = false,
+    searchTerm = '',
+    filters: {
+      sfwOnly: boolean,
+      verifiedOnly: boolean,
+      minEngagement: number,
+      sortBy: SortField,
+      sortDirection: SortDirection,
+      selectedAccount: Creator | null,
+      selectedTags: string[]
+    }
+  ) => {
     if (!append) setLoading(true)
     try {
       if (!supabase) {
-        console.error('Supabase client not initialized')
+        logger.error('Supabase client not initialized')
         throw new Error('Supabase client not initialized')
       }
       const sb = supabase as NonNullable<typeof supabase>
 
       // Get account tags if an account is selected
       let accountTags: string[] = []
-      if (selectedAccount?.model?.assigned_tags) {
-        accountTags = selectedAccount.model.assigned_tags
+      if (filters.selectedAccount?.model?.assigned_tags && Array.isArray(filters.selectedAccount.model.assigned_tags)) {
+        accountTags = filters.selectedAccount.model.assigned_tags.filter(tag => tag != null)
       }
 
-      console.log('[Posting] Using server-side pagination:', {
+      // Handle tag filtering logic:
+      // - If no filter tags selected AND no account selected: show all subreddits
+      // - If only account selected: show subreddits matching account tags
+      // - If filter tags selected: show subreddits matching those filter tags (override account tags)
+      let tagsToUse: string[] = []
+
+      if (filters.selectedTags && filters.selectedTags.length > 0) {
+        // User explicitly selected filter tags - use only those
+        tagsToUse = filters.selectedTags
+      } else if (accountTags.length > 0) {
+        // No filter tags selected but account has tags - use account tags
+        tagsToUse = accountTags
+      }
+      // If both are empty, tagsToUse remains empty array = show all
+
+      logger.log('[Posting] Using RPC function with filters:', {
         page,
         pageSize: PAGE_SIZE,
         offset: page * PAGE_SIZE,
-        sortBy,
-        sortDirection,
-        sfwOnly,
-        verifiedOnly,
+        sortBy: filters.sortBy,
+        sortDirection: filters.sortDirection,
+        sfwOnly: filters.sfwOnly,
+        verifiedOnly: filters.verifiedOnly,
+        minEngagement: filters.minEngagement,
         searchTerm: searchTerm?.substring(0, 20),
-        accountTags: accountTags.length
+        accountTags: accountTags.length,
+        selectedTags: filters.selectedTags?.length || 0,
+        tagsToUse: tagsToUse
       })
 
-      // Use request deduplication to prevent duplicate API calls (optional for now)
-      // const dedupeKey = `filter_subreddits_${page}_${searchTerm}_${sfwOnly}_${verifiedOnly}_${sortBy}_${sortDirection}_${JSON.stringify(accountTags)}`
-
-      // Use the new optimized RPC function for server-side filtering and sorting
-      const { data: subreddits, error } = await sb.rpc('filter_subreddits_for_posting', {
-        tag_array: accountTags.length > 0 ? accountTags : null,
-        search_term: searchTerm && searchTerm.trim() ? searchTerm.trim() : null,
-        sfw_only: sfwOnly,
-        verified_only: verifiedOnly,
-        sort_by: sortBy,
-        sort_order: sortDirection,
-        limit_count: PAGE_SIZE,
-        offset_count: page * PAGE_SIZE
-      })
+      // Use the RPC function for filtering
+      // Empty array means show all, non-empty means filter by those tags
+      const { data: subreddits, error } = await sb
+        .rpc('filter_subreddits_by_tags_jsonb', {
+          account_tags: tagsToUse,
+          sfw_only: filters.sfwOnly,
+          verified_only: filters.verifiedOnly,
+          min_engagement: filters.minEngagement,
+          search_term: searchTerm || '',
+          sort_by: filters.sortBy,
+          sort_direction: filters.sortDirection,
+          limit_count: PAGE_SIZE,
+          offset_count: page * PAGE_SIZE
+        })
 
       if (error) {
-        console.error('Supabase RPC error:', error.message || 'Unknown error')
-        console.error('Error details:', {
-          message: error.message,
+        logger.error('Supabase query error:', error.message || 'Unknown error')
+        logger.error('Error details:', {
+          title: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code
@@ -204,15 +275,15 @@ export default function PostingPage() {
         throw error
       }
 
-      const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: any) => ({
+      const processedSubreddits: SubredditWithPosts[] = (subreddits || []).map((subreddit: SubredditWithPosts) => ({
         ...subreddit,
         recent_posts: [],
         review: subreddit.review ?? null,
         primary_category: subreddit.primary_category || null,
         created_at: subreddit.created_at || new Date().toISOString()
-      })) as SubredditWithPosts[]
+      }))
 
-      console.log(`[Posting] Fetched ${processedSubreddits.length} subreddits from server`)
+      logger.log(`[Posting] Fetched ${processedSubreddits.length} subreddits from server`)
 
       if (append) {
         setOkSubreddits(prev => [...prev, ...processedSubreddits])
@@ -232,9 +303,9 @@ export default function PostingPage() {
       return // Success
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Error fetching Ok subreddits:', errorMessage)
+      logger.error('Error fetching Ok subreddits:', errorMessage)
       if (error instanceof Error) {
-        console.error('Error stack:', error.stack)
+        logger.error('Error stack:', error.stack)
       }
       addToast({
         type: 'error',
@@ -245,7 +316,7 @@ export default function PostingPage() {
     } finally {
       setLoading(false)
     }
-  }, [sortBy, sortDirection, addToast, loadFilterCounts, sfwOnly, verifiedOnly, selectedAccount])
+  }, [addToast, loadFilterCounts]) // Remove filter deps to avoid stale closures
 
 
 
@@ -282,7 +353,7 @@ export default function PostingPage() {
 
       setCreatorStats(stats)
     } catch (error) {
-      console.error('Error fetching creator stats:', error)
+      logger.error('Error fetching creator stats:', error)
     } finally {
       setLoadingStats(false)
     }
@@ -331,7 +402,7 @@ export default function PostingPage() {
         await fetchCreatorStats(transformedCreators.map(c => c.username))
       }
     } catch (error) {
-      console.error('Error fetching creators:', error)
+      logger.error('Error fetching creators:', error)
       addToast({
         type: 'error',
         title: 'Error Loading Posting Accounts',
@@ -354,7 +425,7 @@ export default function PostingPage() {
     }
 
     try {
-      const response = await fetch('/api/users/toggle-creator', {
+      const response = await fetch('/api/reddit/users/toggle-creator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: userId, our_creator: makeCreator })
@@ -375,7 +446,7 @@ export default function PostingPage() {
       // Refresh creators list
       await fetchCreators()
     } catch (error) {
-      console.error('Error toggling creator:', error)
+      logger.error('Error toggling creator:', error)
       addToast({
         type: 'error',
         title: 'Update Failed',
@@ -401,9 +472,6 @@ export default function PostingPage() {
     setOkSubreddits(prev => prev.map(s =>
       s.id === id ? { ...s, tags: newTags } : s
     ))
-    setSubreddits(prev => prev.map(s =>
-      s.id === id ? { ...s, tags: newTags } : s
-    ))
 
     const { error } = await supabase!
       .from('reddit_subreddits')
@@ -414,9 +482,6 @@ export default function PostingPage() {
       handleError(error, 'Failed to update tag')
       // Revert on error
       setOkSubreddits(prev => prev.map(s =>
-        s.id === id ? { ...s, tags: currentTags } : s
-      ))
-      setSubreddits(prev => prev.map(s =>
         s.id === id ? { ...s, tags: currentTags } : s
       ))
     }
@@ -435,9 +500,6 @@ export default function PostingPage() {
     setOkSubreddits(prev => prev.map(s =>
       s.id === id ? { ...s, tags: newTags } : s
     ))
-    setSubreddits(prev => prev.map(s =>
-      s.id === id ? { ...s, tags: newTags } : s
-    ))
 
     const { error } = await supabase!
       .from('reddit_subreddits')
@@ -448,9 +510,6 @@ export default function PostingPage() {
       handleError(error, 'Failed to remove tag')
       // Revert on error
       setOkSubreddits(prev => prev.map(s =>
-        s.id === id ? { ...s, tags: currentTags } : s
-      ))
-      setSubreddits(prev => prev.map(s =>
         s.id === id ? { ...s, tags: currentTags } : s
       ))
     }
@@ -473,9 +532,6 @@ export default function PostingPage() {
     setOkSubreddits(prev => prev.map(s =>
       s.id === id ? { ...s, tags: newTags } : s
     ))
-    setSubreddits(prev => prev.map(s =>
-      s.id === id ? { ...s, tags: newTags } : s
-    ))
 
     const { error } = await supabase!
       .from('reddit_subreddits')
@@ -488,36 +544,28 @@ export default function PostingPage() {
       setOkSubreddits(prev => prev.map(s =>
         s.id === id ? { ...s, tags: currentTags } : s
       ))
-      setSubreddits(prev => prev.map(s =>
-        s.id === id ? { ...s, tags: currentTags } : s
-      ))
     }
   }, [okSubreddits, handleError])
-
-  // Track if this is the initial mount
-  const isInitialMount = useRef(true)
 
   // Debounce search query
   // Search query effect is now handled by useDebounce hook
 
-  // Refresh when sort, search, account, or filters change
+  // Refresh when sort, search, account, tags, or filters change
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-    // Reset to first page and re-fetch when sort, search, account, or filters change
+    // Reset to first page and re-fetch when sort, search, account, tags, or filters change
     setCurrentPage(0)
-    fetchOkSubreddits(0, false, debouncedSearchQuery)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortDirection, debouncedSearchQuery, selectedAccount, sfwOnly, verifiedOnly])
+    fetchOkSubreddits(0, false, debouncedSearchQuery, {
+      sfwOnly,
+      verifiedOnly,
+      minEngagement,
+      sortBy,
+      sortDirection,
+      selectedAccount,
+      selectedTags
+    })
+     
+  }, [sortBy, sortDirection, debouncedSearchQuery, selectedAccount, selectedTags, sfwOnly, verifiedOnly, minEngagement, fetchOkSubreddits])
 
-
-
-  // Separate memo for counts calculation (using server-provided counts)
-  const subredditCounts = useMemo(() => {
-    return { sfw: sfwCount, nsfw: nsfwCount, verified: verifiedCount }
-  }, [sfwCount, nsfwCount, verifiedCount])
 
   // Since we're using server-side filtering and pagination, just pass through the data
   const filteredOkSubreddits = useMemo(() => {
@@ -525,12 +573,6 @@ export default function PostingPage() {
   }, [okSubreddits])
 
   // Handler functions for toolbar
-  const handleSortChange = useCallback((field: SortField, direction: SortDirection) => {
-    setSortBy(field)
-    setSortDirection(direction)
-    setCurrentPage(0)
-  }, [])
-
   const handleSfwChange = useCallback((sfwOnly: boolean) => {
     setSfwOnly(sfwOnly)
   }, [])
@@ -539,14 +581,52 @@ export default function PostingPage() {
     setVerifiedOnly(verifiedOnly)
   }, [])
 
+  // Convert slider position (0-100) to actual engagement value (0.005-1)
+  const sliderToEngagement = (position: number): number => {
+    // Linear mapping for smooth, predictable control
+    // Position 0 = 0.005, Position 100 = 1.0
+    const minValue = 0.005
+    const maxValue = 1.0
+
+    // Simple linear interpolation
+    const percentage = position / 100
+    return minValue + (maxValue - minValue) * percentage
+  }
+
+  // Handle slider movement (updates visual only)
+  const handleEngagementChange = useCallback((values: number[]) => {
+    if (values[0] !== undefined) {
+      setTempSliderPosition(values[0])
+    }
+  }, [])
+
+  // Handle slider release (triggers filtering)
+  const handleEngagementCommit = useCallback((values: number[]) => {
+    if (values[0] !== undefined) {
+      setSliderPosition(values[0])
+      setTempSliderPosition(values[0]) // Keep temp in sync
+      const engagement = sliderToEngagement(values[0])
+      setMinEngagement(engagement)
+      logger.log('[Posting] Slider commit - engagement:', engagement)
+    }
+  }, [])
+
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loading) {
       const nextPage = currentPage + 1
       setCurrentPage(nextPage)
-      fetchOkSubreddits(nextPage, true, debouncedSearchQuery)
+      fetchOkSubreddits(nextPage, true, debouncedSearchQuery, {
+        sfwOnly,
+        verifiedOnly,
+        minEngagement,
+        sortBy,
+        sortDirection,
+        selectedAccount,
+        selectedTags
+      })
     }
-  }, [currentPage, hasMore, loading, fetchOkSubreddits, debouncedSearchQuery])
+  }, [currentPage, hasMore, loading, fetchOkSubreddits, debouncedSearchQuery, sfwOnly, verifiedOnly, minEngagement, sortBy, sortDirection, selectedAccount, selectedTags])
 
   // Optimized infinite scroll with proper throttling
   const throttledHandleScroll = useThrottledCallback(
@@ -573,12 +653,11 @@ export default function PostingPage() {
   }, [throttledHandleScroll])
 
 
-  // Initial load
+  // Initial load ONLY - don't duplicate the filter effect
   useEffect(() => {
-    setCurrentPage(0)
-    fetchOkSubreddits(0, false, '')
+    setSliderPosition(0) // Initialize slider position
+    setTempSliderPosition(0) // Initialize temp slider position
     fetchCreators()
-    loadFilterCounts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -586,11 +665,19 @@ export default function PostingPage() {
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       setCurrentPage(0)
-      fetchOkSubreddits(0, false, debouncedSearchQuery)
+      fetchOkSubreddits(0, false, debouncedSearchQuery, {
+        sfwOnly,
+        verifiedOnly,
+        minEngagement,
+        sortBy,
+        sortDirection,
+        selectedAccount,
+        selectedTags
+      })
     }, 300000)
     return () => clearInterval(refreshInterval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchQuery])
+  }, [debouncedSearchQuery, sfwOnly, verifiedOnly, minEngagement, sortBy, sortDirection, selectedAccount, selectedTags])
 
   // Use filtered subreddits (either client-side filtered or server-filtered)
   const sortedSubreddits = useMemo(() => {
@@ -598,15 +685,7 @@ export default function PostingPage() {
   }, [filteredOkSubreddits])
 
 
-  // Summary stats
-  const showingCount = sortedSubreddits.length
-  const totalCount = sfwCount + nsfwCount
-
-
-  // Get Reddit profile URL
-  const getRedditProfileUrl = (username: string) => {
-    return `https://www.reddit.com/user/${username}`
-  }
+  // Summary stats (unused variables removed for TypeScript compliance)
 
   return (
     <DashboardLayout
@@ -615,211 +694,16 @@ export default function PostingPage() {
       showSearch={false}
     >
       <div className="space-y-6">
-        {/* Active Posting Accounts Section */}
-        <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <CardTitle className="text-lg text-gray-900">Posting Accounts</CardTitle>
-                <Badge variant="outline" className="text-xs bg-pink-50 border-pink-200">
-                  {creators.length} {creators.length === 1 ? 'account' : 'accounts'}
-                </Badge>
-              </div>
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="group relative px-4 py-2.5 min-w-[120px] overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                  backdropFilter: 'blur(16px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-
-                {/* Glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                  <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Add User
-                  </span>
-                </div>
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {loadingCreators ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : creators.length === 0 ? (
-              <div className="text-center py-8">
-                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 font-medium mb-2">No active posting accounts</p>
-                <p className="text-sm text-gray-500 mb-4">Add active Reddit accounts linked to models</p>
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="group relative px-4 py-2.5 overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] inline-flex items-center justify-center text-sm font-medium"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  {/* Gradient overlay on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/20 via-purple-400/20 to-blue-400/20" />
-
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-                  {/* Content */}
-                  <div className="relative flex items-center">
-                    <UserPlus className="h-4 w-4 mr-2 text-pink-500" />
-                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-                      Add Your First Account
-                    </span>
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
-                  {creators.map((creator) => {
-                    const accountAge = creator.account_age_days ?
-                      creator.account_age_days > 365 ?
-                        `${Math.floor(creator.account_age_days / 365)}y` :
-                        `${creator.account_age_days}d`
-                      : 'New'
-
-                    const isSelected = selectedAccount?.id === creator.id
-
-                    return (
-                      <div
-                        key={creator.id}
-                        className={`relative bg-white rounded-md border-2 shadow-sm hover:shadow-md transition-all group cursor-pointer ${
-                          isSelected
-                            ? 'border-pink-500 bg-pink-50'
-                            : 'border-gray-200 hover:border-pink-300'
-                        }`}
-                        onClick={(e) => {
-                          // Don't select if clicking on remove button, avatar or username
-                          if (!(e.target as HTMLElement).closest('.no-select')) {
-                            setSelectedAccount(creator)
-                          }
-                        }}
-                      >
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="no-select absolute -top-1.5 -right-1.5 h-4 w-4 p-0 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          onClick={() => toggleCreator(creator.id, false, creator.username)}
-                          disabled={removingCreator === creator.id}
-                        >
-                          {removingCreator === creator.id ? (
-                            <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-gray-400" />
-                          ) : (
-                            <X className="h-2.5 w-2.5" />
-                          )}
-                        </Button>
-
-                        <div className="p-2">
-                          {/* Avatar and Name */}
-                          <div className="flex flex-col items-center text-center">
-                            <a
-                              href={getRedditProfileUrl(creator.username)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="no-select relative mb-1"
-                              title={`u/${creator.username}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {creator.icon_img ? (
-                                <Image
-                                  src={creator.icon_img}
-                                  alt={`${creator.username} avatar`}
-                                  width={32}
-                                  height={32}
-                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 hover:border-b9-pink transition-colors"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 via-b9-pink to-pink-600 flex items-center justify-center text-white font-bold text-[10px] shadow-sm">
-                                  {creator.username.substring(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                            </a>
-                            <a
-                              href={getRedditProfileUrl(creator.username)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="no-select hover:text-b9-pink"
-                              title={`u/${creator.username}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <span className="text-[10px] font-semibold text-gray-900 hover:text-b9-pink truncate block max-w-[60px]">
-                                {creator.username}
-                              </span>
-                            </a>
-
-                            {/* Model name */}
-                            {creator.model && (
-                              <span className="text-[9px] text-purple-600 font-medium truncate block max-w-[60px]">
-                                {creator.model.stage_name}
-                              </span>
-                            )}
-
-                            {/* Minimal badges */}
-                            <div className="flex items-center gap-0.5 mt-0.5">
-                              <span className="text-[9px] px-1 py-0 bg-gray-100 text-gray-600 rounded">
-                                {accountAge}
-                              </span>
-                              {creator.verified && (
-                                <span className="text-[9px] text-blue-500" title="Verified">✓</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Compact Karma */}
-                          <div className="mt-1.5 text-center space-y-0.5">
-                            <div className="text-[9px] text-gray-600">
-                              <span className="text-gray-500">PK</span> <span className="font-medium">{creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(0)}k` : creator.link_karma}</span>
-                            </div>
-                            <div className="text-[9px] text-gray-600">
-                              <span className="text-gray-500">CK</span> <span className="font-medium">{creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(0)}k` : creator.comment_karma}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {/* Active Posting Accounts Section - Using Shared Component */}
+        <ActiveAccountsSection
+          creators={creators}
+          selectedAccount={selectedAccount}
+          onSelectAccount={setSelectedAccount}
+          loadingCreators={loadingCreators}
+          onAddUser={() => setShowAddUserModal(true)}
+          onRemoveCreator={toggleCreator}
+          removingCreator={removingCreator}
+        />
 
         {/* Confirmation Dialog */}
         {confirmRemove && (
@@ -846,7 +730,7 @@ export default function PostingPage() {
                     setConfirmRemove(null)
 
                     try {
-                      const response = await fetch('/api/users/toggle-creator', {
+                      const response = await fetch('/api/reddit/users/toggle-creator', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id, our_creator: false })
@@ -867,7 +751,7 @@ export default function PostingPage() {
 
                       await fetchCreators()
                     } catch (error) {
-                      console.error('Error removing account:', error)
+                      logger.error('Error removing account:', error)
                       addToast({
                         type: 'error',
                         title: 'Failed to Remove',
@@ -891,138 +775,72 @@ export default function PostingPage() {
           </div>
         )}
 
-        {/* Search and Filter Bar */}
-        <div className="flex items-stretch gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
-          {/* Search Section - Left Side */}
-          <div className="flex items-center flex-1 min-w-0 max-w-xs">
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder=""
-                title="Search subreddits by name, title, or description"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                disabled={loading}
-                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8 relative"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+        {/* StandardToolbar and Tag Filter */}
+        <div className="flex gap-3 items-center">
+          <div className="flex-1">
+            <StandardToolbar
+              // Search
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+
+              // First Checkbox for SFW filter
+              checkboxLabel="SFW Only"
+              checkboxChecked={sfwOnly}
+              onCheckboxChange={handleSfwChange}
+
+              // Second Checkbox for Verified filter
+              checkboxLabel2="Verified Only"
+              checkboxChecked2={verifiedOnly}
+              onCheckboxChange2={handleVerifiedChange}
+
+              // Engagement Slider
+              sliderLabel="Min Engagement"
+              sliderMin={0}
+              sliderMax={100}
+              sliderStep={0.1}
+              sliderValue={tempSliderPosition}
+              onSliderChange={handleEngagementChange}
+              onSliderCommit={handleEngagementCommit}
+              sliderFormatValue={() => {
+                // Show as percentage for better UX based on temp position while dragging
+                const tempEngagement = sliderToEngagement(tempSliderPosition)
+                const percentage = (tempEngagement * 100).toFixed(1)
+                return `${percentage}%`
+              }}
+
+              // Sort options
+              sortOptions={[
+                { id: 'score', label: 'Score', icon: Sparkles },
+                { id: 'engagement', label: 'Engagement', icon: TrendingUp },
+                { id: 'avg_upvotes', label: 'Avg Upvotes', icon: Heart },
+                { id: 'min_post_karma', label: 'Min Karma', icon: Users }
+              ]}
+              currentSort={sortBy}
+              onSortChange={(newSortBy: string) => {
+                // Toggle direction if same sort field
+                if (newSortBy === sortBy) {
+                  setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')
+                } else {
+                  setSortBy(newSortBy as SortField)
+                  setSortDirection('desc')
+                }
+              }}
+
+              loading={loading}
+              accentColor="linear-gradient(135deg, #FF8395, #FF7A85)"
+            />
           </div>
 
-          {/* Filters Section - Right Side */}
-          <div className="flex items-center gap-2 ml-auto">
-            {/* SFW Filter Checkbox */}
-            <label className="flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={sfwOnly}
-                  onChange={(e) => handleSfwChange(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`
-                  w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center
-                  ${sfwOnly
-                    ? 'bg-b9-pink border-b9-pink'
-                    : 'bg-white border-gray-300 hover:border-b9-pink'
-                  }
-                `}>
-                  {sfwOnly && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <span className="text-sm font-medium text-gray-700">
-                SFW
-              </span>
-              {sfwOnly && sfwCount > 0 && (
-                <span className="text-xs text-b9-pink font-semibold">
-                  ({sfwCount})
-                </span>
-              )}
-            </label>
-
-            {/* Verified Filter Checkbox */}
-            <label className="flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={verifiedOnly}
-                  onChange={(e) => handleVerifiedChange(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`
-                  w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center
-                  ${verifiedOnly
-                    ? 'bg-blue-500 border-blue-500'
-                    : 'bg-white border-gray-300 hover:border-blue-500'
-                  }
-                `}>
-                  {verifiedOnly && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <span className="text-sm font-medium text-gray-700">
-                Verified
-              </span>
-              {verifiedOnly && verifiedCount > 0 && (
-                <span className="text-xs text-blue-500 font-semibold">
-                  ({verifiedCount})
-                </span>
-              )}
-            </label>
-
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <select
-                value={`${sortBy}-${sortDirection}`}
-                onChange={(e) => {
-                  const [field, direction] = e.target.value.split('-')
-                  handleSortChange(field as SortField, direction as SortDirection)
-                }}
-                className="appearance-none bg-white border border-gray-200 rounded-md px-3 py-1.5 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 h-8"
-              >
-                <option value="engagement-desc">Engagement ↓</option>
-                <option value="engagement-asc">Engagement ↑</option>
-                <option value="avg_upvotes-desc">Avg Upvotes ↓</option>
-                <option value="avg_upvotes-asc">Avg Upvotes ↑</option>
-                <option value="min_post_karma-desc">Min Post Karma ↓</option>
-                <option value="min_post_karma-asc">Min Post Karma ↑</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <ChevronDown className="h-4 w-4" />
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="text-xs text-gray-600 px-3">
-              {loading ? (
-                <span className="animate-pulse">Loading...</span>
-              ) : (
-                <span>{showingCount} of {totalCount}</span>
-              )}
-            </div>
-          </div>
+          {/* Tag Filter Dropdown */}
+          <TagFilterDropdown
+            availableTags={(availableTags as string[]) || []}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            loading={loading}
+            // Don't show "untagged only" option in posting page
+            showUntaggedOnly={false}
+            onShowUntaggedChange={undefined}
+          />
         </div>
 
         {/* Show message if no account selected or no matching subreddits */}
@@ -1055,7 +873,7 @@ export default function PostingPage() {
               onLoadMore={handleLoadMore}
               hasMore={hasMore}
               sfwOnly={sfwOnly}
-              onUpdate={(id, updates) => {
+              onUpdate={(id: number, updates: Partial<SubredditWithPosts>) => {
                 // Update okSubreddits state when tags are modified
                 setOkSubreddits(prev => prev.map(sub =>
                   sub.id === id

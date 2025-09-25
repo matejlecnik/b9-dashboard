@@ -1,5 +1,7 @@
 'use server'
 
+import { logger } from '@/lib/logger'
+
 // Server actions for controlling the scraper via Render environment variables
 // This runs on the server and can access server-side APIs
 
@@ -17,16 +19,16 @@ export async function getScraperStatus() {
       success: true,
       scraperEnabled: lastKnownState === 'true',
       status: lastKnownState === 'true' ? 'running' : 'stopped',
-      message: `Scraper is ${lastKnownState === 'true' ? 'running' : 'stopped'}`,
+      title: `Scraper is ${lastKnownState === 'true' ? 'running' : 'stopped'}`,
       lastChecked: new Date().toISOString()
     }
   } catch (error) {
-    console.error('Error getting scraper status:', error)
+    logger.error('Error getting scraper status:', error)
     return {
       success: false,
       scraperEnabled: false,
       status: 'error',
-      message: 'Failed to get scraper status',
+      title: 'Failed to get scraper status',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
@@ -37,7 +39,7 @@ export async function setScraperState(enabled: boolean) {
     // This would normally call Render's API to update the environment variable
     // For MVP, we'll simulate the action
 
-    console.log(`Setting SCRAPER_ENABLED to ${enabled} on Render...`)
+    logger.log(`Setting SCRAPER_ENABLED to ${enabled} on Render...`)
 
     // In production, you would:
     // 1. Call Render API to update SCRAPER_ENABLED
@@ -48,17 +50,17 @@ export async function setScraperState(enabled: boolean) {
       success: true,
       scraperEnabled: enabled,
       status: enabled ? 'running' : 'stopped',
-      message: `Scraper ${enabled ? 'started' : 'stopped'} successfully`,
+      title: `Scraper ${enabled ? 'started' : 'stopped'} successfully`,
       deploymentTriggered: true,
       estimatedDeployTime: '1-2 minutes'
     }
   } catch (error) {
-    console.error('Error setting scraper state:', error)
+    logger.error('Error setting scraper state:', error)
     return {
       success: false,
       scraperEnabled: !enabled,
       status: 'error',
-      message: 'Failed to update scraper state',
+      title: 'Failed to update scraper state',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
@@ -81,12 +83,12 @@ export async function toggleScraper() {
 
     return result
   } catch (error) {
-    console.error('Error toggling scraper:', error)
+    logger.error('Error toggling scraper:', error)
     return {
       success: false,
       scraperEnabled: false,
       status: 'error',
-      message: 'Failed to toggle scraper',
+      title: 'Failed to toggle scraper',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }

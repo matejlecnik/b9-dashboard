@@ -5,7 +5,6 @@ import {
   FileText,
   FolderTree,
   LucideIcon,
-  UserCircle2
 } from 'lucide-react'
 
 export interface BadgeConfig {
@@ -78,14 +77,6 @@ export const navigationConfig: NavigationConfig = {
           href: '/reddit/post-analysis',
           icon: FileText,
           shortcut: '⌘4'
-        },
-        {
-          id: 'user-analysis',
-          title: 'User Analysis',
-          href: '/reddit/user-analysis',
-          icon: Users,
-          shortcut: '⌘5',
-          isComingSoon: true
         }
       ]
     }

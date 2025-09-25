@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useCallback } from 'react'
+import { Users, X, Play } from 'lucide-react'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
-import { Play, Pause, Users, X, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 interface RelatedCreatorsModalProps {
   isOpen: boolean
@@ -39,33 +40,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
   const [unprocessedCount, setUnprocessedCount] = useState(0)
   const [loadingCount, setLoadingCount] = useState(false)
 
-  useEffect(() => {
-    if (isOpen) {
-      checkStatus()
-      fetchUnprocessedCount()
-    }
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-      }
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (isProcessing) {
-      const interval = setInterval(checkStatus, 2000)
-      setPollingInterval(interval)
-      setShowLogs(true)
-      return () => clearInterval(interval)
-    } else {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-        setPollingInterval(null)
-      }
-    }
-  }, [isProcessing])
-
-  const fetchUnprocessedCount = async () => {
+  const fetchUnprocessedCount = useCallback(async () => {
     setLoadingCount(true)
     try {
       const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/unprocessed-count')
@@ -76,13 +51,13 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
         setBatchSize(Math.min(10, data.count))
       }
     } catch (error) {
-      console.error('Error fetching unprocessed count:', error)
+      logger.error('Error fetching unprocessed count:', error)
     } finally {
       setLoadingCount(false)
     }
-  }
+  }, [])
 
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     try {
       const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/status')
       if (response.ok) {
@@ -97,9 +72,37 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
         }
       }
     } catch (error) {
-      console.error('Error checking status:', error)
+      logger.error('Error checking status:', error)
     }
-  }
+  }, [fetchUnprocessedCount])
+
+  useEffect(() => {
+    if (isOpen) {
+      checkStatus()
+      fetchUnprocessedCount()
+    }
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, checkStatus, fetchUnprocessedCount])
+
+  useEffect(() => {
+    if (isProcessing) {
+      const interval = setInterval(checkStatus, 2000)
+      setPollingInterval(interval)
+      setShowLogs(true)
+      return () => clearInterval(interval)
+    } else {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+        setPollingInterval(null)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProcessing, checkStatus])
 
   const startProcessing = async () => {
     try {
@@ -119,7 +122,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
         toast.error(error || 'Failed to start processing')
       }
     } catch (error) {
-      console.error('Error starting processing:', error)
+      logger.error('Error starting processing:', error)
       toast.error('Failed to start processing')
     }
   }
@@ -138,7 +141,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
         toast.error(error || 'Failed to stop processing')
       }
     } catch (error) {
-      console.error('Error stopping processing:', error)
+      logger.error('Error stopping processing:', error)
       toast.error('Failed to stop processing')
     }
   }
@@ -215,7 +218,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                   <div className="relative">
                     <Slider
                       value={[batchSize]}
-                      onValueChange={(value) => setBatchSize(value[0])}
+                      onValueChange={(value: number[]) => setBatchSize(value[0])}
                       min={1}
                       max={Math.min(100, unprocessedCount)}
                       step={1}

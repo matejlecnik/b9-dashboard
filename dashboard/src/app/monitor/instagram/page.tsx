@@ -1,57 +1,18 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Play,
-  Square,
-  Instagram
+  Square
 } from 'lucide-react'
-import { useToast } from '@/components/ui/toast'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { LogViewerSupabase } from '@/components/LogViewerSupabase'
-import { RedditMonitorSidebar } from '@/components/RedditMonitorSidebar'
-import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase/index'
-
-interface InstagramMetrics {
-  enabled: boolean
-  status: 'running' | 'stopped' | 'error'
-  statistics: {
-    total_api_calls: number
-    successful_calls: number
-    failed_calls: number
-    creators_processed: number
-    content_collected: number
-    viral_content_detected: number
-    daily_api_calls: number
-    processing_rate_per_hour: number
-  }
-  performance: {
-    current_rps: number
-    avg_response_time: number
-    total_requests: number
-    uptime_seconds: number
-  }
-  creators: {
-    total: number
-    active: number
-    pending: number
-  }
-  last_activity: string | null
-  config: {
-    batch_size: number
-    requests_per_second: number
-    max_daily_calls: number
-    max_monthly_calls: number
-  }
-  cost?: {
-    current_run: number
-    daily_budget_used: number
-    monthly_budget_used: number
-  }
-}
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
+import { useToast } from '@/components/ui/toast'
+import { logger } from '@/lib/logger'
+import { supabase } from '@/lib/supabase'
 
 export default function InstagramMonitor() {
-  const [metrics, setMetrics] = useState<InstagramMetrics | null>(null)
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
@@ -89,12 +50,12 @@ export default function InstagramMonitor() {
             })
           }
         }
-      } catch (fetchError: any) {
+      } catch {
         clearTimeout(timeoutId)
-        console.log('Failed to fetch success rate')
+        logger.log('Failed to fetch success rate')
       }
     } catch (error) {
-      console.error('Error calculating success rate:', error)
+      logger.error('Error calculating success rate:', error)
     }
   }, [])
 
@@ -125,12 +86,12 @@ export default function InstagramMonitor() {
             })
           }
         }
-      } catch (fetchError: any) {
+      } catch {
         clearTimeout(timeoutId)
-        console.log('Failed to fetch cost metrics')
+        logger.log('Failed to fetch cost metrics')
       }
     } catch (error) {
-      console.error('Error fetching cost data:', error)
+      logger.error('Error fetching cost data:', error)
     }
   }, [])
 
@@ -159,7 +120,7 @@ export default function InstagramMonitor() {
               elapsed_formatted: data.cycle.elapsed_formatted || 'Unknown',
               start_time: data.cycle.start_time
             })
-            console.log('Instagram cycle data from API:', data.cycle)
+            logger.log('Instagram cycle data from API:', data.cycle)
           } else if (data.success && !data.control?.enabled) {
             // Scraper is disabled
             setCycleData({
@@ -170,20 +131,20 @@ export default function InstagramMonitor() {
             setCycleData(null)
           }
         } else {
-          console.error('Failed to fetch cycle data from API')
+          logger.error('Failed to fetch cycle data from API')
           setCycleData(null)
         }
-      } catch (fetchError: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId)
-        if (fetchError.name === 'AbortError') {
-          console.log('API timeout fetching cycle data')
+        if ((error as Error).name === 'AbortError') {
+          logger.log('API timeout fetching cycle data')
         } else {
-          console.error('Error fetching cycle data:', fetchError)
+          logger.error('Error fetching cycle data:', error)
         }
         setCycleData(null)
       }
     } catch (error) {
-      console.error('Error fetching cycle data:', error)
+      logger.error('Error fetching cycle data:', error)
       setCycleData(null)
     }
   }, [])
@@ -207,7 +168,7 @@ export default function InstagramMonitor() {
           }
         }
       } catch (supabaseError) {
-        console.warn('Supabase status check failed:', supabaseError)
+        logger.warn('Supabase status check failed:', supabaseError)
       }
 
       // Always try to fetch from production API on Render for scraper status
@@ -228,93 +189,30 @@ export default function InstagramMonitor() {
         if (statusRes.ok) {
           const data = await statusRes.json()
 
-          // Map the response to our metrics structure
-          const mappedMetrics: InstagramMetrics = {
-            enabled: data.control?.enabled || false,
-            status: data.control?.enabled ? 'running' : 'stopped',
-            statistics: {
-              total_api_calls: data.progress?.api_calls_made || 0,
-              successful_calls: data.progress?.successful_calls || data.progress?.api_calls_made || 0,
-              failed_calls: data.progress?.failed_calls || 0,
-              creators_processed: data.progress?.creators_processed || 0,
-              content_collected: 0,
-              viral_content_detected: 0,
-              daily_api_calls: data.progress?.daily_api_calls || 0,
-              processing_rate_per_hour: data.performance?.current_rps ? data.performance.current_rps * 3600 : 0
-            },
-            performance: data.performance || {
-              current_rps: 0,
-              avg_response_time: 0,
-              total_requests: 0,
-              uptime_seconds: 0
-            },
-            creators: {
-              total: 0,
-              active: 0,
-              pending: 0
-            },
-            last_activity: data.timestamp,
-            config: {
-              batch_size: 100,
-              requests_per_second: 55,
-              max_daily_calls: 24000,
-              max_monthly_calls: 1000000
-            },
-            cost: data.cost
-          }
-
-          setMetrics(mappedMetrics)
+          // Process the response data without storing unused metrics
 
           // Only update running state if we haven't manually overridden it
           if (!manualOverride) {
             setIsRunning(data.control?.enabled === true)
           }
         }
-      } catch (fetchError: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId)
         // Silently handle timeout errors (API might be cold starting)
-        if (fetchError.name === 'AbortError') {
+        if ((error as Error).name === 'AbortError') {
           // API is slow to respond, continue silently
         } else {
           // API fetch failed, continue silently
         }
 
-        // Set minimal metrics from what we know
-        setMetrics({
-          enabled: isRunning,
-          status: isRunning ? 'running' : 'stopped',
-          statistics: {
-            total_api_calls: 0,
-            successful_calls: 0,
-            failed_calls: 0,
-            creators_processed: 0,
-            content_collected: 0,
-            viral_content_detected: 0,
-            daily_api_calls: 0,
-            processing_rate_per_hour: 0
-          },
-          performance: {
-            current_rps: 0,
-            avg_response_time: 0,
-            total_requests: 0,
-            uptime_seconds: 0
-          },
-          creators: { total: 0, active: 0, pending: 0 },
-          last_activity: null,
-          config: {
-            batch_size: 100,
-            requests_per_second: 55,
-            max_daily_calls: 24000,
-            max_monthly_calls: 1000000
-          }
-        })
+        // Continue without setting metrics on error
       }
     } catch (error) {
-      console.error('Failed to fetch metrics:', error)
+      logger.error('Failed to fetch metrics:', error)
     } finally {
       setLoading(false)
     }
-  }, [manualOverride, isRunning, supabase])
+  }, [manualOverride])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -383,7 +281,7 @@ export default function InstagramMonitor() {
       setIsRunning(action !== 'start')
       setManualOverride(false) // Clear override on error
 
-      console.error('Scraper control error:', error)
+      logger.error('Scraper control error:', error)
       addToast({
         title: `Failed to ${action} scraper`,
         description: 'Network error or server is not responding',
@@ -411,7 +309,7 @@ export default function InstagramMonitor() {
           // Always use Supabase as the source of truth for initial state
           const isEnabled = controlStatus.data.enabled === true || controlStatus.data.status === 'running'
           setIsRunning(isEnabled)
-          console.log('Instagram scraper initial state from Supabase:', isEnabled ? 'running' : 'stopped')
+          logger.log('Instagram scraper initial state from Supabase:', isEnabled ? 'running' : 'stopped')
         } else {
           // Default to stopped if no control record exists
           setIsRunning(false)
@@ -437,12 +335,12 @@ export default function InstagramMonitor() {
               setIsRunning(isScraperRunning)
             }
           }
-        } catch (fetchError) {
+        } catch {
           clearTimeout(timeoutId)
           // Silently ignore API errors on initial load
         }
       } catch (error) {
-        console.log('Error checking initial status:', error)
+        logger.log('Error checking initial status:', error)
         // Default to stopped on error
         setIsRunning(false)
       }
@@ -466,14 +364,15 @@ export default function InstagramMonitor() {
     return () => {
       clearInterval(metricsInterval)
     }
-  }, []) // Empty dependency array - only run once on mount
+  }, [fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData]) // Include all called functions
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
-      {/* Apple-style background texture */}
-      <div
-        className="fixed inset-0 opacity-30 pointer-events-none"
-        style={{
+    <DashboardLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
+        {/* Apple-style background texture */}
+        <div
+          className="fixed inset-0 opacity-30 pointer-events-none"
+          style={{
           backgroundImage: `
             radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
             radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
@@ -483,7 +382,6 @@ export default function InstagramMonitor() {
 
       {/* Sidebar */}
       <div className="relative z-50">
-        <RedditMonitorSidebar />
       </div>
 
       {/* Main Content */}
@@ -499,43 +397,15 @@ export default function InstagramMonitor() {
             {/* Left Column - Button and Success Rate */}
             <div className="flex flex-col gap-3 flex-shrink-0">
               {/* Start/Stop Scraper Button */}
-              <button
+              <StandardActionButton
                 onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
+                label={isRunning ? 'Stop Scraper' : 'Start Scraper'}
+                icon={isRunning ? Square : Play}
+                variant={isRunning ? 'danger' : 'primary'}
                 disabled={loading}
-                className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  background: isRunning
-                    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15))'
-                    : 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                  backdropFilter: 'blur(16px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-
-                {/* Glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  {isRunning ? (
-                    <Square className="h-5 w-5 text-red-500 mb-1 group-hover:text-red-600 transition-colors" />
-                  ) : (
-                    <Play className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                  )}
-                  <span className={`text-xs font-semibold bg-gradient-to-r ${isRunning ? 'from-red-600 to-red-700' : 'from-pink-600 to-purple-600'} bg-clip-text text-transparent`}>
-                    {isRunning ? 'Stop Scraper' : 'Start Scraper'}
-                  </span>
-                </div>
-              </button>
+                size="large"
+                className="w-[140px]"
+              />
 
               {/* Success Rate Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
@@ -564,7 +434,7 @@ export default function InstagramMonitor() {
 
               {/* Cost Tracking Card */}
               <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
-                <div className="text-[10px] text-gray-500 mb-0.5">Today's Cost</div>
+                <div className="text-[10px] text-gray-500 mb-0.5">Today&apos;s Cost</div>
                 <div className="text-xl font-bold text-gray-900">
                   ${costData?.daily.toFixed(2) || '0.00'}
                 </div>
@@ -597,5 +467,6 @@ export default function InstagramMonitor() {
         </main>
       </div>
     </div>
+    </DashboardLayout>
   )
 }

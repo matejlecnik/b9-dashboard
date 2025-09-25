@@ -1,8 +1,7 @@
 'use client'
 
-import { Users, Hash, TrendingUp, BarChart, Instagram } from 'lucide-react'
-import { SidebarTemplate } from '@/components/SidebarTemplate'
-
+import { Users, Hash, TrendingUp, BarChart } from 'lucide-react'
+import { SidebarTemplate } from '@/components/shared/layouts/SidebarTemplate'
 // Instagram Icon Component
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg

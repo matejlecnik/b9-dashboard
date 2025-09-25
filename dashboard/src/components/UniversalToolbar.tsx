@@ -1,8 +1,12 @@
 'use client'
 
-import React, { memo, useCallback, useEffect, useState, ReactNode } from 'react'
+import { memo, useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ReactNode } from 'react'
+import { TOOLBAR_DIMENSIONS } from '@/lib/toolbarStyles'
+import { UNIFIED_TOOLBAR_STYLES } from '@/lib/toolbarStyles'
 import { 
   Check, 
   Ban, 
@@ -17,8 +21,6 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { UNIFIED_TOOLBAR_STYLES, TOOLBAR_DIMENSIONS } from '@/lib/toolbarStyles'
 // ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================

@@ -1,25 +1,23 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
+import {
+  Users,
+  TrendingUp,
+  Clock,
+  UserPlus,
+  Tag
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Progress } from '@/components/ui/progress'
-import { Search, Hash, UserPlus } from 'lucide-react'
-import { toast } from 'sonner'
-import { formatNumber } from '@/lib/utils'
-import { InstagramSidebar } from '@/components/InstagramSidebar'
+import { StandardToolbar } from '@/components/shared'
 import { InstagramTable } from '@/components/instagram/InstagramTable'
-import { NicheFilterDropdown } from '@/components/instagram/NicheFilterDropdown'
 import { NicheSelector } from '@/components/instagram/NicheSelector'
 import { useDebounce } from '@/hooks/useDebounce'
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
+import { toast } from 'sonner'
 
 
 interface InstagramCreator {
@@ -43,12 +41,20 @@ interface InstagramCreator {
   engagement_rate_cached: number | null
   viral_content_count_cached: number | null
   external_url: string | null
-  bio_links: any[] | null
+  bio_links: unknown[] | null
   avg_likes_per_post?: number | null
   niche?: string | null
 }
 
 const PAGE_SIZE = 50
+
+// Utility function to format numbers
+const formatNumber = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return '0'
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return num.toString()
+}
 
 export default function NichingPage() {
   const [creators, setCreators] = useState<InstagramCreator[]>([])
@@ -65,7 +71,6 @@ export default function NichingPage() {
     'Girl next door': 0
   })
   const [availableNiches, setAvailableNiches] = useState<string[]>(['Girl next door'])
-  const [bulkNiche, setBulkNiche] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [customNiche, setCustomNiche] = useState('')
   const [postsMetrics, setPostsMetrics] = useState<Map<string, { avgLikes: number, avgComments: number }>>(new Map())
@@ -83,7 +88,7 @@ export default function NichingPage() {
   // Fetch available niches and counts
   const fetchNicheCounts = useCallback(async (signal?: AbortSignal) => {
     if (!supabase) {
-      console.error('Supabase client not available')
+      logger.error('Supabase client not available')
       return
     }
 
@@ -142,18 +147,77 @@ export default function NichingPage() {
 
       setNicheCounts(nicheCounts)
     } catch (error) {
-      if (error && (error as any).name !== 'AbortError') {
-        console.error('Error fetching niche counts:', error)
+      if (error && (error as Error).name !== 'AbortError') {
+        logger.error('Error fetching niche counts:', error)
       }
     }
-  }, [supabase])
+  }, [])
+
+  // Fetch post metrics
+  const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
+    try {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        return
+      }
+
+      let query = supabase
+        .from('instagram_posts')
+        .select('creator_id, like_count, comment_count')
+        .in('creator_id', creatorIds)
+
+      if (signal) {
+        query = query.abortSignal(signal)
+      }
+
+      const { data, error } = await query
+
+      if (signal?.aborted) return
+
+      if (error) {
+        if ((error as Error).name !== 'AbortError') {
+          logger.error('Error fetching post metrics:', error)
+        }
+        return
+      }
+
+      // Calculate averages per creator
+      const metricsMap = new Map<string, { avgLikes: number, avgComments: number }>()
+      const creatorData = new Map<string, { likes: number[], comments: number[] }>()
+
+      // Group by creator
+      data?.forEach(post => {
+        if (!creatorData.has(post.creator_id)) {
+          creatorData.set(post.creator_id, { likes: [], comments: [] })
+        }
+        const creator = creatorData.get(post.creator_id)!
+        if (post.like_count !== null) creator.likes.push(post.like_count)
+        if (post.comment_count !== null) creator.comments.push(post.comment_count)
+      })
+
+      // Calculate averages
+      creatorData.forEach((data, creatorId) => {
+        const avgLikes = data.likes.length > 0
+          ? data.likes.reduce((a, b) => a + b, 0) / data.likes.length
+          : 0
+        const avgComments = data.comments.length > 0
+          ? data.comments.reduce((a, b) => a + b, 0) / data.comments.length
+          : 0
+        metricsMap.set(creatorId, { avgLikes, avgComments })
+      })
+
+      setPostsMetrics(metricsMap)
+    } catch (error) {
+      logger.error('Error calculating post metrics:', error)
+    }
+  }, [])
 
   // Fetch creators
   const fetchCreators = useCallback(async (signal?: AbortSignal) => {
     if (fetchingPageRef.current === 0) return
 
     if (!supabase) {
-      console.error('Supabase client not available')
+      logger.error('Supabase client not available')
       setLoading(false)
       return
     }
@@ -205,15 +269,15 @@ export default function NichingPage() {
         fetchPostMetrics(data.map(c => c.ig_user_id), signal)
       }
     } catch (error) {
-      if (error && (error as any).name !== 'AbortError') {
-        console.error('Error fetching creators:', error)
+      if (error && (error as Error).name !== 'AbortError') {
+        logger.error('Error fetching creators:', error)
         toast.error('Failed to load creators')
       }
     } finally {
       setLoading(false)
       fetchingPageRef.current = null
     }
-  }, [supabase, selectedNiches, availableNiches, debouncedSearchQuery])
+  }, [selectedNiches, availableNiches, debouncedSearchQuery, fetchPostMetrics])
 
   // Load more creators
   const loadMoreCreators = useCallback(async () => {
@@ -225,7 +289,7 @@ export default function NichingPage() {
 
     try {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         return
       }
 
@@ -267,77 +331,18 @@ export default function NichingPage() {
         fetchPostMetrics(newData.map(c => c.ig_user_id))
       }
     } catch (error) {
-      console.error('Error loading more creators:', error)
+      logger.error('Error loading more creators:', error)
     } finally {
       setLoadingMore(false)
       fetchingPageRef.current = null
     }
-  }, [supabase, selectedNiches, availableNiches, debouncedSearchQuery, currentPage, hasMore, loadingMore])
-
-  // Fetch post metrics
-  const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
-    try {
-      if (!supabase) {
-        console.error('Supabase client not available')
-        return
-      }
-
-      let query = supabase
-        .from('instagram_posts')
-        .select('creator_id, like_count, comment_count')
-        .in('creator_id', creatorIds)
-
-      if (signal) {
-        query = query.abortSignal(signal)
-      }
-
-      const { data, error } = await query
-
-      if (signal?.aborted) return
-
-      if (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error fetching post metrics:', error)
-        }
-        return
-      }
-
-      // Calculate averages per creator
-      const metricsMap = new Map<string, { avgLikes: number, avgComments: number }>()
-      const creatorData = new Map<string, { likes: number[], comments: number[] }>()
-
-      // Group by creator
-      data?.forEach(post => {
-        if (!creatorData.has(post.creator_id)) {
-          creatorData.set(post.creator_id, { likes: [], comments: [] })
-        }
-        const creator = creatorData.get(post.creator_id)!
-        if (post.like_count !== null) creator.likes.push(post.like_count)
-        if (post.comment_count !== null) creator.comments.push(post.comment_count)
-      })
-
-      // Calculate averages
-      creatorData.forEach((data, creatorId) => {
-        const avgLikes = data.likes.length > 0
-          ? data.likes.reduce((a, b) => a + b, 0) / data.likes.length
-          : 0
-        const avgComments = data.comments.length > 0
-          ? data.comments.reduce((a, b) => a + b, 0) / data.comments.length
-          : 0
-        metricsMap.set(creatorId, { avgLikes, avgComments })
-      })
-
-      setPostsMetrics(metricsMap)
-    } catch (error) {
-      console.error('Error calculating post metrics:', error)
-    }
-  }, [supabase])
+  }, [selectedNiches, availableNiches, debouncedSearchQuery, currentPage, hasMore, loadingMore, fetchPostMetrics])
 
   // Update niche for single creator
   const updateNiche = useCallback(async (creatorId: number, niche: string | null) => {
     try {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         toast.error('Database connection not available')
         return
       }
@@ -370,10 +375,10 @@ export default function NichingPage() {
         }
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error)
       toast.error('An error occurred while updating niche')
     }
-  }, [supabase, selectedNiches, fetchNicheCounts])
+  }, [selectedNiches, fetchNicheCounts])
 
   // Bulk update niches
   const bulkUpdateNiche = useCallback(async (niche: string | null) => {
@@ -381,7 +386,7 @@ export default function NichingPage() {
 
     try {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         toast.error('Database connection not available')
         return
       }
@@ -406,10 +411,10 @@ export default function NichingPage() {
         fetchNicheCounts(abortControllerRef.current.signal)
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error)
       toast.error('An error occurred during bulk update')
     }
-  }, [selectedCreators, supabase, fetchCreators, fetchNicheCounts])
+  }, [selectedCreators, fetchCreators, fetchNicheCounts])
 
 
   // Initial load
@@ -446,7 +451,6 @@ export default function NichingPage() {
 
       {/* Sidebar */}
       <div className="relative z-50">
-        <InstagramSidebar />
       </div>
 
       {/* Main Content */}
@@ -489,132 +493,114 @@ export default function NichingPage() {
                 </Button>
               </div>
 
-              {/* Standard Toolbar with Search and Filters */}
-              <div className="flex items-stretch gap-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
-                {/* Search Section - Left Side */}
-                <div className="flex items-center flex-1 min-w-0 max-w-xs">
-                  <div className="relative w-full">
-                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                      <Search className="h-4 w-4 text-gray-500" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search creators..."
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      disabled={loading}
-                      className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => handleSearchChange('')}
-                        className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                        aria-label="Clear search"
-                      >
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
+              {/* StandardToolbar */}
+              <StandardToolbar
+                // Search
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
 
-                {/* Filters Section - Right Side */}
-                <div className="flex items-center gap-2 ml-auto">
-                  <NicheFilterDropdown
-                    availableNiches={availableNiches}
-                    selectedNiches={selectedNiches}
-                    onNichesChange={setSelectedNiches}
-                    loading={loading}
-                    unnichedCount={nicheCounts.unniched}
-                    nichedCount={nicheCounts.all - nicheCounts.unniched}
-                    nicheCounts={nicheCounts}
+                // Filters
+                filters={[
+                  {
+                    id: 'all',
+                    label: 'All',
+                    count: nicheCounts.all
+                  },
+                  {
+                    id: 'unniched',
+                    label: 'Unniched',
+                    count: nicheCounts.unniched
+                  },
+                  {
+                    id: 'niched',
+                    label: 'Niched',
+                    count: nicheCounts.all - nicheCounts.unniched
+                  }
+                ]}
+                currentFilter={selectedNiches.length === 0 ? 'unniched' : 'niched'}
+                onFilterChange={(filterId: string) => {
+                  if (filterId === 'unniched') {
+                    setSelectedNiches([])
+                  } else if (filterId === 'niched') {
+                    setSelectedNiches(availableNiches)
+                  } else {
+                    setSelectedNiches([])
+                  }
+                }}
+
+                // Sort options
+                sortOptions={[
+                  { id: 'followers', label: 'Followers', icon: Users },
+                  { id: 'engagement', label: 'Engagement', icon: TrendingUp },
+                  { id: 'recent', label: 'Recent', icon: Clock }
+                ]}
+                currentSort="followers"
+                onSortChange={() => {
+                  // TODO: Implement sort change functionality
+                }}
+
+                // Action buttons
+                actionButtons={[
+                  {
+                    id: 'add-creator',
+                    label: 'Add Creator',
+                    icon: UserPlus,
+                    onClick: () => {toast.info('Add creator functionality coming soon')},
+                    variant: 'default' as const
+                  }
+                ]}
+
+                // Bulk actions (when items selected)
+                selectedCount={selectedCreators.size}
+                bulkActions={selectedCreators.size > 0 ? [
+                  {
+                    id: 'set-niche',
+                    label: 'Set Niche',
+                    icon: Tag,
+                    onClick: () => {
+                      const niche = prompt('Enter niche for selected creators:')
+                      if (niche !== null) {
+                        bulkUpdateNiche(niche || 'none')
+                      }
+                    },
+                    variant: 'secondary' as const
+                  }
+                ] : []}
+                onClearSelection={() => setSelectedCreators(new Set())}
+
+                loading={loading}
+                accentColor="linear-gradient(135deg, #E1306C, #F77737)"
+              />
+
+              {showCustomInput && (
+                <div className="flex items-center gap-2 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+                  <Input
+                    type="text"
+                    placeholder="Enter new niche..."
+                    value={customNiche}
+                    onChange={(e) => setCustomNiche(e.target.value)}
+                    className="w-[240px] h-8"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && customNiche.trim()) {
+                        bulkUpdateNiche(customNiche.trim())
+                        setCustomNiche('')
+                        setShowCustomInput(false)
+                      }
+                    }}
                   />
-                </div>
-              </div>
-
-              {/* Bulk Actions Toolbar */}
-              {selectedCreators.size > 0 && (
-                <div className="flex items-center gap-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      {selectedCreators.size} selected
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedCreators(new Set())}
-                      className="h-8 text-xs"
-                    >
-                      Deselect all
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={bulkNiche}
-                      onValueChange={(v) => {
-                        if (v === 'add_new') {
-                          setShowCustomInput(true)
-                          setBulkNiche('')
-                        } else {
-                          setBulkNiche(v)
-                          setShowCustomInput(false)
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-[180px] h-8">
-                        <SelectValue placeholder="Select niche" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Niche</SelectItem>
-                        {availableNiches.map((niche) => (
-                          <SelectItem key={niche} value={niche}>{niche}</SelectItem>
-                        ))}
-                        <SelectItem value="add_new">
-                          <span className="flex items-center gap-1">
-                            <Hash className="h-3 w-3" />
-                            Add new niche...
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {showCustomInput && (
-                      <Input
-                        type="text"
-                        placeholder="Enter new niche..."
-                        value={customNiche}
-                        onChange={(e) => setCustomNiche(e.target.value)}
-                        className="w-[180px] h-8"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && customNiche.trim()) {
-                            bulkUpdateNiche(customNiche.trim())
-                            setCustomNiche('')
-                            setShowCustomInput(false)
-                          }
-                        }}
-                      />
-                    )}
-
-                    <Button
-                      onClick={() => {
-                        if (bulkNiche === 'none') {
-                          bulkUpdateNiche(null)
-                        } else if (bulkNiche && bulkNiche !== 'add_new') {
-                          bulkUpdateNiche(bulkNiche)
-                        } else if (showCustomInput && customNiche.trim()) {
-                          bulkUpdateNiche(customNiche.trim())
-                          setCustomNiche('')
-                          setShowCustomInput(false)
-                        }
-                      }}
-                      disabled={loading || (!bulkNiche && !customNiche.trim())}
-                      className="h-8"
-                    >
-                      Apply Niche
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => {
+                      if (customNiche.trim()) {
+                        bulkUpdateNiche(customNiche.trim())
+                        setCustomNiche('')
+                        setShowCustomInput(false)
+                      }
+                    }}
+                    disabled={loading || !customNiche.trim()}
+                    className="h-8"
+                  >
+                    Apply Niche
+                  </Button>
                 </div>
               )}
 
@@ -630,51 +616,52 @@ export default function NichingPage() {
                   hasMore={hasMore}
                   loadingMore={loadingMore}
                   postsMetrics={postsMetrics}
-                  onUpdateReview={async (id, status) => {
+                  onUpdateReview={(id: number, status: 'ok' | 'non_related' | 'pending') => {
                     // Update review status
-                    try {
-                      if (!supabase) {
-                        console.error('Supabase client not available')
-                        toast.error('Database connection not available')
-                        return
-                      }
+                    (async () => {
+                      try {
+                        if (!supabase) {
+                          logger.error('Supabase client not available')
+                          toast.error('Database connection not available')
+                          return
+                        }
 
-                      const { error } = await supabase
-                        .from('instagram_creators')
-                        .update({
-                          review_status: status,
-                          reviewed_at: new Date().toISOString(),
-                          reviewed_by: 'admin'
-                        })
-                        .eq('id', id)
+                        const { error } = await supabase
+                          .from('instagram_creators')
+                          .update({
+                            review_status: status,
+                            reviewed_at: new Date().toISOString(),
+                            reviewed_by: 'admin'
+                          })
+                          .eq('id', id)
 
-                      if (error) {
-                        toast.error('Failed to update review status')
-                      } else {
-                        toast.success('Review status updated')
-                        // Update local state
-                        setCreators(prev => prev.map(c =>
-                          c.id === id ? { ...c, review_status: status } : c
-                        ))
+                        if (error) {
+                          toast.error('Failed to update review status')
+                        } else {
+                          toast.success('Review status updated')
+                          // Update local state
+                          setCreators(prev => prev.map(c =>
+                            c.id === id ? { ...c, review_status: status } : c
+                          ))
+                        }
+                      } catch (error) {
+                        logger.error('Error updating review:', error)
+                        toast.error('An error occurred')
                       }
-                    } catch (error) {
-                      console.error('Error updating review:', error)
-                      toast.error('An error occurred')
-                    }
+                    })()
                   }}
                   customColumns={[
                     {
                       key: 'niche',
                       label: 'Niche',
                       width: 'w-40',
-                      render: (creator) => {
-                        const creatorWithNiche = creator as InstagramCreator
+                      render: (creator: InstagramCreator) => {
                         return (
                           <NicheSelector
-                            creatorId={creatorWithNiche.id}
-                            currentNiche={creatorWithNiche.niche || null}
+                            creatorId={creator.id}
+                            currentNiche={creator.niche || null}
                             availableNiches={availableNiches}
-                            onNicheChange={(niche) => updateNiche(creatorWithNiche.id, niche)}
+                            onNicheChange={(niche) => updateNiche(creator.id, niche)}
                           />
                         )
                       }

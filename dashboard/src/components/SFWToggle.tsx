@@ -1,8 +1,7 @@
 'use client'
 
-import React from 'react'
+import { Shield, Eye, ShieldCheck, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Shield, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 
 type SFWFilter = 'all' | 'sfw' | 'nsfw'
 

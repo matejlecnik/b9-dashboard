@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { Card, CardContent } from '@/components/ui/card'
-import { AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase/index'
 import { formatDistanceToNow } from 'date-fns'
-import type { RealtimeChannel } from '@supabase/supabase-js'
-
+import { AlertCircle } from 'lucide-react'
+import { useSupabaseSubscription } from '@/hooks/useSupabaseSubscription'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 interface LogContext {
   subreddit?: string
   operation?: string
@@ -20,7 +21,8 @@ interface LogEntry {
   id: string
   timestamp: string
   level: 'info' | 'warning' | 'error' | 'success' | 'debug'
-  message: string
+  title: string
+  message?: string
   source?: string
   context?: LogContext
 }
@@ -55,11 +57,12 @@ export function LogViewerSupabase({
   const [lastTimestamp, setLastTimestamp] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const shouldAutoScroll = useRef(autoScroll)
-  const subscriptionRef = useRef<RealtimeChannel | null>(null)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch initial logs directly from Supabase
-  const fetchLogs = useCallback(async (since?: string) => {
-    if (isPaused || !supabase) return
+  const fetchLogs = useCallback(async (since?: string, signal?: AbortSignal) => {
+    if (isPaused || !supabase || signal?.aborted) return
 
     try {
       setError(null)
@@ -131,7 +134,8 @@ export function LogViewerSupabase({
               id: log.id.toString(),
               timestamp: log.timestamp,
               level: log.level || 'info',
-              message: formatLogMessage(log.message, log.context),
+              title: formatLogMessage(log.message || '', log.context),
+              message: log.message,
               source: log.source || log.script_name || 'unknown',
               context: log.context
             }
@@ -140,7 +144,8 @@ export function LogViewerSupabase({
               id: log.id.toString(),
               timestamp: log.timestamp,
               level: log.level || 'info',
-              message: formatLogMessage(log.message, log.context),
+              title: formatLogMessage(log.message || '', log.context),
+              message: log.message,
               source: log.source || 'scraper',
               context: log.context
             }
@@ -165,177 +170,146 @@ export function LogViewerSupabase({
         }
 
         // Auto-scroll to bottom if enabled
-        if (shouldAutoScroll.current && scrollAreaRef.current && !since) {
-          setTimeout(() => {
+        if (shouldAutoScroll.current && scrollAreaRef.current && !since && !signal?.aborted) {
+          // Clear any existing timer
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current)
+          }
+
+          scrollTimerRef.current = setTimeout(() => {
             if (scrollAreaRef.current) {
               scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
             }
+            scrollTimerRef.current = null
           }, 100)
         }
       }
     } catch (err) {
-      console.error('Error fetching logs:', err)
+      logger.error('Error fetching logs:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     }
   }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])
 
-  // Set up Supabase real-time subscription
-  useEffect(() => {
-    // Check if supabase client is available
-    if (!supabase) {
-      console.error('Supabase client not initialized')
-      return
-    }
+  // Determine which table to use
+  const actualTableName = useMemo(() => useSystemLogs ? 'system_logs' : tableName, [useSystemLogs, tableName])
 
-    // Determine which table to use
-    const actualTableName = useSystemLogs ? 'system_logs' : tableName
+  // Set up Supabase real-time subscription using memory-safe hook
+  const { isSubscribed, error: subError } = useSupabaseSubscription({
+    table: actualTableName,
+    event: 'INSERT',
+    schema: 'public',
+    enabled: !isPaused && !!supabase,
+    autoReconnect: true,
+    reconnectDelay: 5000,
+    onData: (payload) => {
+      if (!payload.new) return
 
-    // Subscribe to new logs with proper error handling
-    let isSubscribed = false
-
-    const setupSubscription = () => {
-      if (!supabase) return
-
-      const channel = supabase
-        .channel(`${actualTableName}_changes`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: actualTableName
-          },
-          (payload) => {
-            if (!isPaused && payload.new) {
-              // Handle both table structures
-              const newLog: LogEntry = useSystemLogs ? {
-                id: payload.new.id.toString(),
-                timestamp: payload.new.timestamp,
-                level: payload.new.level || 'info',
-                message: formatLogMessage(payload.new.message, payload.new.context),
-                source: payload.new.source || payload.new.script_name || 'unknown',
-                context: payload.new.context
-              } : {
-                id: payload.new.id.toString(),
-                timestamp: payload.new.timestamp,
-                level: payload.new.level || 'info',
-                message: formatLogMessage(payload.new.message, payload.new.context),
-                source: payload.new.source || 'scraper',
-                context: payload.new.context
-              }
-
-              // Apply filters based on table type
-              if (useSystemLogs && sourceFilter) {
-                // Map legacy source filters to new source values
-                const sourceMap: Record<string, string> = {
-                  'scraper': 'reddit_scraper',
-                  'reddit_scraper': 'reddit_scraper',
-                  'instagram_scraper': 'instagram_scraper',
-                  'categorization': 'reddit_categorizer',
-                  'user_discovery': 'user_discovery',
-                  'api_user_discovery': 'api_user_discovery'
-                }
-                const mappedSource = sourceMap[sourceFilter] || sourceFilter
-                if (newLog.source !== mappedSource) return
-              } else if (!useSystemLogs && sourceFilter) {
-                if (newLog.source !== sourceFilter) return
-              }
-
-              if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
-              if (searchQuery && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
-
-              // Add new log to the beginning
-              setLogs(prev => {
-                const updated = [newLog, ...prev]
-                return updated.slice(0, maxLogs)
-              })
-
-              // Auto-scroll if at bottom
-              if (shouldAutoScroll.current && scrollAreaRef.current) {
-                const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
-                const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-                if (isNearBottom) {
-                  setTimeout(() => {
-                    if (scrollAreaRef.current) {
-                      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
-                    }
-                  }, 100)
-                }
-              }
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          if (err) {
-            console.error(`❌ [LogViewer] Subscription error for ${actualTableName}:`, err)
-            isSubscribed = false
-            // Attempt reconnection after delay
-            setTimeout(() => {
-              if (!isSubscribed) {
-                console.log(`🔄 [LogViewer] Attempting to reconnect subscription for ${actualTableName}...`)
-                setupSubscription()
-              }
-            }, 5000)
-          } else {
-            console.log(`✅ [LogViewer] Subscription status for ${actualTableName}:`, status)
-            isSubscribed = status === 'SUBSCRIBED'
-          }
-        })
-
-      subscriptionRef.current = channel
-    }
-
-    setupSubscription()
-
-    // Cleanup on unmount
-    return () => {
-      isSubscribed = false
-      if (subscriptionRef.current && supabase) {
-        const channelToRemove = subscriptionRef.current
-        subscriptionRef.current = null
-
-        // Proper cleanup with error handling
-        channelToRemove.unsubscribe()
-          .then(() => {
-            if (supabase) {
-              supabase.removeChannel(channelToRemove)
-              console.log(`🧹 [LogViewer] Subscription for ${actualTableName} cleaned up`)
-            }
-          })
-          .catch((err) => {
-            console.error(`❌ [LogViewer] Error during cleanup for ${actualTableName}:`, err)
-            // Force cleanup anyway
-            try {
-              if (supabase) {
-                supabase.removeChannel(channelToRemove)
-              }
-            } catch (e) {
-              console.error(`❌ [LogViewer] Force cleanup failed for ${actualTableName}:`, e)
-            }
-          })
+      // Handle both table structures
+      const newLog: LogEntry = useSystemLogs ? {
+        id: payload.new.id.toString(),
+        timestamp: payload.new.timestamp,
+        level: payload.new.level || 'info',
+        title: formatLogMessage(payload.new.message || '', payload.new.context),
+        message: payload.new.message,
+        source: payload.new.source || payload.new.script_name || 'unknown',
+        context: payload.new.context
+      } : {
+        id: payload.new.id.toString(),
+        timestamp: payload.new.timestamp,
+        level: payload.new.level || 'info',
+        title: formatLogMessage(payload.new.message || '', payload.new.context),
+        message: payload.new.message,
+        source: payload.new.source || 'scraper',
+        context: payload.new.context
       }
-    }
-  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])
 
-  // Initial fetch on mount
+      // Apply filters based on table type
+      if (useSystemLogs && sourceFilter) {
+        // Map legacy source filters to new source values
+        const sourceMap: Record<string, string> = {
+          'scraper': 'reddit_scraper',
+          'reddit_scraper': 'reddit_scraper',
+          'instagram_scraper': 'instagram_scraper',
+          'categorization': 'reddit_categorizer',
+          'user_discovery': 'user_discovery',
+          'api_user_discovery': 'api_user_discovery'
+        }
+        const mappedSource = sourceMap[sourceFilter] || sourceFilter
+        if (newLog.source !== mappedSource) return
+      } else if (!useSystemLogs && sourceFilter) {
+        if (newLog.source !== sourceFilter) return
+      }
+
+      if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
+      if (searchQuery && newLog.message && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
+
+      // Add new log to the beginning
+      setLogs(prev => {
+        const updated = [newLog, ...prev]
+        return updated.slice(0, maxLogs)
+      })
+
+      // Auto-scroll if at bottom
+      if (shouldAutoScroll.current && scrollAreaRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+        if (isNearBottom) {
+          // Clear any existing timer
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current)
+          }
+
+          scrollTimerRef.current = setTimeout(() => {
+            if (scrollAreaRef.current) {
+              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+            }
+            scrollTimerRef.current = null
+          }, 100)
+        }
+      }
+    },
+    onError: (err) => {
+      logger.error(`❌ [LogViewer] Subscription error for ${actualTableName}:`, err)
+      setError(err.message)
+    }
+  })
+
+  // Log subscription errors
   useEffect(() => {
-    fetchLogs() // Just fetch logs immediately
+    if (subError) {
+      setError(subError.message)
+    }
+  }, [subError])
+
+  // Initial fetch on mount using memory-safe async effect
+  useAsyncEffect(async (signal) => {
+    await fetchLogs(undefined, signal)
   }, [fetchLogs])
 
-  // Periodic refresh for catching up (backup to real-time)
+  // Periodic refresh for catching up (backup to real-time) using memory-safe interval
   useEffect(() => {
     if (isPaused || !lastTimestamp) return
 
-    const interval = setInterval(() => {
+    // Clear any existing interval
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+    }
+
+    refreshIntervalRef.current = setInterval(() => {
       fetchLogs(lastTimestamp)
     }, refreshInterval)
 
-    return () => clearInterval(interval)
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+        refreshIntervalRef.current = null
+      }
+    }
   }, [fetchLogs, refreshInterval, isPaused, lastTimestamp])
 
   // Function to check if a log message is important
-  const isImportantLog = (message: string): boolean => {
-    const lowercaseMsg = message.toLowerCase()
+  const isImportantLog = (title: string): boolean => {
+    const lowercaseMsg = title.toLowerCase()
 
     // Only skip the most verbose/repetitive logs
     const skipPatterns = [
@@ -369,7 +343,7 @@ export function LogViewerSupabase({
   const filteredLogs = useMemo(() => {
     // First apply search and level filters
     const searchAndLevelFiltered = logs.filter(log => {
-      if (searchQuery && !log.message.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && log.message && !log.message.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
       if (selectedLevel !== 'all' && log.level !== selectedLevel) {
@@ -381,7 +355,7 @@ export function LogViewerSupabase({
     // Then apply importance filter
     const filtered = searchAndLevelFiltered.filter(log => {
       // Filter out unimportant logs (unless showVerbose is enabled)
-      if (!showVerbose && !isImportantLog(log.message)) {
+      if (!showVerbose && !isImportantLog(log.message || log.title)) {
         return false
       }
       return true
@@ -393,9 +367,9 @@ export function LogViewerSupabase({
 
     for (const log of filtered) {
       // Skip if this is the exact same message as the previous one
-      if (log.message !== lastMessage) {
+      if ((log.message || log.title) !== lastMessage) {
         deduped.push(log)
-        lastMessage = log.message
+        lastMessage = log.message || log.title
       }
     }
 
@@ -406,9 +380,9 @@ export function LogViewerSupabase({
       let lastMsg = ''
 
       for (const log of recentLogs) {
-        if (log.message !== lastMsg) {
+        if ((log.message || log.title) !== lastMsg) {
           dedupedRecent.push(log)
-          lastMsg = log.message
+          lastMsg = log.message || log.title
         }
       }
 
@@ -421,7 +395,7 @@ export function LogViewerSupabase({
 
   // Get color based on log importance
   const getLogImportanceColor = (log: LogEntry): string => {
-    const message = log.message.toLowerCase()
+    const message = (log.message || log.title).toLowerCase()
 
     // Critical/Error logs - darkest
     if (log.level === 'error' || message.includes('error') || message.includes('failed') || message.includes('exception')) {
@@ -475,9 +449,9 @@ export function LogViewerSupabase({
                     : 'No recent scraper activity. Check if the scraper is running.'}
                 </div>
               ) : (
-                filteredLogs.map((log, index) => (
+                filteredLogs.map((log, _index) => (
                 <div
-                  key={`${log.id}-${log.timestamp}-${index}`}
+                  key={`${log.id}-${log.timestamp}-${_index}`}
                   className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-200/40 transition-colors`}
                 >
                   <div className="flex items-center gap-1.5 min-w-fit">
@@ -488,7 +462,7 @@ export function LogViewerSupabase({
 
                   <div className="flex-1 break-all">
                     <span className={getLogImportanceColor(log)}>
-                      {log.message}
+                      {log.message || log.title}
                     </span>
                     {log.source && log.source !== 'scraper' && (
                       <span className="ml-2 text-[10px] text-gray-400">
@@ -508,16 +482,22 @@ export function LogViewerSupabase({
             Paused
           </div>
         )}
+
+        {isSubscribed && (
+          <div className="absolute top-12 right-4 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+            Live
+          </div>
+        )}
       </CardContent>
     </Card>
   )
 }
 
 // Helper function to format log messages with context
-function formatLogMessage(message: string, context: LogContext | undefined): string {
-  if (!context) return message
+function formatLogMessage(title: string, context: LogContext | undefined): string {
+  if (!context) return title
 
-  let formatted = message
+  let formatted = title
 
   // Add subreddit context
   if (context.subreddit) {

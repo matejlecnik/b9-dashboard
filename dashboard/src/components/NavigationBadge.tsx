@@ -1,6 +1,5 @@
-import React from 'react'
-import { Badge } from '@/components/ui/badge'
 import { BadgeConfig } from '@/config/navigation'
+import { Badge } from '@/components/ui/badge'
 
 interface NavigationBadgeProps {
   config: BadgeConfig

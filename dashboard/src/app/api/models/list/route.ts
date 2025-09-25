@@ -1,7 +1,12 @@
+import { logger } from '@/lib/logger'
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/index'
+import { createClient } from '@/lib/supabase'
+import { protectedApi } from '@/lib/api-wrapper'
 
-export async function GET() {
+// Prevent static generation of API routes
+export const dynamic = 'force-dynamic'
+
+export const GET = protectedApi(async () => {
   try {
     const supabase = await createClient()
 
@@ -19,7 +24,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching models:', error)
+      logger.error('Error fetching models:', error)
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch models'
@@ -28,7 +33,7 @@ export async function GET() {
 
     // Get reddit account counts for each model
     const processedModels = await Promise.all(
-      (models || []).map(async (model: any) => {
+      (models || []).map(async (model: { id: number; platform_accounts?: Record<string, unknown[]> }) => {
         const { count: redditCount } = await supabase
           .from('reddit_users')
           .select('*', { count: 'exact', head: true })
@@ -53,10 +58,10 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Unexpected error in list models API:', error)
+    logger.error('Unexpected error in list models API:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
     }, { status: 500 })
   }
-}
+})

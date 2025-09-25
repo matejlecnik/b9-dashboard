@@ -1,16 +1,17 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
-import { ChevronDown, Check, Hash, Plus } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { ChevronDown, Check, Plus } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { createBrowserClient } from '@supabase/ssr'
+import { logger } from '@/lib/logger'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
 
 interface NicheSelectorProps {
   creatorId: number
@@ -63,7 +64,7 @@ export function NicheSelector({
         onNicheChange(niche)
       }
     } catch (error) {
-      console.error('Error updating niche:', error)
+      logger.error('Error updating niche:', error)
       // Revert on error
       setLocalNiche(currentNiche)
     } finally {

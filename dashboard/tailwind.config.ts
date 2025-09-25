@@ -67,10 +67,20 @@ const config: Config = {
             opacity: '1',
           },
         },
+        // Shimmer animation for skeleton loading
+        'shimmer': {
+          '0%': {
+            backgroundPosition: '-200% 0',
+          },
+          '100%': {
+            backgroundPosition: '200% 0',
+          },
+        },
       },
       animation: {
         // Only keep basic fade animation
         'fade-in': 'fade-in 0.15s ease-out',
+        'shimmer': 'shimmer 1.5s ease-in-out infinite',
       },
       spacing: {
         '18': '4.5rem',

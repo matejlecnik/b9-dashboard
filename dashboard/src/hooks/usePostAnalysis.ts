@@ -1,19 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase/index'
-import type { Post, PostMetrics } from '@/types/post'
-import type { PostSortField, AgeFilter } from '@/components/PostAnalysisToolbar'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { useViralPosts } from './queries/useViralPosts'
+import { Post, PostMetrics } from '@/types/post'
+// import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
+
+// Define types locally since PostAnalysisToolbar was removed
+type PostSortField = 'score' | 'upvote_ratio' | 'num_comments' | 'created_utc'
+type AgeFilter = '1h' | '6h' | '12h' | '24h' | '7d' | '30d' | 'all'
 
 interface UsePostAnalysisOptions {
   initialPostsPerPage?: number
-  selectedAccount?: {
-    id: number
-    username: string
-    model?: {
-      id: number
-      stage_name: string
-      assigned_tags: string[]
-    }
-  } | null
 }
 
 interface UsePostAnalysisReturn {
@@ -55,7 +51,7 @@ interface UsePostAnalysisReturn {
 
 const PAGE_SIZE = 30 // Match Posting page size
 
-export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccount }: UsePostAnalysisOptions = {}): UsePostAnalysisReturn {
+export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnalysisOptions = {}): UsePostAnalysisReturn {
   // State management
   const [posts, setPosts] = useState<Post[]>([])
   const [metrics, setMetrics] = useState<PostMetrics | null>(null)
@@ -69,7 +65,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
   const [loadingMore, setLoadingMore] = useState(false)
   const [metricsLoading, setMetricsLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
-  const [currentPage, setCurrentPage] = useState(0)
 
   // All categories list
   const allCategories = [
@@ -80,19 +75,18 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
     'Specific Body Parts'
   ]
 
-  // Filter states with defaults
+  // Filter states - most filters removed since database handles them
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(allCategories) // Default to all categories
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]) // Empty - let database handle filtering
   const [isCategoryFiltering, setIsCategoryFiltering] = useState(false)
-  const [sfwOnly, setSfwOnly] = useState(true) // Default to true
-  const [ageFilter, setAgeFilter] = useState<AgeFilter>('24h') // Default to 24h
+  const [sfwOnly, setSfwOnly] = useState(false) // Not used - database handles this
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>('all') // Not used - database uses 72h
   const [sortBy, setSortBy] = useState<PostSortField>('score')
 
   // Error handling
   const [error, setError] = useState<string | null>(null)
 
   // Refs for preventing double fetches
-  const fetchingRef = useRef(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -134,485 +128,179 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
   }, [selectedCategories])
 
 
-  // Main fetch function - using JOIN with subreddits
-  const fetchPosts = useCallback(async (page: number = 0, append: boolean = false) => {
-    if (!supabase || fetchingRef.current) return
+  // Use React Query for optimized viral posts fetching
+  const {
+    data: viralPostsData,
+    isLoading: viralPostsLoading,
+    isFetching: viralPostsFetching,
+    error: viralPostsError,
+    refetch: refetchViralPosts
+  } = useViralPosts({
+    timeRangeHours: 72, // 3 days as requested
+    postsPerSubreddit: 3, // 3 posts per subreddit as requested
+    totalLimit: 10000, // Fetch up to 10k posts
+    searchQuery: debouncedSearchQuery
+  })
 
-    fetchingRef.current = true
+  // Debug what we're receiving
+  console.log('[PostAnalysis] Hook data:', {
+    viralPostsData,
+    dataType: typeof viralPostsData,
+    isArray: Array.isArray(viralPostsData),
+    length: viralPostsData?.length,
+    firstItem: viralPostsData?.[0],
+    loading: viralPostsLoading
+  })
 
-    try {
-      if (!append) {
-        setLoading(true)
-      } else {
-        setLoadingMore(true)
-      }
+  // Store all posts internally but display paginated
+  const [allPosts, setAllPosts] = useState<Post[]>([])
+  const [displayedPostsCount, setDisplayedPostsCount] = useState(initialPostsPerPage)
 
-      // Get account tags if an account is selected
-      let accountTags: string[] = []
-      let matchingSubreddits: string[] = []
+  // Process viral posts when data changes
+  useEffect(() => {
+    console.log('[PostAnalysis] useEffect triggered with:', {
+      dataReceived: viralPostsData,
+      dataLength: viralPostsData?.length,
+      loading: viralPostsLoading,
+      dataType: typeof viralPostsData,
+      isArray: Array.isArray(viralPostsData)
+    })
 
-      if (selectedAccount?.model?.assigned_tags) {
-        accountTags = selectedAccount.model.assigned_tags
-        console.log('[PostAnalysis] Fetching with account:', selectedAccount.username, 'Tags:', accountTags.length)
+    if (!viralPostsLoading && viralPostsData) {
+      // Ensure we have an array
+      const postsArray = Array.isArray(viralPostsData)
+        ? (viralPostsData as Array<Post & { viral_score?: number }>)
+        : []
 
-        // First, get all subreddits that match the account tags
-        try {
-          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
-            tag_array: accountTags,
-            search_term: null,
-            review_filter: 'Ok',
-            filter_type: 'all',
-            limit_count: 10000, // Get all matching subreddits
-            offset_count: 0
-          })
+      console.log('[PostAnalysis] Processing posts array:', {
+        arrayLength: postsArray.length,
+        firstPost: postsArray[0]
+      })
 
-          if (error) {
-            console.error('[PostAnalysis] Error fetching matching subreddits:', error)
-            throw error
-          }
+      if (postsArray.length > 0) {
+        // Add viralScore property for display if it doesn't exist
+        const processedPosts = postsArray.map((post) => ({
+          ...post,
+          viralScore: (post.viral_score ?? 0) * 100 // Convert to percentage for display
+        }))
 
-          if (subreddits && subreddits.length > 0) {
-            matchingSubreddits = subreddits.map((s: any) => s.name)
-            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'matching subreddits for tags')
-          } else {
-            console.log('[PostAnalysis] No subreddits match the account tags')
-            // No matching subreddits, return empty results
-            setPosts([])
-            setHasMore(false)
-            setError(null)
-            return
-          }
-        } catch (error) {
-          console.error('[PostAnalysis] Failed to fetch matching subreddits:', error)
-          // Continue without tag filtering if RPC fails
-          matchingSubreddits = []
-        }
-      }
+        // Store all posts internally
+        setAllPosts(processedPosts)
 
-      // Build optimized query using mirror columns without JOIN for better performance
-      let query = supabase
-        .from('reddit_posts')
-        .select(`
-          id, reddit_id, title, score, num_comments, created_utc, subreddit_name,
-          content_type, upvote_ratio, thumbnail, url, author_username, preview_data,
-          domain, is_video, is_self, over_18, sub_primary_category, sub_over18, sub_tags
-        `)
-        // Filter by review status using the mirror column (assuming posts are synced)
-        .not('subreddit_name', 'ilike', 'u_%')
-        // Only get posts that have been categorized (have mirror data)
-        .not('sub_primary_category', 'is', null)
-
-      // Apply subreddit filtering based on account tags
-      if (matchingSubreddits.length > 0) {
-        console.log('[PostAnalysis] Filtering posts by subreddits:', matchingSubreddits.length)
-        query = query.in('subreddit_name', matchingSubreddits)
-      }
-
-      // Apply category filter using mirror column
-      if (debouncedCategories.length === 0) {
-        // When no categories are selected, show nothing
-        setPosts(append ? (prevPosts) => prevPosts : [])
-        setHasMore(false)
+        // Display only the initial page
+        const initialPosts = processedPosts.slice(0, initialPostsPerPage)
+        setPosts(initialPosts)
+        setDisplayedPostsCount(initialPostsPerPage)
+        setHasMore(processedPosts.length > initialPostsPerPage)
         setError(null)
-        return
-      } else if (debouncedCategories.length < allCategories.length) {
-        // Show only selected categories using mirror column
-        query = query.in('sub_primary_category', debouncedCategories)
-      }
-      // If all categories selected, no filter needed - show all
 
-      // Apply search filter
-      if (debouncedSearchQuery) {
-        query = query.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
-      }
-
-      // Apply SFW filter using mirror column
-      if (sfwOnly) {
-        query = query.eq('sub_over18', false)
-      }
-
-      // Apply age filter
-      if (ageFilter !== 'all') {
-        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-        query = query.gte('created_utc', cutoff)
-      }
-
-      // Apply sorting and pagination with explicit limit for better performance
-      const sortColumn = sortBy === 'comments' ? 'num_comments' : 'score'
-      query = query
-        .order(sortColumn, { ascending: false })
-        .order('created_utc', { ascending: false }) // Secondary sort for consistency
-        .range(page * initialPostsPerPage, (page + 1) * initialPostsPerPage - 1)
-        .limit(initialPostsPerPage) // Explicit limit for query optimization
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) {
-        throw new Error(`Failed to fetch posts: ${fetchError.message}`)
-      }
-
-      // Process posts - now using mirror columns directly
-      const seenRedditIds = new Set<string>()
-      const newPosts = (data || [])
-        .filter((post: any) => {
-          // Filter out duplicates based on reddit_id
-          if (seenRedditIds.has(post.reddit_id)) {
-            return false
-          }
-          seenRedditIds.add(post.reddit_id)
-          return true
-        })
-        .map((post: any) => {
-          // Use mirror fields directly
-          return {
-            ...post,
-            sub_primary_category: post.sub_primary_category,
-            sub_over18: post.sub_over18
-          }
-        }) as Post[]
-
-      if (append) {
-        // When appending, check for duplicates based on reddit_id
-        setPosts(prev => {
-          const existingIds = new Set(prev.map(p => p.reddit_id))
-          const uniqueNewPosts = newPosts.filter(post => !existingIds.has(post.reddit_id))
-          return [...prev, ...uniqueNewPosts]
-        })
+        console.log('[PostAnalysis] Successfully set', initialPosts.length, 'posts to display out of', processedPosts.length, 'total')
+        logger.log('[PostAnalysis] Processed', processedPosts.length, 'viral posts from React Query, displaying', initialPosts.length)
       } else {
-        setPosts(newPosts)
-      }
-
-      setHasMore(newPosts.length === initialPostsPerPage)
-      setCurrentPage(page)
-      setError(null)
-
-      console.log('[PostAnalysis] Fetched', newPosts.length, 'posts', selectedAccount ? `for account ${selectedAccount.username}` : 'without account filter')
-
-    } catch (err) {
-      console.error('Error fetching posts:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch posts')
-      if (!append) {
+        console.log('[PostAnalysis] Empty posts array, clearing state')
+        setAllPosts([])
         setPosts([])
+        setDisplayedPostsCount(0)
+        setHasMore(false)
       }
-    } finally {
-      setLoading(false)
+    } else if (viralPostsLoading) {
+      console.log('[PostAnalysis] Still loading, not updating posts')
+    }
+  }, [viralPostsData, viralPostsLoading, initialPostsPerPage])
+
+  // Handle loading states
+  useEffect(() => {
+    setLoading(viralPostsLoading)
+    setLoadingMore(viralPostsFetching && !viralPostsLoading)
+  }, [viralPostsLoading, viralPostsFetching])
+
+  // Handle errors
+  useEffect(() => {
+    if (viralPostsError) {
+      const errorMessage = viralPostsError instanceof Error ? viralPostsError.message : 'Failed to fetch posts'
+      setError(errorMessage)
+      logger.error('[PostAnalysis] Error from React Query:', viralPostsError)
+    }
+  }, [viralPostsError])
+
+  // Main fetch function now just triggers refetch
+  const fetchPosts = useCallback(async (append: boolean = false) => {
+    if (!append) {
+      setPosts([])
+    }
+    await refetchViralPosts()
+  }, [refetchViralPosts])
+
+  // Load more posts from the stored array
+  const loadMorePosts = useCallback(() => {
+    if (loadingMore || !hasMore) {
+      console.log('[PostAnalysis] Cannot load more:', { loadingMore, hasMore })
+      return
+    }
+
+    setLoadingMore(true)
+
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      const nextCount = Math.min(displayedPostsCount + PAGE_SIZE, allPosts.length)
+      const morePosts = allPosts.slice(0, nextCount)
+
+      setPosts(morePosts)
+      setDisplayedPostsCount(nextCount)
+      setHasMore(nextCount < allPosts.length)
       setLoadingMore(false)
-      fetchingRef.current = false
+
+      console.log('[PostAnalysis] Loaded more posts:', {
+        showing: nextCount,
+        total: allPosts.length,
+        hasMore: nextCount < allPosts.length
+      })
+    }, 300)
+  }, [loadingMore, hasMore, displayedPostsCount, allPosts])
+
+
+  // (Removed unused fetchTotalCount to simplify and satisfy linter)
+
+  // Calculate metrics from viral posts data
+  const fetchMetrics = useCallback(async () => {
+    if (!viralPostsData || viralPostsData.length === 0) {
+      setMetrics({
+        total_posts_count: 0,
+        total_subreddits_count: 0,
+        avg_score_value: 0,
+        avg_comments_value: 0,
+        best_avg_upvotes_subreddit: 'N/A',
+        best_avg_upvotes_value: 0,
+        best_engagement_subreddit: 'N/A',
+        best_engagement_value: 0,
+        top_content_type: 'N/A',
+        best_performing_hour: 0
+      })
+      setMetricsLoading(false)
+      return
     }
-  }, [sortBy, debouncedSearchQuery, sfwOnly, ageFilter, debouncedCategories, allCategories.length, initialPostsPerPage, selectedAccount])
-
-  // Fetch actual total post count with all filters applied
-  const fetchTotalCount = useCallback(async () => {
-    if (!supabase) return 0
-
-    try {
-      // Get account tags if an account is selected
-      let accountTags: string[] = []
-      let matchingSubreddits: string[] = []
-
-      if (selectedAccount?.model?.assigned_tags) {
-        accountTags = selectedAccount.model.assigned_tags
-        console.log('[PostAnalysis] Fetching counts with tags:', accountTags.length)
-
-        // First, get all subreddits that match the account tags
-        try {
-          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
-            tag_array: accountTags,
-            search_term: null,
-            review_filter: 'Ok',
-            filter_type: 'all',
-            limit_count: 10000,
-            offset_count: 0
-          })
-
-          if (error) {
-            console.error('[PostAnalysis] Error fetching matching subreddits for counts:', error)
-            throw error
-          }
-
-          if (subreddits && subreddits.length > 0) {
-            matchingSubreddits = subreddits.map((s: any) => s.name)
-            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'subreddits for count filtering')
-          } else {
-            // No matching subreddits, set counts to 0
-            setSfwCount(0)
-            setNsfwCount(0)
-            setTotalPostCount(0)
-            return 0
-          }
-        } catch (error) {
-          console.error('[PostAnalysis] Failed to fetch subreddits for counts:', error)
-          matchingSubreddits = []
-        }
-      }
-
-      // Build base query using mirror columns for better performance
-      let baseQuery = supabase
-        .from('reddit_posts')
-        .select('*', { count: 'exact', head: true })
-        .not('subreddit_name', 'ilike', 'u_%')
-        .not('sub_primary_category', 'is', null) // Only posts with category data
-
-      // Apply subreddit filtering based on account tags
-      if (matchingSubreddits.length > 0) {
-        baseQuery = baseQuery.in('subreddit_name', matchingSubreddits)
-      }
-
-      // Apply category filter
-      if (debouncedCategories.length === 0) {
-        setTotalPostCount(0)
-        setSfwCount(0)
-        setNsfwCount(0)
-        return 0
-      } else if (debouncedCategories.length < allCategories.length) {
-        baseQuery = baseQuery.in('sub_primary_category', debouncedCategories)
-      }
-
-      // Apply age filter
-      if (ageFilter !== 'all') {
-        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-        baseQuery = baseQuery.gte('created_utc', cutoff)
-      }
-
-      // Apply search filter if present
-      if (debouncedSearchQuery) {
-        baseQuery = baseQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
-      }
-
-      // Get SFW count using mirror column
-      let sfwQuery = supabase
-        .from('reddit_posts')
-        .select('*', { count: 'exact', head: true })
-        .not('subreddit_name', 'ilike', 'u_%')
-        .not('sub_primary_category', 'is', null)
-        .eq('sub_over18', false)
-
-      // Apply subreddit filtering to SFW query
-      if (matchingSubreddits.length > 0) {
-        sfwQuery = sfwQuery.in('subreddit_name', matchingSubreddits)
-      }
-
-      // Apply same filters to SFW query
-      if (debouncedCategories.length === 0) {
-        // No categories selected
-      } else if (debouncedCategories.length < allCategories.length) {
-        sfwQuery.in('sub_primary_category', debouncedCategories)
-      }
-
-      if (ageFilter !== 'all') {
-        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-        sfwQuery.gte('created_utc', cutoff)
-      }
-
-      if (debouncedSearchQuery) {
-        sfwQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
-      }
-
-      const { count: sfwCountResult, error: sfwError } = await sfwQuery
-
-      if (sfwError) {
-        console.error('Failed to fetch SFW count:', sfwError)
-      }
-
-      // Get NSFW count using mirror column
-      let nsfwQuery = supabase
-        .from('reddit_posts')
-        .select('*', { count: 'exact', head: true })
-        .not('subreddit_name', 'ilike', 'u_%')
-        .not('sub_primary_category', 'is', null)
-        .eq('sub_over18', true)
-
-      // Apply subreddit filtering to NSFW query
-      if (matchingSubreddits.length > 0) {
-        nsfwQuery = nsfwQuery.in('subreddit_name', matchingSubreddits)
-      }
-
-      // Apply same filters to NSFW query
-      if (debouncedCategories.length === 0) {
-        // No categories selected
-      } else if (debouncedCategories.length < allCategories.length) {
-        nsfwQuery.in('sub_primary_category', debouncedCategories)
-      }
-
-      if (ageFilter !== 'all') {
-        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-        nsfwQuery.gte('created_utc', cutoff)
-      }
-
-      if (debouncedSearchQuery) {
-        nsfwQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
-      }
-
-      const { count: nsfwCountResult, error: nsfwError } = await nsfwQuery
-
-      if (nsfwError) {
-        console.error('Failed to fetch NSFW count:', nsfwError)
-      }
-
-      // Set the counts
-      const finalSfwCount = sfwCountResult || 0
-      const finalNsfwCount = nsfwCountResult || 0
-
-      // Respect the SFW filter when setting total count
-      const finalTotalCount = sfwOnly ? finalSfwCount : (finalSfwCount + finalNsfwCount)
-
-      setSfwCount(finalSfwCount)
-      setNsfwCount(finalNsfwCount)
-      setTotalPostCount(finalTotalCount)
-
-      return finalTotalCount
-
-    } catch (err) {
-      console.error('Failed to fetch total count:', err)
-      return 0
-    }
-  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount])
-
-  // Fetch metrics
-  const fetchMetrics = useCallback(async (currentTotalCount?: number) => {
-    if (!supabase) return
 
     try {
       setMetricsLoading(true)
 
-      // Get account tags if an account is selected
-      let accountTags: string[] = []
-      let matchingSubreddits: string[] = []
+      // Calculate metrics directly from viral posts data
+      const sourcePosts = (Array.isArray(viralPostsData)
+        ? (viralPostsData as Array<Post & { sub_over18?: boolean }>)
+        : [])
 
-      if (selectedAccount?.model?.assigned_tags) {
-        accountTags = selectedAccount.model.assigned_tags
-        console.log('[PostAnalysis] Fetching metrics with tags:', accountTags.length)
-
-        // First, get all subreddits that match the account tags
-        try {
-          const { data: subreddits, error } = await supabase.rpc('filter_subreddits_by_tags', {
-            tag_array: accountTags,
-            search_term: null,
-            review_filter: 'Ok',
-            filter_type: 'all',
-            limit_count: 10000,
-            offset_count: 0
-          })
-
-          if (error) {
-            console.error('[PostAnalysis] Error fetching matching subreddits for metrics:', error)
-            throw error
-          }
-
-          if (subreddits && subreddits.length > 0) {
-            matchingSubreddits = subreddits.map((s: any) => s.name)
-            console.log('[PostAnalysis] Found', matchingSubreddits.length, 'subreddits for metrics filtering')
-          } else {
-            // No matching subreddits, set empty metrics
-            setMetrics({
-              total_posts_count: 0,
-              total_subreddits_count: 0,
-              avg_score_value: 0,
-              avg_comments_value: 0,
-              best_avg_upvotes_subreddit: 'N/A',
-              best_avg_upvotes_value: 0,
-              best_engagement_subreddit: 'N/A',
-              best_engagement_value: 0,
-              top_content_type: 'N/A',
-              best_performing_hour: 0
-            })
-            return
-          }
-        } catch (error) {
-          console.error('[PostAnalysis] Failed to fetch subreddits for metrics:', error)
-          matchingSubreddits = []
-        }
-      }
-
-      // Build metrics query using mirror columns for better performance
-      let metricsQuery = supabase
-        .from('reddit_posts')
-        .select(`
-          score, num_comments, created_utc, subreddit_name, over_18, sub_over18, sub_primary_category, sub_tags
-        `)
-        .not('subreddit_name', 'ilike', 'u_%')
-        .not('sub_primary_category', 'is', null) // Only posts with category data
-
-      // Apply subreddit filtering based on account tags
-      if (matchingSubreddits.length > 0) {
-        metricsQuery = metricsQuery.in('subreddit_name', matchingSubreddits)
-      }
-
-      // Apply category filter
-      if (debouncedCategories.length === 0) {
-        setMetrics({
-          total_posts_count: 0,
-          total_subreddits_count: 0,
-          avg_score_value: 0,
-          avg_comments_value: 0,
-          best_avg_upvotes_subreddit: 'N/A',
-          best_avg_upvotes_value: 0,
-          best_engagement_subreddit: 'N/A',
-          best_engagement_value: 0,
-          top_content_type: 'N/A',
-          best_performing_hour: 0
-        })
-        return
-      } else if (debouncedCategories.length < allCategories.length) {
-        metricsQuery = metricsQuery.in('sub_primary_category', debouncedCategories)
-      }
-
-      // Apply SFW filter using mirror column
-      if (sfwOnly) {
-        metricsQuery = metricsQuery.eq('sub_over18', false)
-      }
-
-      // Apply age filter for metrics
-      if (ageFilter !== 'all') {
-        const hoursAgo = ageFilter === '24h' ? 24 : ageFilter === '7d' ? 168 : 720
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-        metricsQuery = metricsQuery.gte('created_utc', cutoff)
-      }
-
-      // Apply search filter for metrics
-      if (debouncedSearchQuery) {
-        metricsQuery = metricsQuery.or(`title.ilike.%${debouncedSearchQuery}%,subreddit_name.ilike.%${debouncedSearchQuery}%,author_username.ilike.%${debouncedSearchQuery}%`)
-      }
-
-      // Increased limit for more accurate metrics
-      metricsQuery = metricsQuery.limit(5000)
-
-      const { data: metricsData, error: metricsError } = await metricsQuery
-
-      if (metricsError) {
-        console.error('Failed to fetch metrics:', metricsError)
-        return
-      }
-
-      if (!metricsData || metricsData.length === 0) {
-        setMetrics({
-          total_posts_count: 0,
-          total_subreddits_count: 0,
-          avg_score_value: 0,
-          avg_comments_value: 0,
-          best_avg_upvotes_subreddit: 'N/A',
-          best_avg_upvotes_value: 0,
-          best_engagement_subreddit: 'N/A',
-          best_engagement_value: 0,
-          top_content_type: 'N/A',
-          best_performing_hour: 0
-        })
-        setSfwCount(0)
-        setNsfwCount(0)
-        return
-      }
-
-      // Don't set SFW/NSFW counts here - we get them from fetchTotalCount()
-
-      // Calculate metrics from the data
       const subredditStats = new Map<string, { totalScore: number; totalComments: number; count: number }>()
       const hourStats = new Map<number, { totalScore: number; count: number }>()
+      let sfwPostCount = 0
+      let nsfwPostCount = 0
 
-      metricsData.forEach(post => {
+      sourcePosts.forEach((post) => {
+        // Count SFW/NSFW
+        if (post.over_18 || post.sub_over18) {
+          nsfwPostCount++
+        } else {
+          sfwPostCount++
+        }
+
         // Subreddit stats
         if (!subredditStats.has(post.subreddit_name)) {
           subredditStats.set(post.subreddit_name, { totalScore: 0, totalComments: 0, count: 0 })
@@ -668,12 +356,16 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
       })
 
       // Calculate additional metrics
-      const uniqueSubreddits = new Set(metricsData.map(p => p.subreddit_name)).size
-      const avgScore = metricsData.reduce((sum, p) => sum + (p.score || 0), 0) / metricsData.length
-      const avgComments = metricsData.reduce((sum, p) => sum + (p.num_comments || 0), 0) / metricsData.length
+      const uniqueSubreddits = new Set(sourcePosts.map((p) => p.subreddit_name)).size
+      const avgScore = sourcePosts.reduce((sum, p) => sum + (p.score || 0), 0) / sourcePosts.length
+      const avgComments = sourcePosts.reduce((sum, p) => sum + (p.num_comments || 0), 0) / sourcePosts.length
+
+      setSfwCount(sfwPostCount)
+      setNsfwCount(nsfwPostCount)
+      setTotalPostCount(sourcePosts.length)
 
       setMetrics({
-        total_posts_count: currentTotalCount || totalPostCount || metricsData.length,
+        total_posts_count: sourcePosts.length,
         total_subreddits_count: uniqueSubreddits,
         avg_score_value: Math.round(avgScore),
         avg_comments_value: Math.round(avgComments),
@@ -686,38 +378,23 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE, selectedAccou
       })
 
     } catch (err) {
-      console.error('Failed to fetch metrics:', err)
+      logger.error('Failed to calculate metrics:', err)
     } finally {
       setMetricsLoading(false)
     }
-  }, [sfwOnly, ageFilter, debouncedCategories, allCategories.length, debouncedSearchQuery, selectedAccount, totalPostCount])
-
-  // Load more posts
-  const loadMorePosts = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchPosts(currentPage + 1, true)
-    }
-  }, [currentPage, loadingMore, hasMore, fetchPosts])
+  }, [viralPostsData])
 
   // Reset and fetch when filters change
   useEffect(() => {
-    setCurrentPage(0)
-    fetchPosts(0, false)
+    setDisplayedPostsCount(initialPostsPerPage) // Reset displayed count
+    fetchPosts(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, debouncedCategories, selectedAccount])
+  }, [debouncedSearchQuery, sfwOnly, ageFilter, sortBy, debouncedCategories, initialPostsPerPage])
 
-  // Fetch counts and metrics when filters change
+  // Fetch metrics when viral posts data changes
   useEffect(() => {
-    const fetchCountsAndMetrics = async () => {
-      // First fetch total count
-      const totalCount = await fetchTotalCount()
-      // Then fetch metrics with the actual total count
-      await fetchMetrics(totalCount)
-    }
-
-    fetchCountsAndMetrics()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sfwOnly, ageFilter, sortBy, debouncedCategories, debouncedSearchQuery, selectedAccount])
+    fetchMetrics()
+  }, [fetchMetrics])
 
   return {
     // Data

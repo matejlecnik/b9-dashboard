@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { logger } from '@/lib/logger'
 
 declare global {
   interface Window {
@@ -20,7 +21,7 @@ export function PerformanceMonitor() {
     const reportWebVitals = (metric: WebVitalMetric) => {
       // Only in production
       if (process.env.NODE_ENV === 'production') {
-        console.log('Web Vital:', metric)
+        logger.log('Web Vital:', metric)
         
         // Send to analytics service if available
         if (typeof window.gtag === 'function') {
@@ -92,7 +93,7 @@ export function PerformanceMonitor() {
         }
         
       } catch (error) {
-        console.warn('Performance Observer setup failed:', error)
+        logger.warn('Performance Observer setup failed:', error)
       }
     }
   }, [])
@@ -109,7 +110,7 @@ export function PerformanceMonitor() {
           const longTaskObserver = new PerformanceObserver((list) => {
             list.getEntries().forEach((entry) => {
               if (entry.duration > 50) {
-                console.warn('Long Task detected:', entry.duration + 'ms')
+                logger.warn('Long Task detected:', entry.duration + 'ms')
               }
             })
           })
@@ -122,7 +123,7 @@ export function PerformanceMonitor() {
           const navigationObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries() as PerformanceNavigationTiming[]
             entries.forEach((entry) => {
-              console.log('Navigation:', {
+              logger.log('Navigation:', {
                 domContentLoaded: entry.domContentLoadedEventEnd - entry.domContentLoadedEventStart,
                 loadComplete: entry.loadEventEnd - entry.loadEventStart,
                 ttfb: entry.responseStart - entry.requestStart,
@@ -137,7 +138,7 @@ export function PerformanceMonitor() {
           observers.forEach(observer => observer.disconnect())
         }
       } catch (e) {
-        console.warn('Additional Performance Observers not supported:', e)
+        logger.warn('Additional Performance Observers not supported:', e)
       }
     }
   }, [])

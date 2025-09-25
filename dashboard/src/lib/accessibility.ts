@@ -4,7 +4,6 @@
  */
 
 import { useCallback, useEffect } from 'react'
-
 // ============================================================================
 // ARIA PATTERNS AND CONSTANTS
 // ============================================================================
@@ -464,9 +463,9 @@ export const focusUtils = {
     
     const focusable = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
+    ) as NodeListOf<HTMLElement>
     
-    const firstElement = focusable[0] as HTMLElement
+    const firstElement = focusable[0]
     if (firstElement) {
       firstElement.focus()
       return true
@@ -483,9 +482,9 @@ export const focusUtils = {
     
     const focusable = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
+    ) as NodeListOf<HTMLElement>
     
-    const lastElement = focusable[focusable.length - 1] as HTMLElement
+    const lastElement = focusable[focusable.length - 1]
     if (lastElement) {
       lastElement.focus()
       return true
@@ -579,12 +578,12 @@ export const screenReaderUtils = {
   /**
    * Announce a message to screen readers
    */
-  announce: (message: string, priority: 'polite' | 'assertive' = 'polite') => {
+  announce: (title: string, priority: 'polite' | 'assertive' = 'polite') => {
     const announcer = document.createElement('div')
     announcer.setAttribute('aria-live', priority)
     announcer.setAttribute('aria-atomic', 'true')
     announcer.className = 'sr-only'
-    announcer.textContent = message
+    announcer.textContent = title
     
     document.body.appendChild(announcer)
     
@@ -676,9 +675,9 @@ export function useAccessibility(options: {
 }) {
   const { componentName, announceChanges = false } = options
   
-  const announce = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
+  const announce = useCallback((title: string, priority: 'polite' | 'assertive' = 'polite') => {
     if (announceChanges) {
-      screenReaderUtils.announce(`${componentName ? `${componentName}: ` : ''}${message}`, priority)
+      screenReaderUtils.announce(`${componentName ? `${componentName}: ` : ''}${title}`, priority)
     }
   }, [componentName, announceChanges])
   

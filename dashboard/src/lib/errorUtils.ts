@@ -1,8 +1,8 @@
+import { logger } from '@/lib/logger'
 import { useToast } from '@/components/ui/toast'
-
 export interface AppError {
   code: string
-  message: string
+  title: string
   details?: unknown
   timestamp: Date
   context?: string
@@ -13,8 +13,8 @@ export class APIError extends Error {
   public details?: unknown
   public status?: number
 
-  constructor(message: string, code: string, status?: number, details?: unknown) {
-    super(message)
+  constructor(title: string, code: string, status?: number, details?: unknown) {
+    super(title)
     this.name = 'APIError'
     this.code = code
     this.status = status
@@ -26,8 +26,8 @@ export class ValidationError extends Error {
   public field?: string
   public code: string
 
-  constructor(message: string, field?: string, code: string = 'VALIDATION_ERROR') {
-    super(message)
+  constructor(title: string, field?: string, code: string = 'VALIDATION_ERROR') {
+    super(title)
     this.name = 'ValidationError'
     this.field = field
     this.code = code
@@ -38,13 +38,13 @@ export class ValidationError extends Error {
 export const errorUtils = {
   // Create a standardized error object
   createError: (
-    message: string, 
+    title: string, 
     code: string, 
     context?: string, 
     details?: unknown
   ): AppError => ({
     code,
-    message,
+    title,
     details,
     context,
     timestamp: new Date()
@@ -55,7 +55,7 @@ export const errorUtils = {
     if (error instanceof APIError) {
       return {
         code: error.code,
-        message: error.message,
+        title: error.message,
         details: error.details,
         context,
         timestamp: new Date()
@@ -65,7 +65,7 @@ export const errorUtils = {
     if (error instanceof Error) {
       return {
         code: 'UNKNOWN_ERROR',
-        message: error.message,
+        title: error.message,
         context,
         timestamp: new Date()
       }
@@ -73,7 +73,7 @@ export const errorUtils = {
 
     return {
       code: 'UNKNOWN_ERROR',
-      message: 'An unexpected error occurred',
+      title: 'An unexpected error occurred',
       context,
       timestamp: new Date()
     }
@@ -97,14 +97,14 @@ export const errorUtils = {
       'UNKNOWN_ERROR': 'An unexpected error occurred. Please try again or contact support.'
     }
 
-    return errorMessages[error.code] || error.message || 'An unexpected error occurred'
+    return errorMessages[error.code] || error.title || 'An unexpected error occurred'
   },
 
   // Log errors for debugging (could be extended to send to error tracking service)
   logError: (error: AppError): void => {
-    console.error('Application Error:', {
+    logger.error('Application Error:', {
       code: error.code,
-      message: error.message,
+      title: error.title,
       context: error.context,
       details: error.details,
       timestamp: error.timestamp,

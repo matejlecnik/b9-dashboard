@@ -1,3 +1,5 @@
+import { useCallback, useMemo, useState } from 'react'
+
 /**
  * LRU (Least Recently Used) Cache implementation
  * Prevents memory leaks by limiting the size of cached data
@@ -167,7 +169,6 @@ export class LRUSet<T> {
 /**
  * React hook for using LRU Set in components
  */
-import { useState, useCallback, useMemo } from 'react'
 
 export function useLRUSet<T>(maxSize = 100, initialValues?: T[]) {
   const [version, setVersion] = useState(0)
@@ -180,12 +181,12 @@ export function useLRUSet<T>(maxSize = 100, initialValues?: T[]) {
 
   const add = useCallback((value: T) => {
     lruSet.add(value)
-    setVersion(v => v + 1)
+    setVersion((v: number) => v + 1)
   }, [lruSet])
 
   const remove = useCallback((value: T) => {
     const deleted = lruSet.delete(value)
-    if (deleted) setVersion(v => v + 1)
+    if (deleted) setVersion((v: number) => v + 1)
     return deleted
   }, [lruSet])
 
@@ -195,7 +196,7 @@ export function useLRUSet<T>(maxSize = 100, initialValues?: T[]) {
 
   const clear = useCallback(() => {
     lruSet.clear()
-    setVersion(v => v + 1)
+    setVersion((v: number) => v + 1)
   }, [lruSet])
 
   const toggle = useCallback((value: T) => {
@@ -204,7 +205,7 @@ export function useLRUSet<T>(maxSize = 100, initialValues?: T[]) {
     } else {
       lruSet.add(value)
     }
-    setVersion(v => v + 1)
+    setVersion((v: number) => v + 1)
   }, [lruSet])
 
   return {
@@ -240,12 +241,12 @@ export function useLRUCache<K, V>(maxSize = 100) {
 
   const set = useCallback((key: K, value: V) => {
     cache.set(key, value)
-    setVersion(v => v + 1)
+    setVersion((v: number) => v + 1)
   }, [cache])
 
   const remove = useCallback((key: K) => {
     const deleted = cache.delete(key)
-    if (deleted) setVersion(v => v + 1)
+    if (deleted) setVersion((v: number) => v + 1)
     return deleted
   }, [cache])
 
@@ -255,7 +256,7 @@ export function useLRUCache<K, V>(maxSize = 100) {
 
   const clear = useCallback(() => {
     cache.clear()
-    setVersion(v => v + 1)
+    setVersion((v: number) => v + 1)
   }, [cache])
 
   return {

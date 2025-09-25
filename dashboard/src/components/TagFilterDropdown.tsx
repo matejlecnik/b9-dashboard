@@ -1,272 +1,339 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { ChevronDown, Check, Filter, Tag } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { Filter, ChevronDown, ChevronRight } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { TAG_CATEGORIES, getTagLabel } from '@/lib/tagCategories'
-import { formatNumber } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 interface TagFilterDropdownProps {
   availableTags: string[]
   selectedTags: string[]
   onTagsChange: (tags: string[]) => void
+  showUntaggedOnly?: boolean
+  onShowUntaggedChange?: (show: boolean) => void
   loading?: boolean
-  untaggedCount?: number
-  taggedCount?: number
 }
 
-// Category emojis for visual grouping
-const CATEGORY_EMOJIS: { [key: string]: string } = {
-  'niche': '🎯',
-  'focus': '👁️',
-  'body': '💪',
-  'ass': '🍑',
-  'breasts': '🎀',
-  'age': '📅',
-  'ethnicity': '🌍',
-  'style': '✨',
-  'hair': '💇',
-  'special': '⭐',
-  'content': '📸'
+// Category display names and emojis
+const CATEGORY_CONFIG: Record<string, { label: string; emoji: string }> = {
+  niche: { label: 'Niche', emoji: '🎯' },
+  focus: { label: 'Focus', emoji: '👁️' },
+  body: { label: 'Body Type', emoji: '💪' },
+  ass: { label: 'Ass', emoji: '🍑' },
+  breasts: { label: 'Breasts', emoji: '🍒' },
+  age: { label: 'Age', emoji: '📅' },
+  ethnicity: { label: 'Ethnicity', emoji: '🌍' },
+  style: { label: 'Style', emoji: '✨' },
+  hair: { label: 'Hair', emoji: '💇‍♀️' },
+  special: { label: 'Special', emoji: '⭐' },
+  content: { label: 'Content', emoji: '📸' },
 }
 
 export function TagFilterDropdown({
   availableTags,
   selectedTags,
   onTagsChange,
+  showUntaggedOnly = false,
+  onShowUntaggedChange,
   loading = false,
-  untaggedCount = 0,
-  taggedCount = 0
 }: TagFilterDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        buttonRef.current && !buttonRef.current.contains(event.target as Node) &&
-        dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
+  // Group tags by category
+  const groupedTags = useMemo(() => {
+    const groups: Record<string, string[]> = {}
+
+    availableTags.forEach(tag => {
+      if (tag.includes(':')) {
+        const [category, subcategory] = tag.split(':')
+        if (!groups[category]) {
+          groups[category] = []
+        }
+        groups[category].push(subcategory)
       }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.right - 320 // 320px is the dropdown width
-      })
-    }
-  }, [isOpen])
-
-  const handleToggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      onTagsChange(selectedTags.filter(t => t !== tag))
-    } else {
-      onTagsChange([...selectedTags, tag])
-    }
-  }
-
-  const handleSelectAll = () => {
-    onTagsChange(availableTags)
-  }
-
-  const handleClearAll = () => {
-    onTagsChange([])
-  }
-
-  const toggleCategory = (categoryName: string) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev)
-      if (next.has(categoryName)) {
-        next.delete(categoryName)
-      } else {
-        next.add(categoryName)
-      }
-      return next
     })
+
+    // Sort subcategories within each category
+    Object.keys(groups).forEach(category => {
+      groups[category].sort((a, b) => a.localeCompare(b))
+    })
+
+    return groups
+  }, [availableTags])
+
+  // Filter groups based on search
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery) return groupedTags
+
+    const query = searchQuery.toLowerCase()
+    const filtered: Record<string, string[]> = {}
+
+    Object.entries(groupedTags).forEach(([category, subcategories]) => {
+      // Check if category matches
+      if (category.toLowerCase().includes(query)) {
+        filtered[category] = subcategories
+      } else {
+        // Check if any subcategory matches
+        const matchingSubcategories = subcategories.filter(sub =>
+          sub.toLowerCase().includes(query)
+        )
+        if (matchingSubcategories.length > 0) {
+          filtered[category] = matchingSubcategories
+        }
+      }
+    })
+
+    return filtered
+  }, [groupedTags, searchQuery])
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories)
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category)
+    } else {
+      newExpanded.add(category)
+    }
+    setExpandedCategories(newExpanded)
   }
 
-  const isShowingUntagged = selectedTags.length === 0
-  const displayText = isShowingUntagged
-    ? `Untagged (${formatNumber(untaggedCount)})`
-    : selectedTags.length === availableTags.length
-    ? `All Tags (${formatNumber(taggedCount)})`
-    : selectedTags.length === 1
-    ? getTagLabel(selectedTags[0])
-    : `${selectedTags.length} tags`
+  const toggleTag = (tag: string) => {
+    const newTags = selectedTags.includes(tag)
+      ? selectedTags.filter(t => t !== tag)
+      : [...selectedTags, tag]
+    onTagsChange(newTags)
+  }
 
-  // Group available tags by category
-  const tagsByCategory = TAG_CATEGORIES.reduce((acc, category) => {
-    const categoryTags = availableTags.filter(tag => tag.startsWith(`${category.name}:`))
-    if (categoryTags.length > 0) {
-      acc[category.name] = {
-        label: category.label,
-        tags: categoryTags
-      }
+  const toggleAllInCategory = (category: string) => {
+    const categoryTags = groupedTags[category]?.map(sub => `${category}:${sub}`) || []
+    const allSelected = categoryTags.every(tag => selectedTags.includes(tag))
+
+    if (allSelected) {
+      // Remove all tags from this category
+      onTagsChange(selectedTags.filter(tag => !categoryTags.includes(tag)))
+    } else {
+      // Add all tags from this category
+      const newTags = new Set([...selectedTags, ...categoryTags])
+      onTagsChange(Array.from(newTags))
     }
-    return acc
-  }, {} as Record<string, { label: string, tags: string[] }>)
+  }
+
+  const clearAll = () => {
+    onTagsChange([])
+    // Automatically enable "Show untagged only" when clearing all tags
+    if (onShowUntaggedChange) {
+      onShowUntaggedChange(true)
+    }
+  }
+
+  const selectAll = () => {
+    const allTags: string[] = []
+    Object.entries(groupedTags).forEach(([category, subcategories]) => {
+      subcategories.forEach(sub => {
+        allTags.push(`${category}:${sub}`)
+      })
+    })
+    onTagsChange(allTags)
+  }
+
+  const selectedCount = selectedTags.length
+  const totalCount = Object.values(groupedTags).reduce((sum, subs) => sum + subs.length, 0)
 
   return (
-    <>
-      <Button
-        ref={buttonRef}
-        variant="outline"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={loading}
-        className="h-8 px-3 text-xs font-medium border-gray-200 hover:bg-gray-50 flex items-center gap-2"
-      >
-        <Tag className="h-3.5 w-3.5" />
-        <span>{displayText}</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </Button>
-
-      {isOpen && typeof window !== 'undefined' && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{
-            position: 'fixed',
-            top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`,
-            zIndex: 9999
-          }}
-          className="w-80 bg-white rounded-lg shadow-lg border border-gray-200"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "min-w-[140px] h-9 px-3 bg-white border-gray-300 hover:bg-gray-50",
+            "flex items-center justify-between gap-2",
+            selectedCount > 0 && "border-pink-400 ring-1 ring-pink-200"
+          )}
+          disabled={loading}
         >
-          <div className="p-2 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-700">Filter by Tags</span>
-              <div className="flex gap-1">
-                <button
-                  onClick={handleSelectAll}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 hover:bg-blue-50 rounded"
-                >
-                  Select All
-                </button>
-                <button
-                  onClick={handleClearAll}
-                  className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-0.5 hover:bg-gray-50 rounded"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
+          <span className="flex items-center gap-1.5">
+            <Filter className="h-3.5 w-3.5" />
+            <span className="text-sm">
+              {selectedCount > 0 ? (
+                <span className="font-medium">Tags ({selectedCount})</span>
+              ) : (
+                'Filter'
+              )}
+            </span>
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+        </Button>
+      </DropdownMenuTrigger>
 
-            {/* Show untagged option */}
-            <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
-              <div className="relative flex items-center justify-center w-4 h-4">
-                <input
-                  type="checkbox"
-                  checked={isShowingUntagged}
-                  onChange={() => handleClearAll()}
-                  className="sr-only"
-                />
-                <div className={`w-4 h-4 rounded border ${
-                  isShowingUntagged
-                    ? 'bg-pink-500 border-pink-500'
-                    : 'bg-white border-gray-300'
-                }`}>
-                  {isShowingUntagged && (
-                    <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
-                  )}
-                </div>
-              </div>
-              <span className="text-xs text-gray-700 flex-1">
-                Show Untagged
-              </span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                {untaggedCount}
-              </Badge>
-            </label>
+      <DropdownMenuContent className="w-[280px] p-0 bg-white" align="end">
+        {/* Header with search and select buttons */}
+        <div className="p-3 border-b bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold">Filter by Tags</span>
+            <span className="text-xs text-gray-500">
+              {showUntaggedOnly ? 'Untagged' : `${selectedCount}/${totalCount} selected`}
+            </span>
           </div>
 
-          <div className="max-h-96 overflow-y-auto p-2">
-            {Object.entries(tagsByCategory).map(([categoryName, categoryData]) => {
-              const isExpanded = expandedCategories.has(categoryName)
-              const categorySelectedCount = categoryData.tags.filter(tag =>
-                selectedTags.includes(tag)
-              ).length
+          {/* Show Untagged Only Option */}
+          {onShowUntaggedChange && (
+            <div className="mb-2 p-2 bg-white rounded border border-gray-200">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={showUntaggedOnly}
+                  onCheckedChange={(checked) => {
+                    onShowUntaggedChange(!!checked)
+                    if (checked) {
+                      // Clear all tag selections when showing untagged only
+                      onTagsChange([])
+                    }
+                  }}
+                  className="h-4 w-4"
+                />
+                <span className="text-xs font-medium text-gray-700">Show untagged only</span>
+              </label>
+            </div>
+          )}
 
-              return (
-                <div key={categoryName} className="mb-2">
+          {/* Select/Deselect All Buttons */}
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAll}
+              className="flex-1 h-7 text-xs bg-white"
+              disabled={selectedCount === totalCount}
+            >
+              Select All
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAll}
+              className="flex-1 h-7 text-xs bg-white"
+              disabled={selectedCount === 0}
+            >
+              Deselect All
+            </Button>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Search tags..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
+          />
+        </div>
+
+        {/* Tag categories */}
+        <div className={cn(
+          "max-h-[350px] overflow-y-auto bg-white",
+          showUntaggedOnly && "opacity-50 pointer-events-none"
+        )}>
+          {Object.entries(filteredGroups).map(([category, subcategories]) => {
+            const isExpanded = expandedCategories.has(category)
+            const categoryConfig = CATEGORY_CONFIG[category] || {
+              label: category,
+              emoji: '📌'
+            }
+            const categoryTags = subcategories.map(sub => `${category}:${sub}`)
+            const selectedInCategory = categoryTags.filter(tag =>
+              selectedTags.includes(tag)
+            ).length
+            const allSelected = selectedInCategory === subcategories.length
+
+            return (
+              <div key={category} className="border-b last:border-b-0">
+                {/* Category header */}
+                <div className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50">
                   <button
-                    onClick={() => toggleCategory(categoryName)}
-                    className="flex items-center justify-between w-full px-2 py-1 hover:bg-gray-50 rounded"
+                    onClick={() => toggleCategory(category)}
+                    className="flex items-center gap-1.5 flex-1 text-left"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{CATEGORY_EMOJIS[categoryName] || '📌'}</span>
-                      <span className="text-xs font-medium text-gray-700">{categoryData.label}</span>
-                      {categorySelectedCount > 0 && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                          {categorySelectedCount}
+                    {isExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                    <span className="text-xs font-medium flex items-center gap-1">
+                      <span className="text-base">{categoryConfig.emoji}</span>
+                      <span>{categoryConfig.label}</span>
+                      {selectedInCategory > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                          {selectedInCategory}
                         </Badge>
                       )}
-                    </div>
-                    <ChevronDown className={`h-3 w-3 text-gray-400 transition-transform ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`} />
+                    </span>
                   </button>
-
-                  {isExpanded && (
-                    <div className="mt-1 ml-6">
-                      {categoryData.tags.map(tag => {
-                        const label = getTagLabel(tag)
-                        const isSelected = selectedTags.includes(tag)
-
-                        return (
-                          <label
-                            key={tag}
-                            className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
-                          >
-                            <div className="relative flex items-center justify-center w-4 h-4">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleTag(tag)}
-                                className="sr-only"
-                              />
-                              <div className={`w-4 h-4 rounded border ${
-                                isSelected
-                                  ? 'bg-pink-500 border-pink-500'
-                                  : 'bg-white border-gray-300'
-                              }`}>
-                                {isSelected && (
-                                  <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-xs text-gray-700 flex-1">{label}</span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  )}
+                  <Checkbox
+                    checked={allSelected && subcategories.length > 0}
+                    onCheckedChange={() => toggleAllInCategory(category)}
+                    className="mr-1 h-3.5 w-3.5"
+                    aria-label={`Select all ${categoryConfig.label}`}
+                  />
                 </div>
-              )
-            })}
 
-            {Object.keys(tagsByCategory).length === 0 && (
-              <div className="text-xs text-gray-500 text-center py-4">
-                No tags available
+                {/* Subcategories */}
+                {isExpanded && (
+                  <div className="pl-6 pr-2 pb-1">
+                    {subcategories.map(subcategory => {
+                      const fullTag = `${category}:${subcategory}`
+                      const isSelected = selectedTags.includes(fullTag)
+
+                      return (
+                        <div
+                          key={fullTag}
+                          className="flex items-center justify-between py-0.5 px-1 hover:bg-gray-50 rounded"
+                        >
+                          <label
+                            className="flex items-center gap-1.5 flex-1 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleTag(fullTag)}
+                              aria-label={`Select ${subcategory}`}
+                              className="h-3.5 w-3.5"
+                            />
+                            <span className={cn(
+                              "text-xs capitalize",
+                              isSelected && "font-medium text-pink-600"
+                            )}>
+                              {subcategory.replace(/_/g, ' ')}
+                            </span>
+                          </label>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            )
+          })}
+        </div>
+
+        {/* Footer with selected count */}
+        {selectedCount > 0 && (
+          <div className="px-3 py-2 border-t bg-gray-50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600">
+                {selectedCount} tag{selectedCount !== 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                className="h-6 px-2 text-xs hover:text-pink-600"
+              >
+                Clear
+              </Button>
+            </div>
           </div>
-        </div>,
-        document.body
-      )}
-    </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

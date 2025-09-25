@@ -1,9 +1,7 @@
 'use client'
 
-import React from 'react'
-import { X, UserCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ModelForm } from '@/components/ModelForm'
+import { UserCircle2, X } from 'lucide-react'
+import { ModelForm } from './ModelForm'
 
 interface ModelFormModalProps {
   isOpen: boolean
@@ -19,7 +17,15 @@ interface ModelFormModalProps {
     commission_rate?: number | null
     onboarding_date?: string | null
   }
-  onSave: (data: any) => Promise<void>
+  onSave: (data: {
+    stage_name: string
+    status: 'active' | 'inactive' | 'onboarding'
+    description?: string
+    assigned_tags: string[]
+    platform_accounts?: Record<string, string[]>
+    commission_rate?: number | null
+    payment_type?: 'bank' | 'crypto'
+  }) => Promise<void>
   saving: boolean
 }
 
@@ -32,7 +38,15 @@ export function ModelFormModal({
 }: ModelFormModalProps) {
   if (!isOpen) return null
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: {
+    stage_name: string
+    status: 'active' | 'inactive' | 'onboarding'
+    description?: string
+    assigned_tags: string[]
+    platform_accounts?: Record<string, string[]>
+    commission_rate?: number | null
+    payment_type?: 'bank' | 'crypto'
+  }) => {
     await onSave(data)
     onClose()
   }

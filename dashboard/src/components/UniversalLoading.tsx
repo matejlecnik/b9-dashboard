@@ -3,6 +3,7 @@
 import React, { memo } from 'react'
 import { cn } from '@/lib/utils'
 
+
 // ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================
@@ -21,7 +22,7 @@ interface BaseLoadingProps {
   delay?: number
 }
 
-interface SkeletonProps extends BaseLoadingProps {
+interface LoadingSkeletonProps extends BaseLoadingProps {
   variant: 'skeleton'
   type?: 'card' | 'table' | 'metrics' | 'user-list' | 'text' | 'custom'
   rows?: number
@@ -32,19 +33,19 @@ interface SkeletonProps extends BaseLoadingProps {
   height?: string
 }
 
-interface SpinnerProps extends BaseLoadingProps {
+interface LoadingSpinnerProps extends BaseLoadingProps {
   variant: 'spinner' | 'apple' | 'minimal'
   overlay?: boolean
   children?: React.ReactNode
 }
 
-interface ProgressProps extends BaseLoadingProps {
+interface LoadingProgressProps extends BaseLoadingProps {
   variant: 'progress'
   progress: number
   showPercentage?: boolean
 }
 
-type UniversalLoadingProps = SkeletonProps | SpinnerProps | ProgressProps
+type UniversalLoadingProps = LoadingSkeletonProps | LoadingSpinnerProps | LoadingProgressProps
 
 // ============================================================================
 // STYLE CONFIGURATIONS
@@ -113,7 +114,7 @@ const ShimmerWrapper = memo(function ShimmerWrapper({
   )
 })
 
-const renderSpinner = ({ size = 'md', color = 'pink', className = '' }: SpinnerProps) => (
+const renderSpinner = ({ size = 'md', color = 'pink', className = '' }: LoadingSpinnerProps) => (
   <div 
     className={cn(
       'inline-block animate-spin',
@@ -154,7 +155,7 @@ const renderSpinner = ({ size = 'md', color = 'pink', className = '' }: SpinnerP
   </div>
 )
 
-const renderAppleSpinner = ({ size = 'md', color = 'pink', className = '' }: SpinnerProps) => (
+const renderAppleSpinner = ({ size = 'md', color = 'pink', className = '' }: LoadingSpinnerProps) => (
   <div 
     className={cn(
       'inline-block animate-spin',
@@ -205,14 +206,14 @@ const renderAppleSpinner = ({ size = 'md', color = 'pink', className = '' }: Spi
   </div>
 )
 
-const renderSkeleton = ({ 
-  type = 'card', 
-  rows = 3, 
-  columns = 1, 
-  showAvatar = false, 
+const renderSkeleton = ({
+  type = 'card',
+  rows = 3,
+  columns = 1,
+  showAvatar = false,
   showImage = false,
   className = ''
-}: SkeletonProps) => {
+}: LoadingSkeletonProps) => {
   switch (type) {
     case 'metrics':
       return (
@@ -330,12 +331,12 @@ const renderSkeleton = ({
   }
 }
 
-const renderProgress = ({ 
-  progress, 
-  message = "Loading...", 
+const renderProgress = ({
+  progress,
+  message = "Loading...",
   showPercentage = true,
   className = ''
-}: ProgressProps) => (
+}: LoadingProgressProps) => (
   <div className={cn("flex flex-col items-center justify-center py-12 space-y-4", className)}>
     <div className="relative">
       <div className="w-16 h-16 border-4 border-gray-200 rounded-full animate-pulse"></div>
@@ -368,15 +369,15 @@ export const UniversalLoading = memo(function UniversalLoading(props: UniversalL
 
   switch (variant) {
     case 'skeleton':
-      return renderSkeleton(props as SkeletonProps)
+      return renderSkeleton(props as LoadingSkeletonProps)
     case 'progress':
-      return renderProgress(props as ProgressProps)
+      return renderProgress(props as LoadingProgressProps)
     case 'apple':
-      return renderAppleSpinner(props as SpinnerProps)
+      return renderAppleSpinner(props as LoadingSpinnerProps)
     case 'minimal':
       return (
         <div className={cn("flex items-center justify-center p-4", className)}>
-          {renderSpinner(props as SpinnerProps)}
+          {renderSpinner(props as LoadingSpinnerProps)}
           {props.message && (
             <span className="ml-2 text-sm text-gray-500">{props.message}</span>
           )}
@@ -387,7 +388,7 @@ export const UniversalLoading = memo(function UniversalLoading(props: UniversalL
       return (
         <div className={cn("flex items-center justify-center py-8", className)}>
           <div className="flex flex-col items-center space-y-3">
-            {renderSpinner(props as SpinnerProps)}
+            {renderSpinner(props as LoadingSpinnerProps)}
             {props.message && (
               <p className="text-gray-600 font-medium">{props.message}</p>
             )}
@@ -401,7 +402,7 @@ export const UniversalLoading = memo(function UniversalLoading(props: UniversalL
 // CONVENIENCE COMPONENTS FOR BACKWARD COMPATIBILITY
 // ============================================================================
 
-export const AppleSpinner = (props: Omit<SpinnerProps, 'variant'>) => (
+export const AppleSpinner = (props: Omit<LoadingSpinnerProps, 'variant'>) => (
   <UniversalLoading {...props} variant="apple" />
 )
 

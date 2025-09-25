@@ -1,10 +1,27 @@
 'use server'
 
+import { createClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { logger } from '@/lib/logger'
 
-import { createClient } from '../../lib/supabase'
-import { formatAuthError } from '../../lib/auth'
+// Helper function to format auth errors
+function formatAuthError(error: { message?: string; code?: string }): string {
+  const message = error.message || 'Authentication failed'
+
+  // Map common Supabase auth errors to user-friendly messages
+  if (message.includes('Invalid login credentials')) {
+    return 'Invalid email or password. Please check your credentials and try again.'
+  }
+  if (message.includes('Email not confirmed')) {
+    return 'Please confirm your email address before logging in.'
+  }
+  if (message.includes('User not found')) {
+    return 'No account found with this email address.'
+  }
+
+  return message
+}
 
 export async function login(prevState: { error: string } | null, formData: FormData) {
   const supabase = await createClient()
@@ -38,7 +55,7 @@ export async function login(prevState: { error: string } | null, formData: FormD
 
     if (error) {
       return {
-        error: formatAuthError(error)
+        error: formatAuthError(error as { message?: string; code?: string })
       }
     }
 
@@ -52,7 +69,7 @@ export async function login(prevState: { error: string } | null, formData: FormD
       throw error
     }
     
-    console.error('Login action error:', error)
+    logger.error('Login action error:', error)
     return {
       error: 'An unexpected error occurred. Please try again.'
     }

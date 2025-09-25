@@ -165,3 +165,26 @@ curl https://b9-dashboard.onrender.com/api/instagram/scraper/status
 # Pretty print responses
 curl -s https://b9-dashboard.onrender.com/api/scraper/cycle-status | python3 -m json.tool
 ```
+
+## TODO List
+
+- [ ] Add request validation middleware
+- [ ] Implement API versioning (/v1, /v2)
+- [ ] Add OpenAPI/Swagger documentation
+- [ ] Create rate limiting per endpoint
+- [ ] Add request/response logging middleware
+- [ ] Implement API key authentication
+
+## Current Errors
+
+- **No authentication** - API is open (acceptable for internal tool)
+- **Missing validation** - Some endpoints don't validate input properly
+- **Inconsistent responses** - Some endpoints return different formats
+
+## Potential Improvements
+
+- **GraphQL gateway** - Single endpoint for flexible queries (major change)
+- **WebSocket endpoints** - Real-time updates for scraper status (architecture change)
+- **Batch endpoints** - Process multiple items in single request (performance boost)
+- **Response caching** - Cache frequent queries (needs Redis)
+- **Request queuing** - Queue long-running operations (needs task queue)

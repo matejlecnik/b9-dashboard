@@ -1,9 +1,9 @@
 'use client'
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase/index'
-import type { User } from '@/lib/supabase/index'
 import { useMemo } from 'react'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase, type User } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 export interface UserStats {
   total_users: number
@@ -75,7 +75,7 @@ export function useUserStats() {
     queryKey: userAnalyticsKeys.stats(),
     queryFn: async (): Promise<UserStats> => {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -132,7 +132,7 @@ export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> 
       const to = from + limit - 1
 
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -171,16 +171,16 @@ export function useUsers(page = 1, limit = 50, filters: Record<string, unknown> 
 
       const { data, error } = await query
       if (error) {
-        console.error('useUsers query error:', error)
+        logger.error('useUsers query error:', error)
         throw error
       }
 
       return {
-        users: data || [],
+        users: (data || []) as User[],
         hasMore: data?.length === limit
       }
     },
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData: { users: User[]; hasMore: boolean } | undefined) => previousData,
     staleTime: 1 * 60 * 1000, // 1 minute
   })
 }
@@ -203,7 +203,7 @@ export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'al
       }
 
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -243,11 +243,11 @@ export function useInfiniteUsers(searchTerm: string, qualityFilter: string = 'al
 
       const { data, error } = await query
       if (error) {
-        console.error('useInfiniteUsers query error:', error)
+        logger.error('useInfiniteUsers query error:', error)
         throw error
       }
 
-      const users = data || []
+      const users = (data || []) as User[]
       const hasMore = users.length === limit && from + limit < maxUsers
       
       return {
@@ -268,7 +268,7 @@ export function useUserProfile(userId: number) {
     queryFn: async (): Promise<UserProfile | null> => {
       // Get user details
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -307,7 +307,7 @@ export function useContentTypeStats() {
     queryKey: userAnalyticsKeys.contentStats(),
     queryFn: async (): Promise<ContentTypeStats[]> => {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -320,15 +320,17 @@ export function useContentTypeStats() {
 
       const contentTypeMap = new Map<string, { count: number, totalScore: number, totalPerformance: number }>()
       
-      data?.forEach(user => {
-        const type = user.preferred_content_type
+      const rows = (data ?? []) as Array<{ preferred_content_type: string | null; overall_user_score: number | null; avg_post_score: number | null }>
+      rows.forEach(row => {
+        const type = (row.preferred_content_type ?? '') as string
+        if (!type) return
         if (!contentTypeMap.has(type)) {
           contentTypeMap.set(type, { count: 0, totalScore: 0, totalPerformance: 0 })
         }
         const stats = contentTypeMap.get(type)!
         stats.count++
-        stats.totalScore += user.overall_user_score || 0
-        stats.totalPerformance += user.avg_post_score || 0
+        stats.totalScore += row.overall_user_score || 0
+        stats.totalPerformance += row.avg_post_score || 0
       })
 
       return Array.from(contentTypeMap.entries()).map(([type, data]) => ({
@@ -348,7 +350,7 @@ export function useHourlyActivityStats() {
     queryKey: userAnalyticsKeys.hourlyStats(),
     queryFn: async (): Promise<HourlyActivityStats[]> => {
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -361,14 +363,15 @@ export function useHourlyActivityStats() {
 
       const hourlyMap = new Map<number, { count: number, totalScore: number }>()
       
-      data?.forEach(user => {
-        const hour = user.most_active_posting_hour
+      const rows = (data ?? []) as Array<{ most_active_posting_hour: number; overall_user_score: number | null }>
+      rows.forEach(row => {
+        const hour = row.most_active_posting_hour
         if (!hourlyMap.has(hour)) {
           hourlyMap.set(hour, { count: 0, totalScore: 0 })
         }
         const stats = hourlyMap.get(hour)!
         stats.count++
-        stats.totalScore += user.overall_user_score || 0
+        stats.totalScore += row.overall_user_score || 0
       })
 
       return Array.from(hourlyMap.entries()).map(([hour, data]) => ({
@@ -390,7 +393,7 @@ export function useSearchUsers(searchTerm: string) {
       if (!searchTerm.trim()) return []
       
       if (!supabase) {
-        console.error('Supabase client not available')
+        logger.error('Supabase client not available')
         throw new Error('Supabase client not available')
       }
 
@@ -410,7 +413,7 @@ export function useSearchUsers(searchTerm: string) {
         .limit(100)
 
       if (error) throw error
-      return data || []
+      return (data || []) as User[]
     },
     enabled: searchTerm.trim().length > 0,
     staleTime: 30 * 1000, // 30 seconds for search results

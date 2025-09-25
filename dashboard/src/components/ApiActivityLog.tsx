@@ -1,18 +1,23 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
-import { supabase } from '@/lib/supabase/index'
-
+// Type definitions
 interface ApiActivityDetails {
-  new_status?: boolean
-  query?: string
-  results_count?: number
-  batch_size?: number
-  categorized?: number
-  total?: number
   [key: string]: unknown
+}
+
+interface ApiActivity {
+  id: string
+  timestamp: string
+  endpoint: string
+  status: 'success' | 'error' | 'pending'
+  title: string
+  message?: string
+  details?: ApiActivityDetails
 }
 
 interface RedditCategorizationLog {
@@ -42,13 +47,12 @@ interface UserDiscoveryLog {
   error?: string | null
 }
 
-type ApiActivity = {
-  id: string
+interface SystemLog {
+  id: string | number
   timestamp: string
-  endpoint: string
-  status: 'success' | 'error' | 'pending'
+  level?: string
   message: string
-  details?: ApiActivityDetails
+  context?: Record<string, unknown>
 }
 
 interface ApiActivityLogProps {
@@ -73,11 +77,11 @@ export function ApiActivityLog({
     const fetchActivities = async () => {
       try {
         if (!supabase) {
-          console.error('Supabase client not initialized')
+          logger.error('Supabase client not initialized')
           return
         }
 
-        let data: any[] | null = null
+        let data: unknown[] | null = null
         let error: unknown = null
 
         if (useSystemLogs) {
@@ -137,7 +141,7 @@ export function ApiActivityLog({
 
             if (useSystemLogs) {
               // Handle system_logs table structure
-              const sysLog = log as any
+              const sysLog = log as SystemLog
 
               // Determine status from level
               if (sysLog.level === 'error' || sysLog.level === 'critical') {
@@ -179,7 +183,7 @@ export function ApiActivityLog({
                 timestamp: sysLog.timestamp,
                 endpoint,
                 status,
-                message: displayMessage.length > 100 ? displayMessage.substring(0, 97) + '...' : displayMessage,
+                title: displayMessage.length > 100 ? displayMessage.substring(0, 97) + '...' : displayMessage,
                 details: sysLog.context || {}
               }
             } else if (endpoint === 'categorization') {
@@ -199,7 +203,7 @@ export function ApiActivityLog({
                 timestamp: catLog.timestamp,
                 endpoint,
                 status,
-                message: displayMessage,
+                title: displayMessage,
                 details: {}
               }
             } else if (endpoint === 'users') {
@@ -217,13 +221,15 @@ export function ApiActivityLog({
                   displayMessage = `Successfully fetched u/${userLog.username}`
                   break
                 case 'quality_calculated':
-                  const score = (userLog.details as any)?.scores?.overall_score
+                  const scoreDetails = userLog.details as { scores?: { overall_score?: number } }
+                  const score = scoreDetails?.scores?.overall_score
                   displayMessage = score
                     ? `u/${userLog.username} scored ${score.toFixed(2)}`
                     : `u/${userLog.username} quality calculated`
                   break
                 case 'posts_fetched':
-                  const postCount = (userLog.details as any)?.post_count
+                  const postsDetails = userLog.details as { post_count?: number }
+                  const postCount = postsDetails?.post_count
                   displayMessage = `Fetched ${postCount || 0} posts for u/${userLog.username}`
                   break
                 case 'saved_to_database':
@@ -240,7 +246,7 @@ export function ApiActivityLog({
                 timestamp: userLog.timestamp,
                 endpoint,
                 status,
-                message: displayMessage,
+                title: displayMessage,
                 details: (userLog.details as ApiActivityDetails) || {}
               }
             } else {
@@ -253,7 +259,7 @@ export function ApiActivityLog({
                 timestamp: scrLog.timestamp,
                 endpoint,
                 status,
-                message: displayMessage,
+                title: displayMessage,
                 details: (scrLog.context as ApiActivityDetails) || {}
               }
             }
@@ -261,7 +267,7 @@ export function ApiActivityLog({
           setActivities(mappedActivities)
         }
       } catch (err) {
-        console.error('Error fetching activities from logs:', err)
+        logger.error('Error fetching activities from logs:', err)
       }
     }
 
@@ -301,7 +307,7 @@ export function ApiActivityLog({
                   <span className={`text-[8px] ${getStatusColor(activity.status)} mt-0.5`}>●</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[9px] text-gray-700 truncate">
-                      {activity.message}
+                      {activity.message || activity.title}
                     </p>
                     <p className="text-[8px] text-gray-400">
                       {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}

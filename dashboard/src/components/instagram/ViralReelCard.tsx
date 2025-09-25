@@ -1,10 +1,9 @@
 'use client'
 
-import React from 'react'
+import Image from 'next/image'
 import { Play, Heart, MessageCircle, Bookmark, Share2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { toProxiedImageUrl } from '@/config/images'
-import { ViralReel } from '@/lib/supabase/viral-reels'
+import type { ViralReel } from '@/lib/supabase/viral-reels'
 
 interface ViralReelCardProps {
   reel: ViralReel
@@ -25,7 +24,12 @@ function formatDuration(seconds: number | null | undefined): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export const ViralReelCard = React.memo(function ViralReelCard({ reel }: ViralReelCardProps) {
+function toProxiedImageUrl(url: string): string {
+  // For Instagram images, we can use them directly as they have proper CORS headers
+  return url
+}
+
+export function ViralReelCard({ reel }: ViralReelCardProps) {
   const thumbnailUrl = reel.cover_url || reel.thumbnail_url
   const profilePicUrl = reel.creator?.profile_pic_url
 
@@ -33,10 +37,12 @@ export const ViralReelCard = React.memo(function ViralReelCard({ reel }: ViralRe
     <div className="group overflow-hidden rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.8)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.9)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.03] hover:-translate-y-1 cursor-pointer">
       <div className="relative aspect-[9/16] bg-gray-100">
         {thumbnailUrl ? (
-          <img
+          <Image
             src={toProxiedImageUrl(thumbnailUrl)}
             alt={`Reel by ${reel.creator_username}`}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading="lazy"
           />
         ) : (
@@ -70,11 +76,15 @@ export const ViralReelCard = React.memo(function ViralReelCard({ reel }: ViralRe
         {/* Creator info */}
         <div className="flex items-center gap-2">
           {profilePicUrl ? (
-            <img
-              src={toProxiedImageUrl(profilePicUrl)}
-              alt={reel.creator_username || 'Creator'}
-              className="w-8 h-8 rounded-full object-cover"
-            />
+            <div className="relative w-8 h-8">
+              <Image
+                src={toProxiedImageUrl(profilePicUrl)}
+                alt={reel.creator_username || 'Creator'}
+                fill
+                className="rounded-full object-cover"
+                sizes="32px"
+              />
+            </div>
           ) : (
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
           )}
@@ -142,4 +152,4 @@ export const ViralReelCard = React.memo(function ViralReelCard({ reel }: ViralRe
       </div>
     </div>
   )
-})
+}

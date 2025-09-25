@@ -1,7 +1,17 @@
 'use client'
 
-import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
+import {
+  getTagLabel,
+  searchTags,
+  getAllTags,
+  TAG_CATEGORIES,
+  type TagOption,
+  type TagCategory
+} from '@/lib/tagCategories'
+
 import {
   MoreVertical,
   Edit2,
@@ -10,8 +20,6 @@ import {
   Plus,
   Check
 } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { TAG_CATEGORIES, getAllTags, searchTags, getTagLabel } from '@/lib/tagCategories'
 
 interface TagsDisplayProps {
   tags: string[]
@@ -168,31 +176,19 @@ function TagEditDropdown({
 
     // When editing, restrict to same category only
     if (isEditing && tagCategory) {
-      tags = tags.filter(t => t.category === tagCategory)
+      tags = tags.filter((t: TagOption) => t.category === tagCategory)
     }
 
     // Filter out already existing tags
-    tags = tags.filter(t => !existingTags.includes(t.value) || t.value === tag)
+    tags = tags.filter((t: TagOption) => !existingTags.includes(t.value) || t.value === tag)
 
     // Filter by selected category if any (only when not in edit mode)
     if (!isEditing && selectedCategory) {
-      tags = tags.filter(t => t.category === selectedCategory)
+      tags = tags.filter((t: TagOption) => t.category === selectedCategory)
     }
 
     return tags
   }, [searchQuery, selectedCategory, existingTags, tag, isEditing, tagCategory])
-
-  // Group tags by category for display
-  const groupedTags = useMemo(() => {
-    const groups: { [key: string]: typeof filteredTags } = {}
-    filteredTags.forEach(tag => {
-      if (!groups[tag.category]) {
-        groups[tag.category] = []
-      }
-      groups[tag.category].push(tag)
-    })
-    return groups
-  }, [filteredTags])
 
   useEffect(() => {
     if (isEditing && searchInputRef.current) {
@@ -225,7 +221,7 @@ function TagEditDropdown({
                   <div className="mb-2">
                     <div className="text-[10px] font-semibold text-gray-500">
                       Editing: {(() => {
-                        const category = TAG_CATEGORIES.find(c => c.name === tagCategory)
+                        const category = TAG_CATEGORIES.find((c: TagCategory) => c.name === tagCategory)
                         return category?.label || tagCategory.replace(/_/g, ' ')
                       })()}
                     </div>
@@ -263,7 +259,7 @@ function TagEditDropdown({
                   </div>
                 ) : (
                   <div className="space-y-0.5">
-                    {filteredTags.map(tagOption => (
+                    {filteredTags.map((tagOption: TagOption) => (
                       <button
                         key={tagOption.value}
                         onClick={() => handleSelectTag(tagOption.value)}
@@ -385,17 +381,17 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
   // Get filtered tags
   const filteredTags = useMemo(() => {
     let tags = searchQuery ? searchTags(searchQuery) : getAllTags()
-    tags = tags.filter(t => !existingTags.includes(t.value))
+    tags = tags.filter((t: TagOption) => !existingTags.includes(t.value))
     if (selectedCategory) {
-      tags = tags.filter(t => t.category === selectedCategory)
+      tags = tags.filter((t: TagOption) => t.category === selectedCategory)
     }
     return tags
   }, [searchQuery, selectedCategory, existingTags])
 
   // Group tags by category
   const groupedTags = useMemo(() => {
-    const groups: { [key: string]: typeof filteredTags } = {}
-    filteredTags.forEach(tag => {
+    const groups: { [key: string]: TagOption[] } = {}
+    filteredTags.forEach((tag: TagOption) => {
       if (!groups[tag.category]) {
         groups[tag.category] = []
       }
@@ -462,7 +458,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
               >
                 All
               </button>
-              {TAG_CATEGORIES.map(cat => (
+              {TAG_CATEGORIES.map((cat: TagCategory) => (
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
@@ -489,14 +485,14 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
               </div>
             ) : (
               Object.entries(groupedTags).map(([category, tags]) => {
-                const categoryInfo = TAG_CATEGORIES.find(c => c.name === category)
+                const categoryInfo = TAG_CATEGORIES.find((c: TagCategory) => c.name === category)
                 return (
                   <div key={category} className="mb-3">
                     <div className="text-[10px] font-semibold text-gray-500 mb-1">
                       {categoryInfo?.label || category}
                     </div>
                     <div className="space-y-0.5">
-                      {tags.map(tagOption => (
+                      {tags.map((tagOption: TagOption) => (
                         <button
                           key={tagOption.value}
                           onClick={() => handleSelectTag(tagOption.value)}

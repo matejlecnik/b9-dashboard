@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/index'
+
+import { supabase } from './supabase'
+import { logger } from './logger'
 
 export type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'critical'
 export type LogSource = 'user_tracking' | 'ai_categorization' | 'reddit_scraper' | 'api_operation'
@@ -10,7 +12,7 @@ export type LogContext = Record<string, LogContextValue>
 interface LogEntry {
   timestamp: string
   level: LogLevel
-  message: string
+  title: string
   source: LogSource
   context?: LogContext
 
@@ -57,13 +59,14 @@ class LoggingService {
     return LoggingService.instance
   }
 
+
   private startPeriodicFlush() {
     this.flushTimer = setInterval(() => {
       this.flush()
     }, this.flushInterval)
   }
 
-  async log(entry: Partial<LogEntry> & { message: string; source: LogSource }) {
+  async log(entry: Partial<LogEntry> & { title: string; source: LogSource }) {
     const fullEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level: entry.level || 'info',
@@ -88,9 +91,8 @@ class LoggingService {
     this.buffer = []
 
     try {
-      const supabase = await createClient()
       if (!supabase) {
-        console.error('Failed to create Supabase client for logging')
+        logger.error('Failed to get Supabase client for logging')
         // Re-add logs to buffer to try again later
         this.buffer.unshift(...logsToFlush)
         return
@@ -101,14 +103,14 @@ class LoggingService {
         .insert(logsToFlush)
 
       if (error) {
-        console.error('Error flushing logs to Supabase:', error)
+        logger.error('Error flushing logs to Supabase:', error)
         // Re-add logs to buffer to try again later
         this.buffer.unshift(...logsToFlush)
       } else {
-        console.debug(`✅ Flushed ${logsToFlush.length} logs to Supabase`)
+        logger.debug(`✅ Flushed ${logsToFlush.length} logs to Supabase`)
       }
     } catch (error) {
-      console.error('Exception while flushing logs:', error)
+      logger.error('Exception while flushing logs:', error)
       // Re-add logs to buffer to try again later
       this.buffer.unshift(...logsToFlush)
     } finally {
@@ -126,7 +128,7 @@ class LoggingService {
   ) {
     await this.log({
       source: 'user_tracking',
-      message: `User tracking: ${action}`,
+      title: `User tracking: ${action}`,
       level: success ? 'info' : 'error',
       username,
       success,
@@ -146,7 +148,7 @@ class LoggingService {
   ) {
     await this.log({
       source: 'ai_categorization',
-      message: `AI categorization: ${action}`,
+      title: `AI categorization: ${action}`,
       level: success ? 'info' : 'error',
       success,
       response_time_ms: processingTimeMs,
@@ -167,7 +169,7 @@ class LoggingService {
     const success = statusCode >= 200 && statusCode < 300
     await this.log({
       source: 'api_operation',
-      message: `${method} ${endpoint} -> ${statusCode}`,
+      title: `${method} ${endpoint} -> ${statusCode}`,
       level: success ? 'info' : 'error',
       url: endpoint,
       http_status: statusCode,

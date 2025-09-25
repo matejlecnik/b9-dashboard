@@ -136,3 +136,26 @@ All utilities fail gracefully:
 3. **Async first** - Designed for async/await patterns
 4. **Production ready** - Used in production on Render
 5. **Low overhead** - Minimal performance impact
+
+## TODO List
+
+- [ ] Implement distributed tracing
+- [ ] Add metrics exporter (Prometheus format)
+- [ ] Create log rotation mechanism
+- [ ] Add structured logging format
+- [ ] Implement circuit breaker pattern
+- [ ] Create performance profiling utilities
+
+## Current Errors
+
+- **Redis unavailable** - Free Render tier doesn't include Redis (caching disabled)
+- **Log batching delay** - 5-second delay can lose logs on crash
+- **No log retention policy** - Logs grow indefinitely in database
+
+## Potential Improvements
+
+- **Distributed caching** - Use multiple Redis instances (needs infrastructure)
+- **Log aggregation** - Ship logs to external service (DataDog, etc.)
+- **Custom metrics** - Application-specific performance metrics (needs design)
+- **Async context manager** - Better resource management (code refactor)
+- **Type hints** - Add comprehensive type annotations (code quality)

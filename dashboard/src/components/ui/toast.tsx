@@ -1,8 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import * as React from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react'
+import { Button } from './button'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -191,3 +192,4 @@ function ToastCard({ toast, onClose }: ToastCardProps) {
     </div>
   )
 }
+
