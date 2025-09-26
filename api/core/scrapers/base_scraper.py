@@ -370,7 +370,7 @@ class BaseScraper(ABC):
 
         # Database logging
         try:
-            self.supabase.table('scraper_logs').insert({
+            self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'level': level,
                 'source': self.__class__.__name__,

@@ -293,17 +293,30 @@ class RedditScraperV2:
     async def load_target_subreddits(self) -> Dict[str, List[Dict[str, Any]]]:
         """Load target subreddits from database by category"""
         try:
-            # Get OK subreddits
-            ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
-                'review', 'Ok'
-            ).execute()
+            # Get ALL OK subreddits using pagination to bypass 1000 limit
+            all_ok_subreddits = []
+            offset = 0
+            batch_size = 1000
+
+            while True:
+                ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
+                    'review', 'Ok'
+                ).range(offset, offset + batch_size - 1).execute()
+
+                if ok_response.data:
+                    all_ok_subreddits.extend(ok_response.data)
+                    if len(ok_response.data) < batch_size:
+                        break  # No more results
+                    offset += batch_size
+                else:
+                    break
 
             # Get No Seller subreddits
             no_seller_response = self.supabase.table('reddit_subreddits').select('*').eq(
                 'review', 'No Seller'
-            ).execute()
+            ).limit(500).execute()  # Should be enough for No Seller
 
-            ok_subreddits = ok_response.data if ok_response.data else []
+            ok_subreddits = all_ok_subreddits  # Use the accumulated list from pagination
             no_seller_subreddits = no_seller_response.data if no_seller_response.data else []
 
             # Filter for subreddits that need updating
@@ -331,8 +344,8 @@ class RedditScraperV2:
             no_seller_filtered.sort(key=lambda x: x.get('subreddit_score', 0), reverse=True)
 
             return {
-                'ok': ok_filtered[:50],  # Limit to 50 OK subreddits
-                'no_seller': no_seller_filtered[:50]  # Limit to 50 No Seller subreddits
+                'ok': ok_filtered,  # Process ALL OK subreddits
+                'no_seller': no_seller_filtered  # Process ALL No Seller subreddits
             }
 
         except Exception as e:
@@ -677,7 +690,7 @@ class RedditScraperV2:
                 'subscribers.eq.0'
             ).order(
                 'subscribers', desc=True
-            ).limit(50).execute()
+            ).limit(500).execute()  # Increase limit to process more subreddits in discovery
 
             if not response.data:
                 logger.info("No pending or incomplete subreddits to process in discovery mode")
