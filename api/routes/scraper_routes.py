@@ -193,21 +193,21 @@ async def force_kill_scraper(request: Request):
                                 os.kill(pid, signal.SIGKILL)  # Force kill
                                 killed_pids.append(pid)
                                 logger.info(f"💀 Force killed Reddit scraper process {pid}")
-                            except:
+                            except Exception:
                                 pass
-                except:
+                except Exception:
                     continue
 
             # Method 2: Try pkill as backup (may work on some systems)
             try:
                 subprocess.run(['pkill', '-9', '-f', 'reddit_scraper'], capture_output=True)
-            except:
+            except Exception:
                 pass
 
             # Method 3: Try killall
             try:
                 subprocess.run(['killall', '-9', 'reddit_scraper.py'], capture_output=True)
-            except:
+            except Exception:
                 pass
 
             # Clear any stored PID and disable scraper
@@ -374,7 +374,7 @@ async def get_scraper_status(request: Request):
 
             if result.data:
                 last_activity = result.data[0]['timestamp']
-        except:
+        except Exception:
             pass
 
         return {

@@ -137,7 +137,7 @@ class PublicRedditAPI:
                         if json_response.get('reason') == 'banned':
                             logger.warning(f"Banned subreddit: {url}")
                             return {'error': 'banned', 'status': 404, 'reason': 'banned'}
-                    except:
+                    except Exception:
                         pass
                     logger.warning(f"Not found: {url}")
                     return {'error': 'not_found', 'status': 404}

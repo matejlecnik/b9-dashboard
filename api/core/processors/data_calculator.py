@@ -426,7 +426,6 @@ class MetricsCalculator:
 
         # Aggregate totals
         total_upvotes_hot = sum(post.get('score', 0) for post in hot_posts)
-        total_comments_hot = sum(post.get('num_comments', 0) for post in hot_posts)
 
         # Compile all metrics
         metrics = {

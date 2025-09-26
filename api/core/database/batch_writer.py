@@ -7,7 +7,6 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,7 @@ class BatchWriter:
 
                 # Check if we should flush this buffer
                 if len(self.buffers['reddit_subreddits']) >= self.batch_size:
-                    logger.info(f"🚀 Buffer full for reddit_subreddits, triggering flush")
+                    logger.info("🚀 Buffer full for reddit_subreddits, triggering flush")
                     await self._flush_table('reddit_subreddits')
         except Exception as e:
             logger.error(f"❌ Error in add_subreddit: {e}")
@@ -430,8 +429,7 @@ class BatchWriter:
         # Add optional fields if present
         optional_fields = [
             'avg_upvotes_per_post', 'engagement', 'subreddit_score',
-            'post_frequency', 'comment_frequency', 'active_users_count',
-            'growth_rate_percent', 'nsfw_percentage', 'total_posts_last_30',
+            'nsfw_percentage',
             'image_post_avg_score', 'video_post_avg_score', 'text_post_avg_score',
             'link_post_avg_score', 'poll_post_avg_score', 'over_18', 'category',
             'best_posting_hour', 'best_posting_day', 'requires_verification', 'auto_review',
@@ -606,7 +604,7 @@ class BatchWriter:
                 # Try to parse it to validate
                 datetime.fromisoformat(value.replace('Z', '+00:00'))
                 return value
-            except:
+            except Exception:
                 return None
 
         return None

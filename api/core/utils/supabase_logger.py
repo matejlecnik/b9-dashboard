@@ -5,7 +5,7 @@ Buffers log messages and batch writes them to system_logs table
 import logging
 import time
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 
 class SupabaseLogHandler(logging.Handler):

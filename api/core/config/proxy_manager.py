@@ -3,11 +3,10 @@ Proxy Manager for Reddit Scraper
 Loads proxy configurations from Supabase and manages thread assignments
 """
 import logging
-import time
 import asyncio
 import aiohttp
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)

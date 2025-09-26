@@ -375,7 +375,7 @@ async def main():
                     'last_error_at': datetime.now(timezone.utc).isoformat(),
                     'enabled': False
                 }).eq('script_name', 'instagram_scraper').execute()
-        except:
+        except Exception:
             pass  # Can't log if Supabase is not available
 
         sys.exit(1)

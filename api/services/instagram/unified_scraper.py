@@ -1583,7 +1583,7 @@ class InstagramScraperUnified:
                     try:
                         cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
                         logger.info(f"📊 Final stats: {self.creators_processed} creators, {self.api_calls_made} API calls, {cycle_duration:.0f}s duration")
-                    except:
+                    except Exception:
                         pass
 
             except Exception as e:
@@ -1600,7 +1600,7 @@ class InstagramScraperUnified:
                     "method_complete": True,
                     "returning_to_wrapper": True
                 })
-            except:
+            except Exception:
                 pass  # Even if logging fails, we must return
 
         except Exception as e:

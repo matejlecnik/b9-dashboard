@@ -118,7 +118,7 @@ async def log_user_discovery(username: str, action: str, success: bool,
         }
         try:
             supabase.table('user_discovery_logs').insert(legacy_entry).execute()
-        except:
+        except Exception:
             pass  # Ignore errors on legacy table
 
         # Also log to Python logger

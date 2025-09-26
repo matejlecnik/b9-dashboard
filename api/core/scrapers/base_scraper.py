@@ -324,9 +324,8 @@ class BaseScraper(ABC):
                     try:
                         loop = asyncio.get_event_loop()
                         if loop.is_running():
-                            # Create a task and wait for it
-                            future = asyncio.ensure_future(control_checker())
-                            # Can't use await in sync function, so we need to handle differently
+                            # Create a task and continue (cannot await in sync function)
+                            asyncio.ensure_future(control_checker())
                             return True  # For now, always continue if async
                         else:
                             return loop.run_until_complete(control_checker())

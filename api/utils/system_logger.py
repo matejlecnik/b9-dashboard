@@ -6,7 +6,6 @@ Handles both Python logging and Supabase system_logs persistence
 import os
 import sys
 import logging
-import json
 import traceback
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any, Union
@@ -16,7 +15,7 @@ from queue import Queue, Empty
 import threading
 import time
 
-from supabase import Client, create_client
+from supabase import create_client
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
@@ -203,7 +202,7 @@ class SystemLogger:
                 # Add to batch queue
                 try:
                     self.batch_queue.put(log_entry, block=False)
-                except:
+                except Exception:
                     # Queue is full, insert synchronously
                     try:
                         self.supabase.table("system_logs").insert(log_entry).execute()

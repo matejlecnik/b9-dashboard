@@ -276,7 +276,7 @@ class SubredditScraper(BaseScraper):
                     dt = datetime.fromtimestamp(created_utc, timezone.utc)
                     posting_hour = dt.hour
                     posting_day_of_week = dt.weekday()
-                except:
+                except Exception:
                     pass
 
             # Get thumbnail info
@@ -387,7 +387,7 @@ class SubredditScraper(BaseScraper):
             if isinstance(timestamp, (int, float)):
                 return datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
             return str(timestamp)
-        except:
+        except Exception:
             return None
 
     async def save_banned_status(self, subreddit_name: str):

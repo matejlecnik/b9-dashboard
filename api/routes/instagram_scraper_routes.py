@@ -170,7 +170,7 @@ async def get_instagram_scraper_status(request: Request):
 
             if result.data:
                 last_activity = result.data[0]['timestamp']
-        except:
+        except Exception:
             pass
 
         return {

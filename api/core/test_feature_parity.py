@@ -70,7 +70,7 @@ class FeatureParityChecker:
             with open(filepath, 'r') as f:
                 content = f.read()
                 return bool(re.search(pattern, content, re.IGNORECASE))
-        except:
+        except Exception:
             return False
 
     def check_critical_features(self) -> Dict[str, bool]:

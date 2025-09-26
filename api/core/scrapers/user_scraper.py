@@ -4,7 +4,7 @@ Handles scraping of user data and discovery of new subreddits through user activ
 """
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Set
+from typing import Dict, Any, Optional, List
 try:
     from .base_scraper import BaseScraper
 except ImportError:
@@ -326,7 +326,7 @@ class UserScraper(BaseScraper):
             if isinstance(timestamp, (int, float)):
                 return datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
             return str(timestamp)
-        except:
+        except Exception:
             return None
 
     async def save_suspended_user(self, username: str):

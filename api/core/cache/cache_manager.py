@@ -5,9 +5,9 @@ Implements TTL caching to prevent memory leaks and improve performance
 import logging
 import time
 import threading
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, Optional, Set, Tuple
-from collections import OrderedDict, defaultdict
+
+from typing import Dict, Any, Optional, Tuple
+from collections import OrderedDict
 import asyncio
 
 logger = logging.getLogger(__name__)

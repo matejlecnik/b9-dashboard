@@ -249,7 +249,7 @@ class HealthMonitor:
                 net_io = psutil.net_io_counters()
                 network_sent_mb = round(net_io.bytes_sent / 1024 / 1024, 2)
                 network_recv_mb = round(net_io.bytes_recv / 1024 / 1024, 2)
-            except:
+            except Exception:
                 network_sent_mb = network_recv_mb = 0
             
             # Process metrics

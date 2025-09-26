@@ -9,11 +9,9 @@ import os
 import sys
 import random
 import time
-import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Callable
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -182,7 +180,7 @@ class RedditScraperV2:
         self.metrics_calculator = MetricsCalculator()
         logger.info("✅ Metrics calculator initialized")
 
-        logger.info(f"✅ All components initialized successfully")
+        logger.info("✅ All components initialized successfully")
         await self.log_to_database("info", f"Reddit Scraper v{SCRAPER_VERSION} initialized")
 
     async def _load_reviewed_subreddits(self):
@@ -331,7 +329,7 @@ class RedditScraperV2:
                         )
                         hours_since_update = (current_time - last_updated_dt).total_seconds() / 3600
                         return hours_since_update >= 24
-                    except:
+                    except Exception:
                         return True
                 return True
 
@@ -444,6 +442,12 @@ class RedditScraperV2:
 
                     # Merge calculated data
                     final_data = {**result.get('subreddit_data', {}), **calculated_data}
+
+                    # Apply 20% penalty for No Seller subreddits
+                    if subreddit_type == 'no_seller' and 'subreddit_score' in final_data:
+                        original_score = final_data['subreddit_score']
+                        final_data['subreddit_score'] = original_score * 0.8
+                        logger.debug(f"Applied No Seller penalty: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
 
                     # Save to database via batch writer
                     logger.info(f"📊 Saving processed data for r/{subreddit_name} to batch writer")
@@ -577,7 +581,7 @@ class RedditScraperV2:
                             created_dt = datetime.fromisoformat(created_utc.replace('Z', '+00:00'))
                             age_days = (datetime.now(timezone.utc) - created_dt).days
                             req['ages'].append(age_days)
-                        except:
+                        except Exception:
                             pass
 
         except Exception as e:
@@ -644,35 +648,6 @@ class RedditScraperV2:
 
             except Exception as e:
                 logger.error(f"Error calculating requirements for r/{subreddit_name}: {e}")
-
-    async def update_no_seller_subreddit(self, subreddit_name: str, data: Dict[str, Any]):
-        """Special update function for No Seller subreddits with recalculated values"""
-        try:
-            # No Seller subreddits need special handling for calculations
-            update_data = {
-                'avg_upvotes_per_post': data.get('avg_upvotes_per_post', 0),
-                'engagement': data.get('engagement', 0),
-                'subreddit_score': data.get('subreddit_score', 0) * 0.8,  # 20% penalty for No Seller
-                'post_frequency': data.get('post_frequency', 0),
-                'comment_frequency': data.get('comment_frequency', 0),
-                'active_users_count': data.get('active_users_count', 0),
-                'growth_rate_percent': data.get('growth_rate_percent', 0),
-                'nsfw_percentage': data.get('nsfw_percentage', 0),
-                'total_posts_last_30': data.get('total_posts_last_30', 0),
-                'updated_at': datetime.now(timezone.utc).isoformat(),
-                'last_scraped_at': datetime.now(timezone.utc).isoformat()
-            }
-
-            # Update in database
-            self.supabase.table('reddit_subreddits').update(update_data).eq(
-                'name', subreddit_name.lower()
-            ).execute()
-
-            logger.info(f"📊 [No Seller] Updated r/{subreddit_name} with adjusted score: "
-                       f"{update_data['subreddit_score']:.2f}")
-
-        except Exception as e:
-            logger.error(f"Error updating No Seller subreddit r/{subreddit_name}: {e}")
 
     async def run_discovery_mode(self, control_checker: Optional[Callable] = None):
         """Discovery mode - find and process newly discovered subreddits"""
@@ -805,7 +780,6 @@ class RedditScraperV2:
         try:
             self.supabase.table('reddit_subreddits').update({
                 'review': 'User Feed',
-                'category': 'User Feed',
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('name', name.lower()).execute()
             self.user_feed_subreddits.add(name.lower())
@@ -818,7 +792,6 @@ class RedditScraperV2:
         try:
             self.supabase.table('reddit_subreddits').update({
                 'review': 'Banned',
-                'category': 'Banned',
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('name', name.lower()).execute()
             self.banned_subreddits.add(name.lower())
@@ -831,7 +804,6 @@ class RedditScraperV2:
         try:
             self.supabase.table('reddit_subreddits').update({
                 'review': 'Non Related',
-                'category': 'Non Related',
                 'description': reason,
                 'updated_at': datetime.now(timezone.utc).isoformat()
             }).eq('name', name.lower()).execute()
@@ -903,7 +875,7 @@ class RedditScraperV2:
         start_time = datetime.fromisoformat(self.stats['start_time'])
         runtime = datetime.now(timezone.utc) - start_time
 
-        print(f"\n📊 PROXY-ENABLED SCRAPER STATS:")
+        print("\n📊 PROXY-ENABLED SCRAPER STATS:")
         print("=" * 60)
         print(f"⏱️  Runtime: {runtime}")
         print(f"🔍 Subreddits processed: {self.stats['subreddits_processed']}")
@@ -920,7 +892,7 @@ class RedditScraperV2:
         if self.proxy_manager:
             proxy_stats = self.proxy_manager.get_proxy_stats()
             if proxy_stats:
-                print(f"\n📊 Proxy Performance:")
+                print("\n📊 Proxy Performance:")
                 for proxy_id, stats in proxy_stats.items():
                     success_rate = (stats.get('success_count', 0) /
                                   max(1, stats.get('total_requests', 1))) * 100
@@ -930,7 +902,7 @@ class RedditScraperV2:
 
         # Thread statistics
         if self.scrapers:
-            print(f"\n🧵 Thread Activity:")
+            print("\n🧵 Thread Activity:")
             for scraper in self.scrapers:
                 scraper_stats = scraper.get_stats()
                 thread_id = scraper_stats.get('thread_id', '?')

@@ -11,6 +11,8 @@ import logging
 from datetime import datetime, timezone
 from supabase import create_client
 from dotenv import load_dotenv
+from pathlib import Path
+
 
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +24,6 @@ from reddit_scraper_v2 import RedditScraperV2
 SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool
 
 # Load environment variables from parent directory
-from pathlib import Path
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
