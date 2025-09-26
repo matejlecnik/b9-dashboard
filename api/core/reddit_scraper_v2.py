@@ -887,7 +887,8 @@ class RedditScraperV2:
             print("No statistics available - scraper hasn't run yet")
             return
 
-        runtime = datetime.now(timezone.utc) - self.stats['start_time']
+        start_time = datetime.fromisoformat(self.stats['start_time'])
+        runtime = datetime.now(timezone.utc) - start_time
 
         print(f"\n📊 PROXY-ENABLED SCRAPER STATS:")
         print("=" * 60)
