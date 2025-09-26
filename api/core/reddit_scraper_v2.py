@@ -270,7 +270,10 @@ class RedditScraperV2:
             await self.run_discovery_mode(control_checker)
 
             # Step 8: Final batch write flush
+            logger.info("📊 Pre-flush stats: posts_processed={}, users_processed={}".format(
+                self.stats['posts_processed'], self.stats['users_processed']))
             await self.batch_writer.flush_all()
+            logger.info("✅ Completed final flush")
 
             # Step 7: Update statistics
             self.stats['end_time'] = datetime.now(timezone.utc).isoformat()

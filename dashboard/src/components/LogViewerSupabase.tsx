@@ -48,7 +48,7 @@ export function LogViewerSupabase({
   sourceFilter,
   useSystemLogs = false
 }: LogViewerSupabaseProps) {
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logsMap, setLogsMap] = useState<Map<string, LogEntry>>(new Map())
   const [isPaused] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery] = useState('')
@@ -59,6 +59,7 @@ export function LogViewerSupabase({
   const shouldAutoScroll = useRef(autoScroll)
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const updateInProgress = useRef(false)
 
   // Fetch initial logs directly from Supabase
   const fetchLogs = useCallback(async (since?: string, signal?: AbortSignal) => {
@@ -127,46 +128,69 @@ export function LogViewerSupabase({
       }
 
       if (data) {
-        const formattedLogs: LogEntry[] = data.map(log => {
-          // Handle both table structures
-          if (useSystemLogs) {
-            return {
-              id: log.id.toString(),
-              timestamp: log.timestamp,
-              level: log.level || 'info',
-              title: formatLogMessage(log.message || '', log.context),
-              message: log.message,
-              source: log.source || log.script_name || 'unknown',
-              context: log.context
-            }
-          } else {
-            return {
-              id: log.id.toString(),
-              timestamp: log.timestamp,
-              level: log.level || 'info',
-              title: formatLogMessage(log.message || '', log.context),
-              message: log.message,
-              source: log.source || 'scraper',
-              context: log.context
-            }
-          }
-        })
-
-        if (since) {
-          // Append new logs to existing ones
-          setLogs(prev => {
-            const newLogs = [...formattedLogs.reverse(), ...prev]
-            // Keep only the most recent logs
-            return newLogs.slice(0, maxLogs)
-          })
-        } else {
-          // Replace all logs
-          setLogs(formattedLogs)
+        // Wait if another update is in progress
+        while (updateInProgress.current) {
+          await new Promise(resolve => setTimeout(resolve, 10))
         }
 
-        // Update last timestamp for next fetch
-        if (formattedLogs.length > 0) {
-          setLastTimestamp(formattedLogs[0].timestamp)
+        updateInProgress.current = true
+
+        try {
+          const formattedLogs: LogEntry[] = data.map(log => {
+            // Handle both table structures
+            if (useSystemLogs) {
+              return {
+                id: log.id.toString(),
+                timestamp: log.timestamp,
+                level: log.level || 'info',
+                title: formatLogMessage(log.message || '', log.context),
+                message: log.message,
+                source: log.source || log.script_name || 'unknown',
+                context: log.context
+              }
+            } else {
+              return {
+                id: log.id.toString(),
+                timestamp: log.timestamp,
+                level: log.level || 'info',
+                title: formatLogMessage(log.message || '', log.context),
+                message: log.message,
+                source: log.source || 'scraper',
+                context: log.context
+              }
+            }
+          })
+
+          setLogsMap(prev => {
+            const newMap = new Map(prev)
+
+            // Add new logs to the map (automatically handles duplicates by ID)
+            formattedLogs.forEach(log => {
+              newMap.set(log.id, log)
+            })
+
+            // If we have too many logs, remove the oldest ones
+            if (newMap.size > maxLogs) {
+              // Convert to array, sort by timestamp, and keep only the most recent
+              const sortedEntries = Array.from(newMap.entries())
+                .sort((a, b) => new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime())
+                .slice(0, maxLogs)
+
+              return new Map(sortedEntries)
+            }
+
+            return newMap
+          })
+
+          // Update last timestamp for next fetch
+          if (formattedLogs.length > 0) {
+            const sortedLogs = formattedLogs.sort((a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
+            setLastTimestamp(sortedLogs[0].timestamp)
+          }
+        } finally {
+          updateInProgress.current = false
         }
 
         // Auto-scroll to bottom if enabled
@@ -201,53 +225,78 @@ export function LogViewerSupabase({
     enabled: !isPaused && !!supabase,
     autoReconnect: true,
     reconnectDelay: 5000,
-    onData: (payload) => {
+    onData: async (payload) => {
       if (!payload.new) return
 
-      // Handle both table structures
-      const newLog: LogEntry = useSystemLogs ? {
-        id: payload.new.id.toString(),
-        timestamp: payload.new.timestamp,
-        level: payload.new.level || 'info',
-        title: formatLogMessage(payload.new.message || '', payload.new.context),
-        message: payload.new.message,
-        source: payload.new.source || payload.new.script_name || 'unknown',
-        context: payload.new.context
-      } : {
-        id: payload.new.id.toString(),
-        timestamp: payload.new.timestamp,
-        level: payload.new.level || 'info',
-        title: formatLogMessage(payload.new.message || '', payload.new.context),
-        message: payload.new.message,
-        source: payload.new.source || 'scraper',
-        context: payload.new.context
+      // Wait if another update is in progress
+      while (updateInProgress.current) {
+        await new Promise(resolve => setTimeout(resolve, 10))
       }
 
-      // Apply filters based on table type
-      if (useSystemLogs && sourceFilter) {
-        // Map legacy source filters to new source values
-        const sourceMap: Record<string, string> = {
-          'scraper': 'reddit_scraper',
-          'reddit_scraper': 'reddit_scraper',
-          'instagram_scraper': 'instagram_scraper',
-          'categorization': 'reddit_categorizer',
-          'user_discovery': 'user_discovery',
-          'api_user_discovery': 'api_user_discovery'
+      updateInProgress.current = true
+
+      try {
+        const newData = payload.new as any
+
+        // Handle both table structures
+        const newLog: LogEntry = useSystemLogs ? {
+          id: newData.id?.toString() || '',
+          timestamp: newData.timestamp || '',
+          level: newData.level || 'info',
+          title: formatLogMessage(newData.message || '', newData.context),
+          message: newData.message || '',
+          source: newData.source || newData.script_name || 'unknown',
+          context: newData.context
+        } : {
+          id: newData.id?.toString() || '',
+          timestamp: newData.timestamp || '',
+          level: newData.level || 'info',
+          title: formatLogMessage(newData.message || '', newData.context),
+          message: newData.message || '',
+          source: newData.source || 'scraper',
+          context: newData.context
         }
-        const mappedSource = sourceMap[sourceFilter] || sourceFilter
-        if (newLog.source !== mappedSource) return
-      } else if (!useSystemLogs && sourceFilter) {
-        if (newLog.source !== sourceFilter) return
+
+        // Apply filters based on table type
+        if (useSystemLogs && sourceFilter) {
+          // Map legacy source filters to new source values
+          const sourceMap: Record<string, string> = {
+            'scraper': 'reddit_scraper',
+            'reddit_scraper': 'reddit_scraper',
+            'instagram_scraper': 'instagram_scraper',
+            'categorization': 'reddit_categorizer',
+            'user_discovery': 'user_discovery',
+            'api_user_discovery': 'api_user_discovery'
+          }
+          const mappedSource = sourceMap[sourceFilter] || sourceFilter
+          if (newLog.source !== mappedSource) return
+        } else if (!useSystemLogs && sourceFilter) {
+          if (newLog.source !== sourceFilter) return
+        }
+
+        if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
+        if (searchQuery && newLog.message && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
+
+        // Add new log to the map
+        setLogsMap(prev => {
+          const newMap = new Map(prev)
+          newMap.set(newLog.id, newLog)
+
+          // If we have too many logs, remove the oldest one
+          if (newMap.size > maxLogs) {
+            // Convert to array, sort by timestamp, and keep only the most recent
+            const sortedEntries = Array.from(newMap.entries())
+              .sort((a, b) => new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime())
+              .slice(0, maxLogs)
+
+            return new Map(sortedEntries)
+          }
+
+          return newMap
+        })
+      } finally {
+        updateInProgress.current = false
       }
-
-      if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
-      if (searchQuery && newLog.message && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
-
-      // Add new log to the beginning
-      setLogs(prev => {
-        const updated = [newLog, ...prev]
-        return updated.slice(0, maxLogs)
-      })
 
       // Auto-scroll if at bottom
       if (shouldAutoScroll.current && scrollAreaRef.current) {
@@ -339,6 +388,14 @@ export function LogViewerSupabase({
     return true
   }
 
+  // Convert Map to sorted array of logs
+  const logs = useMemo(() => {
+    // Convert Map to array and sort by timestamp (newest first)
+    return Array.from(logsMap.values()).sort((a, b) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+  }, [logsMap])
+
   // Filter logs based on search and importance (for already fetched logs)
   const filteredLogs = useMemo(() => {
     // First apply search and level filters
@@ -361,7 +418,7 @@ export function LogViewerSupabase({
       return true
     })
 
-    // Remove duplicate consecutive logs
+    // Remove duplicate consecutive messages (but keep different IDs)
     const deduped: LogEntry[] = []
     let lastMessage = ''
 
@@ -449,9 +506,9 @@ export function LogViewerSupabase({
                     : 'No recent scraper activity. Check if the scraper is running.'}
                 </div>
               ) : (
-                filteredLogs.map((log, _index) => (
+                filteredLogs.map((log) => (
                 <div
-                  key={`${log.id}-${log.timestamp}-${_index}`}
+                  key={log.id}
                   className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-200/40 transition-colors`}
                 >
                   <div className="flex items-center gap-1.5 min-w-fit">
