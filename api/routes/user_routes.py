@@ -18,7 +18,7 @@ from supabase import create_client
 
 # Add parent directory to path to import from core
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.reddit.clients.reddit_public import PublicRedditAPI
+from core.clients.api_pool import PublicRedditAPI
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])
