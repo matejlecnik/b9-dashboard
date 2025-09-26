@@ -35,14 +35,14 @@ except ImportError:
     # Add the current directory to path
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-    from clients.api_pool import ThreadSafeAPIPool
-    from config.proxy_manager import ProxyManager
-    from cache.cache_manager import AsyncCacheManager
-    from database.batch_writer import BatchWriter
-    from processors.data_calculator import MetricsCalculator
-    from scrapers.subreddit_scraper import SubredditScraper
-    from scrapers.user_scraper import UserScraper
-    from utils.supabase_logger import SupabaseLogHandler
+    from core.clients.api_pool import ThreadSafeAPIPool
+    from core.config.proxy_manager import ProxyManager
+    from core.cache.cache_manager import AsyncCacheManager
+    from core.database.batch_writer import BatchWriter
+    from core.processors.data_calculator import MetricsCalculator
+    from core.scrapers.subreddit_scraper import SubredditScraper
+    from core.scrapers.user_scraper import UserScraper
+    from core.utils.supabase_logger import SupabaseLogHandler
 
 # Load environment variables from parent directory
 from pathlib import Path
