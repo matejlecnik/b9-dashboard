@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Continuous Reddit Scraper
+Continuous Reddit Scraper v2.0
 Checks Supabase control table every 30 seconds and runs scraping when enabled
+Uses the new modular architecture
 """
 import asyncio
 import os
@@ -11,19 +12,19 @@ from datetime import datetime, timezone
 from supabase import create_client
 from dotenv import load_dotenv
 
-# Add parent directory to path for imports when running as standalone script
-if __name__ == "__main__":
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from core.reddit_scraper import ProxyEnabledMultiScraper, SupabaseLogHandler
-else:
-    from .reddit_scraper import ProxyEnabledMultiScraper, SupabaseLogHandler
+# Add current directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import RedditScraperV2 - always use absolute import since we added path
+from reddit_scraper_v2 import RedditScraperV2
 
 # Version tracking
-SCRAPER_VERSION = "2.4.0"  # Added subreddit_score calculation using balanced formula
+SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool
 
-
-# Load environment variables
-load_dotenv()
+# Load environment variables from parent directory
+from pathlib import Path
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(env_path)
 
 # Configure logging
 logging.basicConfig(
@@ -32,7 +33,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class ContinuousScraper:
+
+class ContinuousScraperV2:
     """Manages continuous scraping with Supabase control"""
 
     def __init__(self):
@@ -53,20 +55,12 @@ class ContinuousScraper:
         self.supabase = create_client(supabase_url, supabase_key)
         logger.info("✅ Supabase client initialized")
 
-        # Set up Supabase logging handler to send logs to system_logs table
-        try:
-            supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper')
-            supabase_handler.setLevel(logging.INFO)  # Only send INFO and above to database
-            logger.addHandler(supabase_handler)
-            logger.info("🔗 Supabase logging handler initialized for continuous scraper")
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize Supabase logging: {e}")
-
     async def update_heartbeat(self):
         """Update heartbeat in database to show scraper is alive"""
         try:
             self.supabase.table('system_control').update({
-                'last_heartbeat': datetime.now(timezone.utc).isoformat()
+                'last_heartbeat': datetime.now(timezone.utc).isoformat(),
+                'pid': os.getpid()
             }).eq('script_name', 'reddit_scraper').execute()
         except Exception as e:
             logger.error(f"Error updating heartbeat: {e}")
@@ -88,11 +82,11 @@ class ContinuousScraper:
                     # Log to Supabase
                     self.supabase.table('system_logs').insert({
                         'timestamp': datetime.now(timezone.utc).isoformat(),
-                        'source': 'reddit_scraper',
-                        'script_name': 'continuous_scraper',
+                        'source': 'reddit_scraper_v2',
+                        'script_name': 'continuous_scraper_v2',
                         'level': 'info',
                         'message': status_msg,
-                        'context': {'status_change': True}
+                        'context': {'status_change': True, 'version': SCRAPER_VERSION}
                     }).execute()
 
                 self.last_check = enabled
@@ -135,8 +129,8 @@ class ContinuousScraper:
             # Log cycle start
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_start_time.isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'continuous_scraper',
+                'source': 'reddit_scraper_v2',
+                'script_name': 'continuous_scraper_v2',
                 'level': 'info',
                 'message': f'🔄 Starting scraping cycle #{self.cycle_count}',
                 'context': {'cycle': self.cycle_count, 'version': SCRAPER_VERSION}
@@ -144,8 +138,8 @@ class ContinuousScraper:
 
             # Initialize scraper if needed
             if not self.scraper:
-                logger.info("Initializing Reddit scraper...")
-                self.scraper = ProxyEnabledMultiScraper()
+                logger.info("Initializing Reddit scraper v2...")
+                self.scraper = RedditScraperV2()
                 await self.scraper.initialize()
 
             # Create control checker function
@@ -161,7 +155,7 @@ class ContinuousScraper:
                     return False
 
             # Run the scraping with control checker
-            await self.scraper.test_proxy_scraping(control_checker=control_checker)
+            await self.scraper.run_scraping_cycle(control_checker=control_checker)
 
             # Calculate cycle duration
             cycle_end_time = datetime.now(timezone.utc)
@@ -171,8 +165,8 @@ class ContinuousScraper:
             # Log cycle completion with duration
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_end_time.isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'continuous_scraper',
+                'source': 'reddit_scraper_v2',
+                'script_name': 'continuous_scraper_v2',
                 'level': 'success',
                 'message': f'✅ Completed scraping cycle #{self.cycle_count} in {duration_str}',
                 'context': {
@@ -192,8 +186,8 @@ class ContinuousScraper:
             # Log error
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'continuous_scraper',
+                'source': 'reddit_scraper_v2',
+                'script_name': 'continuous_scraper_v2',
                 'level': 'error',
                 'message': f'❌ Error in cycle #{self.cycle_count}: {str(e)}',
                 'context': {'cycle': self.cycle_count, 'error': str(e)}
@@ -213,8 +207,8 @@ class ContinuousScraper:
         try:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'continuous_scraper',
+                'source': 'reddit_scraper_v2',
+                'script_name': 'continuous_scraper_v2',
                 'level': 'info',
                 'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
                 'context': {'version': SCRAPER_VERSION}
@@ -264,7 +258,7 @@ class ContinuousScraper:
         # Cleanup
         if self.scraper:
             try:
-                await self.scraper.close()
+                await self.scraper.cleanup()
             except Exception as e:
                 logger.error(f"Error closing scraper: {e}")
 
@@ -283,8 +277,8 @@ class ContinuousScraper:
             # Log shutdown
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'continuous_scraper',
+                'source': 'reddit_scraper_v2',
+                'script_name': 'continuous_scraper_v2',
                 'level': 'info',
                 'message': '⏹️ Continuous scraper stopped',
                 'context': {'shutdown': True}
@@ -294,13 +288,15 @@ class ContinuousScraper:
 
         logger.info("👋 Continuous scraper stopped")
 
+
 async def main():
     """Main entry point"""
-    scraper = ContinuousScraper()
+    scraper = ContinuousScraperV2()
     try:
         await scraper.run_continuous()
     except Exception as e:
         logger.error(f"Fatal error in main: {e}")
+
 
 if __name__ == "__main__":
     try:
