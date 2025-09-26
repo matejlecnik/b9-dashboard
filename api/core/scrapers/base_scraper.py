@@ -16,10 +16,10 @@ except ImportError:
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from clients.api_pool import ThreadSafeAPIPool
-    from config.proxy_manager import ProxyManager
-    from cache.cache_manager import AsyncCacheManager
-    from database.batch_writer import BatchWriter
+    from core.clients.api_pool import ThreadSafeAPIPool
+    from core.config.proxy_manager import ProxyManager
+    from core.cache.cache_manager import AsyncCacheManager
+    from core.database.batch_writer import BatchWriter
 
 logger = logging.getLogger(__name__)
 
