@@ -230,6 +230,14 @@ if __name__ == "__main__":
     logger.info(f"📋 Environment: {os.environ.get('ENVIRONMENT', 'unknown')}")
     logger.info(f"🌐 Port: {os.environ.get('PORT', '8000')}")
 
+    # Run cleanup of old files on startup
+    try:
+        logger.info("🧹 Running cleanup of old files...")
+        subprocess.run([sys.executable, "cleanup_old_files.py"], cwd='/app/api', timeout=10)
+        logger.info("✅ Cleanup complete")
+    except Exception as e:
+        logger.warning(f"⚠️ Cleanup script failed (non-critical): {e}")
+
     # Check if scrapers should auto-start based on database state
     logger.info("🔍 Checking if scrapers should auto-start...")
     check_and_start_scrapers()
