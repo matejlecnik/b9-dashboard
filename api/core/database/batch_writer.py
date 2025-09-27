@@ -17,14 +17,14 @@ class BatchWriter:
     Accumulates records and writes them in efficient batches.
     """
 
-    def __init__(self, supabase_client, batch_size: int = 50, flush_interval: float = 10.0):
+    def __init__(self, supabase_client, batch_size: int = 50, flush_interval: float = 5.0):
         """
         Initialize batch writer.
 
         Args:
             supabase_client: Initialized Supabase client
             batch_size: Maximum records per batch (reduced to 50 for more frequent flushes)
-            flush_interval: Time in seconds between automatic flushes (reduced to 10s)
+            flush_interval: Time in seconds between automatic flushes (reduced to 5s)
         """
         self.supabase = supabase_client
         self.batch_size = min(batch_size, 50)  # Reduced from 500 to 50 for more frequent flushes
@@ -542,7 +542,7 @@ class BatchWriter:
             'avg_upvotes_per_post', 'engagement', 'subreddit_score',
             'nsfw_percentage',
             'image_post_avg_score', 'video_post_avg_score', 'text_post_avg_score',
-            'link_post_avg_score', 'poll_post_avg_score', 'over_18', 'category',
+            'link_post_avg_score', 'poll_post_avg_score', 'over_18',
             'best_posting_hour', 'best_posting_day', 'requires_verification', 'auto_review',
             'review'  # CRITICAL: Preserve existing review field during updates
         ]

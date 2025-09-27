@@ -486,6 +486,11 @@ class RedditScraperV2:
                 await self.stealth_delay("subreddit_analysis")
                 await self.randomize_request_pattern()
 
+                # Periodic flush every 10 subreddits to ensure data is saved
+                if (i + 1) % 10 == 0:
+                    logger.info(f"📤 Periodic flush after processing {i + 1} subreddits")
+                    await self.batch_writer.flush_all()
+
             except Exception as e:
                 logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
 

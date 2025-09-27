@@ -396,7 +396,7 @@ class SubredditScraper(BaseScraper):
             await self.save_to_database('subreddit', {
                 'name': subreddit_name.lower(),
                 'display_name': subreddit_name,
-                'category': 'banned',
+                'review': 'Banned',
                 'over_18': False,
                 'subscribers': 0,
                 'updated_at': datetime.now(timezone.utc).isoformat()
@@ -410,7 +410,7 @@ class SubredditScraper(BaseScraper):
             await self.save_to_database('subreddit', {
                 'name': subreddit_name.lower(),
                 'display_name': subreddit_name,
-                'category': 'private',
+                'review': 'Non Related',
                 'subreddit_type': 'private',
                 'over_18': False,
                 'subscribers': 0,

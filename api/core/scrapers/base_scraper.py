@@ -369,6 +369,18 @@ class BaseScraper(ABC):
 
         # Database logging
         try:
+            # Create a JSON-serializable copy of stats
+            serializable_stats = {}
+            for key, value in self.stats.items():
+                if isinstance(value, datetime):
+                    serializable_stats[key] = value.isoformat()
+                elif isinstance(value, list):
+                    # Don't include error lists in logs as they might contain datetime objects
+                    if key != 'errors':
+                        serializable_stats[key] = value
+                else:
+                    serializable_stats[key] = value
+
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'level': level,
@@ -376,7 +388,7 @@ class BaseScraper(ABC):
                 'message': message,
                 'context': {
                     'thread_id': self.thread_id,
-                    'stats': self.stats
+                    'stats': serializable_stats
                 }
             }).execute()
         except Exception as e:
