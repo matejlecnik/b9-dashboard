@@ -7,20 +7,20 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Callable
-# Flexible imports for both local development and production
-# Try production imports first since that's the primary use case
-try:
-    # Production (without api. prefix) - try this first
-    from core.clients.api_pool import ThreadSafeAPIPool
-    from core.config.proxy_manager import ProxyManager
-    from core.cache.cache_manager import AsyncCacheManager
-    from core.database.batch_writer import BatchWriter
-except ImportError:
-    # Local development (with api. prefix) - fallback
-    from api.core.clients.api_pool import ThreadSafeAPIPool
-    from api.core.config.proxy_manager import ProxyManager
-    from api.core.cache.cache_manager import AsyncCacheManager
-    from api.core.database.batch_writer import BatchWriter
+# Setup path for Docker environment - script runs from /app/api/scrapers/reddit/scrapers/
+# Need to add /app/api to Python path so it can find core, scrapers, etc.
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+api_root = os.path.join(current_dir, '..', '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
+if api_root not in sys.path:
+    sys.path.insert(0, api_root)
+
+# Now import with the correct structure for Docker environment
+from core.clients.api_pool import ThreadSafeAPIPool
+from core.config.proxy_manager import ProxyManager
+from core.cache.cache_manager import AsyncCacheManager
+from core.database.batch_writer import BatchWriter
 
 logger = logging.getLogger(__name__)
 

@@ -14,16 +14,18 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-# Flexible imports for both local development and production
-# Try production imports first since that's the primary use case  
-try:
-    # Production (without api. prefix) - try this first
-    from scrapers.reddit.main import RedditScraperV2
-    from core.database.supabase_client import get_supabase_client
-except ImportError:
-    # Local development (with api. prefix) - fallback
-    from api.scrapers.reddit.main import RedditScraperV2
-    from api.core.database.supabase_client import get_supabase_client
+# Setup path for Docker environment - script runs from /app/api/scrapers/reddit/
+# Need to add /app/api to Python path so it can find core, scrapers, etc.
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
+if api_root not in sys.path:
+    sys.path.insert(0, api_root)
+
+# Now import with the correct structure for Docker environment
+from scrapers.reddit.main import RedditScraperV2
+from core.database.supabase_client import get_supabase_client
 
 # Version tracking
 SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool

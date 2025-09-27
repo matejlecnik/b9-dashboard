@@ -18,32 +18,29 @@ from pathlib import Path
 from supabase import create_client
 from dotenv import load_dotenv
 
-# Flexible imports for both local development and production  
-# Try production imports first since that's the primary use case
-try:
-    # Production (without api. prefix) - try this first
-    from core.clients.api_pool import ThreadSafeAPIPool
-    from core.config.proxy_manager import ProxyManager
-    from core.cache.cache_manager import AsyncCacheManager
-    from core.database.batch_writer import BatchWriter
-    from core.database.supabase_client import get_supabase_client
-    from scrapers.reddit.processors.calculator import MetricsCalculator
-    from scrapers.reddit.scrapers.subreddit import SubredditScraper
-    from scrapers.reddit.scrapers.user import UserScraper
-    from core.utils.supabase_logger import SupabaseLogHandler
-    from core.utils.memory_monitor import MemoryMonitor, set_memory_monitor
-except ImportError:
-    # Local development (with api. prefix) - fallback
-    from api.core.clients.api_pool import ThreadSafeAPIPool
-    from api.core.config.proxy_manager import ProxyManager
-    from api.core.cache.cache_manager import AsyncCacheManager
-    from api.core.database.batch_writer import BatchWriter
-    from api.core.database.supabase_client import get_supabase_client
-    from api.scrapers.reddit.processors.calculator import MetricsCalculator
-    from api.scrapers.reddit.scrapers.subreddit import SubredditScraper
-    from api.scrapers.reddit.scrapers.user import UserScraper
-    from api.core.utils.supabase_logger import SupabaseLogHandler
-    from api.core.utils.memory_monitor import MemoryMonitor, set_memory_monitor
+# Setup path for Docker environment - script runs from /app/api/scrapers/reddit/
+# Need to add /app/api to Python path so it can find core, scrapers, etc.
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
+if api_root not in sys.path:
+    sys.path.insert(0, api_root)
+print(f"DEBUG: Added to Python path: {api_root}")
+print(f"DEBUG: Current working directory: {os.getcwd()}")
+print(f"DEBUG: Script location: {current_dir}")
+
+# Now import with the correct structure for Docker environment
+from core.clients.api_pool import ThreadSafeAPIPool
+from core.config.proxy_manager import ProxyManager
+from core.cache.cache_manager import AsyncCacheManager
+from core.database.batch_writer import BatchWriter
+from core.database.supabase_client import get_supabase_client
+from scrapers.reddit.processors.calculator import MetricsCalculator
+from scrapers.reddit.scrapers.subreddit import SubredditScraper
+from scrapers.reddit.scrapers.user import UserScraper
+from core.utils.supabase_logger import SupabaseLogHandler
+from core.utils.memory_monitor import MemoryMonitor, set_memory_monitor
 
 # Load environment variables from parent directory
 env_path = Path(__file__).parent.parent.parent / '.env'
