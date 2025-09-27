@@ -30,7 +30,9 @@ from core.config.proxy_manager import ProxyManager
 from core.config.scraper_config import get_scraper_config
 from core.cache.cache_manager import AsyncCacheManager
 from core.database.batch_writer import BatchWriter
+from core.database.direct_posts_writer import DirectPostsWriter
 print(f"[MAIN.PY] Imported BatchWriter: {BatchWriter}", flush=True)
+print(f"[MAIN.PY] Imported DirectPostsWriter: {DirectPostsWriter}", flush=True)
 from core.database.supabase_client import get_supabase_client, refresh_supabase_client
 from core.exceptions import (
     SubredditBannedException, SubredditPrivateException, 
@@ -194,6 +196,10 @@ class RedditScraperV2:
         logger.info(f"🔧 BatchWriter instance created: {self.batch_writer}, Type: {type(self.batch_writer)}")
         await self.batch_writer.start()
         logger.info(f"✅ Batch writer initialized and started, instance: {self.batch_writer}")
+
+        # Initialize DirectPostsWriter as a workaround for the async issue
+        self.direct_posts_writer = DirectPostsWriter(self.supabase)
+        logger.info(f"✅ DirectPostsWriter initialized for posts")
 
         # Initialize metrics calculator
         self.metrics_calculator = MetricsCalculator()
@@ -531,33 +537,36 @@ class RedditScraperV2:
                     # Process posts if available (save ALL types)
                     try:
                         if result.get('hot_posts'):
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts to batch writer")
-                            logger.info(f"🔍 BatchWriter instance: {self.batch_writer}, Type: {type(self.batch_writer)}")
-                            logger.info(f"🔍 Hot posts sample: {result['hot_posts'][0] if result['hot_posts'] else 'None'}")
-                            logger.info(f"🔍 About to call add_posts, method exists: {hasattr(self.batch_writer, 'add_posts')}")
-                            logger.info(f"🔍 add_posts method: {self.batch_writer.add_posts}")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts using DirectPostsWriter")
 
-                            # Try calling with explicit error handling
-                            try:
-                                result_value = await self.batch_writer.add_posts(result['hot_posts'])
-                                logger.info(f"🔍 add_posts returned: {result_value}")
-                            except Exception as e:
-                                logger.error(f"❌ add_posts raised exception: {e}")
-                                raise
+                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            success = self.direct_posts_writer.write_posts(result['hot_posts'])
+                            logger.info(f"🔍 DirectPostsWriter.write_posts returned: {success}")
 
-                            self.stats['posts_processed'] += len(result['hot_posts'])
+                            if success:
+                                self.stats['posts_processed'] += len(result['hot_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Hot posts added successfully")
 
                         if result.get('top_posts'):  # Weekly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts to batch writer")
-                            await self.batch_writer.add_posts(result['top_posts'])
-                            self.stats['posts_processed'] += len(result['top_posts'])
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts using DirectPostsWriter")
+
+                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            success = self.direct_posts_writer.write_posts(result['top_posts'])
+                            logger.info(f"🔍 DirectPostsWriter.write_posts (weekly) returned: {success}")
+
+                            if success:
+                                self.stats['posts_processed'] += len(result['top_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts added successfully")
 
                         if result.get('yearly_posts'):  # Yearly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts to batch writer")
-                            await self.batch_writer.add_posts(result['yearly_posts'])
-                            self.stats['posts_processed'] += len(result['yearly_posts'])
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts using DirectPostsWriter")
+
+                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            success = self.direct_posts_writer.write_posts(result['yearly_posts'])
+                            logger.info(f"🔍 DirectPostsWriter.write_posts (yearly) returned: {success}")
+
+                            if success:
+                                self.stats['posts_processed'] += len(result['yearly_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts added successfully")
                     except Exception as e:
                         logger.error(f"❌ Thread {scraper.thread_id}: Failed to add posts to batch writer: {e}")
