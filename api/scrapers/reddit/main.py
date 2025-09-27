@@ -447,6 +447,7 @@ class RedditScraperV2:
                                      subreddits: List[Dict],
                                      control_checker: Optional[Callable]):
         """Process a batch of subreddits with a single scraper instance"""
+        processed_count = 0
         for i, subreddit in enumerate(subreddits):
             if not scraper.should_continue(control_checker):
                 logger.info(f"Thread {scraper.thread_id} stopping due to control check")
@@ -470,6 +471,7 @@ class RedditScraperV2:
 
                 if result and result.get('success'):
                     self.stats['subreddits_processed'] += 1
+                    processed_count += 1
 
                     # Calculate metrics
                     calculated_data = self.metrics_calculator.calculate_all_metrics(
@@ -507,12 +509,16 @@ class RedditScraperV2:
                     if result.get('top_posts'):  # Weekly posts
                         await self.batch_writer.add_posts(result['top_posts'])
                         self.stats['posts_processed'] += len(result['top_posts'])
-                        logger.debug(f"💾 Saved {len(result['top_posts'])} weekly posts from r/{subreddit_name}")
 
                     if result.get('yearly_posts'):  # Yearly posts
                         await self.batch_writer.add_posts(result['yearly_posts'])
                         self.stats['posts_processed'] += len(result['yearly_posts'])
                         logger.debug(f"💾 Saved {len(result['yearly_posts'])} yearly posts from r/{subreddit_name}")
+
+                    # Manual flush every 10 subreddits to ensure data is saved
+                    if processed_count % 10 == 0:
+                        logger.info(f"💾 Thread {scraper.thread_id}: Manually flushing after {processed_count} subreddits")
+                        await self.batch_writer.flush_all()
 
                     # For OK subreddits, track users for later analysis
                     if subreddit_type == 'ok' and result.get('hot_posts'):
@@ -529,6 +535,11 @@ class RedditScraperV2:
 
             except Exception as e:
                 logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
+
+        # Final flush at the end of the batch
+        if processed_count > 0:
+            logger.info(f"💾 Thread {scraper.thread_id}: Final flush after processing {processed_count} subreddits")
+            await self.batch_writer.flush_all()
 
     async def track_users_from_posts(self, posts: List[Dict], subreddit_name: str):
         """Track users from OK subreddit posts for later analysis"""
