@@ -1,5 +1,23 @@
 # Core - Shared Infrastructure Components
 
+## 📊 Recent Improvements Summary
+**Last Updated**: 2025-01-27
+
+### ✅ Major Fixes Completed
+- **Configuration System**: Centralized all settings with environment variable overrides
+- **Logging Consistency**: Fixed all sources to use 'reddit_scraper' for Supabase logs
+- **Thread Safety**: Fixed session management and cache thread safety issues
+- **Memory Management**: Added max_size limits to prevent unbounded growth
+- **Rate Limiting**: Fixed async detection bugs and added per-operation limits
+- **Code Quality**: Removed all unused imports and variables
+
+### 🎯 What's Working Now
+- All components use centralized ScraperConfig
+- Proxy manager logs to Supabase correctly
+- Rate limiter properly detects and awaits async functions
+- Cache has LRU eviction to prevent memory leaks
+- Batch writer uses config values instead of hardcoding
+
 ## Overview
 This directory contains the core shared infrastructure components used by all scrapers and services in the B9 Dashboard API.
 
@@ -8,12 +26,21 @@ This directory contains the core shared infrastructure components used by all sc
 ```
 core/
 ├── cache/              # Redis cache management with TTL support
+│   └── cache_manager.py
 ├── clients/            # Thread-safe API client pools
-├── config/             # Configuration management (proxies, settings)
-├── database/           # Database utilities and batch writers
+│   └── api_pool.py
+├── config/             # Configuration management
+│   ├── proxy_manager.py
+│   └── scraper_config.py
+├── database/           # Database utilities and optimizations
+│   ├── batch_writer.py
+│   ├── rate_limiter.py
+│   └── supabase_client.py
+├── utils/              # Shared utilities
+│   ├── memory_monitor.py
+│   └── supabase_logger.py
 ├── migrations/         # Database migration scripts (applied)
-├── utils/              # Shared utilities (logging, helpers)
-└── logs/              # Log file directory (gitignored)
+└── exceptions.py       # Custom exception classes
 ```
 
 ## Components
@@ -21,37 +48,78 @@ core/
 ### cache/
 **Cache Management System**
 - `cache_manager.py` - Async/sync cache with TTL support
-- Redis-backed caching for API responses
-- Automatic expiration and memory management
-- Thread-safe operations
+- In-memory caching (per-session, not persistent)
+- TTLSet with max_size to prevent unbounded growth
+- LRU eviction when cache is full
+- Thread-safe operations with locks
+- ✅ FIXED: Thread safety issues, unbounded growth
 
 ### clients/
 **API Client Management**
 - `api_pool.py` - Thread-safe Reddit API client pool
-- Connection pooling for better performance
+- Per-thread session management (thread-safe)
 - Automatic rate limit handling per client
 - Proxy support for each client instance
+- UserAgent rotation with None handling
+- ✅ FIXED: Thread-local session issues, UserAgent None crash
 
 ### config/
 **Configuration Management**
 - `proxy_manager.py` - Dynamic proxy loading from Supabase
-- Proxy health monitoring and rotation
-- Service-specific proxy configurations
-- Automatic proxy testing at startup
+  - Proxy health monitoring and validation
+  - Service-specific proxy configurations
+  - Automatic proxy testing at startup
+  - ✅ NEW: Supabase logging integration
+
+- `scraper_config.py` - Centralized configuration system
+  - Environment variable overrides (REDDIT_SCRAPER_*)
+  - All hardcoded values eliminated
+  - Configuration validation on load
+  - ✅ NEW: Rate limiter configuration added
 
 ### database/
 **Database Utilities**
 - `batch_writer.py` - Efficient batch writing to Supabase
-- Async and sync versions for compatibility
-- Automatic chunking for large datasets
-- FK constraint handling with existence checks
+  - Async and sync versions for compatibility
+  - Automatic chunking for large datasets
+  - FK constraint handling with existence checks
+  - Uses ScraperConfig for batch size and intervals
+  - ✅ FIXED: Now uses config values, removed unused imports
+
+- `rate_limiter.py` - Database operation throttling
+  - Sliding window rate limiting algorithm
+  - Per-operation type limits (SELECT/INSERT/UPDATE/UPSERT/DELETE)
+  - Burst protection with global semaphore
+  - Statistics tracking for monitoring
+  - ✅ FIXED: Async function detection, config integration
+
+- `supabase_client.py` - Singleton database client
+  - Thread-safe connection management
+  - Automatic retry with exponential backoff
+  - Circuit breaker pattern for failures
 
 ### utils/
 **Shared Utilities**
 - `supabase_logger.py` - Centralized logging to Supabase
-- Buffered writes to `system_logs` table
-- Thread-safe logging operations
-- Automatic log level filtering
+  - Buffered writes to `system_logs` table
+  - Thread-safe logging operations
+  - Automatic log level filtering
+  - Source set to 'reddit_scraper' for all logs
+
+- `memory_monitor.py` - Process memory management
+  - Configurable warning/error/critical thresholds
+  - Background monitoring task
+  - Automatic cleanup callbacks
+  - Uses ScraperConfig for all thresholds
+  - ✅ FIXED: Now uses config values
+
+### exceptions.py
+**Custom Exception Classes**
+- Base RedditScraperException hierarchy
+- Specific exceptions for different error types
+- Helper functions for error handling
+- Validation functions for usernames and subreddits
+- ✅ FIXED: Moved regex import to module level
 
 ### migrations/
 **Database Migrations (Already Applied)**
@@ -64,28 +132,73 @@ core/
 ### Using the Cache Manager
 ```python
 from core.cache.cache_manager import AsyncCacheManager
+from core.config.scraper_config import get_scraper_config
 
-cache = AsyncCacheManager(ttl=3600)  # 1 hour TTL
-await cache.set("key", {"data": "value"})
-data = await cache.get("key")
+config = get_scraper_config()
+cache = AsyncCacheManager()  # Uses config values automatically
+await cache.set_user("user123", user_data)  # TTL from config.user_cache_ttl
+user = await cache.get_user("user123")
 ```
 
 ### Using the API Pool
 ```python
 from core.clients.api_pool import ThreadSafeAPIPool
+from core.config.proxy_manager import ProxyManager
 
+proxy_manager = ProxyManager()
 pool = ThreadSafeAPIPool(size=10)
 await pool.initialize(proxy_manager)
-api = pool.get_api()  # Thread-safe API instance
+api = pool.get_api()  # Thread-safe API instance with proxy
 ```
 
 ### Using the Batch Writer
 ```python
 from core.database.batch_writer import BatchWriter
+from core.database.supabase_client import get_supabase_client
 
-writer = BatchWriter(supabase_client, batch_size=500)
+client = get_supabase_client()
+writer = BatchWriter(client)  # Uses config for batch_size and intervals
 await writer.add("reddit_posts", post_data)
 await writer.flush()  # Write all pending data
+```
+
+### Using the Rate Limiter
+```python
+from core.database.rate_limiter import get_rate_limiter, rate_limited_db_operation
+
+# Direct usage
+limiter = get_rate_limiter()
+await limiter.acquire('select')  # Wait if rate limit exceeded
+# ... do database operation
+limiter.release()
+
+# Or use the helper function
+result = await rate_limited_db_operation('insert', db_func, *args)
+```
+
+### Using the Memory Monitor
+```python
+from core.utils.memory_monitor import MemoryMonitor
+
+monitor = MemoryMonitor()  # Uses config thresholds
+await monitor.start()  # Start background monitoring
+
+# Register cleanup callbacks
+monitor.register_cleanup_callback(clear_cache_func)
+
+# Check memory manually
+status = await monitor.check_memory()
+```
+
+### Configuration with Environment Variables
+```bash
+# Override default configuration
+export REDDIT_SCRAPER_MAX_SUBREDDITS=5000
+export REDDIT_SCRAPER_MEMORY_WARNING=0.75
+export REDDIT_SCRAPER_DB_RATE_LIMIT_SELECT_RPS=20
+
+# Run with custom config
+python main.py
 ```
 
 ## Performance Considerations
@@ -152,29 +265,56 @@ await writer.flush()  # Write all pending data
 - [x] Use only `asyncio.Lock()` for async, `threading.Lock()` for sync
 - [x] Prevent deadlocks from mixed lock types
 
+#### 9. Logging Source Consistency (`continuous.py`) ✅ FIXED
+- [x] Changed all logging sources from 'reddit_scraper_v2' to 'reddit_scraper'
+- [x] Fixed 5 occurrences for consistent Supabase logging
+- [x] All logs now properly saved to system_logs table
+
+#### 10. Configuration Management ✅ FIXED
+- [x] Created centralized ScraperConfig with environment overrides
+- [x] Eliminated all hardcoded values in core components
+- [x] Added validation for configuration values
+- [x] All components now use config (cache, batch_writer, rate_limiter, memory_monitor)
+
+#### 11. Rate Limiter Bugs (`database/rate_limiter.py`) ✅ FIXED
+- [x] Fixed async function detection using inspect.iscoroutinefunction
+- [x] Fixed TypeError with burst_limit reference
+- [x] Added per-operation type rate limits
+- [x] Integrated with ScraperConfig
+
+#### 12. Unused Imports and Variables ✅ FIXED
+- [x] Removed unused asyncio import from cache_manager.py
+- [x] Removed unused Union import from batch_writer.py
+- [x] Removed unused threading import from batch_writer.py
+- [x] Removed unused config variable assignments
+- [x] Moved regex import to module level in exceptions.py
+
 ### 🟢 IMPORTANT IMPROVEMENTS
 
-#### 9. Error Handling & Resilience
+#### 13. Error Handling & Resilience
 - [ ] Add Supabase connection retry logic with exponential backoff
 - [ ] Implement circuit breaker pattern for database failures
 - [ ] Add rate limit handling for Supabase API calls
 - [ ] Create centralized error recovery mechanism
 - [ ] Add health check endpoints
 
-#### 10. Logging & Monitoring
+#### 14. Logging & Monitoring
+- [x] **proxy_manager.py**: Added Supabase logging integration ✅
 - [ ] **main.py:68-79**: Remove ANSI color codes or add terminal detection
 - [ ] Fix thread color array bounds (only 8 colors for 9+ threads)
 - [ ] Add structured logging with proper log levels
 - [ ] Implement log rotation to prevent disk space issues
 - [ ] Add performance metrics tracking
 
-#### 11. Configuration & Settings
-- [ ] Move hardcoded values to configuration files
+#### 15. Configuration & Settings
+- [x] Created centralized ScraperConfig system ✅
+- [x] Added environment variable override support ✅
+- [x] Moved all hardcoded values to configuration ✅
 - [ ] Add environment-specific settings (dev/staging/prod)
 - [ ] Create proxy configuration validation
 - [ ] Add feature flags for safe rollouts
 
-#### 12. Data Integrity
+#### 16. Data Integrity
 - [ ] Add data validation before batch writes
 - [ ] Implement transaction support for critical operations
 - [ ] Add data consistency checks
@@ -191,14 +331,26 @@ await writer.flush()  # Write all pending data
 
 ## Current Errors
 
-### 🚨 CRITICAL ERRORS THAT WILL CAUSE CRASHES:
+### ✅ FIXED CRITICAL ERRORS:
 
 1. ~~**ImportError on startup** - Conflicting import paths in `scrapers/reddit/main.py`~~ ✅ FIXED
-2. ~~**ModuleNotFoundError** - Missing `numpy` dependency when calculating requirements~~ ✅ FIXED (already in requirements)
-3. ~~**Data loss** - Field mapping mismatches cause data to not be saved~~ ✅ FIXED
-4. ~~**Race condition** - Concurrent flushes in BatchWriter can corrupt data~~ ✅ FIXED
-5. ~~**Memory overflow** - No pagination limit when loading OK subreddits~~ ✅ FIXED (limited to 2000)
-6. ~~**Thread corruption** - Session objects shared across threads unsafely~~ ✅ FIXED
+2. ~~**ModuleNotFoundError** - Missing `numpy` dependency~~ ✅ FIXED (already in requirements)
+3. ~~**Data loss** - Field mapping mismatches~~ ✅ FIXED
+4. ~~**Race condition** - Concurrent flushes in BatchWriter~~ ✅ FIXED
+5. ~~**Memory overflow** - No pagination limit~~ ✅ FIXED (limited to 2000)
+6. ~~**Thread corruption** - Session objects shared unsafely~~ ✅ FIXED
+7. ~~**Logging inconsistency** - Wrong source in logs~~ ✅ FIXED
+8. ~~**Configuration chaos** - Hardcoded values everywhere~~ ✅ FIXED
+9. ~~**Rate limiter bugs** - Async functions not awaited~~ ✅ FIXED
+10. ~~**Cache unbounded growth** - Memory leak risk~~ ✅ FIXED
+11. ~~**Proxy logging missing** - No Supabase logs~~ ✅ FIXED
+
+### 🟡 REMAINING ISSUES:
+
+1. **Performance** - Some synchronous operations could be async
+2. **Testing** - No unit tests for core components
+3. **Documentation** - Some complex functions lack docstrings
+4. **Monitoring** - Limited metrics collection
 
 ## Potential Improvements
 

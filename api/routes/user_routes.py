@@ -19,8 +19,10 @@ from supabase import create_client
 # Flexible import that works both locally and in production
 try:
     from api.core.clients.api_pool import PublicRedditAPI
+    from api.scrapers.reddit.processors.calculator import UserQualityCalculator
 except ImportError:
     from core.clients.api_pool import PublicRedditAPI
+    from scrapers.reddit.processors.calculator import UserQualityCalculator
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -229,68 +231,9 @@ async def fetch_reddit_posts(username: str, limit: int = 30) -> Dict[str, Any]:
 
 def calculate_user_quality_scores(username: str, account_age_days: int,
                                  post_karma: int, comment_karma: int) -> Dict[str, float]:
-    """Calculate user quality scores - exact copy from dashboard"""
-
-    # Username quality (0-10): Natural, shorter usernames preferred
-    has_numbers = any(c.isdigit() for c in username)
-    has_special_chars = any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_' for c in username)
-    length_penalty = max(0, (len(username) - 6) * 0.2)  # Start penalizing after 6 chars
-
-    username_score = 10 - length_penalty
-    if has_numbers:
-        username_score *= 0.8  # 20% penalty for numbers
-    if has_special_chars:
-        username_score *= 0.7  # 30% penalty for special chars
-    username_score = max(2, min(10, username_score))  # Keep between 2-10
-
-    # Age quality (0-10): Accounts 30 days to 5 years are ideal
-    if account_age_days < 30:
-        # Very new accounts are suspicious
-        age_score = account_age_days / 30 * 3
-    elif account_age_days <= 1825:  # 30 days to 5 years
-        # Peak scoring period - established but not ancient
-        age_score = 8 + (account_age_days - 30) / 1795 * 2  # 8-10 range
-    else:
-        # Very old accounts gradually decrease but stay decent
-        age_score = max(6, 10 - (account_age_days - 1825) / 1825)  # 6-10 range
-
-    # Karma quality (0-10): More realistic karma thresholds
-    total_karma = post_karma + comment_karma
-    karma_ratio = comment_karma / total_karma if total_karma > 0 else 0
-
-    # Base karma score - more achievable thresholds
-    if total_karma <= 0:
-        karma_score = 1  # Very low for no karma
-    elif total_karma < 100:
-        karma_score = 2 + (total_karma / 100) * 3  # 2-5 for under 100 karma
-    elif total_karma < 1000:
-        karma_score = 5 + ((total_karma - 100) / 900) * 3  # 5-8 for 100-1000 karma
-    else:
-        karma_score = 8 + min(2, (total_karma - 1000) / 10000 * 2)  # 8-10 for 1000+ karma
-
-    # Bonus/penalty for karma distribution
-    if total_karma > 50:
-        if karma_ratio > 0.8:
-            # Too comment-heavy
-            karma_score *= 0.95
-        elif karma_ratio < 0.2:
-            # Too post-heavy
-            karma_score *= 0.95
-        else:
-            # Good balance - small bonus
-            karma_score *= 1.05
-
-    karma_score = max(1, min(10, karma_score))
-
-    # Final weighted score (0-10) - adjusted weights for better distribution
-    overall_score = (username_score * 0.15 + age_score * 0.35 + karma_score * 0.5)
-
-    return {
-        'username_score': round(username_score, 2),
-        'age_score': round(age_score, 2),
-        'karma_score': round(karma_score, 2),
-        'overall_score': round(overall_score, 2)
-    }
+    """Calculate user quality scores using UserQualityCalculator"""
+    calculator = UserQualityCalculator()
+    return calculator.calculate(username, account_age_days, post_karma, comment_karma)
 
 @router.post("/discover", response_model=UserDiscoverResponse)
 async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: BackgroundTasks):

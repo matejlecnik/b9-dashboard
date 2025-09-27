@@ -8,7 +8,7 @@ import threading
 
 from typing import Dict, Any, Optional, Tuple
 from collections import OrderedDict
-import asyncio
+from core.config.scraper_config import get_scraper_config
 
 logger = logging.getLogger(__name__)
 
@@ -127,9 +127,12 @@ class TTLCache:
         if hasattr(self, '_cleanup_thread'):
             self._cleanup_thread.join(timeout=1)
 
+    def __del__(self):
+        """Destructor to ensure cleanup thread is stopped"""
+        self.stop()
+
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
-        import time  # Import locally since this runs in a separate thread
         while self._running:
             try:
                 time.sleep(self.cleanup_interval)
@@ -215,24 +218,45 @@ class CacheManager:
 
     def __init__(self):
         """Initialize cache manager with different caches for different data types"""
-        # User cache - 1 hour TTL, max 50k users
-        self.user_cache = TTLCache(ttl_seconds=3600, max_size=50000)
+        # Get configuration
+        config = get_scraper_config()
 
-        # Subreddit cache - 2 hours TTL, max 10k subreddits
-        self.subreddit_cache = TTLCache(ttl_seconds=7200, max_size=10000)
+        # User cache - uses config values
+        self.user_cache = TTLCache(
+            ttl_seconds=config.user_cache_ttl,
+            max_size=config.cache_max_users
+        )
 
-        # Post cache - 30 minutes TTL, max 100k posts
-        self.post_cache = TTLCache(ttl_seconds=1800, max_size=100000)
+        # Subreddit cache - uses config values
+        self.subreddit_cache = TTLCache(
+            ttl_seconds=config.subreddit_cache_ttl,
+            max_size=config.cache_max_subreddits
+        )
+
+        # Post cache - uses config values
+        self.post_cache = TTLCache(
+            ttl_seconds=config.post_cache_ttl,
+            max_size=config.cache_max_posts
+        )
 
         # Rate limit cache - 5 minutes TTL, max 1k entries
         self.rate_limit_cache = TTLCache(ttl_seconds=300, max_size=1000)
 
-        # Processed sets with TTL
-        self.processed_users = TTLSet(ttl_seconds=3600)
-        self.processed_subreddits = TTLSet(ttl_seconds=7200)
-        self.discovered_subreddits = TTLSet(ttl_seconds=86400)  # 24 hours
+        # Processed sets with TTL - using config values
+        self.processed_users = TTLSet(
+            ttl_seconds=config.user_cache_ttl,
+            max_size=config.cache_max_users
+        )
+        self.processed_subreddits = TTLSet(
+            ttl_seconds=config.subreddit_cache_ttl,
+            max_size=config.cache_max_subreddits
+        )
+        self.discovered_subreddits = TTLSet(
+            ttl_seconds=86400,  # 24 hours
+            max_size=config.discovery_limit * 2  # Allow room for discoveries
+        )
 
-        logger.info("Cache manager initialized with TTL caching")
+        logger.info(f"Cache manager initialized with config-based TTL caching (users: {config.cache_max_users}, subreddits: {config.cache_max_subreddits})")
 
     def cache_user(self, username: str, user_data: Dict[str, Any]):
         """Cache user data"""
@@ -327,17 +351,20 @@ class TTLSet:
     Automatically removes expired entries.
     """
 
-    def __init__(self, ttl_seconds: int = 3600):
+    def __init__(self, ttl_seconds: int = 3600, max_size: int = 100000):
         """
         Initialize TTL set.
 
         Args:
             ttl_seconds: Time-to-live for entries in seconds
+            max_size: Maximum number of entries (default: 100,000)
         """
         self.ttl_seconds = ttl_seconds
-        self._data: Dict[str, float] = {}
+        self.max_size = max_size
+        self._data: OrderedDict[str, float] = OrderedDict()
         self._lock = threading.RLock()
         self._running = True
+        self._size = 0  # Track size separately for performance
 
         # Start cleanup thread
         self._cleanup_thread = threading.Thread(
@@ -347,10 +374,22 @@ class TTLSet:
         self._cleanup_thread.start()
 
     def add(self, item: str):
-        """Add item to set with TTL"""
+        """Add item to set with TTL and LRU eviction if needed"""
         expiry_time = time.time() + self.ttl_seconds
         with self._lock:
+            # Check if we need to evict (only if item is new)
+            if item not in self._data and len(self._data) >= self.max_size:
+                # Evict oldest item (LRU)
+                self._data.popitem(last=False)
+                self._size = max(0, self._size - 1)
+
+            # Add or update the item
+            is_new = item not in self._data
             self._data[item] = expiry_time
+            if is_new:
+                self._size += 1
+            # Move to end (most recently used)
+            self._data.move_to_end(item)
 
     def __contains__(self, item: str) -> bool:
         """Check if item is in set and not expired"""
@@ -361,20 +400,25 @@ class TTLSet:
             if time.time() > self._data[item]:
                 # Expired
                 del self._data[item]
+                self._size = max(0, self._size - 1)
                 return False
 
+            # Move to end (most recently accessed)
+            self._data.move_to_end(item)
             return True
 
     def __len__(self) -> int:
-        """Get number of non-expired items"""
-        self._cleanup_expired()
+        """Get number of items (may include expired until next cleanup)"""
         with self._lock:
-            return len(self._data)
+            # Return cached size for performance
+            # Expired items will be cleaned up by the background thread
+            return self._size
 
     def clear(self):
         """Clear all items"""
         with self._lock:
             self._data.clear()
+            self._size = 0
 
     def stop(self):
         """Stop the cleanup thread"""
@@ -382,9 +426,12 @@ class TTLSet:
         if hasattr(self, '_cleanup_thread'):
             self._cleanup_thread.join(timeout=1)
 
+    def __del__(self):
+        """Destructor to ensure cleanup thread is stopped"""
+        self.stop()
+
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
-        import time  # Import locally since this runs in a separate thread
         while self._running:
             try:
                 time.sleep(300)  # Clean up every 5 minutes
@@ -400,6 +447,10 @@ class TTLSet:
             expired = [k for k, v in self._data.items() if current_time > v]
             for key in expired:
                 del self._data[key]
+                self._size = max(0, self._size - 1)
+
+            if expired:
+                logger.debug(f"Cleaned up {len(expired)} expired entries from TTLSet")
 
 
 class AsyncCacheManager(CacheManager):
@@ -409,31 +460,32 @@ class AsyncCacheManager(CacheManager):
     """
 
     def __init__(self):
-        super().__init__()
-        self._lock = asyncio.Lock()
+        super().__init__()  # This will use config values from parent
+        # Note: Parent class caches already have thread-safe locks
+        # No additional async lock needed as operations are synchronous
 
     async def cache_user_async(self, username: str, user_data: Dict[str, Any]):
         """Async cache user data"""
-        async with self._lock:
-            self.cache_user(username, user_data)
+        # Delegate to thread-safe parent method
+        self.cache_user(username, user_data)
 
     async def get_cached_user_async(self, username: str) -> Optional[Dict[str, Any]]:
         """Async get cached user data"""
-        async with self._lock:
-            return self.get_cached_user(username)
+        # Delegate to thread-safe parent method
+        return self.get_cached_user(username)
 
     async def cache_subreddit_async(self, subreddit_name: str,
                                    subreddit_data: Dict[str, Any]):
         """Async cache subreddit data"""
-        async with self._lock:
-            self.cache_subreddit(subreddit_name, subreddit_data)
+        # Delegate to thread-safe parent method
+        self.cache_subreddit(subreddit_name, subreddit_data)
 
     async def get_cached_subreddit_async(self, subreddit_name: str) -> Optional[Dict[str, Any]]:
         """Async get cached subreddit data"""
-        async with self._lock:
-            return self.get_cached_subreddit(subreddit_name)
+        # Delegate to thread-safe parent method
+        return self.get_cached_subreddit(subreddit_name)
 
     async def get_stats_async(self) -> Dict[str, Any]:
         """Async get statistics for all caches"""
-        async with self._lock:
-            return self.get_stats()
+        # Delegate to thread-safe parent method
+        return self.get_stats()

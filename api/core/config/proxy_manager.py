@@ -36,6 +36,42 @@ class ProxyManager:
             'total_response_time': 0
         })
 
+        # Setup Supabase logging for ProxyManager
+        try:
+            from core.utils.supabase_logger import SupabaseLogHandler
+
+            # Get the logger for this module
+            proxy_logger = logging.getLogger(__name__)
+
+            # Check if Supabase handler already exists
+            has_supabase_handler = any(
+                isinstance(h, SupabaseLogHandler)
+                for h in proxy_logger.handlers
+            )
+
+            if not has_supabase_handler and supabase_client:
+                # Create and add Supabase handler
+                supabase_handler = SupabaseLogHandler(
+                    supabase_client,
+                    source='reddit_scraper',
+                    buffer_size=5,
+                    flush_interval=30
+                )
+                supabase_handler.setLevel(logging.INFO)  # Only INFO and above to database
+
+                # Create formatter
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+                supabase_handler.setFormatter(formatter)
+
+                # Add handler to logger
+                proxy_logger.addHandler(supabase_handler)
+                proxy_logger.info("🔗 ProxyManager Supabase logging initialized")
+        except Exception as e:
+            # If logging setup fails, continue without it
+            logger.warning(f"Could not setup Supabase logging for ProxyManager: {e}")
+
     async def load_proxies(self) -> bool:
         """
         Load active proxy configurations from reddit_proxies table.

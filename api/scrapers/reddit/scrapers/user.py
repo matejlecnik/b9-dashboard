@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from .base import BaseScraper
+from scrapers.reddit.processors.calculator import UserQualityCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -275,11 +276,7 @@ class UserScraper(BaseScraper):
                 if self.cache_manager.is_subreddit_discovered(subreddit_name):
                     continue
 
-            # Only interested in subreddits where user is somewhat active
-            # Skip if BOTH conditions are met (not enough activity)
-            if activity['post_count'] < 2 and activity['total_karma'] < 100:
-                continue
-
+            # Process ALL subreddits where user has posted (no filtering)
             discovery_data = {
                 'discovered_from_user': username,  # Changed from 'source_user' to match base_scraper.py
                 'discovered_subreddit': subreddit_name,
@@ -348,29 +345,6 @@ class UserScraper(BaseScraper):
 
     def calculate_user_quality_scores(self, username: str, account_age_days: int,
                                      post_karma: int, comment_karma: int) -> dict:
-        """Calculate user quality scores using Plan.md formula"""
-        # Username quality (0-10): Shorter, natural usernames preferred
-        username_score = max(0, 10 - len(username) * 0.3) if not any(
-            char.isdigit() for char in username[-4:]
-        ) else 5
-
-        # Age quality (0-10): Sweet spot 1-3 years
-        if account_age_days < 1095:  # Less than 3 years
-            age_score = min(10, account_age_days / 365 * 3)
-        else:
-            age_score = max(5, 10 - (account_age_days - 1095) / 365 * 0.5)
-
-        # Karma quality (0-10): Balanced comment/post ratio preferred
-        total_karma = post_karma + comment_karma
-        karma_ratio = comment_karma / max(1, total_karma)
-        karma_score = min(10, total_karma / 1000) * (1 + karma_ratio * 0.5)
-
-        # Final weighted score (0-10)
-        overall_score = (username_score * 0.2 + age_score * 0.3 + karma_score * 0.5)
-
-        return {
-            'username_score': round(username_score, 2),
-            'age_score': round(age_score, 2),
-            'karma_score': round(karma_score, 2),
-            'overall_score': round(overall_score, 2)
-        }
+        """Calculate user quality scores using UserQualityCalculator"""
+        calculator = UserQualityCalculator()
+        return calculator.calculate(username, account_age_days, post_karma, comment_karma)

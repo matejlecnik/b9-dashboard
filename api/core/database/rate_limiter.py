@@ -5,8 +5,10 @@ Implements request throttling to prevent database connection overload
 import asyncio
 import time
 import logging
-from typing import Dict, Optional
+import inspect
+from typing import Dict, Optional, Any, Callable
 from collections import defaultdict, deque
+from core.config.scraper_config import get_scraper_config
 
 logger = logging.getLogger(__name__)
 
@@ -17,29 +19,33 @@ class DatabaseRateLimiter:
     Implements sliding window rate limiting with per-operation type limits.
     """
     
-    def __init__(self, 
-                 default_requests_per_second: float = 10.0,
-                 burst_limit: int = 20,
-                 window_size: int = 60):
+    def __init__(self,
+                 default_requests_per_second: Optional[float] = None,
+                 burst_limit: Optional[int] = None,
+                 window_size: Optional[int] = None):
         """
         Initialize rate limiter.
-        
+
         Args:
-            default_requests_per_second: Default requests per second limit
-            burst_limit: Maximum burst requests allowed
-            window_size: Time window in seconds for rate limiting
+            default_requests_per_second: Default requests per second limit (uses config if not specified)
+            burst_limit: Maximum burst requests allowed (uses config if not specified)
+            window_size: Time window in seconds for rate limiting (uses config if not specified)
         """
-        self.default_rps = default_requests_per_second
-        self.burst_limit = burst_limit
-        self.window_size = window_size
-        
-        # Per-operation tracking
+        # Get configuration
+        config = get_scraper_config()
+
+        # Use provided values or fall back to config
+        self.default_rps = default_requests_per_second or config.db_rate_limit_default_rps
+        self.burst_limit = burst_limit or config.db_rate_limit_burst
+        self.window_size = window_size or config.db_rate_limit_window
+
+        # Per-operation tracking with configurable limits from config
         self.operation_limits = {
-            'select': 15.0,      # Read operations - higher limit
-            'insert': 8.0,       # Write operations - lower limit  
-            'update': 8.0,       # Update operations - lower limit
-            'upsert': 5.0,       # Upsert operations - lowest limit (most expensive)
-            'delete': 3.0        # Delete operations - very low limit
+            'select': config.db_rate_limit_select_rps,      # Read operations - higher limit
+            'insert': config.db_rate_limit_insert_rps,      # Write operations - lower limit
+            'update': config.db_rate_limit_update_rps,      # Update operations - lower limit
+            'upsert': config.db_rate_limit_upsert_rps,      # Upsert operations - lowest limit (most expensive)
+            'delete': config.db_rate_limit_delete_rps       # Delete operations - very low limit
         }
         
         # Request tracking per operation type
@@ -47,7 +53,7 @@ class DatabaseRateLimiter:
         self.request_counts: Dict[str, int] = defaultdict(int)
         
         # Global rate limiting
-        self.global_semaphore = asyncio.Semaphore(burst_limit)
+        self.global_semaphore = asyncio.Semaphore(self.burst_limit)
         
         # Statistics
         self.stats = {
@@ -125,32 +131,37 @@ class DatabaseRateLimiter:
                self.request_times[operation_type][0] < cutoff_time):
             self.request_times[operation_type].popleft()
     
-    async def execute_with_rate_limit(self, operation_type: str, operation_func, *args, **kwargs):
+    async def execute_with_rate_limit(self, operation_type: str, operation_func: Callable, *args, **kwargs) -> Any:
         """
         Execute a database operation with rate limiting.
-        
+
         Args:
             operation_type: Type of operation for rate limiting
-            operation_func: Function to execute
+            operation_func: Function to execute (can be sync or async)
             *args, **kwargs: Arguments for the function
-            
+
         Returns:
             Result of the operation function
         """
         await self.acquire(operation_type)
         try:
             start_time = time.time()
-            result = operation_func(*args, **kwargs)
-            
+
+            # Check if the function is async and await it if necessary
+            if inspect.iscoroutinefunction(operation_func):
+                result = await operation_func(*args, **kwargs)
+            else:
+                result = operation_func(*args, **kwargs)
+
             # Record success metrics
             execution_time = time.time() - start_time
             logger.debug(f"✅ {operation_type} completed in {execution_time:.3f}s")
-            
+
             return result
         finally:
             self.release()
     
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> Dict[str, Any]:
         """Get rate limiting statistics"""
         total_reqs = self.stats['total_requests']
         throttled_reqs = self.stats['throttled_requests']
@@ -168,12 +179,15 @@ class DatabaseRateLimiter:
         current_time = time.time()
         for op_type, times in self.request_times.items():
             if times:
-                # Clean up old entries
-                cutoff_time = current_time - self.window_size
-                recent_times = [t for t in times if t >= cutoff_time]
-                if recent_times:
-                    rate = len(recent_times) / min(self.window_size, current_time - recent_times[0])
-                    stats['current_rates'][op_type] = round(rate, 2)
+                # Clean up old entries using existing method
+                self._cleanup_old_requests(op_type, current_time)
+                # Now calculate rate from cleaned deque
+                if self.request_times[op_type]:
+                    recent_count = len(self.request_times[op_type])
+                    time_span = min(self.window_size, current_time - self.request_times[op_type][0])
+                    if time_span > 0:
+                        rate = recent_count / time_span
+                        stats['current_rates'][op_type] = round(rate, 2)
         
         return stats
     

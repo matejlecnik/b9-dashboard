@@ -1,3 +1,18 @@
+import os
+import sys
+import signal
+import subprocess
+import logging
+import asyncio
+import traceback
+import glob
+import re
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime, timezone
+from supabase import create_client
+
 #!/usr/bin/env python3
 """
 Simple Scraper Control Endpoints
@@ -7,19 +22,10 @@ Uses Supabase to store scraper state - no Render API needed
 # Version tracking - should match scraper versions
 API_VERSION = "3.0.0"
 
-import os
-import sys
-import signal
-import subprocess
-import logging
-import asyncio
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
-from datetime import datetime, timezone
-from supabase import create_client
-
 logger = logging.getLogger(__name__)
+
+# Configuration
+LOG_FILE_PATH = os.getenv('REDDIT_SCRAPER_LOG_PATH', '/tmp/reddit_scraper.log')
 
 # Create router
 router = APIRouter(prefix="/api/scraper", tags=["scraper"])
@@ -83,9 +89,10 @@ async def start_scraper(request: Request):
             }).execute()
 
         # Start the actual subprocess immediately (like Instagram scraper does)
+        log_file = None
         try:
             # Open log file for Reddit scraper output
-            log_file_path = '/tmp/reddit_scraper.log'
+            log_file_path = LOG_FILE_PATH
             log_file = open(log_file_path, 'a')
             log_file.write(f"\n\n{'='*60}\n")
             log_file.write(f"Starting Reddit scraper at {datetime.now(timezone.utc).isoformat()}\n")
@@ -104,7 +111,6 @@ async def start_scraper(request: Request):
             )
 
             # Check if process started successfully
-            import time
             await asyncio.sleep(2)  # Give it time to start
 
             if reddit_process.poll() is None:
@@ -119,9 +125,13 @@ async def start_scraper(request: Request):
                 # Log success to file
                 log_file.write(f"✅ Subprocess started successfully with PID: {reddit_process.pid}\n")
                 log_file.flush()
+                # Important: Close file since subprocess will continue using it
+                log_file.close()
+                log_file = None
             else:
                 # Process died immediately - read the error
                 log_file.close()
+                log_file = None
                 with open(log_file_path, 'r') as f:
                     error_output = f.read()
                     last_lines = error_output.split('\n')[-20:]  # Get last 20 lines
@@ -139,8 +149,14 @@ async def start_scraper(request: Request):
 
         except Exception as subprocess_error:
             logger.error(f"Failed to start subprocess: {subprocess_error}")
-            import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+        finally:
+            # Ensure file is closed if still open
+            if log_file:
+                try:
+                    log_file.close()
+                except Exception:
+                    pass
 
         # Log the action
         supabase.table('system_logs').insert({
@@ -175,8 +191,6 @@ async def start_scraper(request: Request):
 @router.post("/force-kill")
 async def force_kill_scraper(request: Request):
     """Forcefully kill any Reddit scraper processes"""
-    import subprocess
-    import glob
     try:
         supabase = get_supabase()
         killed_pids = []
@@ -369,7 +383,7 @@ async def get_scraper_status(request: Request):
             result = supabase.table('system_logs')\
                 .select('timestamp')\
                 .eq('source', 'reddit_scraper')\
-                .order('timestamp', desc=True)\
+                .order('timestamp.desc')\
                 .limit(1)\
                 .execute()
 
@@ -493,7 +507,7 @@ async def get_scraper_status_detailed(request: Request):
                     .eq('source', 'reddit_scraper')\
                     .gte('timestamp', today.isoformat())\
                     .like('message', pattern)\
-                    .order('timestamp', desc=True)\
+                    .order('timestamp.desc')\
                     .limit(100)\
                     .execute()
 
@@ -559,7 +573,7 @@ async def get_scraper_status_detailed(request: Request):
                             .eq('source', 'reddit_scraper')\
                             .like('message', pattern)\
                             .gte('timestamp', today.isoformat())\
-                            .order('timestamp', asc=True)\
+                            .order('timestamp.asc')\
                             .limit(1)\
                             .execute()
 
@@ -572,7 +586,7 @@ async def get_scraper_status_detailed(request: Request):
                         .select('message, timestamp, context')\
                         .eq('source', 'reddit_scraper')\
                         .like('message', '🔄 Starting scraping cycle #%')\
-                        .order('timestamp', desc=True)\
+                        .order('timestamp.desc')\
                         .limit(1)\
                         .execute()
 
@@ -581,7 +595,7 @@ async def get_scraper_status_detailed(request: Request):
                         .select('message, context')\
                         .eq('source', 'reddit_scraper')\
                         .like('message', '✅ Completed scraping cycle #%')\
-                        .order('timestamp', desc=True)\
+                        .order('timestamp.desc')\
                         .limit(1)\
                         .execute()
 
@@ -612,7 +626,6 @@ async def get_scraper_status_detailed(request: Request):
                     if cycle_start_result.data and len(cycle_start_result.data) > 0:
                         start_log = cycle_start_result.data[0]
                         # Extract cycle number from message
-                        import re
                         match = re.search(r'cycle #(\d+)', start_log['message'])
                         if match:
                             current_cycle = int(match.group(1))
@@ -715,15 +728,13 @@ async def get_cycle_status():
             }
 
         # Get the most recent scraper start log
-        from datetime import datetime, timezone
-
         # Search for the most recent scraper start message
         # Try "Continuous scraper v2.1.0 started" pattern first (current version)
         result = supabase.table('system_logs')\
             .select('timestamp')\
             .eq('source', 'reddit_scraper')\
             .like('message', '%Continuous scraper%started%')\
-            .order('timestamp', desc=True)\
+            .order('timestamp.desc')\
             .limit(1)\
             .execute()
 
@@ -733,7 +744,7 @@ async def get_cycle_status():
                 .select('timestamp')\
                 .eq('source', 'reddit_scraper')\
                 .like('message', '%Starting scraping cycle%')\
-                .order('timestamp', desc=True)\
+                .order('timestamp.desc')\
                 .limit(1)\
                 .execute()
 
@@ -743,7 +754,7 @@ async def get_cycle_status():
                 .select('timestamp')\
                 .eq('source', 'reddit_scraper')\
                 .like('message', '%scraper%started%')\
-                .order('timestamp', desc=True)\
+                .order('timestamp.desc')\
                 .limit(1)\
                 .execute()
 
@@ -810,7 +821,7 @@ async def get_scraper_logs(request: Request, lines: int = 100, level: Optional[s
         query = supabase.table('system_logs')\
             .select('*')\
             .eq('source', 'reddit_scraper')\
-            .order('timestamp', desc=True)\
+            .order('timestamp.desc')\
             .limit(lines)
 
         # Add filters if provided
@@ -905,7 +916,7 @@ async def get_reddit_api_stats():
             .select('message, timestamp')\
             .eq('source', 'reddit_scraper')\
             .like('message', '%Reddit API request%')\
-            .order('timestamp', desc=True)\
+            .order('timestamp.desc')\
             .limit(10000)\
             .execute()
 

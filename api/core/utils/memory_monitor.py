@@ -8,6 +8,7 @@ import psutil
 import os
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime, timezone
+from core.config.scraper_config import get_scraper_config
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +19,27 @@ class MemoryMonitor:
     """
 
     def __init__(self,
-                 warning_threshold: float = 0.70,  # 70% memory usage
-                 error_threshold: float = 0.85,    # 85% memory usage
-                 critical_threshold: float = 0.90,  # 90% memory usage
-                 check_interval: int = 60):         # Check every 60 seconds
+                 warning_threshold: Optional[float] = None,
+                 error_threshold: Optional[float] = None,
+                 critical_threshold: Optional[float] = None,
+                 check_interval: Optional[int] = None):
         """
         Initialize memory monitor.
 
         Args:
-            warning_threshold: Memory usage percentage to trigger warnings (0.0-1.0)
-            error_threshold: Memory usage percentage to trigger errors (0.0-1.0)
-            critical_threshold: Memory usage percentage to trigger cleanup (0.0-1.0)
-            check_interval: Interval between checks in seconds
+            warning_threshold: Memory usage percentage to trigger warnings (uses config if not specified)
+            error_threshold: Memory usage percentage to trigger errors (uses config if not specified)
+            critical_threshold: Memory usage percentage to trigger cleanup (uses config if not specified)
+            check_interval: Interval between checks in seconds (uses config if not specified)
         """
-        self.warning_threshold = warning_threshold
-        self.error_threshold = error_threshold
-        self.critical_threshold = critical_threshold
-        self.check_interval = check_interval
+        # Get configuration
+        config = get_scraper_config()
+
+        # Use provided values or fall back to config
+        self.warning_threshold = warning_threshold or config.memory_warning_threshold
+        self.error_threshold = error_threshold or config.memory_error_threshold
+        self.critical_threshold = critical_threshold or config.memory_critical_threshold
+        self.check_interval = check_interval or config.memory_check_interval
 
         # Get process handle
         self.process = psutil.Process(os.getpid())

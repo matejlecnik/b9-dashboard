@@ -2,6 +2,7 @@
 Custom Exception Classes for Reddit Scraper
 Provides specific exception types for better error handling and debugging
 """
+import re
 from typing import Any
 
 
@@ -172,7 +173,6 @@ def validate_subreddit_name(name: str) -> str:
         raise ValidationException("Subreddit name too long (max 50 chars)", "name", name)
     
     # Basic character validation (simplified)
-    import re
     if not re.match(r'^[a-z0-9_]+$', name):
         raise ValidationException("Subreddit name contains invalid characters", "name", name)
     

@@ -5,7 +5,8 @@ Creates and manages dedicated API instances for each thread to prevent contentio
 import threading
 import logging
 import time
-from typing import Dict, Optional, Any
+import requests
+from typing import Dict, Optional, Any, Tuple
 from fake_useragent import UserAgent
 import random
 
@@ -18,18 +19,19 @@ class PublicRedditAPI:
     Each thread gets its own instance to prevent race conditions.
     """
 
-    def __init__(self, max_retries: int = 5, base_delay: float = 1.0):
+    def __init__(self, max_retries: int = 5, base_delay: float = 1.0, thread_id: Optional[int] = None):
         """
         Initialize Reddit API client.
 
         Args:
             max_retries: Maximum number of retry attempts
             base_delay: Base delay between retries in seconds
+            thread_id: Thread identifier for session management
         """
         self.max_retries = max_retries
         self.base_delay = base_delay
-        # Use thread-local storage for session to ensure thread safety
-        self._local = threading.local()
+        self.thread_id = thread_id
+        self.session = None  # Store session directly instead of thread-local
 
         # Initialize user agent generator
         try:
@@ -55,7 +57,8 @@ class PublicRedditAPI:
         Returns:
             str: User agent string
         """
-        if self.ua_generator and random.random() < 0.8:
+        # Check if ua_generator exists and is not None
+        if self.ua_generator is not None and random.random() < 0.8:
             try:
                 # Use fake-useragent 80% of the time
                 agent_type = random.choice(['chrome', 'firefox', 'safari', 'edge'])
@@ -84,7 +87,6 @@ class PublicRedditAPI:
         Returns:
             JSON response or None if failed
         """
-        import requests
 
         # CRITICAL: Always require proxy - never allow direct API access
         if not proxy_config:
@@ -117,11 +119,11 @@ class PublicRedditAPI:
             try:
                 start_time = time.time()
 
-                # Use thread-local session for connection pooling
-                if not hasattr(self._local, 'session') or self._local.session is None:
-                    self._local.session = requests.Session()
+                # Use instance session for connection pooling
+                if self.session is None:
+                    self.session = requests.Session()
 
-                response = self._local.session.get(
+                response = self.session.get(
                     url,
                     headers={'User-agent': self.generate_user_agent()},
                     proxies=proxies,
@@ -155,7 +157,6 @@ class PublicRedditAPI:
                     if retries >= 5:
                         return {'error': 'rate_limited'}
 
-                    import time
                     time.sleep(delay)  # Sync sleep in retry loop is acceptable
                     retries += 1
                     continue
@@ -170,7 +171,6 @@ class PublicRedditAPI:
                 retries += 1
                 if retries < self.max_retries:
                     logger.warning(f"Request failed (attempt {retries}/{self.max_retries}): {url} - {str(e)[:100]}")
-                    import time
                     time.sleep(self.base_delay * retries)  # Sync sleep in retry loop is acceptable
                 else:
                     logger.error(f"Request failed after {self.max_retries} retries: {url}")
@@ -182,7 +182,12 @@ class PublicRedditAPI:
         """Get subreddit metadata from about.json"""
         url = f"https://www.reddit.com/r/{subreddit_name}/about.json"
         response = self.request_with_retry(url, proxy_config)
-        return response['data'] if response and 'data' in response else response
+        # Check for error responses before accessing 'data'
+        if response and isinstance(response, dict):
+            if 'error' in response:
+                return response  # Return error response as-is
+            return response.get('data') if 'data' in response else response
+        return response
 
     def get_subreddit_hot_posts(self, subreddit_name: str, limit: int = 30,
                                proxy_config: Optional[Dict] = None) -> list:
@@ -227,10 +232,10 @@ class PublicRedditAPI:
         return []
 
     def close(self):
-        """Close the thread-local session if it exists"""
-        if hasattr(self._local, 'session') and self._local.session:
-            self._local.session.close()
-            self._local.session = None
+        """Close the session if it exists"""
+        if self.session:
+            self.session.close()
+            self.session = None
 
 
 class ThreadSafeAPIPool:
@@ -251,6 +256,7 @@ class ThreadSafeAPIPool:
         self.locks = {}
         self.thread_to_api = {}
         self._lock = threading.Lock()
+        self._initialized = False  # Track initialization status
 
     def initialize(self, thread_count: Optional[int] = None):
         """
@@ -259,18 +265,26 @@ class ThreadSafeAPIPool:
         Args:
             thread_count: Number of threads (uses proxy manager if not specified)
         """
+        # Check if already initialized
+        if self._initialized:
+            logger.warning("API pool already initialized. Cleaning up before re-initialization.")
+            self.cleanup()
+
         if thread_count is None and self.proxy_manager:
             thread_count = self.proxy_manager.get_total_threads()
         elif thread_count is None:
-            thread_count = 9  # Default to 9 threads
+            # Get from environment or use default
+            import os
+            thread_count = int(os.getenv('MAX_CONCURRENT_THREADS', 9))
 
         logger.info(f"Initializing API pool with {thread_count} thread-safe instances")
 
         for thread_id in range(thread_count):
-            # Create dedicated API instance for this thread
-            self.apis[thread_id] = PublicRedditAPI(max_retries=5, base_delay=1.0)
+            # Create dedicated API instance for this thread with thread_id
+            self.apis[thread_id] = PublicRedditAPI(max_retries=5, base_delay=1.0, thread_id=thread_id)
             self.locks[thread_id] = threading.Lock()
 
+        self._initialized = True
         logger.info(f"Created {len(self.apis)} thread-safe API instances")
 
     def get_api(self, thread_id: int) -> Optional[PublicRedditAPI]:
@@ -283,13 +297,18 @@ class ThreadSafeAPIPool:
         Returns:
             PublicRedditAPI instance or None
         """
+        # Validate thread_id
+        if not isinstance(thread_id, int) or thread_id < 0:
+            logger.error(f"Invalid thread_id: {thread_id}. Must be a non-negative integer.")
+            return None
+
         if thread_id not in self.apis:
-            logger.warning(f"No API instance for thread {thread_id}")
+            logger.warning(f"No API instance for thread {thread_id}. Available threads: {list(self.apis.keys())}")
             return None
 
         return self.apis[thread_id]
 
-    def get_api_with_proxy(self, thread_id: int) -> tuple[Optional[PublicRedditAPI], Optional[Dict]]:
+    def get_api_with_proxy(self, thread_id: int) -> Tuple[Optional[PublicRedditAPI], Optional[Dict]]:
         """
         Get API instance and proxy configuration for a thread.
 
@@ -320,9 +339,14 @@ class ThreadSafeAPIPool:
         Returns:
             Result from the API function
         """
+        # Validate thread_id first
+        if not isinstance(thread_id, int) or thread_id < 0:
+            raise ValueError(f"Invalid thread_id: {thread_id}. Must be a non-negative integer.")
+
         api = self.get_api(thread_id)
         if not api:
-            raise ValueError(f"No API instance for thread {thread_id}")
+            available = list(self.apis.keys())
+            raise ValueError(f"No API instance for thread {thread_id}. Available: {available}")
 
         # Get proxy config if available
         proxy_config = None
@@ -382,6 +406,7 @@ class ThreadSafeAPIPool:
         self.apis.clear()
         self.locks.clear()
         self.thread_to_api.clear()
+        self._initialized = False
 
         logger.info("API pool cleaned up")
 

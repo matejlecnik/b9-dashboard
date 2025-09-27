@@ -495,7 +495,6 @@ class SubredditScraper(BaseScraper):
             'guro', 'necro', 'gore', 'death', 'snuff',
             'femdom', 'findom', 'financial domination', 'paypig', 'sissy',
             'pregnant', 'breeding', 'impregnation', 'preggo',
-            'incest', 'fauxcest', 'step fantasy', 'family', 'taboo family',
             'cuckold', 'cuck', 'hotwife', 'bull',
             'chastity', 'denial', 'locked', 'keyholder',
             'ballbusting', 'cbt', 'cock torture', 'pain',

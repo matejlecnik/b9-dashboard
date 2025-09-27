@@ -11,6 +11,9 @@ import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from pathlib import Path
+# Local imports
+from scrapers.reddit.main import RedditScraperV2
+from core.database.supabase_client import get_supabase_client
 
 # Setup path for Docker environment - script runs from /app/api/scrapers/reddit/
 # Need to add /app/api to Python path so it can find core, scrapers, etc.
@@ -19,9 +22,6 @@ api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where cor
 if api_root not in sys.path:
     sys.path.insert(0, api_root)
 
-# Import after path setup to avoid linting issues
-from scrapers.reddit.main import RedditScraperV2
-from core.database.supabase_client import get_supabase_client
 
 # Version tracking
 SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool
@@ -127,7 +127,7 @@ class ContinuousScraperV2:
             # Log cycle start
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_start_time.isoformat(),
-                'source': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': f'🔄 Starting scraping cycle #{self.cycle_count}',
@@ -163,7 +163,7 @@ class ContinuousScraperV2:
             # Log cycle completion with duration
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_end_time.isoformat(),
-                'source': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper',
                 'level': 'success',
                 'message': f'✅ Completed scraping cycle #{self.cycle_count} in {duration_str}',
@@ -184,7 +184,7 @@ class ContinuousScraperV2:
             # Log error
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper',
                 'level': 'error',
                 'message': f'❌ Error in cycle #{self.cycle_count}: {str(e)}',
@@ -205,7 +205,7 @@ class ContinuousScraperV2:
         try:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
@@ -275,7 +275,7 @@ class ContinuousScraperV2:
             # Log shutdown
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': '⏹️ Continuous scraper stopped',

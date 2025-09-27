@@ -4,10 +4,11 @@ Optimizes database operations by batching writes to reduce network overhead
 """
 import logging
 import asyncio
-import threading
+import traceback
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from core.config.scraper_config import get_scraper_config
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +19,21 @@ class BatchWriter:
     Accumulates records and writes them in efficient batches.
     """
 
-    def __init__(self, supabase_client, batch_size: int = 50, flush_interval: float = 5.0):
+    def __init__(self, supabase_client, batch_size: Optional[int] = None, flush_interval: Optional[float] = None):
         """
         Initialize batch writer.
 
         Args:
             supabase_client: Initialized Supabase client
-            batch_size: Maximum records per batch (reduced to 50 for more frequent flushes)
-            flush_interval: Time in seconds between automatic flushes (reduced to 5s)
+            batch_size: Maximum records per batch (uses config if not specified)
+            flush_interval: Time in seconds between automatic flushes (uses config if not specified)
         """
+        # Get configuration
+        config = get_scraper_config()
+
         self.supabase = supabase_client
-        self.batch_size = min(batch_size, 50)  # Reduced from 500 to 50 for more frequent flushes
-        self.flush_interval = flush_interval
+        self.batch_size = batch_size or config.batch_writer_size
+        self.flush_interval = flush_interval or config.batch_writer_flush_interval
         logger.info(f"🔧 BatchWriter initialized with batch_size={self.batch_size}, flush_interval={self.flush_interval}s")
 
         # Buffers for different tables
@@ -44,17 +48,17 @@ class BatchWriter:
             'last_flush': None
         })
 
-        # Locks for thread safety
+        # Lock for thread safety (only need async lock since all methods are async)
         self._lock = asyncio.Lock()  # For async methods
-        self._sync_lock = threading.Lock()  # For sync methods
         self._flush_task = None
         self._running = False
         self._flush_in_progress = False  # Prevent duplicate concurrent flushes
         self._failed_records = defaultdict(list)  # Store failed records for retry
         self._max_errors_in_stats = 100  # Limit error history to prevent memory leak
         self._retry_attempts = defaultdict(int)  # Track retry attempts per table
-        self._max_retry_attempts = 3  # Maximum retry attempts before giving up
+        self._max_retry_attempts = config.max_retry_attempts  # Use config value
         self._retry_task = None  # Background task for retrying failed records
+        self._retry_check_interval = 30  # Check for failed records every 30 seconds
 
     async def start(self):
         """Start the automatic flush task"""
@@ -71,13 +75,12 @@ class BatchWriter:
 
             # Verify tasks were created
             if self._flush_task and self._retry_task:
-                logger.info(f"✅ Auto-flush and retry tasks created successfully")
+                logger.info("✅ Auto-flush and retry tasks created successfully")
             else:
                 logger.error("❌ Failed to create background tasks!")
 
         except Exception as e:
             logger.error(f"❌ Error starting batch writer: {e}")
-            import traceback
             logger.error(traceback.format_exc())
 
     async def stop(self):
@@ -133,7 +136,6 @@ class BatchWriter:
 
         except Exception as e:
             logger.error(f"❌ Error during batch writer stop: {e}")
-            import traceback
             logger.error(traceback.format_exc())
             # Still try to flush even if there was an error
             try:
@@ -184,7 +186,6 @@ class BatchWriter:
                 break
             except Exception as e:
                 logger.error(f"❌ Error in auto flush loop: {e}")
-                import traceback
                 logger.error(traceback.format_exc())
 
         logger.info("🔄 Auto-flush loop STOPPED")
@@ -196,7 +197,7 @@ class BatchWriter:
 
         while self._running:
             try:
-                await asyncio.sleep(30)  # Check for failed records every 30 seconds
+                await asyncio.sleep(self._retry_check_interval)  # Check for failed records periodically
                 retry_check_count += 1
 
                 # Check if we have any failed records
@@ -213,7 +214,6 @@ class BatchWriter:
                 break
             except Exception as e:
                 logger.error(f"❌ Error in retry loop: {e}")
-                import traceback
                 logger.error(traceback.format_exc())
 
         logger.info("🔁 Retry loop STOPPED")
@@ -297,7 +297,6 @@ class BatchWriter:
                     await self._flush_table('reddit_subreddits')
         except Exception as e:
             logger.error(f"❌ Error in add_subreddit: {e}")
-            import traceback
             logger.error(traceback.format_exc())
 
     async def add_user(self, user_data: Dict[str, Any]):
@@ -319,13 +318,52 @@ class BatchWriter:
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
         """
         Add multiple post records to the buffer.
+        Inherits primary_category, tags, and over18 from the subreddit.
 
         Args:
             posts_data: List of post data dictionaries
         """
+        if not posts_data:
+            return
+
+        # Get unique subreddit names from posts
+        subreddit_names = list(set(
+            (post.get('subreddit_name') or post.get('subreddit', '')).lower()
+            for post in posts_data if post.get('subreddit') or post.get('subreddit_name')
+        ))
+
+        # Fetch subreddit data for inheritance
+        subreddit_data = {}
+        if subreddit_names:
+            try:
+                response = self.supabase.table('reddit_subreddits').select(
+                    'name, primary_category, tags, over18'
+                ).in_('name', subreddit_names).execute()
+
+                if response.data:
+                    for sub in response.data:
+                        subreddit_data[sub['name'].lower()] = {
+                            'primary_category': sub.get('primary_category'),
+                            'tags': sub.get('tags', []),
+                            'over18': sub.get('over18', False)
+                        }
+                    logger.debug(f"Fetched categorization data for {len(subreddit_data)} subreddits")
+            except Exception as e:
+                logger.warning(f"Could not fetch subreddit data for post inheritance: {e}")
+
         async with self._lock:
             for post in posts_data:
                 cleaned_data = self._clean_post_data(post)
+
+                # Inherit fields from subreddit
+                sub_name = cleaned_data.get('subreddit_name', '').lower()
+                if sub_name in subreddit_data:
+                    sub_info = subreddit_data[sub_name]
+                    cleaned_data['sub_primary_category'] = sub_info['primary_category']
+                    cleaned_data['sub_tags'] = sub_info['tags']
+                    cleaned_data['sub_over18'] = sub_info['over18']
+                    logger.debug(f"Post {cleaned_data.get('reddit_id')} inherited category: {sub_info['primary_category']}")
+
                 self.buffers['reddit_posts'].append(cleaned_data)
 
             # Log the addition
@@ -390,7 +428,6 @@ class BatchWriter:
 
         except Exception as e:
             logger.error(f"❌ Critical error in flush_all: {e}")
-            import traceback
             logger.error(traceback.format_exc())
         finally:
             # Always reset flush flag
@@ -612,7 +649,6 @@ class BatchWriter:
 
         except Exception as e:
             logger.error(f"❌ Exception writing batch to {table_name}: {e}")
-            import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Try to write records individually as fallback
@@ -648,9 +684,10 @@ class BatchWriter:
                 self._failed_records[table_name].extend(
                     [r for r in records if (r.get('name') or r.get('username') or r.get('reddit_id')) in failed_records]
                 )
-                # Limit failed records to prevent memory leak
-                if len(self._failed_records[table_name]) > 1000:
-                    self._failed_records[table_name] = self._failed_records[table_name][-1000:]
+                # Limit failed records to prevent memory leak (keep only last 500 records)
+                max_failed_records = 500
+                if len(self._failed_records[table_name]) > max_failed_records:
+                    self._failed_records[table_name] = self._failed_records[table_name][-max_failed_records:]
 
             return successful, len(records) - successful
 
@@ -703,8 +740,10 @@ class BatchWriter:
             'link_flair_enabled', 'link_flair_position',
             # JSON fields
             'rules_data',
-            # Review field - CRITICAL: Preserve existing review field during updates
-            'review'
+            # CRITICAL: Preserve manual categorization fields during updates
+            'review',           # Manual review status (Ok, No Seller, etc.)
+            'primary_category', # Manual primary category
+            'tags'             # Manual tags
         ]
 
         for field in optional_fields:
@@ -834,11 +873,10 @@ class BatchWriter:
         if 'distinguished' in data:
             cleaned['distinguished'] = data['distinguished']
 
-        # Add JSON fields
-        if 'sub_tags' in data:
-            cleaned['sub_tags'] = data['sub_tags'] if isinstance(data['sub_tags'], list) else []
-        if 'sub_primary_category' in data:
-            cleaned['sub_primary_category'] = data['sub_primary_category']
+        # REMOVED: sub_tags and sub_primary_category handling
+        # These fields should NEVER be set by the scraper for subreddits
+        # They are manual categorizations that must be preserved
+        # Only posts will have these fields set (inherited from their subreddit)
 
         # Add timestamp field
         if 'scraped_at' in data:
@@ -952,4 +990,3 @@ class BatchWriter:
     # All sync methods have been removed to prevent deadlocks and async/sync mixing issues
     # Use only async versions: add_subreddit(), add_user(), add_posts(), flush_all()
     # ensure_users_exist(), ensure_subreddits_exist()
-    pass

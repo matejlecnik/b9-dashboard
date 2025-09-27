@@ -5,7 +5,6 @@ Eliminates hardcoded values and provides environment-based configuration
 import os
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
-from datetime import timedelta
 
 
 @dataclass
@@ -13,7 +12,7 @@ class ScraperConfig:
     """Configuration class for Reddit scraper with environment override support"""
     
     # Subreddit Processing
-    max_subreddits: int = 2500
+    max_subreddits: int = 10000
     batch_size: int = 1000
     max_concurrent_threads: int = 9
     
@@ -54,11 +53,21 @@ class ScraperConfig:
     min_user_karma_threshold: int = 100
     
     # Discovery Mode
-    discovery_limit: int = 500
+    discovery_limit: int = 100000
     
     # Database Query Limits
     no_seller_limit: int = 500
-    
+
+    # Database Rate Limiting
+    db_rate_limit_default_rps: float = 10.0  # Default requests per second
+    db_rate_limit_burst: int = 20  # Maximum burst requests
+    db_rate_limit_window: int = 60  # Time window in seconds
+    db_rate_limit_select_rps: float = 15.0  # SELECT operations per second
+    db_rate_limit_insert_rps: float = 8.0  # INSERT operations per second
+    db_rate_limit_update_rps: float = 8.0  # UPDATE operations per second
+    db_rate_limit_upsert_rps: float = 5.0  # UPSERT operations per second
+    db_rate_limit_delete_rps: float = 3.0  # DELETE operations per second
+
     @classmethod
     def from_environment(cls) -> 'ScraperConfig':
         """
@@ -76,15 +85,38 @@ class ScraperConfig:
             'max_concurrent_threads': 'REDDIT_SCRAPER_MAX_THREADS',
             'min_delay': 'REDDIT_SCRAPER_MIN_DELAY',
             'max_delay': 'REDDIT_SCRAPER_MAX_DELAY',
+            'burst_delay_min': 'REDDIT_SCRAPER_BURST_DELAY_MIN',
+            'burst_delay_max': 'REDDIT_SCRAPER_BURST_DELAY_MAX',
+            'burst_frequency_min': 'REDDIT_SCRAPER_BURST_FREQUENCY_MIN',
+            'burst_frequency_max': 'REDDIT_SCRAPER_BURST_FREQUENCY_MAX',
             'memory_warning_threshold': 'REDDIT_SCRAPER_MEMORY_WARNING',
             'memory_error_threshold': 'REDDIT_SCRAPER_MEMORY_ERROR',
             'memory_critical_threshold': 'REDDIT_SCRAPER_MEMORY_CRITICAL',
-            'batch_writer_size': 'REDDIT_SCRAPER_BATCH_SIZE',
+            'memory_check_interval': 'REDDIT_SCRAPER_MEMORY_CHECK_INTERVAL',
+            'batch_writer_size': 'REDDIT_SCRAPER_BATCH_WRITER_SIZE',
             'batch_writer_flush_interval': 'REDDIT_SCRAPER_FLUSH_INTERVAL',
             'max_retry_attempts': 'REDDIT_SCRAPER_MAX_RETRIES',
             'user_cache_ttl': 'REDDIT_SCRAPER_USER_CACHE_TTL',
             'subreddit_cache_ttl': 'REDDIT_SCRAPER_SUBREDDIT_CACHE_TTL',
-            'max_users_per_cycle': 'REDDIT_SCRAPER_MAX_USERS_PER_CYCLE'
+            'post_cache_ttl': 'REDDIT_SCRAPER_POST_CACHE_TTL',
+            'cache_max_users': 'REDDIT_SCRAPER_CACHE_MAX_USERS',
+            'cache_max_subreddits': 'REDDIT_SCRAPER_CACHE_MAX_SUBREDDITS',
+            'cache_max_posts': 'REDDIT_SCRAPER_CACHE_MAX_POSTS',
+            'max_retries': 'REDDIT_SCRAPER_API_MAX_RETRIES',
+            'base_delay': 'REDDIT_SCRAPER_API_BASE_DELAY',
+            'request_timeout': 'REDDIT_SCRAPER_REQUEST_TIMEOUT',
+            'max_users_per_cycle': 'REDDIT_SCRAPER_MAX_USERS_PER_CYCLE',
+            'min_user_karma_threshold': 'REDDIT_SCRAPER_MIN_USER_KARMA',
+            'discovery_limit': 'REDDIT_SCRAPER_DISCOVERY_LIMIT',
+            'no_seller_limit': 'REDDIT_SCRAPER_NO_SELLER_LIMIT',
+            'db_rate_limit_default_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_DEFAULT_RPS',
+            'db_rate_limit_burst': 'REDDIT_SCRAPER_DB_RATE_LIMIT_BURST',
+            'db_rate_limit_window': 'REDDIT_SCRAPER_DB_RATE_LIMIT_WINDOW',
+            'db_rate_limit_select_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_SELECT_RPS',
+            'db_rate_limit_insert_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_INSERT_RPS',
+            'db_rate_limit_update_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_UPDATE_RPS',
+            'db_rate_limit_upsert_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_UPSERT_RPS',
+            'db_rate_limit_delete_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_DELETE_RPS'
         }
         
         # Override with environment values where available
@@ -102,7 +134,7 @@ class ScraperConfig:
                         setattr(config, field_name, env_value.lower() in ('true', '1', 'yes'))
                     else:
                         setattr(config, field_name, env_value)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.warning(f"Invalid environment value for {env_var}: {env_value}, using default: {current_value}")

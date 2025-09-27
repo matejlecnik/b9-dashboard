@@ -6,8 +6,9 @@ Comprehensive error handling and logging for production deployment
 
 import logging
 import traceback
+import uuid
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import ValidationError, RequestValidationError
@@ -16,7 +17,34 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import ValidationError as PydanticValidationError
 import json
 
+# Import Supabase logging
+try:
+    from core.utils.supabase_logger import SupabaseLogHandler
+    from core.database.supabase_client import get_supabase_client
+    from core.config.scraper_config import get_scraper_config
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+def filter_sensitive_headers(headers: dict) -> dict:
+    """Remove sensitive headers before logging"""
+    sensitive_keys = {
+        'authorization', 'cookie', 'x-api-key', 'api-key',
+        'x-auth-token', 'x-csrf-token', 'x-forwarded-for',
+        'x-access-token', 'x-secret-key', 'set-cookie'
+    }
+
+    filtered = {}
+    for key, value in headers.items():
+        if key.lower() in sensitive_keys:
+            filtered[key] = '[REDACTED]'
+        elif 'token' in key.lower() or 'secret' in key.lower() or 'key' in key.lower():
+            filtered[key] = '[REDACTED]'
+        else:
+            filtered[key] = value
+    return filtered
 
 class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """
@@ -114,7 +142,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     
     async def handle_generic_exception(self, request: Request, exc: Exception) -> JSONResponse:
         """Handle all other exceptions"""
-        error_id = f"error_{int(datetime.now().timestamp() * 1000)}"
+        error_id = f"error_{uuid.uuid4().hex[:8]}_{int(datetime.now().timestamp())}"
         
         # Get error details
         error_type = type(exc).__name__
@@ -151,28 +179,51 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
         )
     
     async def log_error_to_database(self, error_id: str, request: Request, exception: Exception, traceback_str: str):
-        """Log error to database for analysis"""
+        """Log error to Supabase system_logs table"""
         try:
-            # This would need to be injected or accessed via app state
-            # For now, just structure the data for potential logging
-            error_log = {
-                "error_id": error_id,
-                "timestamp": datetime.now().isoformat(),
-                "request_method": request.method,
-                "request_url": str(request.url),
-                "request_headers": dict(request.headers),
-                "error_type": type(exception).__name__,
-                "error_message": str(exception),
-                "traceback": traceback_str,
-                "user_agent": request.headers.get("user-agent"),
-                "client_ip": request.client.host if request.client else None
-            }
-            
-            # This could be sent to Supabase, external logging service, etc.
-            logger.info(f"Structured error log: {json.dumps(error_log, indent=2)}")
-            
+            if SUPABASE_AVAILABLE:
+                supabase = get_supabase_client()
+
+                # Prepare error log for Supabase
+                error_log = {
+                    "source": "api_errors",
+                    "level": "ERROR",
+                    "message": f"[{error_id}] {type(exception).__name__}: {str(exception)[:500]}",
+                    "metadata": {
+                        "error_id": error_id,
+                        "request_method": request.method,
+                        "request_url": str(request.url),
+                        "request_headers": filter_sensitive_headers(dict(request.headers)),
+                        "error_type": type(exception).__name__,
+                        "traceback": traceback_str[:2000],  # Limit traceback size
+                        "user_agent": request.headers.get("user-agent"),
+                        "client_ip": request.client.host if request.client else None
+                    },
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+
+                # Save to system_logs table
+                result = supabase.table('system_logs').insert(error_log).execute()
+                logger.info(f"Error {error_id} logged to Supabase")
+
+            else:
+                # Fallback to local logging if Supabase not available
+                error_log = {
+                    "error_id": error_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "request_method": request.method,
+                    "request_url": str(request.url),
+                    "request_headers": filter_sensitive_headers(dict(request.headers)),
+                    "error_type": type(exception).__name__,
+                    "error_message": str(exception),
+                    "traceback": traceback_str[:1000],
+                    "user_agent": request.headers.get("user-agent"),
+                    "client_ip": request.client.host if request.client else None
+                }
+                logger.info(f"Structured error log (Supabase unavailable): {json.dumps(error_log, indent=2)}")
+
         except Exception as e:
-            logger.error(f"Failed to structure error log: {e}")
+            logger.error(f"Failed to log error to database: {e}")
 
 class CustomExceptionHandler:
     """
@@ -183,7 +234,16 @@ class CustomExceptionHandler:
     def database_error_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle database connection errors"""
         logger.error(f"Database error at {request.url}: {exc}")
-        
+
+        # Use configuration for retry time if available
+        retry_seconds = 30
+        if SUPABASE_AVAILABLE:
+            try:
+                config = get_scraper_config()
+                retry_seconds = config.request_timeout
+            except Exception:
+                pass
+
         return JSONResponse(
             status_code=503,
             content={
@@ -193,7 +253,10 @@ class CustomExceptionHandler:
                 "timestamp": datetime.now().isoformat(),
                 "path": str(request.url),
                 "method": request.method,
-                "retry_after": "30 seconds"
+                "retry_after": f"{retry_seconds} seconds"
+            },
+            headers={
+                "Retry-After": str(retry_seconds)
             }
         )
     
@@ -201,7 +264,16 @@ class CustomExceptionHandler:
     def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle rate limit errors"""
         logger.warning(f"Rate limit exceeded at {request.url}: {exc}")
-        
+
+        # Use configuration for retry time if available
+        retry_seconds = 60
+        if SUPABASE_AVAILABLE:
+            try:
+                config = get_scraper_config()
+                retry_seconds = config.db_rate_limit_window
+            except Exception:
+                pass
+
         return JSONResponse(
             status_code=429,
             content={
@@ -211,10 +283,10 @@ class CustomExceptionHandler:
                 "timestamp": datetime.now().isoformat(),
                 "path": str(request.url),
                 "method": request.method,
-                "retry_after": "60 seconds"
+                "retry_after": f"{retry_seconds} seconds"
             },
             headers={
-                "Retry-After": "60"
+                "Retry-After": str(retry_seconds)
             }
         )
     
@@ -239,10 +311,39 @@ def add_error_handlers(app):
     """
     Add custom error handlers to the FastAPI app
     """
-    
+
     # Add middleware
     app.add_middleware(ErrorHandlingMiddleware)
-    
+
+    # Create handler instance
+    custom_handler = CustomExceptionHandler()
+
+    # Register combined exception handler for specific error types
+    @app.exception_handler(Exception)
+    async def handle_specific_exceptions(request: Request, exc: Exception):
+        """Handle specific types of exceptions before generic handling"""
+        error_msg = str(exc).lower()
+
+        # Check for database errors first (higher priority)
+        if any(term in error_msg for term in ['supabase', 'database', 'connection', 'postgrest']):
+            return custom_handler.database_error_handler(request, exc)
+
+        # Check for external API errors
+        if any(term in error_msg for term in ['openai', 'reddit', 'api error', 'external']):
+            return custom_handler.external_api_error_handler(request, exc)
+
+        # Let other exceptions be handled by the middleware
+        raise exc
+
+    # Register rate limit handler (if using custom rate limit exception)
+    try:
+        from utils.rate_limit import RateLimitExceeded
+        @app.exception_handler(RateLimitExceeded)
+        async def handle_rate_limit(request: Request, exc: RateLimitExceeded):
+            return custom_handler.rate_limit_error_handler(request, exc)
+    except ImportError:
+        pass
+
     # Add specific exception handlers
     @app.exception_handler(404)
     async def not_found_handler(request: Request, exc: HTTPException):
@@ -256,8 +357,23 @@ def add_error_handlers(app):
                 "path": str(request.url),
                 "method": request.method,
                 "available_endpoints": [
-                    "/health", "/ready", "/alive", "/metrics",
-                    "/api/stats", "/api/ai-review/start", "/api/jobs/start"
+                    # Health & monitoring
+                    "/", "/health", "/ready", "/alive", "/metrics",
+                    "/api/stats",
+                    # Reddit scraper
+                    "/api/scraper/start", "/api/scraper/stop", "/api/scraper/status",
+                    "/api/scraper/status-detailed", "/api/scraper/cycle-status",
+                    # Instagram scraper
+                    "/api/instagram/scraper/start", "/api/instagram/scraper/stop",
+                    "/api/instagram/scraper/status", "/api/instagram/scraper/cycle-status",
+                    # Categorization
+                    "/api/categorization/start", "/api/categorization/stats",
+                    # User discovery
+                    "/api/users/discover",
+                    # Single subreddit fetch
+                    "/api/subreddits/fetch-single",
+                    # Background jobs
+                    "/api/jobs/start", "/api/jobs/{job_id}"
                 ]
             }
         )

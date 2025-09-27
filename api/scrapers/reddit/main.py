@@ -20,8 +20,6 @@ from dotenv import load_dotenv
 
 # Setup path for Docker environment - script runs from /app/api/scrapers/reddit/
 # Need to add /app/api to Python path so it can find core, scrapers, etc.
-import sys
-import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
 if api_root not in sys.path:
@@ -37,7 +35,7 @@ from core.exceptions import (
     SubredditBannedException, SubredditPrivateException, 
     ValidationException, handle_api_error, validate_subreddit_name
 )
-from scrapers.reddit.processors.calculator import MetricsCalculator
+from scrapers.reddit.processors.calculator import MetricsCalculator, RequirementsCalculator
 from scrapers.reddit.scrapers.subreddit import SubredditScraper
 from scrapers.reddit.scrapers.user import UserScraper
 from core.utils.supabase_logger import SupabaseLogHandler
@@ -327,7 +325,7 @@ class RedditScraperV2:
             # Get No Seller subreddits
             no_seller_response = self.supabase.table('reddit_subreddits').select('*').eq(
                 'review', 'No Seller'
-            ).limit(500).execute()  # Should be enough for No Seller
+            ).limit(self.config.no_seller_limit).execute()  # Use configurable limit for No Seller
 
             ok_subreddits = all_ok_subreddits  # Use the accumulated list from pagination
             no_seller_subreddits = no_seller_response.data if no_seller_response.data else []
@@ -456,11 +454,12 @@ class RedditScraperV2:
                     # Merge calculated data
                     final_data = {**result.get('subreddit_data', {}), **calculated_data}
 
-                    # Apply 20% penalty for No Seller subreddits
-                    if subreddit_type == 'no_seller' and 'subreddit_score' in final_data:
+                    # Apply 20% boost for SFW subreddits
+                    nsfw_percentage = final_data.get('nsfw_percentage', 0)
+                    if nsfw_percentage < 10 and 'subreddit_score' in final_data:
                         original_score = final_data['subreddit_score']
-                        final_data['subreddit_score'] = original_score * 0.8
-                        logger.debug(f"Applied No Seller penalty: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
+                        final_data['subreddit_score'] = original_score * 1.2
+                        logger.debug(f"Applied SFW boost: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
 
                     # Save to database via batch writer
                     logger.info(f"📊 Saving processed data for r/{subreddit_name} to batch writer")
@@ -631,28 +630,32 @@ class RedditScraperV2:
 
     async def calculate_and_save_requirements(self):
         """Calculate and save minimum requirements for each subreddit"""
+        calculator = RequirementsCalculator()
+
         for subreddit_name, req_data in self.subreddit_requirements.items():
             if not req_data['users']:
                 continue
 
             try:
-                # Calculate percentiles (25th percentile for minimum requirements)
-                import numpy as np
+                # Convert data format for RequirementsCalculator
+                # The calculator expects user_data with 'link_karma', 'comment_karma', 'account_age_days'
+                user_data = []
+                for i, user in enumerate(req_data['users']):
+                    user_data.append({
+                        'link_karma': req_data['post_karmas'][i] if i < len(req_data['post_karmas']) else 0,
+                        'comment_karma': req_data['comment_karmas'][i] if i < len(req_data['comment_karmas']) else 0,
+                        'account_age_days': req_data['ages'][i] if i < len(req_data['ages']) else 0
+                    })
 
-                post_karmas = sorted(req_data['post_karmas'])
-                comment_karmas = sorted(req_data['comment_karmas'])
-                ages = sorted(req_data['ages'])
-
-                min_post_karma = int(np.percentile(post_karmas, 25)) if post_karmas else 0
-                min_comment_karma = int(np.percentile(comment_karmas, 25)) if comment_karmas else 0
-                min_account_age_days = int(np.percentile(ages, 25)) if ages else 0
+                # Calculate requirements using 25th percentile (to match previous behavior)
+                requirements = calculator.calculate_percentile_requirements(user_data, percentile=25)
 
                 # Update subreddit with requirements
                 update_data = {
-                    'min_post_karma': min_post_karma,
-                    'min_comment_karma': min_comment_karma,
-                    'min_account_age_days': min_account_age_days,
-                    'requirements_sample_size': len(req_data['users']),
+                    'min_post_karma': requirements['min_post_karma'],
+                    'min_comment_karma': requirements['min_comment_karma'],
+                    'min_account_age_days': requirements['min_account_age_days'],
+                    'requirements_sample_size': requirements['requirement_sample_size'],
                     'requirements_updated_at': datetime.now(timezone.utc).isoformat()
                 }
 
@@ -661,8 +664,10 @@ class RedditScraperV2:
                 ).execute()
 
                 logger.info(f"📊 Updated requirements for r/{subreddit_name}: "
-                           f"post_karma≥{min_post_karma}, comment_karma≥{min_comment_karma}, "
-                           f"age≥{min_account_age_days}d (n={len(req_data['users'])})")
+                           f"post_karma≥{requirements['min_post_karma']}, "
+                           f"comment_karma≥{requirements['min_comment_karma']}, "
+                           f"age≥{requirements['min_account_age_days']}d "
+                           f"(n={requirements['requirement_sample_size']})")
 
             except Exception as e:
                 logger.error(f"Error calculating requirements for r/{subreddit_name}: {e}")
@@ -682,8 +687,8 @@ class RedditScraperV2:
                 'subscribers.is.null,'
                 'subscribers.eq.0'
             ).order(
-                'subscribers', desc=True
-            ).limit(500).execute()  # Increase limit to process more subreddits in discovery
+                'subscribers.desc'
+            ).limit(self.config.discovery_limit).execute()  # Use configurable discovery limit
 
             if not response.data:
                 logger.info("No pending or incomplete subreddits to process in discovery mode")
@@ -751,6 +756,14 @@ class RedditScraperV2:
 
                             # Save discovery data
                             final_data = {**result.get('subreddit_data', {}), **calculated_data}
+
+                            # Apply 20% boost for SFW subreddits in discovery too
+                            nsfw_percentage = final_data.get('nsfw_percentage', 0)
+                            if nsfw_percentage < 10 and 'subreddit_score' in final_data:
+                                original_score = final_data['subreddit_score']
+                                final_data['subreddit_score'] = original_score * 1.2
+                                logger.debug(f"Applied SFW boost to discovered r/{name}: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
+
                             await self.batch_writer.add_subreddit(final_data)
                             self.stats['discoveries_made'] += 1
 
@@ -1080,43 +1093,6 @@ class RedditScraperV2:
             logger.info(f"📊 Final memory stats: {final_stats}")
 
         logger.info("✅ Cleanup completed")
-
-    async def _mark_as_user_feed(self, name: str):
-        """Mark subreddit as User Feed"""
-        try:
-            self.supabase.table('reddit_subreddits').update({
-                'review': 'User Feed',  # Use 'review' column, not 'category'
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('name', name.lower()).execute()
-            self.user_feed_subreddits.add(name.lower())
-            logger.info(f"Marked r/{name} as User Feed")
-        except Exception as e:
-            logger.error(f"Error marking r/{name} as User Feed: {e}")
-
-    async def _mark_as_banned(self, name: str):
-        """Mark subreddit as Banned"""
-        try:
-            self.supabase.table('reddit_subreddits').update({
-                'review': 'Banned',  # Use 'review' column, not 'category'
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('name', name.lower()).execute()
-            self.banned_subreddits.add(name.lower())
-            logger.info(f"Marked r/{name} as Banned")
-        except Exception as e:
-            logger.error(f"Error marking r/{name} as Banned: {e}")
-
-    async def _mark_as_non_related(self, name: str, reason: str = ""):
-        """Mark subreddit as Non Related"""
-        try:
-            self.supabase.table('reddit_subreddits').update({
-                'review': 'Non Related',  # Use 'review' column, not 'category'
-                'description': reason,
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('name', name.lower()).execute()
-            self.non_related_subreddits.add(name.lower())
-            logger.info(f"Marked r/{name} as Non Related: {reason}")
-        except Exception as e:
-            logger.error(f"Error marking r/{name} as Non Related: {e}")
 
 
 async def main():

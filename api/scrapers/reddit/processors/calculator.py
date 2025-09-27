@@ -7,7 +7,7 @@ They have been thoroughly analyzed and produce accurate metrics.
 """
 import math
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from collections import defaultdict
 
@@ -393,7 +393,7 @@ class MetricsCalculator:
     @staticmethod
     def calculate_all_metrics(hot_posts: List[Dict],
                              weekly_posts: List[Dict],
-                             yearly_posts: List[Dict]) -> Dict[str, Any]:
+                             yearly_posts: List[Dict]) -> Dict[str, float]:
         """
         Calculate all metrics for a subreddit.
 
@@ -489,7 +489,8 @@ class RequirementsCalculator:
             return {
                 'min_post_karma': 0,
                 'min_comment_karma': 0,
-                'min_account_age_days': 0
+                'min_account_age_days': 0,
+                'requirement_sample_size': len(user_data) if user_data else 0
             }
 
         # Extract metrics
@@ -512,6 +513,32 @@ class UserQualityCalculator:
     """
     Calculates user quality scores for ranking and filtering.
     """
+
+    def calculate(self, username: str, account_age_days: int,
+                  post_karma: int, comment_karma: int) -> Dict[str, float]:
+        """
+        Calculate all user quality scores.
+
+        Args:
+            username: Reddit username
+            account_age_days: Account age in days
+            post_karma: Post karma count
+            comment_karma: Comment karma count
+
+        Returns:
+            Dictionary with username_score, age_score, karma_score, and overall_score
+        """
+        username_score = self.calculate_username_score(username)
+        age_score = self.calculate_age_score(account_age_days)
+        karma_score = self.calculate_karma_score(post_karma, comment_karma)
+        overall_score = self.calculate_overall_score(username_score, age_score, karma_score)
+
+        return {
+            'username_score': username_score,
+            'age_score': age_score,
+            'karma_score': karma_score,
+            'overall_score': overall_score
+        }
 
     @staticmethod
     def calculate_username_score(username: str) -> float:
