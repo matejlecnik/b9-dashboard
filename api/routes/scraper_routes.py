@@ -109,6 +109,11 @@ async def start_scraper(request: Request):
             logger.info(f"Starting Reddit scraper with command: {sys.executable} -u {full_script_path}")
             logger.info(f"Working directory: {api_dir}")
 
+            # Ensure PYTHONPATH includes the API directory so imports work
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'  # Force unbuffered output
+            env['PYTHONPATH'] = api_dir + ':' + env.get('PYTHONPATH', '')  # Add API dir to Python path
+
             reddit_process = subprocess.Popen(
                 [sys.executable, "-u", full_script_path],
                 stdout=log_file,
@@ -116,7 +121,7 @@ async def start_scraper(request: Request):
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
                 cwd=api_dir,  # API directory
-                env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
+                env=env
             )
 
             # Check if process started successfully
