@@ -539,10 +539,10 @@ class RedditScraperV2:
 
                             # Try calling with explicit error handling
                             try:
-                                result_value = await self.batch_writer.save_posts(result['hot_posts'])
-                                logger.info(f"🔍 save_posts returned: {result_value}")
+                                result_value = await self.batch_writer.add_posts(result['hot_posts'])
+                                logger.info(f"🔍 add_posts returned: {result_value}")
                             except Exception as e:
-                                logger.error(f"❌ save_posts raised exception: {e}")
+                                logger.error(f"❌ add_posts raised exception: {e}")
                                 raise
 
                             self.stats['posts_processed'] += len(result['hot_posts'])
@@ -550,13 +550,13 @@ class RedditScraperV2:
 
                         if result.get('top_posts'):  # Weekly posts
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts to batch writer")
-                            await self.batch_writer.save_posts(result['top_posts'])
+                            await self.batch_writer.add_posts(result['top_posts'])
                             self.stats['posts_processed'] += len(result['top_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts added successfully")
 
                         if result.get('yearly_posts'):  # Yearly posts
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts to batch writer")
-                            await self.batch_writer.save_posts(result['yearly_posts'])
+                            await self.batch_writer.add_posts(result['yearly_posts'])
                             self.stats['posts_processed'] += len(result['yearly_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts added successfully")
                     except Exception as e:

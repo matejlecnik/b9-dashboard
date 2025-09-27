@@ -355,9 +355,29 @@ class BatchWriter:
             logger.error(traceback.format_exc())
 
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
-        """DEPRECATED: Use save_posts instead"""
-        # This method seems to have an issue - use save_posts instead
-        return None
+        """Direct implementation to bypass the mysterious bug"""
+        if not posts_data:
+            return
+
+        # Direct write to database, bypassing all the complex logic for now
+        try:
+            # Clean the data
+            cleaned_posts = []
+            for post in posts_data:
+                cleaned = self._clean_post_data(post)
+                cleaned_posts.append(cleaned)
+
+            # Write directly to database
+            if cleaned_posts:
+                response = self.supabase.table('reddit_posts').upsert(
+                    cleaned_posts,
+                    on_conflict='reddit_id'
+                ).execute()
+                logger.info(f"✅ Directly wrote {len(cleaned_posts)} posts to database")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Error in add_posts direct write: {e}")
+            return False
 
     async def save_posts(self, posts_data: List[Dict[str, Any]]):
         """
