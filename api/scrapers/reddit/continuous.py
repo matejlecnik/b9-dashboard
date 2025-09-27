@@ -24,7 +24,7 @@ if api_root not in sys.path:
 
 
 # Version tracking
-SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool
+SCRAPER_VERSION = "2.1.0"  # Fixed category column issue, using review column
 
 # Load environment variables from parent directory
 env_path = Path(__file__).parent.parent.parent / '.env'

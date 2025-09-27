@@ -53,7 +53,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "2.0.0"
+SCRAPER_VERSION = "2.1.0"
 
 
 class RedditScraperV2:
@@ -117,7 +117,28 @@ class RedditScraperV2:
 
     async def initialize(self):
         """Initialize all components"""
-        logger.info(f"🚀 Initializing Reddit Scraper v{SCRAPER_VERSION}")
+        logger.info(f"🚀 Initializing Reddit Scraper v{SCRAPER_VERSION} - LATEST FIXED VERSION")
+
+        # Log startup immediately to track which version is running
+        try:
+            # Try to log to database early if possible
+            temp_supabase = get_supabase_client()
+            temp_supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'reddit_scraper_startup',
+                'level': 'info',
+                'message': f'Starting Reddit Scraper v{SCRAPER_VERSION} - LATEST VERSION (Fixed category column issue)',
+                'context': {
+                    'version': SCRAPER_VERSION,
+                    'startup_type': 'main_scraper',
+                    'fix_applied': 'category_column_to_review',
+                    'file_path': 'scrapers/reddit/main.py'
+                }
+            }).execute()
+            logger.info(f"✅ Logged startup to database - v{SCRAPER_VERSION}")
+        except Exception as e:
+            logger.warning(f"Could not log early startup to database: {e}")
 
         # Force refresh Supabase client to clear any schema cache
         refresh_supabase_client()
