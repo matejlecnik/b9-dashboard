@@ -11,7 +11,7 @@ from typing import Optional
 class SupabaseLogHandler(logging.Handler):
     """Custom logging handler that sends logs to system_logs table"""
 
-    def __init__(self, supabase_client, source: str = 'reddit_scraper',
+    def __init__(self, supabase_client, source: str = 'reddit_scraper_v2',
                  buffer_size: int = 5, flush_interval: int = 30):
         """
         Initialize the Supabase log handler.
@@ -62,7 +62,7 @@ class SupabaseLogHandler(logging.Handler):
             log_entry = {
                 'timestamp': datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
                 'source': self.source,
-                'script_name': 'reddit_scraper',
+                'script_name': 'reddit_scraper_v2',
                 'level': record.levelname.lower(),
                 'message': message[:1000],  # Truncate long messages
                 'context': context

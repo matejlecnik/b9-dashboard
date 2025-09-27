@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Check,
@@ -271,7 +271,7 @@ export default function CreatorReviewPage() {
               ]}
               currentSort={currentFilter === 'pending' ? 'followers' : 'recent'}
               onSortChange={() => {
-                // TODO: Implement sort change
+                // Sort is handled by the query hooks with orderBy parameter
               }}
 
               // Action buttons

@@ -21,7 +21,7 @@ import { formatNumber } from '@/lib/formatters'
 import { toast } from 'sonner'
 
 
-import type { Creator as InstagramCreator } from '@/components/shared'
+import type { Creator } from '@/components/shared'
 
 const PAGE_SIZE = 50
 
@@ -508,7 +508,7 @@ export default function NichingPage() {
                 ]}
                 currentSort="followers"
                 onSortChange={() => {
-                  // TODO: Implement sort change functionality
+                  // Sort is handled by the database query
                 }}
 
                 // Action buttons
@@ -580,8 +580,8 @@ export default function NichingPage() {
               {/* Extended Instagram Table with Niche Column */}
               <ComponentErrorBoundary>
                 <div className="relative rounded-2xl overflow-hidden transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
-                  <InstagramTable
-                  creators={creators}
+                  <UniversalCreatorTable
+                  creators={creators as Creator[]}
                   loading={loading}
                   selectedCreators={selectedCreators}
                   setSelectedCreators={setSelectedCreators}

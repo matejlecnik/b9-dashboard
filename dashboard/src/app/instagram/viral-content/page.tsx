@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Film,
   TrendingUp,
@@ -98,25 +98,25 @@ export default function ViralContentPage() {
     loadStats(filters)
   }, [filters, loadReels, loadStats])
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (page < totalPages) {
       loadReels(page + 1, filters, true)
     }
-  }
+  }, [page, totalPages, filters, loadReels])
 
-  const handleFiltersChange = (newFilters: ViralReelsFilters) => {
+  const handleFiltersChange = useCallback((newFilters: ViralReelsFilters) => {
     setFilters(newFilters)
     setPage(1)
-  }
+  }, [])
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setFilters({
       minViews: 50000,
       sortBy: 'views',
       sortOrder: 'desc'
     })
     setPage(1)
-  }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">

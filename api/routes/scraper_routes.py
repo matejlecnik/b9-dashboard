@@ -144,7 +144,7 @@ async def start_scraper(request: Request):
         # Log the action
         supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'source': 'reddit_scraper',
+            'source': 'reddit_scraper_v2',
             'script_name': 'scraper_routes',
             'level': 'info',
             'message': '✅ Reddit scraper enabled via API',
@@ -225,7 +225,7 @@ async def force_kill_scraper(request: Request):
             # Log the action
             supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper',
+                'source': 'reddit_scraper_v2',
                 'script_name': 'scraper_routes',
                 'level': 'warning',
                 'message': f'💀 Force killed scraper processes: {killed_pids}',
@@ -317,7 +317,7 @@ async def stop_scraper(request: Request):
         # Log the action
         supabase.table('system_logs').insert({
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'source': 'reddit_scraper',
+            'source': 'reddit_scraper_v2',
             'script_name': 'scraper_routes',
             'level': 'info',
             'message': '⏹️ Scraper stopped via API',

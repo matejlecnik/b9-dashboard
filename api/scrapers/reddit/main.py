@@ -125,7 +125,7 @@ class RedditScraperV2:
             # Check if Supabase handler already exists
             handler_exists = any(isinstance(h, SupabaseLogHandler) for h in logger.handlers)
             if not handler_exists:
-                supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper')
+                supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper_v2')
                 supabase_handler.setLevel(logging.INFO)  # Only send INFO and above to database
                 logger.addHandler(supabase_handler)
                 logger.info("🔗 Supabase logging handler initialized")
@@ -296,7 +296,7 @@ class RedditScraperV2:
             all_ok_subreddits = []
             offset = 0
             batch_size = 1000
-            max_subreddits = 2000  # Limit total subreddits to prevent memory issues
+            max_subreddits = 2500  # Increased to handle all current OK subreddits (2059+)
 
             while len(all_ok_subreddits) < max_subreddits:
                 ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
@@ -1068,6 +1068,43 @@ class RedditScraperV2:
             logger.info(f"📊 Final memory stats: {final_stats}")
 
         logger.info("✅ Cleanup completed")
+
+    async def _mark_as_user_feed(self, name: str):
+        """Mark subreddit as User Feed"""
+        try:
+            self.supabase.table('reddit_subreddits').update({
+                'review': 'User Feed',  # Use 'review' column, not 'category'
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).eq('name', name.lower()).execute()
+            self.user_feed_subreddits.add(name.lower())
+            logger.info(f"Marked r/{name} as User Feed")
+        except Exception as e:
+            logger.error(f"Error marking r/{name} as User Feed: {e}")
+
+    async def _mark_as_banned(self, name: str):
+        """Mark subreddit as Banned"""
+        try:
+            self.supabase.table('reddit_subreddits').update({
+                'review': 'Banned',  # Use 'review' column, not 'category'
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).eq('name', name.lower()).execute()
+            self.banned_subreddits.add(name.lower())
+            logger.info(f"Marked r/{name} as Banned")
+        except Exception as e:
+            logger.error(f"Error marking r/{name} as Banned: {e}")
+
+    async def _mark_as_non_related(self, name: str, reason: str = ""):
+        """Mark subreddit as Non Related"""
+        try:
+            self.supabase.table('reddit_subreddits').update({
+                'review': 'Non Related',  # Use 'review' column, not 'category'
+                'description': reason,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).eq('name', name.lower()).execute()
+            self.non_related_subreddits.add(name.lower())
+            logger.info(f"Marked r/{name} as Non Related: {reason}")
+        except Exception as e:
+            logger.error(f"Error marking r/{name} as Non Related: {e}")
 
 
 async def main():
