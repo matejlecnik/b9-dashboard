@@ -100,13 +100,22 @@ async def start_scraper(request: Request):
             log_file.flush()
 
             # Start Reddit scraper subprocess with proper logging
+            # The working directory is /app/api, so the script is at scrapers/reddit/main.py
+            script_path = os.path.join("scrapers", "reddit", "main.py")
+            api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            full_script_path = os.path.join(api_dir, script_path)
+
+            # Log the exact command being run for debugging
+            logger.info(f"Starting Reddit scraper with command: {sys.executable} -u {full_script_path}")
+            logger.info(f"Working directory: {api_dir}")
+
             reddit_process = subprocess.Popen(
-                [sys.executable, "-u", "scrapers/reddit/main.py"],
+                [sys.executable, "-u", full_script_path],
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # API directory
+                cwd=api_dir,  # API directory
                 env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
             )
 
