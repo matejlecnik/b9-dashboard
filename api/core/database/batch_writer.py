@@ -17,18 +17,19 @@ class BatchWriter:
     Accumulates records and writes them in efficient batches.
     """
 
-    def __init__(self, supabase_client, batch_size: int = 500, flush_interval: float = 30.0):
+    def __init__(self, supabase_client, batch_size: int = 50, flush_interval: float = 10.0):
         """
         Initialize batch writer.
 
         Args:
             supabase_client: Initialized Supabase client
-            batch_size: Maximum records per batch (Supabase supports up to 1000)
-            flush_interval: Time in seconds between automatic flushes
+            batch_size: Maximum records per batch (reduced to 50 for more frequent flushes)
+            flush_interval: Time in seconds between automatic flushes (reduced to 10s)
         """
         self.supabase = supabase_client
-        self.batch_size = min(batch_size, 1000)  # Supabase max is 1000
+        self.batch_size = min(batch_size, 50)  # Reduced from 500 to 50 for more frequent flushes
         self.flush_interval = flush_interval
+        logger.info(f"🔧 BatchWriter initialized with batch_size={self.batch_size}, flush_interval={self.flush_interval}s")
 
         # Buffers for different tables
         self.buffers = defaultdict(list)
@@ -49,44 +50,107 @@ class BatchWriter:
 
     async def start(self):
         """Start the automatic flush task"""
-        self._running = True
-        self._flush_task = asyncio.create_task(self._auto_flush_loop())
-        logger.info(f"Batch writer started with batch_size={self.batch_size}, "
-                   f"flush_interval={self.flush_interval}s")
+        try:
+            self._running = True
+            logger.info(f"📝 Starting batch writer with batch_size={self.batch_size}, "
+                       f"flush_interval={self.flush_interval}s")
+
+            # Create and start the auto-flush task
+            self._flush_task = asyncio.create_task(self._auto_flush_loop())
+
+            # Verify task was created
+            if self._flush_task:
+                logger.info(f"✅ Auto-flush task created successfully (task: {self._flush_task})")
+            else:
+                logger.error("❌ Failed to create auto-flush task!")
+
+        except Exception as e:
+            logger.error(f"❌ Error starting batch writer: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     async def stop(self):
         """Stop the batch writer and flush remaining data"""
-        self._running = False
+        logger.info("🛑 Stopping batch writer...")
 
-        if self._flush_task:
-            self._flush_task.cancel()
+        try:
+            # CRITICAL: Flush BEFORE stopping the task
+            logger.info("💾 Performing final flush before stopping...")
+            await self.flush_all()
+
+            # Log buffer status after flush
+            buffer_sizes = {table: len(self.buffers[table]) for table in self.buffers}
+            if any(buffer_sizes.values()):
+                logger.warning(f"⚠️ Buffers still contain data after flush: {buffer_sizes}")
+            else:
+                logger.info("✅ All buffers successfully emptied")
+
+            # Now stop the auto-flush task
+            self._running = False
+            if self._flush_task:
+                logger.info("🚫 Cancelling auto-flush task...")
+                self._flush_task.cancel()
+                try:
+                    await self._flush_task
+                except asyncio.CancelledError:
+                    logger.debug("Auto-flush task cancelled successfully")
+                    pass
+
+            # One more flush to catch any last-second additions
+            logger.info("💾 Performing second flush to catch any remaining data...")
+            await self.flush_all()
+
+            # Final buffer check
+            final_buffer_sizes = {table: len(self.buffers[table]) for table in self.buffers}
+            total_remaining = sum(final_buffer_sizes.values())
+            if total_remaining > 0:
+                logger.error(f"❌ {total_remaining} records still in buffers after stop: {final_buffer_sizes}")
+            else:
+                logger.info("✅ Batch writer stopped cleanly - all data flushed")
+
+        except Exception as e:
+            logger.error(f"❌ Error during batch writer stop: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Still try to flush even if there was an error
             try:
-                await self._flush_task
-            except asyncio.CancelledError:
-                pass
-
-        # Final flush of all buffers
-        await self.flush_all()
-        logger.info("Batch writer stopped and flushed all buffers")
+                await self.flush_all()
+            except Exception as flush_error:
+                logger.error(f"❌ Failed to flush during error recovery: {flush_error}")
 
     async def _auto_flush_loop(self):
         """Periodically flush buffers"""
-        logger.info(f"🔄 Auto-flush loop started (interval: {self.flush_interval}s)")
+        logger.info(f"🔄 Auto-flush loop STARTING (interval: {self.flush_interval}s)")
+        flush_count = 0
+
         while self._running:
             try:
                 await asyncio.sleep(self.flush_interval)
-                logger.info(f"⏰ Auto-flush timer triggered (every {self.flush_interval}s)")
-                # Log current buffer sizes before flush
+                flush_count += 1
+
+                # Log current buffer status
                 buffer_sizes = {table: len(self.buffers[table]) for table in self.buffers}
-                logger.info(f"  Current buffer sizes: {buffer_sizes}")
-                await self.flush_all()
+                total_buffered = sum(buffer_sizes.values())
+
+                logger.info(f"⏰ Auto-flush #{flush_count} triggered (every {self.flush_interval}s)")
+                logger.info(f"  📊 Buffer status: {buffer_sizes} (total: {total_buffered} records)")
+
+                if total_buffered > 0:
+                    await self.flush_all()
+                    logger.info(f"  ✅ Auto-flush #{flush_count} completed")
+                else:
+                    logger.debug(f"  ⏭️ Auto-flush #{flush_count} skipped (no data)")
+
             except asyncio.CancelledError:
-                logger.info("Auto-flush loop cancelled")
+                logger.info("🚫 Auto-flush loop cancelled - performing final flush")
+                await self.flush_all()
                 break
             except Exception as e:
                 logger.error(f"❌ Error in auto flush loop: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+
+        logger.info("🔄 Auto-flush loop STOPPED")
 
     async def add_subreddit(self, subreddit_data: Dict[str, Any]):
         """
@@ -177,22 +241,42 @@ class BatchWriter:
 
     async def flush_all(self):
         """Flush all buffers to database"""
-        async with self._lock:
-            tables_to_flush = list(self.buffers.keys())
-            buffer_counts = {table: len(self.buffers[table]) for table in tables_to_flush}
+        flush_errors = []
 
-        # Log what we're about to flush
-        total_records = sum(buffer_counts.values())
-        if total_records > 0:
-            logger.info(f"🔄 Starting flush_all for {total_records} total records:")
-            for table, count in buffer_counts.items():
-                if count > 0:
-                    logger.info(f"  - {table}: {count} records")
-        else:
-            logger.debug("flush_all called but no records to flush")
+        try:
+            async with self._lock:
+                tables_to_flush = list(self.buffers.keys())
+                buffer_counts = {table: len(self.buffers[table]) for table in tables_to_flush}
 
-        for table in tables_to_flush:
-            await self._flush_table(table)
+            # Log what we're about to flush
+            total_records = sum(buffer_counts.values())
+            if total_records > 0:
+                logger.info(f"🔄 Starting flush_all for {total_records} total records:")
+                for table, count in buffer_counts.items():
+                    if count > 0:
+                        logger.info(f"  - {table}: {count} records")
+            else:
+                logger.debug("flush_all called but no records to flush")
+                return
+
+            # Flush each table, catching individual errors
+            for table in tables_to_flush:
+                try:
+                    await self._flush_table(table)
+                except Exception as e:
+                    error_msg = f"Failed to flush {table}: {e}"
+                    logger.error(f"❌ {error_msg}")
+                    flush_errors.append(error_msg)
+
+            if flush_errors:
+                logger.error(f"⚠️ flush_all completed with {len(flush_errors)} errors: {flush_errors}")
+            else:
+                logger.info(f"✅ flush_all completed successfully for {total_records} records")
+
+        except Exception as e:
+            logger.error(f"❌ Critical error in flush_all: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     async def _flush_table(self, table_name: str):
         """
@@ -330,7 +414,12 @@ class BatchWriter:
         Returns:
             Tuple of (successful_count, failed_count)
         """
+        if not records:
+            logger.debug(f"_write_batch called with empty records for {table_name}")
+            return 0, 0
+
         try:
+            logger.info(f"📤 Writing batch of {len(records)} records to {table_name}")
             # For subreddits, preserve existing review field
             if table_name == 'reddit_subreddits':
                 # Fetch existing reviews for these subreddits
@@ -378,28 +467,50 @@ class BatchWriter:
                 on_conflict=on_conflict_col
             ).execute()
 
+            # Check for errors in response
             if hasattr(response, 'error') and response.error:
                 logger.error(f"❌ Batch write error for {table_name}: {response.error}")
                 return 0, len(records)
 
-            logger.debug(f"✅ Upsert successful for {len(records)} records to {table_name}")
+            # Also check if data is None which can indicate an error
+            if response.data is None and not hasattr(response, 'count'):
+                logger.warning(f"⚠️ Upsert returned no data for {table_name}, but no error reported")
+
+            logger.info(f"✅ Successfully wrote {len(records)} records to {table_name}")
             return len(records), 0
 
         except Exception as e:
-            logger.error(f"Exception writing batch to {table_name}: {e}")
+            logger.error(f"❌ Exception writing batch to {table_name}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Try to write records individually as fallback
+            logger.info(f"🔁 Attempting to write {len(records)} records individually to {table_name}...")
             successful = 0
-            for record in records:
+            failed_records = []
+
+            for i, record in enumerate(records):
                 try:
                     on_conflict_col = self._get_conflict_column(table_name)
-                    self.supabase.table(table_name).upsert(
+                    response = self.supabase.table(table_name).upsert(
                         record,
                         on_conflict=on_conflict_col
                     ).execute()
-                    successful += 1
+
+                    if hasattr(response, 'error') and response.error:
+                        logger.debug(f"Failed record {i+1}/{len(records)}: {response.error}")
+                        failed_records.append(record.get('name') or record.get('username') or record.get('reddit_id') or f"record_{i}")
+                    else:
+                        successful += 1
+
                 except Exception as record_error:
-                    logger.debug(f"Failed to write individual record: {record_error}")
+                    logger.debug(f"Failed to write record {i+1}/{len(records)}: {record_error}")
+                    failed_records.append(record.get('name') or record.get('username') or record.get('reddit_id') or f"record_{i}")
+
+            if successful > 0:
+                logger.info(f"✅ Individual writes: {successful}/{len(records)} successful for {table_name}")
+            if failed_records:
+                logger.error(f"❌ Failed to write {len(failed_records)} records: {failed_records[:5]}{'...' if len(failed_records) > 5 else ''}")
 
             return successful, len(records) - successful
 
@@ -627,8 +738,22 @@ class BatchWriter:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit"""
-        await self.stop()
+        """Async context manager exit - ensure data is always flushed"""
+        try:
+            # Always flush, even if there was an exception
+            if exc_type:
+                logger.warning(f"⚠️ Exiting batch writer context with exception: {exc_type.__name__}: {exc_val}")
+                logger.info("💾 Attempting to flush data before exit...")
+
+            await self.stop()
+
+        except Exception as e:
+            logger.error(f"❌ Error in batch writer context exit: {e}")
+            # Last-ditch effort to save data
+            try:
+                await self.flush_all()
+            except Exception as flush_error:
+                logger.error(f"❌ Final flush attempt failed: {flush_error}")
 
     # Synchronous versions for threading compatibility
     def ensure_users_exist_sync(self, usernames: set):
