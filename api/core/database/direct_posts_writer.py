@@ -82,7 +82,7 @@ class DirectPostsWriter:
         Write posts directly to the database
         Returns True if successful, False otherwise
         """
-        # Remove type hint and add validation
+        # Validation
         try:
             if posts_data is None:
                 print(f"[DirectPostsWriter] posts_data is None", flush=True)
@@ -105,6 +105,7 @@ class DirectPostsWriter:
             logger.error(f"[DirectPostsWriter] Exception in validation: {e}")
             return False
 
+        # Main processing - this should execute after validation
         try:
             # Clean all posts
             cleaned_posts = []
