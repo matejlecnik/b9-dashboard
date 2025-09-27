@@ -332,27 +332,30 @@ class RedditScraperV2:
 
             logger.info(f"Loading OK subreddits from database (batch_size={batch_size})...")
             while len(all_ok_subreddits) < max_subreddits:
+                # Use limit/offset instead of range for more reliable pagination
                 ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
                     'review', 'Ok'
-                ).range(offset, offset + batch_size - 1).execute()
+                ).limit(batch_size).offset(offset).execute()
 
                 if ok_response.data:
                     all_ok_subreddits.extend(ok_response.data)
-                    logger.debug(f"Loaded batch: {len(ok_response.data)} subreddits (total: {len(all_ok_subreddits)})")
+                    logger.info(f"Loaded batch: {len(ok_response.data)} subreddits (total: {len(all_ok_subreddits)})")
                     if len(ok_response.data) < batch_size:
+                        logger.info(f"Last batch had {len(ok_response.data)} records, stopping pagination")
                         break  # No more results
                     offset += batch_size
                 else:
+                    logger.info("No more data returned, stopping pagination")
                     break
 
             if len(all_ok_subreddits) >= max_subreddits:
                 logger.warning(f"⚠️ Reached maximum limit of {max_subreddits} OK subreddits. "
                              f"Consider processing in smaller batches or increasing limit.")
 
-            # Get No Seller subreddits
+            # Get No Seller subreddits (using same limit/offset pattern for consistency)
             no_seller_response = self.supabase.table('reddit_subreddits').select('*').eq(
                 'review', 'No Seller'
-            ).limit(self.config.no_seller_limit).execute()  # Use configurable limit for No Seller
+            ).limit(self.config.no_seller_limit).offset(0).execute()  # Use configurable limit for No Seller
 
             ok_subreddits = all_ok_subreddits  # Use the accumulated list from pagination
             no_seller_subreddits = no_seller_response.data if no_seller_response.data else []
