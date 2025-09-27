@@ -354,6 +354,8 @@ class BatchWriter:
         Args:
             posts_data: List of post data dictionaries
         """
+        print(f"[BATCH_WRITER] add_posts called with {len(posts_data) if posts_data else 0} posts")
+
         if not posts_data:
             return
 

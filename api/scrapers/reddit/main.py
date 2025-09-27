@@ -505,20 +505,27 @@ class RedditScraperV2:
                     self.cache_manager.mark_subreddit_processed(subreddit_name)
 
                     # Process posts if available (save ALL types)
-                    if result.get('hot_posts'):
-                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts to batch writer")
-                        await self.batch_writer.add_posts(result['hot_posts'])
-                        self.stats['posts_processed'] += len(result['hot_posts'])
+                    try:
+                        if result.get('hot_posts'):
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts to batch writer")
+                            await self.batch_writer.add_posts(result['hot_posts'])
+                            self.stats['posts_processed'] += len(result['hot_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Hot posts added successfully")
 
-                    if result.get('top_posts'):  # Weekly posts
-                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts to batch writer")
-                        await self.batch_writer.add_posts(result['top_posts'])
-                        self.stats['posts_processed'] += len(result['top_posts'])
+                        if result.get('top_posts'):  # Weekly posts
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts to batch writer")
+                            await self.batch_writer.add_posts(result['top_posts'])
+                            self.stats['posts_processed'] += len(result['top_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts added successfully")
 
-                    if result.get('yearly_posts'):  # Yearly posts
-                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts to batch writer")
-                        await self.batch_writer.add_posts(result['yearly_posts'])
-                        self.stats['posts_processed'] += len(result['yearly_posts'])
+                        if result.get('yearly_posts'):  # Yearly posts
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts to batch writer")
+                            await self.batch_writer.add_posts(result['yearly_posts'])
+                            self.stats['posts_processed'] += len(result['yearly_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts added successfully")
+                    except Exception as e:
+                        logger.error(f"❌ Thread {scraper.thread_id}: Failed to add posts to batch writer: {e}")
+                        logger.error(f"Exception type: {type(e).__name__}, Details: {str(e)}")
 
                     # Manual flush every subreddit for first 5, then every 3 subreddits
                     if processed_count <= 5 or processed_count % 3 == 0:
