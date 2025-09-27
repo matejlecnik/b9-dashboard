@@ -9,6 +9,13 @@ __author__ = "B9 Agency"
 # Make key classes available at package level for easier imports
 from .core.clients.api_pool import ThreadSafeAPIPool, PublicRedditAPI
 from .core.config.proxy_manager import ProxyManager
+from .core.config.scraper_config import ScraperConfig, get_scraper_config
+from .core.exceptions import (
+    RedditScraperException, APIException, RateLimitException, 
+    ProxyException, DatabaseException, ScrapingException,
+    SubredditBannedException, SubredditPrivateException, UserSuspendedException,
+    ValidationException, handle_api_error, validate_subreddit_name, validate_username
+)
 from .core.cache.cache_manager import AsyncCacheManager, CacheManager
 from .core.database.batch_writer import BatchWriter
 from .core.database.supabase_client import get_supabase_client, close_supabase_client, get_circuit_breaker
@@ -29,6 +36,13 @@ __all__ = [
     'get_supabase_client', 'close_supabase_client', 'get_circuit_breaker',
     'SupabaseLogHandler', 'setup_supabase_logging',
     'MemoryMonitor', 'get_memory_monitor', 'set_memory_monitor',
+    
+    # Configuration and exceptions
+    'ScraperConfig', 'get_scraper_config',
+    'RedditScraperException', 'APIException', 'RateLimitException',
+    'ProxyException', 'DatabaseException', 'ScrapingException',
+    'SubredditBannedException', 'SubredditPrivateException', 'UserSuspendedException',
+    'ValidationException', 'handle_api_error', 'validate_subreddit_name', 'validate_username',
     
     # Reddit scrapers
     'RedditScraperV2', 'SubredditScraper', 'UserScraper', 'BaseScraper',

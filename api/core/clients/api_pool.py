@@ -155,7 +155,8 @@ class PublicRedditAPI:
                     if retries >= 5:
                         return {'error': 'rate_limited'}
 
-                    time.sleep(delay)
+                    import time
+                    time.sleep(delay)  # Sync sleep in retry loop is acceptable
                     retries += 1
                     continue
 
@@ -169,7 +170,8 @@ class PublicRedditAPI:
                 retries += 1
                 if retries < self.max_retries:
                     logger.warning(f"Request failed (attempt {retries}/{self.max_retries}): {url} - {str(e)[:100]}")
-                    time.sleep(self.base_delay * retries)
+                    import time
+                    time.sleep(self.base_delay * retries)  # Sync sleep in retry loop is acceptable
                 else:
                     logger.error(f"Request failed after {self.max_retries} retries: {url}")
                     break

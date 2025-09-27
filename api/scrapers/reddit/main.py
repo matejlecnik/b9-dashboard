@@ -29,9 +29,14 @@ if api_root not in sys.path:
 # Now import with the correct structure for Docker environment
 from core.clients.api_pool import ThreadSafeAPIPool
 from core.config.proxy_manager import ProxyManager
+from core.config.scraper_config import get_scraper_config
 from core.cache.cache_manager import AsyncCacheManager
 from core.database.batch_writer import BatchWriter
 from core.database.supabase_client import get_supabase_client
+from core.exceptions import (
+    SubredditBannedException, SubredditPrivateException, 
+    ValidationException, handle_api_error, validate_subreddit_name
+)
 from scrapers.reddit.processors.calculator import MetricsCalculator
 from scrapers.reddit.scrapers.subreddit import SubredditScraper
 from scrapers.reddit.scrapers.user import UserScraper
@@ -64,6 +69,10 @@ class RedditScraperV2:
 
     def __init__(self):
         """Initialize the Reddit scraper orchestrator"""
+        # Load configuration first
+        self.config = get_scraper_config()
+        
+        # Core components
         self.supabase = None
         self.proxy_manager = None
         self.api_pool = None
@@ -98,12 +107,12 @@ class RedditScraperV2:
         # Requirements tracking
         self.subreddit_requirements = {}  # {subreddit_name: {'users': [], 'post_karmas': [], 'comment_karmas': [], 'ages': []}}
 
-        # Stealth configuration - matches old scraper for anti-detection
+        # Stealth configuration - now using centralized config
         self.stealth_config = {
-            'min_delay': 2.5,  # Minimum delay between requests (seconds)
-            'max_delay': 6.0,  # Maximum delay between requests (seconds)
-            'burst_delay': (12, 20),  # Longer delay every N requests
-            'burst_frequency': random.randint(8, 15),  # Every N requests take a longer break
+            'min_delay': self.config.min_delay,
+            'max_delay': self.config.max_delay,
+            'burst_delay': (self.config.burst_delay_min, self.config.burst_delay_max),
+            'burst_frequency': random.randint(self.config.burst_frequency_min, self.config.burst_frequency_max),
             'request_count': 0,
             'last_request_time': 0
         }
@@ -151,8 +160,12 @@ class RedditScraperV2:
         self.cache_manager = AsyncCacheManager()
         logger.info("✅ Cache manager initialized")
 
-        # Initialize batch writer
-        self.batch_writer = BatchWriter(self.supabase)
+        # Initialize batch writer with configurable settings
+        self.batch_writer = BatchWriter(
+            self.supabase, 
+            batch_size=self.config.batch_writer_size,
+            flush_interval=self.config.batch_writer_flush_interval
+        )
         await self.batch_writer.start()
         logger.info("✅ Batch writer initialized")
 
@@ -160,12 +173,12 @@ class RedditScraperV2:
         self.metrics_calculator = MetricsCalculator()
         logger.info("✅ Metrics calculator initialized")
 
-        # Initialize memory monitor
+        # Initialize memory monitor with configurable thresholds
         self.memory_monitor = MemoryMonitor(
-            warning_threshold=0.70,   # 70% memory usage
-            error_threshold=0.85,     # 85% memory usage
-            critical_threshold=0.90,   # 90% memory usage
-            check_interval=60         # Check every 60 seconds
+            warning_threshold=self.config.memory_warning_threshold,
+            error_threshold=self.config.memory_error_threshold,
+            critical_threshold=self.config.memory_critical_threshold,
+            check_interval=self.config.memory_check_interval
         )
 
         # Register cleanup callbacks
@@ -291,8 +304,8 @@ class RedditScraperV2:
             # Get OK subreddits with a reasonable limit to prevent memory overflow
             all_ok_subreddits = []
             offset = 0
-            batch_size = 1000
-            max_subreddits = 2500  # Increased to handle all current OK subreddits (2059+)
+            batch_size = self.config.batch_size
+            max_subreddits = self.config.max_subreddits  # Configurable limit for subreddits
 
             while len(all_ok_subreddits) < max_subreddits:
                 ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
@@ -528,8 +541,8 @@ class RedditScraperV2:
                 self.batch_writer
             )
 
-            # Process users in batches
-            users_list = list(self.discovered_users)[:50]  # Limit to 50 users per cycle
+            # Process users in batches with configurable limit
+            users_list = list(self.discovered_users)[:self.config.max_users_per_cycle]
             for username in users_list:
                 if not user_scraper.should_continue(control_checker):
                     break
@@ -705,9 +718,14 @@ class RedditScraperV2:
                     if self._should_skip_subreddit(name):
                         continue
 
-                # Check if it's a User Feed
-                if name.startswith('u_'):
-                    await self._mark_as_user_feed(name)
+                # Validate and check if it's a User Feed
+                try:
+                    validated_name = validate_subreddit_name(name)
+                    if validated_name.startswith('u_'):
+                        await self._mark_as_user_feed(validated_name)
+                        continue
+                except ValidationException as e:
+                    logger.warning(f"Invalid subreddit name '{name}': {e}")
                     continue
 
                 status = "incomplete" if is_incomplete else "pending"

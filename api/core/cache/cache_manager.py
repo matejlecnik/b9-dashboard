@@ -129,6 +129,7 @@ class TTLCache:
 
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
+        import time  # Import locally since this runs in a separate thread
         while self._running:
             try:
                 time.sleep(self.cleanup_interval)
@@ -383,6 +384,7 @@ class TTLSet:
 
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
+        import time  # Import locally since this runs in a separate thread
         while self._running:
             try:
                 time.sleep(300)  # Clean up every 5 minutes
