@@ -357,15 +357,24 @@ class BatchWriter:
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
         """Direct implementation to bypass the mysterious bug"""
         if not posts_data:
-            return
+            logger.warning("add_posts called with empty data")
+            return False
 
         # Direct write to database, bypassing all the complex logic for now
         try:
+            logger.info(f"📝 add_posts: Processing {len(posts_data)} posts")
+
             # Clean the data
             cleaned_posts = []
-            for post in posts_data:
-                cleaned = self._clean_post_data(post)
-                cleaned_posts.append(cleaned)
+            for i, post in enumerate(posts_data):
+                try:
+                    cleaned = self._clean_post_data(post)
+                    cleaned_posts.append(cleaned)
+                except Exception as clean_error:
+                    logger.error(f"❌ Error cleaning post {i}: {clean_error}")
+                    logger.error(f"Post data: {post}")
+
+            logger.info(f"📝 Cleaned {len(cleaned_posts)} posts, attempting database write...")
 
             # Write directly to database
             if cleaned_posts:
@@ -375,8 +384,15 @@ class BatchWriter:
                 ).execute()
                 logger.info(f"✅ Directly wrote {len(cleaned_posts)} posts to database")
                 return True
+            else:
+                logger.warning("No posts to write after cleaning")
+                return False
         except Exception as e:
             logger.error(f"❌ Error in add_posts direct write: {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.error(f"Exception details: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
 
     async def save_posts(self, posts_data: List[Dict[str, Any]]):
