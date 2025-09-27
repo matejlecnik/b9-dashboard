@@ -561,14 +561,52 @@ class RedditScraperV2:
                     # Process posts if available (save ALL types)
                     try:
                         if result.get('hot_posts'):
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts using DirectPostsWriter")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts using DIRECT WRITE")
 
-                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            # TEMPORARY: Write directly to database to bypass DirectPostsWriter issues
                             try:
-                                success = self.direct_posts_writer.write_posts(result['hot_posts'])
-                                logger.info(f"🔍 DirectPostsWriter.write_posts returned: {success}")
+                                posts_to_write = result['hot_posts']
+                                if posts_to_write and len(posts_to_write) > 0:
+                                    # Clean the posts
+                                    cleaned_posts = []
+                                    for post in posts_to_write:
+                                        cleaned = {
+                                            'reddit_id': post.get('reddit_id'),
+                                            'title': post.get('title'),
+                                            'author': post.get('author'),
+                                            'subreddit': post.get('subreddit'),
+                                            'score': post.get('score', 0),
+                                            'upvote_ratio': post.get('upvote_ratio', 0),
+                                            'num_comments': post.get('num_comments', 0),
+                                            'created_utc': post.get('created_utc'),
+                                            'url': post.get('url'),
+                                            'permalink': post.get('permalink'),
+                                            'selftext': post.get('selftext'),
+                                            'is_video': post.get('is_video', False),
+                                            'is_original_content': post.get('is_original_content', False),
+                                            'link_flair_text': post.get('link_flair_text'),
+                                            'over_18': post.get('over_18', False),
+                                            'scrape_type': post.get('scrape_type'),
+                                            'created_at': datetime.now(timezone.utc).isoformat()
+                                        }
+                                        # Remove None values
+                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
+                                        cleaned_posts.append(cleaned)
+
+                                    # Write in chunks of 50
+                                    for i in range(0, len(cleaned_posts), 50):
+                                        chunk = cleaned_posts[i:i+50]
+                                        response = self.supabase.table('reddit_posts').upsert(
+                                            chunk,
+                                            on_conflict='reddit_id'
+                                        ).execute()
+                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} hot posts to database")
+
+                                    success = True
+                                else:
+                                    success = False
                             except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for hot posts: {e}")
+                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for hot posts: {e}")
                                 import traceback
                                 logger.error(f"Traceback: {traceback.format_exc()}")
                                 success = False
@@ -578,14 +616,48 @@ class RedditScraperV2:
                             logger.info(f"✅ Thread {scraper.thread_id}: Hot posts added successfully")
 
                         if result.get('top_posts'):  # Weekly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts using DirectPostsWriter")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts using DIRECT WRITE")
 
-                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            # TEMPORARY: Write directly to database
                             try:
-                                success = self.direct_posts_writer.write_posts(result['top_posts'])
-                                logger.info(f"🔍 DirectPostsWriter.write_posts (weekly) returned: {success}")
+                                posts_to_write = result['top_posts']
+                                if posts_to_write and len(posts_to_write) > 0:
+                                    cleaned_posts = []
+                                    for post in posts_to_write:
+                                        cleaned = {
+                                            'reddit_id': post.get('reddit_id'),
+                                            'title': post.get('title'),
+                                            'author': post.get('author'),
+                                            'subreddit': post.get('subreddit'),
+                                            'score': post.get('score', 0),
+                                            'upvote_ratio': post.get('upvote_ratio', 0),
+                                            'num_comments': post.get('num_comments', 0),
+                                            'created_utc': post.get('created_utc'),
+                                            'url': post.get('url'),
+                                            'permalink': post.get('permalink'),
+                                            'selftext': post.get('selftext'),
+                                            'is_video': post.get('is_video', False),
+                                            'is_original_content': post.get('is_original_content', False),
+                                            'link_flair_text': post.get('link_flair_text'),
+                                            'over_18': post.get('over_18', False),
+                                            'scrape_type': post.get('scrape_type'),
+                                            'created_at': datetime.now(timezone.utc).isoformat()
+                                        }
+                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
+                                        cleaned_posts.append(cleaned)
+
+                                    for i in range(0, len(cleaned_posts), 50):
+                                        chunk = cleaned_posts[i:i+50]
+                                        response = self.supabase.table('reddit_posts').upsert(
+                                            chunk,
+                                            on_conflict='reddit_id'
+                                        ).execute()
+                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} weekly posts to database")
+                                    success = True
+                                else:
+                                    success = False
                             except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for weekly posts: {e}")
+                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for weekly posts: {e}")
                                 import traceback
                                 logger.error(f"Traceback: {traceback.format_exc()}")
                                 success = False
@@ -595,14 +667,48 @@ class RedditScraperV2:
                             logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts added successfully")
 
                         if result.get('yearly_posts'):  # Yearly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts using DirectPostsWriter")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts using DIRECT WRITE")
 
-                            # Use DirectPostsWriter instead of BatchWriter for posts
+                            # TEMPORARY: Write directly to database
                             try:
-                                success = self.direct_posts_writer.write_posts(result['yearly_posts'])
-                                logger.info(f"🔍 DirectPostsWriter.write_posts (yearly) returned: {success}")
+                                posts_to_write = result['yearly_posts']
+                                if posts_to_write and len(posts_to_write) > 0:
+                                    cleaned_posts = []
+                                    for post in posts_to_write:
+                                        cleaned = {
+                                            'reddit_id': post.get('reddit_id'),
+                                            'title': post.get('title'),
+                                            'author': post.get('author'),
+                                            'subreddit': post.get('subreddit'),
+                                            'score': post.get('score', 0),
+                                            'upvote_ratio': post.get('upvote_ratio', 0),
+                                            'num_comments': post.get('num_comments', 0),
+                                            'created_utc': post.get('created_utc'),
+                                            'url': post.get('url'),
+                                            'permalink': post.get('permalink'),
+                                            'selftext': post.get('selftext'),
+                                            'is_video': post.get('is_video', False),
+                                            'is_original_content': post.get('is_original_content', False),
+                                            'link_flair_text': post.get('link_flair_text'),
+                                            'over_18': post.get('over_18', False),
+                                            'scrape_type': post.get('scrape_type'),
+                                            'created_at': datetime.now(timezone.utc).isoformat()
+                                        }
+                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
+                                        cleaned_posts.append(cleaned)
+
+                                    for i in range(0, len(cleaned_posts), 50):
+                                        chunk = cleaned_posts[i:i+50]
+                                        response = self.supabase.table('reddit_posts').upsert(
+                                            chunk,
+                                            on_conflict='reddit_id'
+                                        ).execute()
+                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} yearly posts to database")
+                                    success = True
+                                else:
+                                    success = False
                             except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for yearly posts: {e}")
+                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for yearly posts: {e}")
                                 import traceback
                                 logger.error(f"Traceback: {traceback.format_exc()}")
                                 success = False
