@@ -359,6 +359,14 @@ class BatchWriter:
         Args:
             posts_data: List of post data dictionaries
         """
+        # DEBUG: Test if method is even being entered
+        return "TEST_RETURN_VALUE"
+
+        # DEBUG: Add print BEFORE the try block
+        print(f"[BATCH_WRITER DEBUG] add_posts method entered!", flush=True)
+        print(f"[BATCH_WRITER DEBUG] self = {self}", flush=True)
+        print(f"[BATCH_WRITER DEBUG] posts_data type = {type(posts_data)}", flush=True)
+
         try:
             # Log immediately at the very start
             print(f"[BATCH_WRITER] add_posts called with data type: {type(posts_data)}", flush=True)
