@@ -486,6 +486,27 @@ class RedditScraperV2:
                     # Merge calculated data
                     final_data = {**result.get('subreddit_data', {}), **calculated_data}
 
+                    # CRITICAL: Fetch and preserve existing review, primary_category, and tags
+                    try:
+                        existing_sub = self.supabase.table('reddit_subreddits').select(
+                            'review, primary_category, tags'
+                        ).eq('name', subreddit_name).execute()
+
+                        if existing_sub.data and len(existing_sub.data) > 0:
+                            existing_fields = existing_sub.data[0]
+                            # Only add if not already in final_data (don't override new values)
+                            if 'review' not in final_data and existing_fields.get('review'):
+                                final_data['review'] = existing_fields['review']
+                                logger.debug(f"Preserving review: {existing_fields['review']} for r/{subreddit_name}")
+                            if 'primary_category' not in final_data and existing_fields.get('primary_category'):
+                                final_data['primary_category'] = existing_fields['primary_category']
+                                logger.debug(f"Preserving primary_category: {existing_fields['primary_category']}")
+                            if 'tags' not in final_data and existing_fields.get('tags'):
+                                final_data['tags'] = existing_fields['tags']
+                                logger.debug(f"Preserving tags: {existing_fields['tags']}")
+                    except Exception as e:
+                        logger.warning(f"Could not fetch existing fields for r/{subreddit_name}: {e}")
+
                     # Apply 20% boost for SFW subreddits
                     nsfw_percentage = final_data.get('nsfw_percentage', 0)
                     if nsfw_percentage < 10 and 'subreddit_score' in final_data:
