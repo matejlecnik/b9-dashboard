@@ -15,14 +15,15 @@ from pathlib import Path
 
 
 # Flexible imports for both local development and production
+# Try production imports first since that's the primary use case  
 try:
-    # Local development (with api. prefix)
-    from api.scrapers.reddit.main import RedditScraperV2
-    from api.core.database.supabase_client import get_supabase_client
-except ImportError:
-    # Production (without api. prefix)
+    # Production (without api. prefix) - try this first
     from scrapers.reddit.main import RedditScraperV2
     from core.database.supabase_client import get_supabase_client
+except ImportError:
+    # Local development (with api. prefix) - fallback
+    from api.scrapers.reddit.main import RedditScraperV2
+    from api.core.database.supabase_client import get_supabase_client
 
 # Version tracking
 SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool

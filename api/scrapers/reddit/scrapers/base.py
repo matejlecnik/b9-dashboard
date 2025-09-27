@@ -8,18 +8,19 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Callable
 # Flexible imports for both local development and production
+# Try production imports first since that's the primary use case
 try:
-    # Local development (with api. prefix)
-    from api.core.clients.api_pool import ThreadSafeAPIPool
-    from api.core.config.proxy_manager import ProxyManager
-    from api.core.cache.cache_manager import AsyncCacheManager
-    from api.core.database.batch_writer import BatchWriter
-except ImportError:
-    # Production (without api. prefix)
+    # Production (without api. prefix) - try this first
     from core.clients.api_pool import ThreadSafeAPIPool
     from core.config.proxy_manager import ProxyManager
     from core.cache.cache_manager import AsyncCacheManager
     from core.database.batch_writer import BatchWriter
+except ImportError:
+    # Local development (with api. prefix) - fallback
+    from api.core.clients.api_pool import ThreadSafeAPIPool
+    from api.core.config.proxy_manager import ProxyManager
+    from api.core.cache.cache_manager import AsyncCacheManager
+    from api.core.database.batch_writer import BatchWriter
 
 logger = logging.getLogger(__name__)
 
