@@ -333,19 +333,23 @@ class BatchWriter:
         Args:
             user_data: User data dictionary
         """
-        should_flush = False
-        async with self._lock:
-            # Clean data before adding to buffer
-            cleaned_data = self._clean_user_data(user_data)
-            self.buffers['reddit_users'].append(cleaned_data)
+        try:
+            should_flush = False
+            async with self._lock:
+                # Clean data before adding to buffer
+                cleaned_data = self._clean_user_data(user_data)
+                self.buffers['reddit_users'].append(cleaned_data)
 
-            # Check if we should flush this buffer
-            if len(self.buffers['reddit_users']) >= self.batch_size:
-                should_flush = True
+                # Check if we should flush this buffer
+                if len(self.buffers['reddit_users']) >= self.batch_size:
+                    should_flush = True
 
-        # Flush OUTSIDE the lock to prevent deadlock
-        if should_flush:
-            await self._flush_table('reddit_users')
+            # Flush OUTSIDE the lock to prevent deadlock
+            if should_flush:
+                await self._flush_table('reddit_users')
+        except Exception as e:
+            logger.error(f"❌ Error in add_user: {e}")
+            logger.error(traceback.format_exc())
 
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
         """
@@ -355,90 +359,69 @@ class BatchWriter:
         Args:
             posts_data: List of post data dictionaries
         """
-        # IMMEDIATE logging - both print and logger
-        print(f"[BATCH_WRITER DEBUG] add_posts called with {len(posts_data) if posts_data else 0} posts", flush=True)
-        import sys
-        sys.stdout.flush()  # Force immediate output
-        print(f"[BATCH_WRITER DEBUG] Current buffer size: {len(self.buffers['reddit_posts'])}", flush=True)
+        try:
+            if not posts_data:
+                return
 
-        # Log to Supabase immediately (if handler exists)
-        if self.log_handler:
-            try:
-                from logging import LogRecord
-                await self.log_handler.emit_async(LogRecord(
-                    name="batch_writer",
-                    level=logging.INFO,
-                    pathname="batch_writer.py",
-                    lineno=349,
-                    msg=f"📥 add_posts called with {len(posts_data) if posts_data else 0} posts, buffer has {len(self.buffers['reddit_posts'])} items",
-                    args=(),
-                    exc_info=None
-                ))
-            except Exception as e:
-                print(f"[BATCH_WRITER DEBUG] Failed to log: {e}")
-        else:
-            print("[BATCH_WRITER DEBUG] No log_handler available")
+            logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")
 
-        if not posts_data:
-            print("[BATCH_WRITER DEBUG] No posts data, returning")
-            return
+            # Get unique subreddit names from posts
+            subreddit_names = list(set(
+                (post.get('subreddit_name') or post.get('subreddit', '')).lower()
+                for post in posts_data if post.get('subreddit') or post.get('subreddit_name')
+            ))
 
-        logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")
+            # Fetch subreddit data for inheritance
+            subreddit_data = {}
+            if subreddit_names:
+                try:
+                    response = self.supabase.table('reddit_subreddits').select(
+                        'name, primary_category, tags, over18'
+                    ).in_('name', subreddit_names).execute()
 
-        # Get unique subreddit names from posts
-        subreddit_names = list(set(
-            (post.get('subreddit_name') or post.get('subreddit', '')).lower()
-            for post in posts_data if post.get('subreddit') or post.get('subreddit_name')
-        ))
+                    if response.data:
+                        for sub in response.data:
+                            subreddit_data[sub['name'].lower()] = {
+                                'primary_category': sub.get('primary_category'),
+                                'tags': sub.get('tags', []),
+                                'over18': sub.get('over18', False)
+                            }
+                        logger.debug(f"Fetched categorization data for {len(subreddit_data)} subreddits")
+                except Exception as e:
+                    logger.warning(f"Could not fetch subreddit data for post inheritance: {e}")
 
-        # Fetch subreddit data for inheritance
-        subreddit_data = {}
-        if subreddit_names:
-            try:
-                response = self.supabase.table('reddit_subreddits').select(
-                    'name, primary_category, tags, over18'
-                ).in_('name', subreddit_names).execute()
+            should_flush = False
+            async with self._lock:
+                for post in posts_data:
+                    cleaned_data = self._clean_post_data(post)
 
-                if response.data:
-                    for sub in response.data:
-                        subreddit_data[sub['name'].lower()] = {
-                            'primary_category': sub.get('primary_category'),
-                            'tags': sub.get('tags', []),
-                            'over18': sub.get('over18', False)
-                        }
-                    logger.debug(f"Fetched categorization data for {len(subreddit_data)} subreddits")
-            except Exception as e:
-                logger.warning(f"Could not fetch subreddit data for post inheritance: {e}")
+                    # Inherit fields from subreddit
+                    sub_name = cleaned_data.get('subreddit_name', '').lower()
+                    if sub_name in subreddit_data:
+                        sub_info = subreddit_data[sub_name]
+                        cleaned_data['sub_primary_category'] = sub_info['primary_category']
+                        cleaned_data['sub_tags'] = sub_info['tags']
+                        cleaned_data['sub_over18'] = sub_info['over18']
+                        logger.debug(f"Post {cleaned_data.get('reddit_id')} inherited category: {sub_info['primary_category']}")
 
-        should_flush = False
-        async with self._lock:
-            for post in posts_data:
-                cleaned_data = self._clean_post_data(post)
+                    self.buffers['reddit_posts'].append(cleaned_data)
 
-                # Inherit fields from subreddit
-                sub_name = cleaned_data.get('subreddit_name', '').lower()
-                if sub_name in subreddit_data:
-                    sub_info = subreddit_data[sub_name]
-                    cleaned_data['sub_primary_category'] = sub_info['primary_category']
-                    cleaned_data['sub_tags'] = sub_info['tags']
-                    cleaned_data['sub_over18'] = sub_info['over18']
-                    logger.debug(f"Post {cleaned_data.get('reddit_id')} inherited category: {sub_info['primary_category']}")
+                # Log the addition
+                buffer_size = len(self.buffers['reddit_posts'])
+                logger.info(f"📝 Added {len(posts_data)} posts to buffer "
+                           f"(buffer size: {buffer_size} / {self.batch_size})")
 
-                self.buffers['reddit_posts'].append(cleaned_data)
+                # Check if we should flush this buffer
+                if buffer_size >= self.batch_size:
+                    should_flush = True
 
-            # Log the addition
-            buffer_size = len(self.buffers['reddit_posts'])
-            logger.info(f"📝 Added {len(posts_data)} posts to buffer "
-                       f"(buffer size: {buffer_size} / {self.batch_size})")
-
-            # Check if we should flush this buffer
-            if buffer_size >= self.batch_size:
-                should_flush = True
-
-        # Flush OUTSIDE the lock to prevent deadlock
-        if should_flush:
-            logger.info("🚀 Buffer full for reddit_posts, triggering flush")
-            await self._flush_table('reddit_posts')
+            # Flush OUTSIDE the lock to prevent deadlock
+            if should_flush:
+                logger.info("🚀 Buffer full for reddit_posts, triggering flush")
+                await self._flush_table('reddit_posts')
+        except Exception as e:
+            logger.error(f"❌ Error in add_posts: {e}")
+            logger.error(traceback.format_exc())
 
     # Note: Removed add_discovered_subreddit method
     # Discovered subreddits should be added directly to reddit_subreddits table with empty review field
