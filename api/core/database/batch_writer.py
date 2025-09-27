@@ -297,6 +297,7 @@ class BatchWriter:
             subreddit_data: Subreddit data dictionary
         """
         try:
+            should_flush = False
             async with self._lock:
                 # Clean data before adding to buffer
                 cleaned_data = self._clean_subreddit_data(subreddit_data)
@@ -314,8 +315,12 @@ class BatchWriter:
 
                 # Check if we should flush this buffer
                 if len(self.buffers['reddit_subreddits']) >= self.batch_size:
-                    logger.info("🚀 Buffer full for reddit_subreddits, triggering flush")
-                    await self._flush_table('reddit_subreddits')
+                    should_flush = True
+
+            # Flush OUTSIDE the lock to prevent deadlock
+            if should_flush:
+                logger.info("🚀 Buffer full for reddit_subreddits, triggering flush")
+                await self._flush_table('reddit_subreddits')
         except Exception as e:
             logger.error(f"❌ Error in add_subreddit: {e}")
             logger.error(traceback.format_exc())
@@ -327,6 +332,7 @@ class BatchWriter:
         Args:
             user_data: User data dictionary
         """
+        should_flush = False
         async with self._lock:
             # Clean data before adding to buffer
             cleaned_data = self._clean_user_data(user_data)
@@ -334,7 +340,11 @@ class BatchWriter:
 
             # Check if we should flush this buffer
             if len(self.buffers['reddit_users']) >= self.batch_size:
-                await self._flush_table('reddit_users')
+                should_flush = True
+
+        # Flush OUTSIDE the lock to prevent deadlock
+        if should_flush:
+            await self._flush_table('reddit_users')
 
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
         """
@@ -372,6 +382,7 @@ class BatchWriter:
             except Exception as e:
                 logger.warning(f"Could not fetch subreddit data for post inheritance: {e}")
 
+        should_flush = False
         async with self._lock:
             for post in posts_data:
                 cleaned_data = self._clean_post_data(post)
@@ -394,8 +405,12 @@ class BatchWriter:
 
             # Check if we should flush this buffer
             if buffer_size >= self.batch_size:
-                logger.info("🚀 Buffer full for reddit_posts, triggering flush")
-                await self._flush_table('reddit_posts')
+                should_flush = True
+
+        # Flush OUTSIDE the lock to prevent deadlock
+        if should_flush:
+            logger.info("🚀 Buffer full for reddit_posts, triggering flush")
+            await self._flush_table('reddit_posts')
 
     # Note: Removed add_discovered_subreddit method
     # Discovered subreddits should be added directly to reddit_subreddits table with empty review field
