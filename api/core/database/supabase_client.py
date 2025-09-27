@@ -44,21 +44,33 @@ class SupabaseClientManager:
         """Initialize the Supabase client with proper configuration"""
         if self._client is not None:
             return
-            
+
         # Get credentials from environment
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        
+
         if not supabase_url or not supabase_key:
             raise Exception(
                 "Supabase credentials not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables."
             )
-        
+
         # Create client with basic configuration (Supabase handles connection pooling internally)
         self._client = create_client(supabase_url, supabase_key)
-        
+
         self._initialized = True
         logger.info("✅ Centralized Supabase client initialized with connection optimization")
+
+    def refresh_client(self):
+        """Force refresh the Supabase client to clear schema cache"""
+        logger.info("🔄 Force refreshing Supabase client to clear schema cache...")
+
+        # Close existing client
+        self._client = None
+        self._initialized = False
+
+        # Reinitialize with fresh client
+        self._initialize_client()
+        logger.info("✅ Supabase client refreshed with cleared schema cache")
     
     def close(self):
         """Close the client connection (for cleanup)"""
@@ -97,6 +109,10 @@ def get_supabase_client() -> Client:
 def close_supabase_client():
     """Close the shared Supabase client (for cleanup)"""
     _supabase_manager.close()
+
+def refresh_supabase_client():
+    """Force refresh the Supabase client to clear schema cache"""
+    _supabase_manager.refresh_client()
 
 def get_supabase_connection_info() -> dict:
     """Get information about the Supabase connection"""

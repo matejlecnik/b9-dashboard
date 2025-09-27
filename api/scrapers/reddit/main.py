@@ -30,7 +30,7 @@ from core.config.proxy_manager import ProxyManager
 from core.config.scraper_config import get_scraper_config
 from core.cache.cache_manager import AsyncCacheManager
 from core.database.batch_writer import BatchWriter
-from core.database.supabase_client import get_supabase_client
+from core.database.supabase_client import get_supabase_client, refresh_supabase_client
 from core.exceptions import (
     SubredditBannedException, SubredditPrivateException, 
     ValidationException, handle_api_error, validate_subreddit_name
@@ -119,9 +119,13 @@ class RedditScraperV2:
         """Initialize all components"""
         logger.info(f"🚀 Initializing Reddit Scraper v{SCRAPER_VERSION}")
 
+        # Force refresh Supabase client to clear any schema cache
+        refresh_supabase_client()
+        logger.info("🔄 Cleared Supabase schema cache")
+
         # Initialize Supabase using centralized client manager
         self.supabase = get_supabase_client()
-        logger.info("✅ Supabase client initialized")
+        logger.info("✅ Supabase client initialized with fresh schema")
 
         # Initialize Supabase logging handler
         try:
@@ -814,14 +818,26 @@ class RedditScraperV2:
     async def _mark_as_user_feed(self, name: str):
         """Mark subreddit as User Feed"""
         try:
-            self.supabase.table('reddit_subreddits').update({
-                'review': 'User Feed',
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('name', name.lower()).execute()
+            # Use direct SQL update to avoid schema cache issues
+            result = self.supabase.rpc('update_subreddit_review', {
+                'subreddit_name': name.lower(),
+                'review_status': 'User Feed'
+            }).execute()
             self.user_feed_subreddits.add(name.lower())
             logger.info(f"Marked r/{name} as User Feed")
         except Exception as e:
-            logger.error(f"Error marking r/{name} as User Feed: {e}")
+            # Fallback to direct update if RPC doesn't exist
+            try:
+                self.supabase.table('reddit_subreddits').update({
+                    'review': 'User Feed',
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }).eq('name', name.lower()).execute()
+                self.user_feed_subreddits.add(name.lower())
+                logger.info(f"Marked r/{name} as User Feed (fallback)")
+            except Exception as e2:
+                # Just log the error and continue - don't let this stop the scraper
+                logger.warning(f"Could not mark r/{name} as User Feed (will skip): {e2}")
+                self.user_feed_subreddits.add(name.lower())  # Still add to memory cache
 
     async def _mark_as_banned(self, name: str):
         """Mark subreddit as Banned"""
@@ -833,7 +849,9 @@ class RedditScraperV2:
             self.banned_subreddits.add(name.lower())
             logger.info(f"Marked r/{name} as Banned")
         except Exception as e:
-            logger.error(f"Error marking r/{name} as Banned: {e}")
+            # Just log the error and continue - don't let this stop the scraper
+            logger.warning(f"Could not mark r/{name} as Banned (will skip): {e}")
+            self.banned_subreddits.add(name.lower())  # Still add to memory cache
 
     async def _mark_as_non_related(self, name: str, reason: str = ""):
         """Mark subreddit as Non Related"""
@@ -846,7 +864,9 @@ class RedditScraperV2:
             self.non_related_subreddits.add(name.lower())
             logger.info(f"Marked r/{name} as Non Related: {reason}")
         except Exception as e:
-            logger.error(f"Error marking r/{name} as Non Related: {e}")
+            # Just log the error and continue - don't let this stop the scraper
+            logger.warning(f"Could not mark r/{name} as Non Related (will skip): {e}")
+            self.non_related_subreddits.add(name.lower())  # Still add to memory cache
 
     async def stealth_delay(self, operation_type: str = "request"):
         """Apply intelligent delays to avoid detection patterns (matches old scraper)"""
