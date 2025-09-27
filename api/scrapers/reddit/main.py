@@ -520,8 +520,15 @@ class RedditScraperV2:
 
                     # Manual flush every subreddit for first 5, then every 3 subreddits
                     if processed_count <= 5 or processed_count % 3 == 0:
-                        logger.info(f"💾 Thread {scraper.thread_id}: Manually flushing after {processed_count} subreddits")
-                        await self.batch_writer.flush_all()
+                        logger.info(f"💾 Thread {scraper.thread_id}: About to manually flush after {processed_count} subreddits")
+                        try:
+                            # Add timeout to prevent hanging
+                            await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
+                            logger.info(f"✅ Thread {scraper.thread_id}: Flush completed successfully")
+                        except asyncio.TimeoutError:
+                            logger.error(f"⚠️ Thread {scraper.thread_id}: Flush timed out after 30s, continuing anyway")
+                        except Exception as e:
+                            logger.error(f"❌ Thread {scraper.thread_id}: Flush failed: {e}, continuing anyway")
 
                     # For OK subreddits, track users for later analysis
                     if subreddit_type == 'ok' and result.get('hot_posts'):
@@ -533,16 +540,29 @@ class RedditScraperV2:
 
                 # Periodic flush every 3 subreddits to ensure data is saved
                 if (i + 1) % 3 == 0:
-                    logger.info(f"📤 Periodic flush after processing {i + 1} subreddits in thread {scraper.thread_id}")
-                    await self.batch_writer.flush_all()
+                    logger.info(f"📤 Thread {scraper.thread_id}: About to periodic flush after {i + 1} subreddits")
+                    try:
+                        # Add timeout to prevent hanging
+                        await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
+                        logger.info(f"✅ Thread {scraper.thread_id}: Periodic flush completed successfully")
+                    except asyncio.TimeoutError:
+                        logger.error(f"⚠️ Thread {scraper.thread_id}: Periodic flush timed out after 30s, continuing")
+                    except Exception as e:
+                        logger.error(f"❌ Thread {scraper.thread_id}: Periodic flush failed: {e}, continuing")
 
             except Exception as e:
                 logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
 
         # Final flush at the end of the batch
         if processed_count > 0:
-            logger.info(f"💾 Thread {scraper.thread_id}: Final flush after processing {processed_count} subreddits")
-            await self.batch_writer.flush_all()
+            logger.info(f"💾 Thread {scraper.thread_id}: About to final flush after processing {processed_count} subreddits")
+            try:
+                await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
+                logger.info(f"✅ Thread {scraper.thread_id}: Final flush completed successfully")
+            except asyncio.TimeoutError:
+                logger.error(f"⚠️ Thread {scraper.thread_id}: Final flush timed out after 30s")
+            except Exception as e:
+                logger.error(f"❌ Thread {scraper.thread_id}: Final flush failed: {e}")
 
     async def track_users_from_posts(self, posts: List[Dict], subreddit_name: str):
         """Track users from OK subreddit posts for later analysis"""
