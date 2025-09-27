@@ -518,8 +518,8 @@ class RedditScraperV2:
                         self.stats['posts_processed'] += len(result['yearly_posts'])
                         logger.debug(f"💾 Saved {len(result['yearly_posts'])} yearly posts from r/{subreddit_name}")
 
-                    # Manual flush every 10 subreddits to ensure data is saved
-                    if processed_count % 10 == 0:
+                    # Manual flush every 3 subreddits to ensure data is saved (or every subreddit for first 20)
+                    if processed_count <= 20 or processed_count % 3 == 0:
                         logger.info(f"💾 Thread {scraper.thread_id}: Manually flushing after {processed_count} subreddits")
                         await self.batch_writer.flush_all()
 
@@ -531,9 +531,9 @@ class RedditScraperV2:
                 await self.stealth_delay("subreddit_analysis")
                 await self.randomize_request_pattern()
 
-                # Periodic flush every 10 subreddits to ensure data is saved
-                if (i + 1) % 10 == 0:
-                    logger.info(f"📤 Periodic flush after processing {i + 1} subreddits")
+                # Periodic flush every 3 subreddits to ensure data is saved
+                if (i + 1) % 3 == 0:
+                    logger.info(f"📤 Periodic flush after processing {i + 1} subreddits in thread {scraper.thread_id}")
                     await self.batch_writer.flush_all()
 
             except Exception as e:
