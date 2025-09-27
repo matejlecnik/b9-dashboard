@@ -70,7 +70,7 @@ def check_and_start_scrapers():
 
                     # Check if process is still running after a brief moment
                     import time
-                    time.sleep(2)
+                    time.sleep(2)  # Startup context - sync sleep is acceptable here
 
                     if reddit_process.poll() is None:
                         # Process is still running
@@ -140,7 +140,7 @@ def check_and_start_scrapers():
 
                     # Check if process is still running after a brief moment
                     import time
-                    time.sleep(2)
+                    time.sleep(2)  # Startup context - sync sleep is acceptable here
 
                     if instagram_process.poll() is None:
                         # Process is still running

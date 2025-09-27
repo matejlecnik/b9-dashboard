@@ -9,21 +9,17 @@ import os
 import sys
 import logging
 from datetime import datetime, timezone
-from supabase import create_client
 from dotenv import load_dotenv
 from pathlib import Path
 
-
 # Setup path for Docker environment - script runs from /app/api/scrapers/reddit/
 # Need to add /app/api to Python path so it can find core, scrapers, etc.
-import sys
-import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
 if api_root not in sys.path:
     sys.path.insert(0, api_root)
 
-# Now import with the correct structure for Docker environment
+# Import after path setup to avoid linting issues
 from scrapers.reddit.main import RedditScraperV2
 from core.database.supabase_client import get_supabase_client
 

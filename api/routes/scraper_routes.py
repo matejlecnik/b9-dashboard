@@ -12,6 +12,7 @@ import sys
 import signal
 import subprocess
 import logging
+import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -104,7 +105,7 @@ async def start_scraper(request: Request):
 
             # Check if process started successfully
             import time
-            time.sleep(2)  # Give it time to start
+            await asyncio.sleep(2)  # Give it time to start
 
             if reddit_process.poll() is None:
                 # Process is running

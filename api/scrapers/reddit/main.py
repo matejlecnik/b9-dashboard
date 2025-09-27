@@ -26,10 +26,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 api_root = os.path.join(current_dir, '..', '..')  # Go up to /app/api (where core/ and scrapers/ are)
 if api_root not in sys.path:
     sys.path.insert(0, api_root)
-print(f"DEBUG: Added to Python path: {api_root}")
-print(f"DEBUG: Current working directory: {os.getcwd()}")
-print(f"DEBUG: Script location: {current_dir}")
-
 # Now import with the correct structure for Docker environment
 from core.clients.api_pool import ThreadSafeAPIPool
 from core.config.proxy_manager import ProxyManager
@@ -875,33 +871,33 @@ class RedditScraperV2:
             self.stealth_config['request_count'] = 0
             self.stealth_config['burst_frequency'] = random.randint(7, 12)
 
-    def print_proxy_stats(self):
-        """Print detailed proxy usage statistics"""
+    def log_proxy_stats(self):
+        """Log detailed proxy usage statistics using proper logger"""
         if not self.stats['start_time']:
-            print("No statistics available - scraper hasn't run yet")
+            logger.info("No statistics available - scraper hasn't run yet")
             return
 
         start_time = datetime.fromisoformat(self.stats['start_time'])
         runtime = datetime.now(timezone.utc) - start_time
 
-        print("\n📊 PROXY-ENABLED SCRAPER STATS:")
-        print("=" * 60)
-        print(f"⏱️  Runtime: {runtime}")
-        print(f"🔍 Subreddits processed: {self.stats['subreddits_processed']}")
-        print(f"👤 Users processed: {self.stats['users_processed']}")
-        print(f"📝 Posts processed: {self.stats['posts_processed']}")
-        print(f"🌟 Discoveries made: {self.stats['discoveries_made']}")
-        print(f"🌐 Total requests: {self.stats['total_requests']}")
-        print(f"🔒 Proxy requests: {self.stats['proxy_requests']}")
-        print(f"🔓 Direct requests: {self.stats['direct_requests']}")
-        print(f"💾 Cache hits: {self.stats['cache_hits']}")
-        print(f"⚠️  Rate limits hit: {self.stats['rate_limits']}")
+        # Log core statistics
+        logger.info("📊 PROXY-ENABLED SCRAPER STATS:")
+        logger.info(f"⏱️  Runtime: {runtime}")
+        logger.info(f"🔍 Subreddits processed: {self.stats['subreddits_processed']}")
+        logger.info(f"👤 Users processed: {self.stats['users_processed']}")
+        logger.info(f"📝 Posts processed: {self.stats['posts_processed']}")
+        logger.info(f"🌟 Discoveries made: {self.stats['discoveries_made']}")
+        logger.info(f"🌐 Total requests: {self.stats['total_requests']}")
+        logger.info(f"🔒 Proxy requests: {self.stats['proxy_requests']}")
+        logger.info(f"🔓 Direct requests: {self.stats['direct_requests']}")
+        logger.info(f"💾 Cache hits: {self.stats['cache_hits']}")
+        logger.info(f"⚠️  Rate limits hit: {self.stats['rate_limits']}")
 
-        # Get proxy-specific stats if available
+        # Log proxy-specific stats if available
         if self.proxy_manager:
             proxy_stats = self.proxy_manager.get_proxy_stats()
             if proxy_stats and isinstance(proxy_stats, dict) and 'proxies' in proxy_stats:
-                print("\n📊 Proxy Performance:")
+                logger.info("📊 Proxy Performance:")
                 for proxy_info in proxy_stats['proxies']:
                     name = proxy_info.get('name') or proxy_info.get('service')
                     db = proxy_info.get('db_stats', {})
@@ -909,19 +905,17 @@ class RedditScraperV2:
                     success_count = db.get('success_count', 0)
                     success_rate = (success_count / max(1, total_requests)) * 100
                     avg_response_time = db.get('avg_response_time_ms', 0)
-                    print(f"   {name}: {success_rate:.1f}% success, {avg_response_time:.0f}ms avg response")
+                    logger.info(f"   {name}: {success_rate:.1f}% success, {avg_response_time:.0f}ms avg response")
 
         # Thread statistics
         if self.scrapers:
-            print("\n🧵 Thread Activity:")
+            logger.info("🧵 Thread Activity:")
             for scraper in self.scrapers:
                 scraper_stats = scraper.get_stats()
                 thread_id = scraper_stats.get('thread_id', '?')
                 thread_stats = scraper_stats.get('stats', {})
-                print(f"   Thread {thread_id}: {thread_stats.get('items_processed', 0)} items, "
-                      f"{thread_stats.get('requests_successful', 0)} successful requests")
-
-        print("=" * 60)
+                logger.info(f"   Thread {thread_id}: {thread_stats.get('items_processed', 0)} items, "
+                          f"{thread_stats.get('requests_successful', 0)} successful requests")
 
     async def log_to_database(self, level: str, message: str):
         """Log to Supabase system_logs table"""

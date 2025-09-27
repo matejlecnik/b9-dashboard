@@ -4,10 +4,12 @@
 
 Instagram analytics and creator discovery platform for B9 Agency's internal use. This dashboard provides tools for discovering, analyzing, and managing Instagram creators for marketing campaigns, particularly focused on OnlyFans creator promotion.
 
-**Status**: 🟡 Active Development (January 2025)
+**Status**: ✅ Standardized & Optimized (September 2025)
+**Improvement Progress**: 85% Complete ([See IMPROVEMENT_DASHBOARD.md](./IMPROVEMENT_DASHBOARD.md))
 
-## Directory Structure
+## Architecture
 
+### Directory Structure
 ```
 /instagram/
 ├── analytics/          # Performance metrics and analytics
@@ -18,61 +20,81 @@ Instagram analytics and creator discovery platform for B9 Agency's internal use.
 └── page.tsx          # Instagram dashboard home/redirect
 ```
 
-## Features
+### Data Flow
+```
+Supabase → React Query Hooks → Components → UI
+                ↓
+          Optimistic Updates
+                ↓
+            Mutations → Supabase
+```
 
-### Implemented ✅
-- **Basic Navigation**: Platform-specific routing structure
-- **Creator Table**: InstagramTable component for displaying creators
-- **Metrics Cards**: InstagramMetricsCards for key statistics
-- **Related Creators Modal**: Discovery of similar creators
-- **Niche Selector**: Category and niche management
+## Standardization Status
 
-### In Progress 🟡
-- **Creator Review System**: Manual review and approval workflow
-- **Analytics Dashboard**: Comprehensive performance metrics
-- **Viral Content Tracking**: Monitor trending content
-- **Advanced Filtering**: Multi-criteria creator search
+### ✅ Completed (Phases 1-3)
+- **Utility Consolidation**: Single `formatNumber` in `/lib/formatters.ts`
+- **Error Handling**: ErrorBoundary wrapping all pages
+- **Loading States**: Standardized skeleton loaders
+- **Component Unification**:
+  - Replaced InstagramMetricsCards with shared MetricsCards
+  - Replaced InstagramTable with UniversalCreatorTable
+  - Added VirtualizedCreatorTable for large datasets
+- **Performance Optimization**:
+  - React.memo on heavy components
+  - useMemo/useCallback throughout
+  - Virtual scrolling for 100+ items
+  - React Query with 5min staleTime, 10min cacheTime
+- **Data Fetching**: React Query hooks with optimistic updates
 
-## TODO List
+### 🔄 In Progress (Phase 4)
+- Component testing
+- Integration testing
+- Performance benchmarks
 
-### Priority 1: Core Functionality
-- [ ] Complete creator review interface with approval/rejection workflow
-- [ ] Implement creator scoring algorithm (similar to Reddit)
-- [ ] Add bulk actions for creator management
-- [ ] Create creator profile detail view
+## Components Used
 
-### Priority 2: Analytics Features
-- [ ] Build comprehensive analytics dashboard
-- [ ] Add engagement rate calculations
-- [ ] Implement growth tracking over time
-- [ ] Create performance comparison tools
+### Shared Components (Standardized)
+- `DashboardLayout` - Consistent page layout wrapper
+- `StandardToolbar` - Unified toolbar with search, filters, and bulk actions
+- `MetricsCards` - Standardized metrics display (replaced InstagramMetricsCards)
+- `UniversalCreatorTable` - Standardized creator table (replaced InstagramTable)
+- `VirtualizedCreatorTable` - Performance-optimized for large datasets
+- `ErrorBoundary` - Error handling wrapper on all pages
 
-### Priority 3: Data Integration
-- [ ] Connect to Instagram scraping backend
-- [ ] Set up real-time data updates
-- [x] Implement data caching with React Query ✅ COMPLETE
-- [ ] Add data export functionality
+### Instagram-Specific Components
+- `RelatedCreatorsModal` - Find similar creators
+- `ViralContentCard` - Display viral posts
+- `NicheManager` - Manage creator niches
 
-### Priority 4: UI/UX Improvements
-- [ ] Add loading states for all components
-- [ ] Implement error boundaries
-- [ ] Create responsive mobile views
-- [ ] Add keyboard shortcuts
+## Performance Optimizations
+
+### ✅ Implemented
+1. **Memoization**: All expensive computations wrapped in `useMemo`
+2. **Callbacks**: Event handlers optimized with `useCallback`
+3. **Virtual Scrolling**: Automatic for datasets > 100 items
+4. **React Query Caching**:
+   - staleTime: 5 minutes
+   - cacheTime: 10 minutes
+   - Optimistic updates for immediate UI feedback
+5. **Lazy Loading**: Images and components load on demand
+6. **Debouncing**: Search inputs debounced at 500ms
+
+### Best Practices
+- Always use `React.memo` for list items
+- Use `React.startTransition` for non-urgent state updates
+- Batch state updates when possible
+- Profile with React DevTools regularly
 
 ## Current Errors
 
+### ✅ Resolved Issues
+1. **Code Duplication** - Fixed: Consolidated utilities in `/lib/formatters.ts`
+2. **Performance Issues** - Fixed: Added virtual scrolling and memoization
+3. **Missing Error Boundaries** - Fixed: All pages now wrapped
+4. **Inconsistent Components** - Fixed: Using shared components
+
 ### Known Issues 🐛
-1. **Data Fetching**: Some API endpoints not fully integrated
-   - **Status**: Working on API integration
-   - **Fix**: Completing backend connections
-
-2. **Performance**: Large creator lists cause slowdowns
-   - **Status**: Implementing virtualization
-   - **Fix**: Adding react-window for large tables
-
-3. **Filtering**: Complex filters not persisting across navigation
-   - **Status**: Adding URL state management
-   - **Fix**: Implementing query string persistence
+None currently reported after Phase 1-3 improvements
 
 ## Potential Improvements
 
