@@ -355,8 +355,10 @@ class BatchWriter:
             posts_data: List of post data dictionaries
         """
         # IMMEDIATE logging - both print and logger
-        print(f"[BATCH_WRITER DEBUG] add_posts called with {len(posts_data) if posts_data else 0} posts")
-        print(f"[BATCH_WRITER DEBUG] Current buffer size: {len(self.buffers['reddit_posts'])}")
+        print(f"[BATCH_WRITER DEBUG] add_posts called with {len(posts_data) if posts_data else 0} posts", flush=True)
+        import sys
+        sys.stdout.flush()  # Force immediate output
+        print(f"[BATCH_WRITER DEBUG] Current buffer size: {len(self.buffers['reddit_posts'])}", flush=True)
 
         # Log to Supabase immediately
         try:
