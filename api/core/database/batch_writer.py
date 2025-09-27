@@ -12,6 +12,9 @@ from core.config.scraper_config import get_scraper_config
 from core.utils.supabase_logger import SupabaseLogHandler
 from core.database.supabase_client import get_supabase_client
 
+# DEBUG: Add module-level logging to see what's happening
+print(f"[BATCH_WRITER MODULE] Loading batch_writer.py module", flush=True)
+
 logger = logging.getLogger(__name__)
 
 
@@ -1068,3 +1071,6 @@ class BatchWriter:
     # All sync methods have been removed to prevent deadlocks and async/sync mixing issues
     # Use only async versions: add_subreddit(), add_user(), add_posts(), flush_all()
     # ensure_users_exist(), ensure_subreddits_exist()
+
+# DEBUG: Log when class is fully loaded
+print(f"[BATCH_WRITER MODULE] BatchWriter class defined successfully", flush=True)
