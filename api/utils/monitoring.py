@@ -123,62 +123,14 @@ class HealthMonitor:
             )
     
     async def check_redis_health(self) -> HealthCheck:
-        """Check Redis cache connectivity"""
-        start_time = time.time()
-        
-        try:
-            import redis.asyncio as redis
-            from redis.exceptions import RedisError
-            
-            redis_url = os.getenv('REDIS_URL')
-            if not redis_url:
-                return HealthCheck(
-                    name="redis",
-                    status="warning",
-                    message="Redis not configured (optional)",
-                    timestamp=datetime.now().isoformat(),
-                    response_time_ms=0
-                )
-            
-            redis_client = redis.from_url(redis_url, socket_timeout=3)
-            
-            # Test connection
-            await redis_client.ping()
-            info = await redis_client.info()
-            await redis_client.close()
-            
-            response_time = (time.time() - start_time) * 1000
-            
-            return HealthCheck(
-                name="redis",
-                status="healthy",
-                message="Cache connection successful",
-                timestamp=datetime.now().isoformat(),
-                response_time_ms=round(response_time, 2),
-                details={
-                    "memory_used": info.get("used_memory_human"),
-                    "connected_clients": info.get("connected_clients"),
-                    "version": info.get("redis_version")
-                }
-            )
-            
-        except ImportError:
-            return HealthCheck(
-                name="redis",
-                status="warning",
-                message="Redis client not installed",
-                timestamp=datetime.now().isoformat(),
-                response_time_ms=0
-            )
-        except Exception as e:
-            response_time = (time.time() - start_time) * 1000
-            return HealthCheck(
-                name="redis",
-                status="error",
-                message=f"Cache connection failed: {str(e)[:100]}",
-                timestamp=datetime.now().isoformat(),
-                response_time_ms=round(response_time, 2)
-            )
+        """Redis has been removed - always returns disabled status"""
+        return HealthCheck(
+            name="redis",
+            status="warning",
+            message="Redis disabled (caching not in use)",
+            timestamp=datetime.now().isoformat(),
+            response_time_ms=0
+        )
     
     async def check_openai_health(self) -> HealthCheck:
         """Check OpenAI API connectivity"""
