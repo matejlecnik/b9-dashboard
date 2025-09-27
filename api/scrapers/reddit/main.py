@@ -327,9 +327,10 @@ class RedditScraperV2:
             # Get OK subreddits with a reasonable limit to prevent memory overflow
             all_ok_subreddits = []
             offset = 0
-            batch_size = self.config.batch_size
+            batch_size = 500  # Use smaller batch for reliable pagination (Supabase has 1000 row limit)
             max_subreddits = self.config.max_subreddits  # Configurable limit for subreddits
 
+            logger.info(f"Loading OK subreddits from database (batch_size={batch_size})...")
             while len(all_ok_subreddits) < max_subreddits:
                 ok_response = self.supabase.table('reddit_subreddits').select('*').eq(
                     'review', 'Ok'
@@ -337,6 +338,7 @@ class RedditScraperV2:
 
                 if ok_response.data:
                     all_ok_subreddits.extend(ok_response.data)
+                    logger.debug(f"Loaded batch: {len(ok_response.data)} subreddits (total: {len(all_ok_subreddits)})")
                     if len(ok_response.data) < batch_size:
                         break  # No more results
                     offset += batch_size
