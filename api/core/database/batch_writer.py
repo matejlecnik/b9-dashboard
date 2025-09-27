@@ -352,6 +352,11 @@ class BatchWriter:
             logger.error(traceback.format_exc())
 
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
+        """DEPRECATED: Use save_posts instead"""
+        # This method seems to have an issue - use save_posts instead
+        return None
+
+    async def save_posts(self, posts_data: List[Dict[str, Any]]):
         """
         Add multiple post records to the buffer.
         Inherits primary_category, tags, and over18 from the subreddit.
@@ -359,23 +364,13 @@ class BatchWriter:
         Args:
             posts_data: List of post data dictionaries
         """
-        # DEBUG: Test if method is even being entered
-        return "TEST_RETURN_VALUE"
-
-        # DEBUG: Add print BEFORE the try block
-        print(f"[BATCH_WRITER DEBUG] add_posts method entered!", flush=True)
-        print(f"[BATCH_WRITER DEBUG] self = {self}", flush=True)
-        print(f"[BATCH_WRITER DEBUG] posts_data type = {type(posts_data)}", flush=True)
-
         try:
-            # Log immediately at the very start
-            print(f"[BATCH_WRITER] add_posts called with data type: {type(posts_data)}", flush=True)
 
             if not posts_data:
-                logger.info("add_posts called with empty data, returning")
+                logger.info("save_posts called with empty data, returning")
                 return
 
-            logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")
+            logger.info(f"📥 BatchWriter.save_posts called with {len(posts_data)} posts")
 
             # Get unique subreddit names from posts
             subreddit_names = list(set(
@@ -432,8 +427,7 @@ class BatchWriter:
                 logger.info("🚀 Buffer full for reddit_posts, triggering flush")
                 await self._flush_table('reddit_posts')
         except Exception as e:
-            print(f"[BATCH_WRITER ERROR] Exception in add_posts: {e}", flush=True)
-            logger.error(f"❌ Error in add_posts: {e}")
+            logger.error(f"❌ Error in save_posts: {e}")
             logger.error(f"Exception type: {type(e).__name__}")
             logger.error(traceback.format_exc())
             # Re-raise to see in main.py logs
