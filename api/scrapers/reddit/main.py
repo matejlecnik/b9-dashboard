@@ -125,7 +125,7 @@ class RedditScraperV2:
             # Check if Supabase handler already exists
             handler_exists = any(isinstance(h, SupabaseLogHandler) for h in logger.handlers)
             if not handler_exists:
-                supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper_v2')
+                supabase_handler = SupabaseLogHandler(self.supabase, source='reddit_scraper')
                 supabase_handler.setLevel(logging.INFO)  # Only send INFO and above to database
                 logger.addHandler(supabase_handler)
                 logger.info("🔗 Supabase logging handler initialized")
@@ -928,8 +928,8 @@ class RedditScraperV2:
         try:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper_v2',
-                'script_name': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',
+                'script_name': 'reddit_scraper',
                 'level': level,
                 'message': message,
                 'context': {

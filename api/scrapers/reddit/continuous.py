@@ -84,8 +84,8 @@ class ContinuousScraperV2:
                     # Log to Supabase
                     self.supabase.table('system_logs').insert({
                         'timestamp': datetime.now(timezone.utc).isoformat(),
-                        'source': 'reddit_scraper_v2',
-                        'script_name': 'continuous_scraper_v2',
+                        'source': 'reddit_scraper',
+                        'script_name': 'reddit_scraper',
                         'level': 'info',
                         'message': status_msg,
                         'context': {'status_change': True, 'version': SCRAPER_VERSION}
@@ -132,7 +132,7 @@ class ContinuousScraperV2:
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_start_time.isoformat(),
                 'source': 'reddit_scraper_v2',
-                'script_name': 'continuous_scraper_v2',
+                'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': f'🔄 Starting scraping cycle #{self.cycle_count}',
                 'context': {'cycle': self.cycle_count, 'version': SCRAPER_VERSION}
@@ -168,7 +168,7 @@ class ContinuousScraperV2:
             self.supabase.table('system_logs').insert({
                 'timestamp': cycle_end_time.isoformat(),
                 'source': 'reddit_scraper_v2',
-                'script_name': 'continuous_scraper_v2',
+                'script_name': 'reddit_scraper',
                 'level': 'success',
                 'message': f'✅ Completed scraping cycle #{self.cycle_count} in {duration_str}',
                 'context': {
@@ -189,7 +189,7 @@ class ContinuousScraperV2:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'reddit_scraper_v2',
-                'script_name': 'continuous_scraper_v2',
+                'script_name': 'reddit_scraper',
                 'level': 'error',
                 'message': f'❌ Error in cycle #{self.cycle_count}: {str(e)}',
                 'context': {'cycle': self.cycle_count, 'error': str(e)}
@@ -210,7 +210,7 @@ class ContinuousScraperV2:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'reddit_scraper_v2',
-                'script_name': 'continuous_scraper_v2',
+                'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': f'🚀 Continuous scraper v{SCRAPER_VERSION} started',
                 'context': {'version': SCRAPER_VERSION}
@@ -280,7 +280,7 @@ class ContinuousScraperV2:
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'reddit_scraper_v2',
-                'script_name': 'continuous_scraper_v2',
+                'script_name': 'reddit_scraper',
                 'level': 'info',
                 'message': '⏹️ Continuous scraper stopped',
                 'context': {'shutdown': True}

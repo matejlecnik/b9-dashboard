@@ -398,8 +398,8 @@ class BaseScraper(ABC):
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'level': level,
-                'source': 'reddit_scraper_v2',  # Unified log source
-                'script_name': 'reddit_scraper_v2',
+                'source': 'reddit_scraper',  # Unified log source
+                'script_name': 'reddit_scraper',
                 'message': f"[{self.__class__.__name__}] {message}",  # Include class name in message instead
                 'context': {
                     'thread_id': self.thread_id,
