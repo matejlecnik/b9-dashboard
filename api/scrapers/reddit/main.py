@@ -550,8 +550,14 @@ class RedditScraperV2:
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts using DirectPostsWriter")
 
                             # Use DirectPostsWriter instead of BatchWriter for posts
-                            success = self.direct_posts_writer.write_posts(result['hot_posts'])
-                            logger.info(f"🔍 DirectPostsWriter.write_posts returned: {success}")
+                            try:
+                                success = self.direct_posts_writer.write_posts(result['hot_posts'])
+                                logger.info(f"🔍 DirectPostsWriter.write_posts returned: {success}")
+                            except Exception as e:
+                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for hot posts: {e}")
+                                import traceback
+                                logger.error(f"Traceback: {traceback.format_exc()}")
+                                success = False
 
                             if success:
                                 self.stats['posts_processed'] += len(result['hot_posts'])
@@ -561,8 +567,14 @@ class RedditScraperV2:
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts using DirectPostsWriter")
 
                             # Use DirectPostsWriter instead of BatchWriter for posts
-                            success = self.direct_posts_writer.write_posts(result['top_posts'])
-                            logger.info(f"🔍 DirectPostsWriter.write_posts (weekly) returned: {success}")
+                            try:
+                                success = self.direct_posts_writer.write_posts(result['top_posts'])
+                                logger.info(f"🔍 DirectPostsWriter.write_posts (weekly) returned: {success}")
+                            except Exception as e:
+                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for weekly posts: {e}")
+                                import traceback
+                                logger.error(f"Traceback: {traceback.format_exc()}")
+                                success = False
 
                             if success:
                                 self.stats['posts_processed'] += len(result['top_posts'])
@@ -572,8 +584,14 @@ class RedditScraperV2:
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts using DirectPostsWriter")
 
                             # Use DirectPostsWriter instead of BatchWriter for posts
-                            success = self.direct_posts_writer.write_posts(result['yearly_posts'])
-                            logger.info(f"🔍 DirectPostsWriter.write_posts (yearly) returned: {success}")
+                            try:
+                                success = self.direct_posts_writer.write_posts(result['yearly_posts'])
+                                logger.info(f"🔍 DirectPostsWriter.write_posts (yearly) returned: {success}")
+                            except Exception as e:
+                                logger.error(f"❌ Thread {scraper.thread_id}: DirectPostsWriter error for yearly posts: {e}")
+                                import traceback
+                                logger.error(f"Traceback: {traceback.format_exc()}")
+                                success = False
 
                             if success:
                                 self.stats['posts_processed'] += len(result['yearly_posts'])
