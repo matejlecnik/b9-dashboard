@@ -7,11 +7,19 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Callable
-# Use absolute imports from api package
-from api.core.clients.api_pool import ThreadSafeAPIPool
-from api.core.config.proxy_manager import ProxyManager
-from api.core.cache.cache_manager import AsyncCacheManager
-from api.core.database.batch_writer import BatchWriter
+# Flexible imports for both local development and production
+try:
+    # Local development (with api. prefix)
+    from api.core.clients.api_pool import ThreadSafeAPIPool
+    from api.core.config.proxy_manager import ProxyManager
+    from api.core.cache.cache_manager import AsyncCacheManager
+    from api.core.database.batch_writer import BatchWriter
+except ImportError:
+    # Production (without api. prefix)
+    from core.clients.api_pool import ThreadSafeAPIPool
+    from core.config.proxy_manager import ProxyManager
+    from core.cache.cache_manager import AsyncCacheManager
+    from core.database.batch_writer import BatchWriter
 
 logger = logging.getLogger(__name__)
 

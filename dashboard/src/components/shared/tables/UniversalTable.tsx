@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { useLRUSet } from '@/lib/lru-cache'
 import { logger } from '@/lib/logger'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 
 // Removed local TagsDisplay; using shared component
 
@@ -121,6 +121,7 @@ interface UniversalTableProps {
   // Mode and behavior
   mode?: TableMode
   variant?: TableVariant
+  platform?: 'reddit' | 'instagram'
   
   // Infinite scroll
   onReachEnd?: () => void

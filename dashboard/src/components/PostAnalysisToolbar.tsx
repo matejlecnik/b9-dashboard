@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Search, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 import React from 'react'
 
 export type PostSortField = 'score' | 'comments'

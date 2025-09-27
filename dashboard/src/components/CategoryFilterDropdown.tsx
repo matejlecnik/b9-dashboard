@@ -6,7 +6,7 @@ import { ChevronDown, Check, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getCategoryStyles } from '@/lib/colors'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 
 interface CategoryFilterDropdownProps {
   availableCategories: string[]

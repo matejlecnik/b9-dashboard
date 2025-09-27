@@ -14,9 +14,15 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-# Import RedditScraperV2 - use absolute import from api package
-from api.scrapers.reddit.main import RedditScraperV2
-from api.core.database.supabase_client import get_supabase_client
+# Flexible imports for both local development and production
+try:
+    # Local development (with api. prefix)
+    from api.scrapers.reddit.main import RedditScraperV2
+    from api.core.database.supabase_client import get_supabase_client
+except ImportError:
+    # Production (without api. prefix)
+    from scrapers.reddit.main import RedditScraperV2
+    from core.database.supabase_client import get_supabase_client
 
 # Version tracking
 SCRAPER_VERSION = "2.0.0"  # Modular architecture with thread-safe API pool

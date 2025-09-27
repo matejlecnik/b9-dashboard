@@ -4,16 +4,25 @@ import { memo, useMemo } from 'react'
 
 
 interface MetricsCardsProps {
-  totalSubreddits: number
-  // Backward-compatible prop name used by categorization page
+  // Platform-specific props
+  platform?: 'reddit' | 'instagram'
+
+  // Reddit props (backward compatible)
+  totalSubreddits?: number
   uncategorizedCount?: number
-  // Generic props preferred by review page to avoid category wording
   statusCount?: number
   statusTitle?: string
-  newTodayCount: number
+  newTodayCount?: number
+
+  // Instagram props
+  totalCreators?: number
+  pendingCount?: number
+  approvedCount?: number
+  nonRelatedCount?: number
+
+  // Common props
   loading: boolean
   error?: string | null
-  // Additional props for review page completion calculation
   reviewCounts?: {
     unreviewed: number
     ok: number
@@ -24,24 +33,59 @@ interface MetricsCardsProps {
   className?: string
 }
 
-const MetricsCards = memo(function MetricsCards({ 
-  totalSubreddits, 
-  uncategorizedCount, 
+const MetricsCards = memo(function MetricsCards({
+  platform = 'reddit',
+  // Reddit props
+  totalSubreddits = 0,
+  uncategorizedCount,
   statusCount,
   statusTitle,
-  newTodayCount,
+  newTodayCount = 0,
+  // Instagram props
+  totalCreators = 0,
+  pendingCount = 0,
+  approvedCount = 0,
+  nonRelatedCount = 0,
+  // Common props
   loading,
   error,
   reviewCounts,
   className = ""
 }: MetricsCardsProps) {
-  const effectiveStatusCount = typeof statusCount === 'number' ? statusCount : (uncategorizedCount || 0)
-  const effectiveTitle = statusTitle || 'Unreviewed'
-  
-  // Use new completion calculation when reviewCounts is provided (review page)
-  let completedCount = totalSubreddits - effectiveStatusCount
-  let completionPercentage = totalSubreddits > 0 ? Math.round((completedCount / totalSubreddits) * 100) : 0
-  let totalForDisplay = totalSubreddits
+  // Platform-specific calculations
+  let effectiveStatusCount: number
+  let effectiveTitle: string
+  let completedCount: number
+  let completionPercentage: number
+  let totalForDisplay: number
+  let secondMetricTitle: string
+  let secondMetricValue: number
+  let secondMetricSubtitle: string
+  let hasActivity: boolean
+
+  if (platform === 'instagram') {
+    // Instagram metrics
+    totalForDisplay = totalCreators
+    effectiveStatusCount = pendingCount
+    effectiveTitle = 'Pending Review'
+    completedCount = approvedCount + nonRelatedCount
+    completionPercentage = totalCreators > 0 ? Math.round((completedCount / totalCreators) * 100) : 0
+    secondMetricTitle = 'Approved'
+    secondMetricValue = approvedCount
+    secondMetricSubtitle = 'Ready to track'
+    hasActivity = approvedCount > 0
+  } else {
+    // Reddit metrics
+    effectiveStatusCount = typeof statusCount === 'number' ? statusCount : (uncategorizedCount || 0)
+    effectiveTitle = statusTitle || 'Unreviewed'
+    completedCount = totalSubreddits - effectiveStatusCount
+    completionPercentage = totalSubreddits > 0 ? Math.round((completedCount / totalSubreddits) * 100) : 0
+    totalForDisplay = totalSubreddits
+    secondMetricTitle = 'Added Today'
+    secondMetricValue = newTodayCount
+    secondMetricSubtitle = newTodayCount > 0 ? 'New Discoveries' : 'No New Ones'
+    hasActivity = newTodayCount > 0
+  }
   
   if (reviewCounts) {
     // For review page: completed = ok + non_related + no_seller
@@ -53,24 +97,24 @@ const MetricsCards = memo(function MetricsCards({
   // Memoize metrics array to prevent recreation on each render
   const metrics = useMemo(() => [
     {
-      title: 'Total Subreddits',
+      title: platform === 'instagram' ? 'Total Creators' : 'Total Subreddits',
       value: loading ? '...' : error ? 'Error' : totalForDisplay.toLocaleString('en-US'),
       subtitle: error ? 'Failed to load' : 'In Database',
-      testId: 'total-subreddits'
+      testId: platform === 'instagram' ? 'total-creators' : 'total-subreddits'
     },
     {
-      title: 'Added Today',
-      value: loading ? '...' : newTodayCount.toLocaleString('en-US'),
-      subtitle: newTodayCount > 0 ? 'New Discoveries' : 'No New Ones',
-      hasActivity: newTodayCount > 0,
-      testId: 'new-today-count'
+      title: secondMetricTitle,
+      value: loading ? '...' : secondMetricValue.toLocaleString('en-US'),
+      subtitle: secondMetricSubtitle,
+      hasActivity: hasActivity,
+      testId: platform === 'instagram' ? 'approved-count' : 'new-today-count'
     },
     {
       title: effectiveTitle,
       value: loading ? '...' : effectiveStatusCount.toLocaleString('en-US'),
       subtitle: effectiveStatusCount > 0 ? 'Need Review' : 'All Done!',
       isHighlight: effectiveStatusCount > 0,
-      testId: 'status-count'
+      testId: platform === 'instagram' ? 'pending-count' : 'status-count'
     },
     {
       title: 'Progress',
@@ -81,10 +125,14 @@ const MetricsCards = memo(function MetricsCards({
       testId: 'completion-percentage'
     }
   ], [
+    platform,
     loading,
     error,
     totalForDisplay,
-    newTodayCount,
+    secondMetricValue,
+    secondMetricTitle,
+    secondMetricSubtitle,
+    hasActivity,
     effectiveTitle,
     effectiveStatusCount,
     completionPercentage,
@@ -94,7 +142,7 @@ const MetricsCards = memo(function MetricsCards({
 
 
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5 ${className}`} data-testid="metrics-cards">
+    <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5 ${className}`} data-testid={`${platform}-metrics-cards`}>
       {metrics.map((metric, index) => {
         return (
           <div
@@ -103,7 +151,7 @@ const MetricsCards = memo(function MetricsCards({
             className={`
               rounded-xl p-3 transition-all duration-300 ease-out h-full min-h-[80px]
               bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-              border border-gray-200
+              border ${platform === 'instagram' ? 'border-white/20' : 'border-gray-200'}
               shadow-[0_8px_32px_rgba(0,0,0,0.1)]
               hover:bg-[rgba(248,250,252,0.8)]
               hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]

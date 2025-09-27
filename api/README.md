@@ -21,24 +21,34 @@ Production-ready FastAPI backend deployed on Render that powers the B9 Dashboard
 
 ### Core Components
 
-1. **Continuous Scrapers** (`/core/`)
-   - `continuous_scraper.py` - Reddit scraper with 30-second database polling
-   - `continuous_instagram_scraper.py` - Instagram scraper with 30-second database polling
-   - Both check `system_control` table every 30 seconds for enable/disable status
-   - Auto-start on API deployment via `start.py`
+1. **Platform Scrapers** (`/scrapers/`)
+   - **Reddit** (`/scrapers/reddit/`)
+     - `main.py` - Main orchestrator (RedditScraperV2)
+     - `continuous.py` - 30-second database polling controller
+     - `scrapers/` - Subreddit and user data collectors
+     - `processors/` - Metrics and score calculations
+   - **Instagram** (`/scrapers/instagram/`)
+     - `continuous.py` - 30-second database polling controller
+     - `services/` - Instagram API logic with rate limiting
 
-2. **API Routes** (`/routes/`)
+2. **Shared Infrastructure** (`/core/`)
+   - `cache/` - Redis-backed caching with TTL support
+   - `clients/` - Thread-safe API client pools
+   - `config/` - Proxy management and configuration
+   - `database/` - Batch writers and DB utilities
+   - `utils/` - Shared utilities and logging
+
+3. **API Routes** (`/routes/`)
    - `/api/scraper/*` - Reddit scraper control endpoints
    - `/api/instagram/scraper/*` - Instagram scraper control endpoints
    - `/api/users/*` - User discovery from Reddit
    - `/api/categorization/*` - AI-powered subreddit categorization
 
-3. **Services** (`/services/`)
+4. **Services** (`/services/`)
    - `categorization_service.py` - OpenAI GPT integration
-   - `instagram/unified_scraper.py` - Instagram API logic with rate limiting
    - `database.py` - Supabase client management
 
-4. **Utilities** (`/utils/`)
+5. **Utilities** (`/utils/`)
    - `system_logger.py` - Centralized logging to Supabase
    - `cache.py` - Redis caching (when available)
    - `rate_limit.py` - API rate limiting

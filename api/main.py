@@ -35,26 +35,41 @@ from utils import (
     request_timer, get_cache, rate_limit, check_request_rate_limit,
     system_logger, log_api_call, log_exception
 )
-from services.categorization_service_tags import TagCategorizationService
-from services.single_subreddit_fetcher import fetch_subreddit
-from routes.scraper_routes import router as scraper_router
-from routes.user_routes import router as user_router
-
-# Import Instagram scraper routes
+# Flexible imports for both local development and production
 try:
-    from routes.instagram_scraper_routes import router as instagram_scraper_router
+    # Local development (with api. prefix)
+    from api.services.categorization_service_tags import TagCategorizationService
+    from api.services.single_subreddit_fetcher import fetch_subreddit
+    from api.routes.scraper_routes import router as scraper_router
+    from api.routes.user_routes import router as user_router
+    from api.routes.instagram_scraper_routes import router as instagram_scraper_router
     INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = True
-except ImportError as e:
-    print(f"Instagram scraper routes not available: {e}")
-    INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
+except ImportError:
+    # Production (without api. prefix)
+    from services.categorization_service_tags import TagCategorizationService
+    from services.single_subreddit_fetcher import fetch_subreddit
+    from routes.scraper_routes import router as scraper_router
+    from routes.user_routes import router as user_router
+    try:
+        from routes.instagram_scraper_routes import router as instagram_scraper_router
+        INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = True
+    except ImportError as e:
+        print(f"Instagram scraper routes not available: {e}")
+        INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
 
 # Import Instagram related creators routes
 try:
-    from routes.instagram_related_creators_routes import router as instagram_related_router
+    # Local development
+    from api.routes.instagram_related_creators_routes import router as instagram_related_router
     INSTAGRAM_RELATED_ROUTES_AVAILABLE = True
-except ImportError as e:
-    print(f"Instagram related creators routes not available: {e}")
-    INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
+except ImportError:
+    try:
+        # Production
+        from routes.instagram_related_creators_routes import router as instagram_related_router
+        INSTAGRAM_RELATED_ROUTES_AVAILABLE = True
+    except ImportError as e:
+        print(f"Instagram related creators routes not available: {e}")
+        INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
 
 # Instagram scraper now uses subprocess architecture via instagram_scraper_routes.py
 # Control is done via Supabase system_control table only

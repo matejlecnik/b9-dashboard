@@ -1,7 +1,7 @@
 'use client'
 
 import { PostMetrics } from '@/types/post'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 
 interface PostAnalysisStatsProps {
   metrics: PostMetrics | null

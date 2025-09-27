@@ -5,7 +5,7 @@ import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UNIFIED_TOOLBAR_STYLES, TOOLBAR_DIMENSIONS, B9_GRADIENTS } from '@/lib/toolbarStyles'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 
 // Unified Search Input Component
 interface ToolbarSearchProps {

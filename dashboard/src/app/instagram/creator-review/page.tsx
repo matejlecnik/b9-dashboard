@@ -13,10 +13,10 @@ import {
   Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DashboardLayout } from '@/components/shared'
-import { InstagramMetricsCards } from '@/components/instagram/InstagramMetricsCards'
-import { StandardToolbar } from '@/components/shared'
+import { DashboardLayout, MetricsCards, StandardToolbar, UniversalCreatorTable } from '@/components/shared'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { useDebounce } from '@/hooks/useDebounce'
+import { MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
 
 // Import React Query hooks and types
 import {
@@ -30,13 +30,7 @@ import {
 } from '@/hooks/queries/useInstagramReview'
 
 // Import InstagramCreator type for type safety
-import type { InstagramCreator as InstagramCreatorType, InstagramTableProps } from '@/components/instagram/InstagramTable'
-
-// Lazy load heavy components
-const InstagramTable = dynamic<InstagramTableProps>(
-  () => import('@/components/instagram/InstagramTable').then(mod => ({ default: mod.InstagramTable })),
-  { ssr: false, loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" /> }
-)
+import type { Creator as InstagramCreatorType } from '@/components/shared'
 
 const RelatedCreatorsModal = dynamic(
   () => import('@/components/instagram/RelatedCreatorsModal').then(mod => ({ default: mod.RelatedCreatorsModal })),
@@ -216,16 +210,24 @@ export default function CreatorReviewPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
             {/* Metrics Cards */}
-            <InstagramMetricsCards
-              totalCreators={reviewCounts.total}
-              pendingCount={reviewCounts.pending}
-              approvedCount={reviewCounts.approved}
-              nonRelatedCount={reviewCounts.rejected}
-              loading={!stats}
-            />
+            <ComponentErrorBoundary>
+              {!stats ? (
+                <MetricsCardsSkeleton />
+              ) : (
+                <MetricsCards
+                  platform="instagram"
+                  totalCreators={reviewCounts.total}
+                  pendingCount={reviewCounts.pending}
+                  approvedCount={reviewCounts.approved}
+                  nonRelatedCount={reviewCounts.rejected}
+                  loading={false}
+                />
+              )}
+            </ComponentErrorBoundary>
 
             {/* StandardToolbar */}
-            <StandardToolbar
+            <ComponentErrorBoundary>
+              <StandardToolbar
               // Search
               searchValue={searchQuery}
               onSearchChange={handleSearchChange}
@@ -317,28 +319,31 @@ export default function CreatorReviewPage() {
               ] : []}
               onClearSelection={() => setSelectedCreators(new Set())}
 
-              loading={isLoading || bulkUpdateMutation.isPending}
-              accentColor="linear-gradient(135deg, #E1306C, #F77737)"
-            />
+                loading={isLoading || bulkUpdateMutation.isPending}
+                accentColor="linear-gradient(135deg, #E1306C, #F77737)"
+              />
+            </ComponentErrorBoundary>
 
             {/* Table */}
-            <InstagramTable
-              creators={transformedCreators}
-              loading={isLoading}
-              selectedCreators={selectedCreators}
-              setSelectedCreators={setSelectedCreators}
-              onUpdateReview={(id: number, review: 'ok' | 'non_related' | 'pending') => {
-                // Map review to status
-                let status: CreatorStatus = 'pending'
-                if (review === 'ok') status = 'approved'
-                else if (review === 'non_related') status = 'rejected'
-                updateCreatorStatus(id, status)
-              }}
-              postsMetrics={postsMetrics}
-              hasMore={hasNextPage || false}
-              onReachEnd={handleReachEnd}
-              loadingMore={isFetchingNextPage}
-            />
+            <ComponentErrorBoundary>
+              <UniversalCreatorTable
+                creators={transformedCreators}
+                loading={isLoading}
+                selectedCreators={selectedCreators}
+                setSelectedCreators={setSelectedCreators}
+                onUpdateReview={(id: number, review: 'ok' | 'non_related' | 'pending') => {
+                  // Map review to status
+                  let status: CreatorStatus = 'pending'
+                  if (review === 'ok') status = 'approved'
+                  else if (review === 'non_related') status = 'rejected'
+                  updateCreatorStatus(id, status)
+                }}
+                postsMetrics={postsMetrics}
+                hasMore={hasNextPage || false}
+                onReachEnd={handleReachEnd}
+                loadingMore={isFetchingNextPage}
+              />
+            </ComponentErrorBoundary>
           </div>
         </div>
       </div>

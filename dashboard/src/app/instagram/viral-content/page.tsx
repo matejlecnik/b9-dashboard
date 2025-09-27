@@ -13,7 +13,10 @@ import {
 import { StandardToolbar } from '@/components/shared'
 import { ViralFilters } from '@/components/instagram/ViralFilters'
 import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { MetricsCardsSkeleton, CardGridSkeleton } from '@/components/SkeletonLoaders'
 import { logger } from '@/lib/logger'
+import { formatNumber } from '@/lib/formatters'
 import {
   getViralReels,
   getViralReelsStats,
@@ -37,14 +40,6 @@ interface TopCreator {
   viral_count: number
   total_views: number
   avg_views: number
-}
-
-function formatNumber(num: number | null | undefined): string {
-  if (num === null || num === undefined) return '0'
-  if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)}B`
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
 }
 
 export default function ViralContentPage() {
@@ -146,7 +141,11 @@ export default function ViralContentPage() {
           <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
             <div className="space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
+              <ComponentErrorBoundary>
+                {loading && !stats ? (
+                  <MetricsCardsSkeleton />
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
                 <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-2 rounded-xl text-purple-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
@@ -155,7 +154,7 @@ export default function ViralContentPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                      {loading ? '...' : formatNumber(stats?.total_reels || 8001)}
+                      {formatNumber(stats?.total_reels || 8001)}
                     </div>
                     <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
                       Total Reels
@@ -174,7 +173,7 @@ export default function ViralContentPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                      {loading ? '...' : formatNumber(stats?.total_viral || 6566)}
+                      {formatNumber(stats?.total_viral || 6566)}
                     </div>
                     <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
                       Viral Reels
@@ -192,7 +191,7 @@ export default function ViralContentPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                      {loading ? '...' : formatNumber(stats?.ultra_viral || 3)}
+                      {formatNumber(stats?.ultra_viral || 3)}
                     </div>
                     <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
                       Ultra Viral
@@ -210,7 +209,7 @@ export default function ViralContentPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                      {loading ? '...' : formatNumber(stats?.avg_views || 1008541)}
+                      {formatNumber(stats?.avg_views || 1008541)}
                     </div>
                     <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
                       Avg Views
@@ -229,7 +228,7 @@ export default function ViralContentPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                      {loading ? '...' : formatNumber(stats?.max_views || 112747183)}
+                      {formatNumber(stats?.max_views || 112747183)}
                     </div>
                     <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
                       Max Views
@@ -239,7 +238,9 @@ export default function ViralContentPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+                </div>
+                )}
+              </ComponentErrorBoundary>
 
               {/* Top Creators */}
               {topCreators.length > 0 && (
@@ -272,7 +273,8 @@ export default function ViralContentPage() {
               )}
 
               {/* StandardToolbar */}
-              <StandardToolbar
+              <ComponentErrorBoundary>
+                <StandardToolbar
                 // Search
                 searchValue={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -323,37 +325,42 @@ export default function ViralContentPage() {
                 currentSort={filters.sortBy}
                 onSortChange={(sortBy: string) => handleFiltersChange({ ...filters, sortBy: sortBy as 'views' | 'likes' | 'engagement' | 'recent' })}
 
-                loading={loading}
-                accentColor="linear-gradient(135deg, #E1306C, #F77737)"
-              />
+                  loading={loading}
+                  accentColor="linear-gradient(135deg, #E1306C, #F77737)"
+                />
+              </ComponentErrorBoundary>
 
               {/* Advanced Filters */}
-              <ViralFilters
+              <ComponentErrorBoundary>
+                <ViralFilters
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
-                onReset={handleResetFilters}
-              />
+                  onReset={handleResetFilters}
+                />
+              </ComponentErrorBoundary>
 
               {/* Viral Reels Grid */}
-              <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Viral Reels Feed</h3>
-                    <span className="text-sm text-gray-600">
-                      {reels.length} reels shown {page < totalPages && `• Page ${page} of ${totalPages}`}
-                    </span>
+              <ComponentErrorBoundary>
+                <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]">
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Viral Reels Feed</h3>
+                      <span className="text-sm text-gray-600">
+                        {reels.length} reels shown {page < totalPages && `• Page ${page} of ${totalPages}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <ViralReelsGrid
+                      reels={reels}
+                      loading={loading}
+                      hasMore={page < totalPages}
+                      onLoadMore={handleLoadMore}
+                      loadingMore={loadingMore}
+                    />
                   </div>
                 </div>
-                <div className="p-6">
-                  <ViralReelsGrid
-                    reels={reels}
-                    loading={loading}
-                    hasMore={page < totalPages}
-                    onLoadMore={handleLoadMore}
-                    loadingMore={loadingMore}
-                  />
-                </div>
-              </div>
+              </ComponentErrorBoundary>
             </div>
           </div>
         </main>

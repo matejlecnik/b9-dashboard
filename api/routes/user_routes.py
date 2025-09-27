@@ -16,7 +16,11 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from supabase import create_client
 
-from api.core.clients.api_pool import PublicRedditAPI
+# Flexible import that works both locally and in production
+try:
+    from api.core.clients.api_pool import PublicRedditAPI
+except ImportError:
+    from core.clients.api_pool import PublicRedditAPI
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])

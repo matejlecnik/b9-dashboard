@@ -4,7 +4,8 @@ import React, { memo, useState } from 'react'
 import Image from 'next/image'
 import { Post } from '@/types/post'
 import { Badge } from '@/components/ui/badge'
-import { cn, formatNumber } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 import {
   TrendingUp,
   MessageCircle,

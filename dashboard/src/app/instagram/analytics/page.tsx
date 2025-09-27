@@ -13,7 +13,8 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { DashboardLayout } from '@/components/shared'
+import { DashboardLayout, MetricsCards } from '@/components/shared'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function AnalyticsPage() {
   // Mock data for metrics - replace with actual data fetch
@@ -36,84 +37,73 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
-              <Users className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.totalCreators}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                <span className="text-green-600">↑ 12%</span> from last month
-              </p>
-            </CardContent>
-          </Card>
+        <ComponentErrorBoundary>
+          <MetricsCards
+            platform="instagram"
+            totalCreators={analyticsData.totalCreators}
+            pendingCount={0}
+            approvedCount={analyticsData.activeCreators}
+            nonRelatedCount={0}
+            loading={false}
+          />
+        </ComponentErrorBoundary>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Creators</CardTitle>
-              <Activity className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.activeCreators}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                {Math.round((analyticsData.activeCreators / analyticsData.totalCreators) * 100)}% activity rate
-              </p>
-            </CardContent>
-          </Card>
+        {/* Additional Stats */}
+        <ComponentErrorBoundary>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Top Performers</CardTitle>
+                <Award className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData.topPerformers}</div>
+                <p className="text-xs text-gray-600 mt-1">
+                  <Badge variant="secondary">Elite Tier</Badge>
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Performers</CardTitle>
-              <Award className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.topPerformers}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                <Badge variant="secondary">Elite Tier</Badge>
-              </p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
+                <TrendingUp className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData.avgEngagement}%</div>
+                <p className="text-xs text-gray-600 mt-1">
+                  <span className="text-green-600">↑ 0.8%</span> improvement
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
-              <TrendingUp className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.avgEngagement}%</div>
-              <p className="text-xs text-gray-600 mt-1">
-                <span className="text-green-600">↑ 0.8%</span> improvement
-              </p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
+                <Target className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{(analyticsData.totalReach / 1000000).toFixed(1)}M</div>
+                <p className="text-xs text-gray-600 mt-1">Combined audience</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
-              <Target className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{(analyticsData.totalReach / 1000000).toFixed(1)}M</div>
-              <p className="text-xs text-gray-600 mt-1">Combined audience</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Content</CardTitle>
-              <BarChart3 className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{(analyticsData.totalContent / 1000).toFixed(1)}K</div>
-              <p className="text-xs text-gray-600 mt-1">Posts analyzed</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Content</CardTitle>
+                <BarChart3 className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{(analyticsData.totalContent / 1000).toFixed(1)}K</div>
+                <p className="text-xs text-gray-600 mt-1">Posts analyzed</p>
+              </CardContent>
+            </Card>
+          </div>
+        </ComponentErrorBoundary>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComponentErrorBoundary>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -141,10 +131,12 @@ export default function AnalyticsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+          </div>
+        </ComponentErrorBoundary>
 
         {/* Recent Activity */}
-        <Card>
+        <ComponentErrorBoundary>
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
@@ -162,7 +154,8 @@ export default function AnalyticsPage() {
               ))}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </ComponentErrorBoundary>
       </div>
     </DashboardLayout>
   )

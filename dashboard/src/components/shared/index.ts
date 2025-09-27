@@ -3,6 +3,8 @@
 
 // Tables
 export { UniversalTable, createSubredditReviewTable, createCategorizationTable, createCompactSubredditTable } from './tables/UniversalTable'
+export { UniversalCreatorTable } from './tables/UniversalCreatorTable'
+export type { InstagramCreator as Creator } from './tables/UniversalCreatorTable'
 // VirtualizedUniversalTable not available yet
 // export { VirtualizedUniversalTable } from './tables/VirtualizedUniversalTable'
 

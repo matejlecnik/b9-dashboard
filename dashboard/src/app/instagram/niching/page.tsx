@@ -11,53 +11,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { StandardToolbar } from '@/components/shared'
-import { InstagramTable } from '@/components/instagram/InstagramTable'
+import { StandardToolbar, UniversalCreatorTable } from '@/components/shared'
 import { NicheSelector } from '@/components/instagram/NicheSelector'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
+import { formatNumber } from '@/lib/formatters'
 import { toast } from 'sonner'
 
 
-interface InstagramCreator {
-  id: number
-  ig_user_id: string
-  username: string
-  full_name: string | null
-  biography: string | null
-  profile_pic_url: string | null
-  followers: number
-  following: number
-  posts_count: number
-  media_count: number
-  review_status: 'pending' | 'ok' | 'non_related' | null
-  reviewed_at: string | null
-  reviewed_by: string | null
-  discovery_source: string | null
-  is_private: boolean
-  is_verified: boolean
-  avg_views_per_reel_cached: number | null
-  engagement_rate_cached: number | null
-  viral_content_count_cached: number | null
-  external_url: string | null
-  bio_links: unknown[] | null
-  avg_likes_per_post?: number | null
-  niche?: string | null
-}
+import type { Creator as InstagramCreator } from '@/components/shared'
 
 const PAGE_SIZE = 50
 
-// Utility function to format numbers
-const formatNumber = (num: number | null | undefined): string => {
-  if (num === null || num === undefined) return '0'
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
-}
-
 export default function NichingPage() {
-  const [creators, setCreators] = useState<InstagramCreator[]>([])
+  const [creators, setCreators] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -459,7 +428,8 @@ export default function NichingPage() {
           <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
             <div className="space-y-6">
               {/* Progress Card with AI Button */}
-              <div className="flex gap-3">
+              <ComponentErrorBoundary>
+                <div className="flex gap-3">
                 {/* Progress Bar Card */}
                 <div className="flex-1 rounded-2xl p-4 transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
                   <div className="flex items-center justify-between mb-3">
@@ -491,10 +461,12 @@ export default function NichingPage() {
                   <UserPlus className="h-4 w-4" />
                   <span>Add Creator</span>
                 </Button>
-              </div>
+                </div>
+              </ComponentErrorBoundary>
 
               {/* StandardToolbar */}
-              <StandardToolbar
+              <ComponentErrorBoundary>
+                <StandardToolbar
                 // Search
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
@@ -568,9 +540,10 @@ export default function NichingPage() {
                 ] : []}
                 onClearSelection={() => setSelectedCreators(new Set())}
 
-                loading={loading}
-                accentColor="linear-gradient(135deg, #E1306C, #F77737)"
-              />
+                  loading={loading}
+                  accentColor="linear-gradient(135deg, #E1306C, #F77737)"
+                />
+              </ComponentErrorBoundary>
 
               {showCustomInput && (
                 <div className="flex items-center gap-2 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
@@ -605,8 +578,9 @@ export default function NichingPage() {
               )}
 
               {/* Extended Instagram Table with Niche Column */}
-              <div className="relative rounded-2xl overflow-hidden transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
-                <InstagramTable
+              <ComponentErrorBoundary>
+                <div className="relative rounded-2xl overflow-hidden transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+                  <InstagramTable
                   creators={creators}
                   loading={loading}
                   selectedCreators={selectedCreators}
@@ -649,26 +623,10 @@ export default function NichingPage() {
                         toast.error('An error occurred')
                       }
                     })()
-                  }}
-                  customColumns={[
-                    {
-                      key: 'niche',
-                      label: 'Niche',
-                      width: 'w-40',
-                      render: (creator: InstagramCreator) => {
-                        return (
-                          <NicheSelector
-                            creatorId={creator.id}
-                            currentNiche={creator.niche || null}
-                            availableNiches={availableNiches}
-                            onNicheChange={(niche) => updateNiche(creator.id, niche)}
-                          />
-                        )
-                      }
-                    }
-                  ]}
-                />
-              </div>
+                    }}
+                  />
+                </div>
+              </ComponentErrorBoundary>
             </div>
           </div>
         </main>

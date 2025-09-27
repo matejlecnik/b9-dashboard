@@ -12,13 +12,23 @@ from typing import Dict, List, Any
 from dotenv import load_dotenv
 
 # Add api directory to path
-# Use absolute imports from api package
-# from api.scrapers.reddit.main import RedditScraperV2
-from api.core.database.batch_writer import BatchWriter
-from api.core.config.proxy_manager import ProxyManager
-from api.core.clients.api_pool import ThreadSafeAPIPool as APIPool
-from api.scrapers.reddit.scrapers.subreddit import SubredditScraper
-from api.scrapers.reddit.scrapers.user import UserScraper
+# Flexible imports for both local development and production
+try:
+    # Local development (with api. prefix)
+    # from api.scrapers.reddit.main import RedditScraperV2
+    from api.core.database.batch_writer import BatchWriter
+    from api.core.config.proxy_manager import ProxyManager
+    from api.core.clients.api_pool import ThreadSafeAPIPool as APIPool
+    from api.scrapers.reddit.scrapers.subreddit import SubredditScraper
+    from api.scrapers.reddit.scrapers.user import UserScraper
+except ImportError:
+    # Production (without api. prefix)
+    # from scrapers.reddit.main import RedditScraperV2
+    from core.database.batch_writer import BatchWriter
+    from core.config.proxy_manager import ProxyManager
+    from core.clients.api_pool import ThreadSafeAPIPool as APIPool
+    from scrapers.reddit.scrapers.subreddit import SubredditScraper
+    from scrapers.reddit.scrapers.user import UserScraper
 from supabase import create_client, Client
 
 # Load environment variables
