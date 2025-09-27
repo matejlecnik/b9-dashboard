@@ -60,7 +60,7 @@ def check_and_start_scrapers():
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
-                        [sys.executable, "-u", "core/continuous_scraper_v2.py"],
+                        [sys.executable, "-u", "scrapers/reddit/continuous.py"],
                         stdout=reddit_log,
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
@@ -85,7 +85,7 @@ def check_and_start_scrapers():
 
                         if system_logger:
                             system_logger.info(
-                                f"Reddit scraper auto-started",
+                                "Reddit scraper auto-started",
                                 source="api",
                                 script_name="start",
                                 context={"pid": reddit_process.pid, "auto_start": True}
