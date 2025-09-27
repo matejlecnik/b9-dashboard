@@ -4,7 +4,6 @@ Centralized database connection management and batch writing
 """
 
 from .batch_writer import BatchWriter
-from .direct_posts_writer import DirectPostsWriter
 from .supabase_client import (
     get_supabase_client,
     close_supabase_client,
@@ -22,7 +21,6 @@ from .rate_limiter import (
 
 __all__ = [
     'BatchWriter',
-    'DirectPostsWriter',
     'get_supabase_client',
     'close_supabase_client',
     'refresh_supabase_client',

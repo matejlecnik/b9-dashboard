@@ -159,19 +159,13 @@ async def lifespan(app: FastAPI):
         # Initialize utilities
         logger.info("🔧 Initializing utilities...")
         
-        # Initialize cache manager
-        cache_initialized = await cache_manager.initialize()
-        if cache_initialized:
-            logger.info("✅ Cache manager initialized")
-        else:
-            logger.warning("⚠️  Cache manager failed to initialize (running without cache)")
+        # Initialize cache manager (no-op version)
+        await cache_manager.initialize()
+        logger.info("✅ Cache manager initialized (caching disabled)")
         
-        # Initialize rate limiter
-        rate_limit_initialized = await rate_limiter.initialize()
-        if rate_limit_initialized:
-            logger.info("✅ Rate limiter initialized")
-        else:
-            logger.warning("⚠️  Rate limiter failed to initialize (running without rate limiting)")
+        # Initialize rate limiter (no-op version)
+        await rate_limiter.initialize()
+        logger.info("✅ Rate limiter initialized (rate limiting disabled)")
         
         # Initialize services
         logger.info("⚙️  Initializing services...")
@@ -182,7 +176,6 @@ async def lifespan(app: FastAPI):
 
         # Register health check dependencies
         health_monitor.register_dependency('supabase', health_monitor.check_supabase_health)
-        health_monitor.register_dependency('redis', health_monitor.check_redis_health)
         health_monitor.register_dependency('openai', health_monitor.check_openai_health)
 
         # Don't auto-start scraper - it can be controlled via API endpoints
@@ -196,8 +189,8 @@ async def lifespan(app: FastAPI):
             script_name="main",
             duration_ms=int(startup_time * 1000),
             context={
-                "cache_enabled": cache_initialized,
-                "rate_limiting_enabled": rate_limit_initialized,
+                "cache_enabled": False,
+                "rate_limiting_enabled": False,
                 "services": ["categorization", "user"],
                 "startup_time_seconds": startup_time
             }
@@ -205,7 +198,7 @@ async def lifespan(app: FastAPI):
         
         # Log startup
         logger.info(f"Services initialized: categorization, user")
-        logger.info(f"Cache enabled: {cache_initialized}, Rate limiting: {rate_limit_initialized}")
+        logger.info("Cache disabled, Rate limiting disabled")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize B9 Dashboard API: {e}")
