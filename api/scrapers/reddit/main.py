@@ -12,16 +12,16 @@ import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Callable
 from collections import defaultdict
-from supabase import create_client
-from dotenv import load_dotenv
 from pathlib import Path
 
-# Add API directory to path for consistent imports
-import sys
-import os
+# Add API directory to path for consistent imports - MUST BE BEFORE PROJECT IMPORTS
 api_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if api_dir not in sys.path:
     sys.path.insert(0, api_dir)
+
+# Now we can import from supabase and dotenv
+from supabase import create_client
+from dotenv import load_dotenv
 
 # Use consistent absolute imports from api directory
 from core.clients.api_pool import ThreadSafeAPIPool
