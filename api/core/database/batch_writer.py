@@ -354,9 +354,26 @@ class BatchWriter:
         Args:
             posts_data: List of post data dictionaries
         """
-        print(f"[BATCH_WRITER] add_posts called with {len(posts_data) if posts_data else 0} posts")
+        # IMMEDIATE logging - both print and logger
+        print(f"[BATCH_WRITER DEBUG] add_posts called with {len(posts_data) if posts_data else 0} posts")
+        print(f"[BATCH_WRITER DEBUG] Current buffer size: {len(self.buffers['reddit_posts'])}")
+
+        # Log to Supabase immediately
+        try:
+            await self.log_handler.emit_async(LogRecord(
+                name="batch_writer",
+                level=logging.INFO,
+                pathname="batch_writer.py",
+                lineno=349,
+                msg=f"📥 add_posts called with {len(posts_data) if posts_data else 0} posts, buffer has {len(self.buffers['reddit_posts'])} items",
+                args=(),
+                exc_info=None
+            ))
+        except Exception as e:
+            print(f"[BATCH_WRITER DEBUG] Failed to log: {e}")
 
         if not posts_data:
+            print("[BATCH_WRITER DEBUG] No posts data, returning")
             return
 
         logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")

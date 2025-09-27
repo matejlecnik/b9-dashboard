@@ -184,13 +184,15 @@ class RedditScraperV2:
         logger.info("✅ Cache manager initialized")
 
         # Initialize batch writer with configurable settings
+        logger.info(f"🔧 Initializing BatchWriter with batch_size={self.config.batch_writer_size}, flush_interval={self.config.batch_writer_flush_interval}")
         self.batch_writer = BatchWriter(
-            self.supabase, 
+            self.supabase,
             batch_size=self.config.batch_writer_size,
             flush_interval=self.config.batch_writer_flush_interval
         )
+        logger.info(f"🔧 BatchWriter instance created: {self.batch_writer}, Type: {type(self.batch_writer)}")
         await self.batch_writer.start()
-        logger.info("✅ Batch writer initialized")
+        logger.info(f"✅ Batch writer initialized and started, instance: {self.batch_writer}")
 
         # Initialize metrics calculator
         self.metrics_calculator = MetricsCalculator()
@@ -529,6 +531,8 @@ class RedditScraperV2:
                     try:
                         if result.get('hot_posts'):
                             logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts to batch writer")
+                            logger.info(f"🔍 BatchWriter instance: {self.batch_writer}, Type: {type(self.batch_writer)}")
+                            logger.info(f"🔍 Hot posts sample: {result['hot_posts'][0] if result['hot_posts'] else 'None'}")
                             await self.batch_writer.add_posts(result['hot_posts'])
                             self.stats['posts_processed'] += len(result['hot_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Hot posts added successfully")
