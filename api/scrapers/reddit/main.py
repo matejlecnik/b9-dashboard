@@ -573,20 +573,17 @@ class RedditScraperV2:
                                         cleaned = {
                                             'reddit_id': post.get('reddit_id'),
                                             'title': post.get('title'),
-                                            'author': post.get('author'),
-                                            'subreddit': post.get('subreddit'),
+                                            'author_username': post.get('author'),  # Column is author_username
+                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
                                             'score': post.get('score', 0),
                                             'upvote_ratio': post.get('upvote_ratio', 0),
                                             'num_comments': post.get('num_comments', 0),
                                             'created_utc': post.get('created_utc'),
                                             'url': post.get('url'),
-                                            'permalink': post.get('permalink'),
                                             'selftext': post.get('selftext'),
                                             'is_video': post.get('is_video', False),
-                                            'is_original_content': post.get('is_original_content', False),
                                             'link_flair_text': post.get('link_flair_text'),
                                             'over_18': post.get('over_18', False),
-                                            'scrape_type': post.get('scrape_type'),
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
                                         # Remove None values
@@ -627,20 +624,17 @@ class RedditScraperV2:
                                         cleaned = {
                                             'reddit_id': post.get('reddit_id'),
                                             'title': post.get('title'),
-                                            'author': post.get('author'),
-                                            'subreddit': post.get('subreddit'),
+                                            'author_username': post.get('author'),  # Column is author_username
+                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
                                             'score': post.get('score', 0),
                                             'upvote_ratio': post.get('upvote_ratio', 0),
                                             'num_comments': post.get('num_comments', 0),
                                             'created_utc': post.get('created_utc'),
                                             'url': post.get('url'),
-                                            'permalink': post.get('permalink'),
                                             'selftext': post.get('selftext'),
                                             'is_video': post.get('is_video', False),
-                                            'is_original_content': post.get('is_original_content', False),
                                             'link_flair_text': post.get('link_flair_text'),
                                             'over_18': post.get('over_18', False),
-                                            'scrape_type': post.get('scrape_type'),
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
                                         cleaned = {k: v for k, v in cleaned.items() if v is not None}
@@ -678,20 +672,17 @@ class RedditScraperV2:
                                         cleaned = {
                                             'reddit_id': post.get('reddit_id'),
                                             'title': post.get('title'),
-                                            'author': post.get('author'),
-                                            'subreddit': post.get('subreddit'),
+                                            'author_username': post.get('author'),  # Column is author_username
+                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
                                             'score': post.get('score', 0),
                                             'upvote_ratio': post.get('upvote_ratio', 0),
                                             'num_comments': post.get('num_comments', 0),
                                             'created_utc': post.get('created_utc'),
                                             'url': post.get('url'),
-                                            'permalink': post.get('permalink'),
                                             'selftext': post.get('selftext'),
                                             'is_video': post.get('is_video', False),
-                                            'is_original_content': post.get('is_original_content', False),
                                             'link_flair_text': post.get('link_flair_text'),
                                             'over_18': post.get('over_18', False),
-                                            'scrape_type': post.get('scrape_type'),
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
                                         cleaned = {k: v for k, v in cleaned.items() if v is not None}
