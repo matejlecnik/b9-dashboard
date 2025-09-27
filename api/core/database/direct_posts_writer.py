@@ -77,16 +77,33 @@ class DirectPostsWriter:
 
         return cleaned
 
-    def write_posts(self, posts_data: List[Dict[str, Any]]) -> bool:
+    def write_posts(self, posts_data) -> bool:
         """
         Write posts directly to the database
         Returns True if successful, False otherwise
         """
-        if not posts_data:
-            print(f"[DirectPostsWriter] No posts to write", flush=True)
-            return True
+        # Remove type hint and add validation
+        try:
+            if posts_data is None:
+                print(f"[DirectPostsWriter] posts_data is None", flush=True)
+                logger.info(f"[DirectPostsWriter] posts_data is None")
+                return False
 
-        print(f"[DirectPostsWriter] Writing {len(posts_data)} posts...", flush=True)
+            if not isinstance(posts_data, list):
+                print(f"[DirectPostsWriter] posts_data is not a list: {type(posts_data)}", flush=True)
+                logger.info(f"[DirectPostsWriter] posts_data is not a list: {type(posts_data)}")
+                return False
+
+            if not posts_data:
+                print(f"[DirectPostsWriter] No posts to write (empty list)", flush=True)
+                return True
+
+            print(f"[DirectPostsWriter] Writing {len(posts_data)} posts...", flush=True)
+            logger.info(f"[DirectPostsWriter] Writing {len(posts_data)} posts...")
+        except Exception as e:
+            print(f"[DirectPostsWriter] Exception in validation: {e}", flush=True)
+            logger.error(f"[DirectPostsWriter] Exception in validation: {e}")
+            return False
 
         try:
             # Clean all posts
