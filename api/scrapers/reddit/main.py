@@ -41,6 +41,11 @@ from core.database.batch_writer import BatchWriter
 print(f"[REDDIT_SCRAPER] Successfully imported BatchWriter: {BatchWriter}", flush=True)
 
 print("[REDDIT_SCRAPER] About to import DirectPostsWriter...", flush=True)
+# Force reload to avoid cached bytecode issues
+import importlib
+import sys
+if 'core.database.direct_posts_writer' in sys.modules:
+    del sys.modules['core.database.direct_posts_writer']
 from core.database.direct_posts_writer import DirectPostsWriter
 print(f"[REDDIT_SCRAPER] Successfully imported DirectPostsWriter: {DirectPostsWriter}", flush=True)
 from core.database.supabase_client import get_supabase_client, refresh_supabase_client

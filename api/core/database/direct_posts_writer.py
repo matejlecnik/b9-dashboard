@@ -82,14 +82,6 @@ class DirectPostsWriter:
         Write posts directly to the database
         Returns True if successful, False otherwise
         """
-        # TEMPORARY DEBUG: Force return True to see if method is being called
-        print(f"[DirectPostsWriter.write_posts] DEBUG: Method called!", flush=True)
-        logger.info(f"[DirectPostsWriter.write_posts] DEBUG: Method called with {len(posts_data) if posts_data else 0} posts")
-
-        # Return True for now to test
-        # TODO: Remove this after debugging
-        return True
-
         # Validation
         try:
             if posts_data is None:
