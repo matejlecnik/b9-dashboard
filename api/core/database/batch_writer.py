@@ -38,15 +38,16 @@ class BatchWriter:
         self.flush_interval = flush_interval or config.batch_writer_flush_interval
 
         # Setup Supabase logging if not already configured
+        self.log_handler = None  # Initialize as None
         if not any(isinstance(handler, SupabaseLogHandler) for handler in logger.handlers):
             try:
-                supabase_handler = SupabaseLogHandler(
+                self.log_handler = SupabaseLogHandler(
                     supabase_client=supabase_client,  # Use the passed client, not a new one
                     source='batch_writer',
                     script_name='batch_writer'
                 )
-                supabase_handler.setLevel(logging.INFO)
-                logger.addHandler(supabase_handler)
+                self.log_handler.setLevel(logging.INFO)
+                logger.addHandler(self.log_handler)
                 logger.info("✅ SupabaseLogHandler attached to BatchWriter")
             except Exception as e:
                 logger.warning(f"Could not attach SupabaseLogHandler: {e}")
@@ -360,19 +361,23 @@ class BatchWriter:
         sys.stdout.flush()  # Force immediate output
         print(f"[BATCH_WRITER DEBUG] Current buffer size: {len(self.buffers['reddit_posts'])}", flush=True)
 
-        # Log to Supabase immediately
-        try:
-            await self.log_handler.emit_async(LogRecord(
-                name="batch_writer",
-                level=logging.INFO,
-                pathname="batch_writer.py",
-                lineno=349,
-                msg=f"📥 add_posts called with {len(posts_data) if posts_data else 0} posts, buffer has {len(self.buffers['reddit_posts'])} items",
-                args=(),
-                exc_info=None
-            ))
-        except Exception as e:
-            print(f"[BATCH_WRITER DEBUG] Failed to log: {e}")
+        # Log to Supabase immediately (if handler exists)
+        if self.log_handler:
+            try:
+                from logging import LogRecord
+                await self.log_handler.emit_async(LogRecord(
+                    name="batch_writer",
+                    level=logging.INFO,
+                    pathname="batch_writer.py",
+                    lineno=349,
+                    msg=f"📥 add_posts called with {len(posts_data) if posts_data else 0} posts, buffer has {len(self.buffers['reddit_posts'])} items",
+                    args=(),
+                    exc_info=None
+                ))
+            except Exception as e:
+                print(f"[BATCH_WRITER DEBUG] Failed to log: {e}")
+        else:
+            print("[BATCH_WRITER DEBUG] No log_handler available")
 
         if not posts_data:
             print("[BATCH_WRITER DEBUG] No posts data, returning")
