@@ -41,7 +41,7 @@ class BatchWriter:
         if not any(isinstance(handler, SupabaseLogHandler) for handler in logger.handlers):
             try:
                 supabase_handler = SupabaseLogHandler(
-                    supabase_client=get_supabase_client(),
+                    supabase_client=supabase_client,  # Use the passed client, not a new one
                     source='batch_writer',
                     script_name='batch_writer'
                 )
@@ -356,6 +356,8 @@ class BatchWriter:
         """
         if not posts_data:
             return
+
+        logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")
 
         # Get unique subreddit names from posts
         subreddit_names = list(set(

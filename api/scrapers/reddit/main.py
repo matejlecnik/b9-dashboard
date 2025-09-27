@@ -506,17 +506,19 @@ class RedditScraperV2:
 
                     # Process posts if available (save ALL types)
                     if result.get('hot_posts'):
+                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts to batch writer")
                         await self.batch_writer.add_posts(result['hot_posts'])
                         self.stats['posts_processed'] += len(result['hot_posts'])
 
                     if result.get('top_posts'):  # Weekly posts
+                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts to batch writer")
                         await self.batch_writer.add_posts(result['top_posts'])
                         self.stats['posts_processed'] += len(result['top_posts'])
 
                     if result.get('yearly_posts'):  # Yearly posts
+                        logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts to batch writer")
                         await self.batch_writer.add_posts(result['yearly_posts'])
                         self.stats['posts_processed'] += len(result['yearly_posts'])
-                        logger.debug(f"💾 Saved {len(result['yearly_posts'])} yearly posts from r/{subreddit_name}")
 
                     # Manual flush every subreddit for first 5, then every 3 subreddits
                     if processed_count <= 5 or processed_count % 3 == 0:
