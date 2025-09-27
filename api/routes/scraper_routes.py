@@ -93,7 +93,7 @@ async def start_scraper(request: Request):
 
             # Start Reddit scraper subprocess with proper logging
             reddit_process = subprocess.Popen(
-                [sys.executable, "-u", "core/continuous_reddit_scraper_threadsafe.py"],
+                [sys.executable, "-u", "scrapers/reddit/main.py"],
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
