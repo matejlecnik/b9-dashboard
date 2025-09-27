@@ -360,7 +360,11 @@ class BatchWriter:
             posts_data: List of post data dictionaries
         """
         try:
+            # Log immediately at the very start
+            print(f"[BATCH_WRITER] add_posts called with data type: {type(posts_data)}", flush=True)
+
             if not posts_data:
+                logger.info("add_posts called with empty data, returning")
                 return
 
             logger.info(f"📥 BatchWriter.add_posts called with {len(posts_data)} posts")
@@ -420,8 +424,12 @@ class BatchWriter:
                 logger.info("🚀 Buffer full for reddit_posts, triggering flush")
                 await self._flush_table('reddit_posts')
         except Exception as e:
+            print(f"[BATCH_WRITER ERROR] Exception in add_posts: {e}", flush=True)
             logger.error(f"❌ Error in add_posts: {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
             logger.error(traceback.format_exc())
+            # Re-raise to see in main.py logs
+            raise
 
     # Note: Removed add_discovered_subreddit method
     # Discovered subreddits should be added directly to reddit_subreddits table with empty review field
