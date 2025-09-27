@@ -18,7 +18,7 @@ from .core.exceptions import (
 )
 from .core.cache.cache_manager import AsyncCacheManager, CacheManager
 from .core.database.batch_writer import BatchWriter
-from .core.database.supabase_client import get_supabase_client, close_supabase_client, get_circuit_breaker
+from .core.database.supabase_client import get_supabase_client, close_supabase_client, refresh_supabase_client, get_circuit_breaker
 from .core.utils.supabase_logger import SupabaseLogHandler, setup_supabase_logging
 from .core.utils.memory_monitor import MemoryMonitor, get_memory_monitor, set_memory_monitor
 
@@ -31,9 +31,9 @@ from .scrapers.reddit.processors.calculator import MetricsCalculator
 
 __all__ = [
     # Core components
-    'ThreadSafeAPIPool', 'PublicRedditAPI', 'ProxyManager', 
+    'ThreadSafeAPIPool', 'PublicRedditAPI', 'ProxyManager',
     'AsyncCacheManager', 'CacheManager', 'BatchWriter',
-    'get_supabase_client', 'close_supabase_client', 'get_circuit_breaker',
+    'get_supabase_client', 'close_supabase_client', 'refresh_supabase_client', 'get_circuit_breaker',
     'SupabaseLogHandler', 'setup_supabase_logging',
     'MemoryMonitor', 'get_memory_monitor', 'set_memory_monitor',
     
