@@ -3,10 +3,17 @@
 Reddit Scraper v2.0 - Modular Architecture
 Main orchestrator for the restructured Reddit scraper
 """
+# CRITICAL DEBUG: Print before ANY imports to see if script starts
+print("[REDDIT_SCRAPER] Script started - before imports", flush=True)
+import sys
+import os
+print(f"[REDDIT_SCRAPER] Python version: {sys.version}", flush=True)
+print(f"[REDDIT_SCRAPER] Python executable: {sys.executable}", flush=True)
+print(f"[REDDIT_SCRAPER] Current working directory: {os.getcwd()}", flush=True)
+
 import asyncio
 import logging
-import os
-import sys
+# os and sys already imported above for debug
 import random
 import time
 from datetime import datetime, timezone
@@ -29,10 +36,13 @@ from core.clients.api_pool import ThreadSafeAPIPool
 from core.config.proxy_manager import ProxyManager
 from core.config.scraper_config import get_scraper_config
 from core.cache.cache_manager import AsyncCacheManager
+print("[REDDIT_SCRAPER] About to import BatchWriter...", flush=True)
 from core.database.batch_writer import BatchWriter
+print(f"[REDDIT_SCRAPER] Successfully imported BatchWriter: {BatchWriter}", flush=True)
+
+print("[REDDIT_SCRAPER] About to import DirectPostsWriter...", flush=True)
 from core.database.direct_posts_writer import DirectPostsWriter
-print(f"[MAIN.PY] Imported BatchWriter: {BatchWriter}", flush=True)
-print(f"[MAIN.PY] Imported DirectPostsWriter: {DirectPostsWriter}", flush=True)
+print(f"[REDDIT_SCRAPER] Successfully imported DirectPostsWriter: {DirectPostsWriter}", flush=True)
 from core.database.supabase_client import get_supabase_client, refresh_supabase_client
 from core.exceptions import (
     SubredditBannedException, SubredditPrivateException, 
