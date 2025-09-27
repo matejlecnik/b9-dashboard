@@ -103,7 +103,7 @@ class SubredditScraper(BaseScraper):
                 'get_subreddit_top_posts',
                 subreddit_name,
                 time_filter='week',
-                limit=100
+                limit=30
             )
 
             if top_posts:
@@ -157,7 +157,8 @@ class SubredditScraper(BaseScraper):
             result['success'] = True
             await self.log_progress(
                 f"Successfully scraped r/{subreddit_name} - "
-                f"{len(result['hot_posts'])} hot, {len(result['top_posts'])} top posts"
+                f"{len(result['hot_posts'])} hot, {len(result['top_posts'])} weekly, "
+                f"{len(result['yearly_posts'])} yearly posts"
             )
 
         except Exception as e:
