@@ -32,7 +32,7 @@ load_dotenv()
 # Import utilities and services
 from utils import (
     cache_manager, rate_limiter, health_monitor,
-    request_timer, get_cache, rate_limit, check_request_rate_limit,
+    request_timer, rate_limit,
     system_logger, log_api_call, log_exception
 )
 # Flexible imports for both local development and production
@@ -299,36 +299,8 @@ async def monitor_requests(request: Request, call_next):
     """Monitor all requests for performance and rate limiting"""
     start_time = time.time()
     
-    # Check rate limit for API endpoints
-    if request.url.path.startswith("/api/"):
-        try:
-            rate_limit_result = await check_request_rate_limit(request, "api")
-            if not rate_limit_result.get("allowed", True):
-                system_logger.warning(
-                    "Rate limit exceeded",
-                    source="api",
-                    script_name="main",
-                    context={
-                        "path": request.url.path,
-                        "client": request.client.host if request.client else "unknown",
-                        "rate_limit_details": rate_limit_result
-                    }
-                )
-                return JSONResponse(
-                    status_code=429,
-                    content={
-                        "error": "Rate limit exceeded",
-                        "details": rate_limit_result
-                    },
-                    headers={
-                        "X-RateLimit-Limit": str(rate_limit_result.get("limit", "")),
-                        "X-RateLimit-Remaining": str(rate_limit_result.get("remaining", "")),
-                        "X-RateLimit-Reset": str(rate_limit_result.get("reset_time", "")),
-                        "Retry-After": str(rate_limit_result.get("window_seconds", ""))
-                    }
-                )
-        except Exception as e:
-            logger.warning(f"Rate limit check failed: {e}")
+    # Rate limiting disabled - skip check
+    # (Redis has been removed from the project)
     
     # Process request
     try:
@@ -452,7 +424,7 @@ async def get_metrics():
 
 @app.get("/api/stats")
 @rate_limit("api")
-async def get_system_stats(request: Request, cache: cache_manager = Depends(get_cache)):
+async def get_system_stats(request: Request):
     """Get comprehensive system statistics with caching"""
     cache_key = "system_stats"
     
