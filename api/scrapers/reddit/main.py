@@ -210,6 +210,15 @@ class RedditScraperV2:
         # Initialize DirectPostsWriter as a workaround for the async issue
         self.direct_posts_writer = DirectPostsWriter(self.supabase)
         logger.info(f"✅ DirectPostsWriter initialized for posts")
+        logger.info(f"DEBUG: DirectPostsWriter instance type: {type(self.direct_posts_writer)}")
+        logger.info(f"DEBUG: DirectPostsWriter has write_posts method: {hasattr(self.direct_posts_writer, 'write_posts')}")
+
+        # Test call the method immediately
+        try:
+            test_result = self.direct_posts_writer.write_posts([])
+            logger.info(f"DEBUG: Test call to write_posts returned: {test_result}")
+        except Exception as e:
+            logger.error(f"DEBUG: Test call to write_posts failed: {e}")
 
         # Initialize metrics calculator
         self.metrics_calculator = MetricsCalculator()
