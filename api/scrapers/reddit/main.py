@@ -518,8 +518,8 @@ class RedditScraperV2:
                         self.stats['posts_processed'] += len(result['yearly_posts'])
                         logger.debug(f"💾 Saved {len(result['yearly_posts'])} yearly posts from r/{subreddit_name}")
 
-                    # Manual flush every 3 subreddits to ensure data is saved (or every subreddit for first 20)
-                    if processed_count <= 20 or processed_count % 3 == 0:
+                    # Manual flush every subreddit for first 5, then every 3 subreddits
+                    if processed_count <= 5 or processed_count % 3 == 0:
                         logger.info(f"💾 Thread {scraper.thread_id}: Manually flushing after {processed_count} subreddits")
                         await self.batch_writer.flush_all()
 
