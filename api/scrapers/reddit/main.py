@@ -14,25 +14,21 @@ from typing import Dict, Any, Optional, List, Callable
 from collections import defaultdict
 from pathlib import Path
 
-# Add API directory to path for consistent imports - MUST BE BEFORE PROJECT IMPORTS
-api_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if api_dir not in sys.path:
-    sys.path.insert(0, api_dir)
-
-# Now we can import from supabase and dotenv
+# External libraries
 from supabase import create_client
 from dotenv import load_dotenv
 
-# Use consistent absolute imports from api directory
-from core.clients.api_pool import ThreadSafeAPIPool
-from core.config.proxy_manager import ProxyManager
-from core.cache.cache_manager import AsyncCacheManager
-from core.database.batch_writer import BatchWriter
-from scrapers.reddit.processors.calculator import MetricsCalculator
-from scrapers.reddit.scrapers.subreddit import SubredditScraper
-from scrapers.reddit.scrapers.user import UserScraper
-from core.utils.supabase_logger import SupabaseLogHandler
-from core.utils.memory_monitor import MemoryMonitor, set_memory_monitor
+# Use absolute imports from api package
+from api.core.clients.api_pool import ThreadSafeAPIPool
+from api.core.config.proxy_manager import ProxyManager
+from api.core.cache.cache_manager import AsyncCacheManager
+from api.core.database.batch_writer import BatchWriter
+from api.core.database.supabase_client import get_supabase_client
+from api.scrapers.reddit.processors.calculator import MetricsCalculator
+from api.scrapers.reddit.scrapers.subreddit import SubredditScraper
+from api.scrapers.reddit.scrapers.user import UserScraper
+from api.core.utils.supabase_logger import SupabaseLogHandler
+from api.core.utils.memory_monitor import MemoryMonitor, set_memory_monitor
 
 # Load environment variables from parent directory
 env_path = Path(__file__).parent.parent.parent / '.env'
@@ -108,14 +104,8 @@ class RedditScraperV2:
         """Initialize all components"""
         logger.info(f"🚀 Initializing Reddit Scraper v{SCRAPER_VERSION}")
 
-        # Initialize Supabase
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-        if not supabase_url or not supabase_key:
-            raise Exception("Supabase credentials not configured")
-
-        self.supabase = create_client(supabase_url, supabase_key)
+        # Initialize Supabase using centralized client manager
+        self.supabase = get_supabase_client()
         logger.info("✅ Supabase client initialized")
 
         # Initialize Supabase logging handler

@@ -16,9 +16,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from supabase import create_client
 
-# Add parent directory to path to import from core
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.clients.api_pool import PublicRedditAPI
+from api.core.clients.api_pool import PublicRedditAPI
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])

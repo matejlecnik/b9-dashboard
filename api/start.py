@@ -11,17 +11,16 @@ import signal
 import logging
 from datetime import datetime, timezone
 
-# Add parent directory to path for imports
-if '/app/api' in sys.path[0] or os.path.dirname(__file__) == '/app/api':
-    sys.path.insert(0, '/app/api')
-else:
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# Import system logger
+# Import system logger using flexible import approach for both dev and production
 try:
+    # Production path (Docker) 
     from utils.system_logger import system_logger
 except ImportError:
-    system_logger = None
+    try:
+        # Development path (absolute import)
+        from api.utils.system_logger import system_logger
+    except ImportError:
+        system_logger = None
 
 # Configure logging
 logging.basicConfig(

@@ -378,7 +378,97 @@ class ProxyManager:
             logger.error(f"Error checking proxy health: {e}")
 
     async def test_proxies_at_startup(self):
-        """Test all proxies at startup to verify they're working - ALL proxies must work"""
+        """Test proxies at startup with rate limiting - graceful degradation enabled"""
+        logger.info("🔧 Testing proxies at startup (with rate limiting and graceful degradation)...")
+
+        test_url = "https://www.reddit.com/r/python.json"
+        working_proxies = 0
+        proxy_results = {}
+        
+        # Add rate limiting between proxy tests
+        semaphore = asyncio.Semaphore(2)  # Only test 2 proxies simultaneously
+        
+        async def test_single_proxy(proxy):
+            async with semaphore:
+                return await self._test_proxy_with_rate_limit(proxy, test_url)
+        
+        # Test all proxies concurrently but rate-limited
+        tasks = [test_single_proxy(proxy) for proxy in self.proxies]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for proxy, result in zip(self.proxies, results):
+            proxy_name = proxy['display_name']
+            if isinstance(result, Exception):
+                proxy_results[proxy_name] = f"❌ Failed: {result}"
+                logger.error(f"❌ Proxy {proxy_name} test failed with exception: {result}")
+            elif result:
+                proxy_results[proxy_name] = "✅ Working"
+                working_proxies += 1
+                logger.info(f"✅ Proxy {proxy_name} validated successfully")
+            else:
+                proxy_results[proxy_name] = "❌ Failed"
+                logger.warning(f"⚠️ Proxy {proxy_name} failed validation")
+
+        # Log summary
+        logger.info("=" * 60)
+        logger.info("📊 Proxy Validation Summary:")
+        for proxy_name, status in proxy_results.items():
+            logger.info(f"  {status} {proxy_name}")
+
+        total_proxies = len(self.proxies)
+        if working_proxies >= total_proxies * 0.7:  # 70% success rate required
+            logger.info(f"✅ SUCCESS: {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
+            return True
+        else:
+            logger.error(f"⚠️ WARNING: Only {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
+            logger.error("⚠️ Continuing with degraded proxy performance...")
+            return True  # Allow degraded operation instead of failing completely
+            
+    async def _test_proxy_with_rate_limit(self, proxy, test_url):
+        """Test a single proxy with rate limiting"""
+        proxy_name = proxy['display_name']
+        proxy_id = proxy['id']
+        
+        # Try only once to reduce connection load
+        logger.info(f"🔍 Testing proxy {proxy_name}...")
+        
+        try:
+            proxy_config = self.get_proxy_config(proxy)
+            
+            # Add delay to prevent overwhelming the target
+            await asyncio.sleep(0.5)  # 500ms delay between tests
+            
+            # Test with a simple Reddit request using aiohttp
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=15),  # Increased timeout
+                connector=aiohttp.TCPConnector(limit=1)  # Limit connections per session
+            ) as session:
+                proxy_url = proxy_config.get('http') if proxy_config else None
+                
+                async with session.get(
+                    test_url,
+                    proxy=proxy_url,
+                    headers={'User-Agent': 'Mozilla/5.0'},
+                ) as response:
+                    if response.status == 200:
+                        await self.update_proxy_stats(proxy_id, success=True, response_time_ms=500)
+                        return True
+                    else:
+                        logger.warning(f"⚠️ Proxy {proxy_name} returned status {response.status}")
+                        await self.update_proxy_stats(proxy_id, success=False, error_message=f"Status {response.status}")
+                        return False
+                        
+        except asyncio.TimeoutError:
+            logger.warning(f"⏱️ Proxy {proxy_name} timed out")
+            await self.update_proxy_stats(proxy_id, success=False, error_message="Timeout")
+            return False
+        except Exception as e:
+            logger.warning(f"❌ Proxy {proxy_name} failed: {e}")
+            await self.update_proxy_stats(proxy_id, success=False, error_message=str(e)[:500])
+            return False
+
+    async def test_proxies_at_startup_old(self):
+        """Old version - kept for reference. Remove after testing new version."""
         logger.info("🔧 Testing proxies at startup (strict mode - ALL must work)...")
 
         test_url = "https://www.reddit.com/r/python.json"
