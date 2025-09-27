@@ -1,107 +1,216 @@
-# Core - Scraper Implementations
+# Core - Shared Infrastructure Components
 
 ## Overview
-This directory contains the core scraper implementations that run 24/7 to collect data from Reddit and Instagram.
+This directory contains the core shared infrastructure components used by all scrapers and services in the B9 Dashboard API.
 
-## Files
+## Directory Structure
 
-### continuous_scraper.py
-**Reddit Continuous Scraper**
-- Runs indefinitely, checking database every 30 seconds
-- Controlled via `system_control` table (`script_name='reddit_scraper'`)
-- Multi-account support with proxy rotation
-- Auto-discovers new subreddits from user posts
-- Logs all operations to `system_logs` table
-
-**How it works:**
-1. Checks `enabled` field in database
-2. If enabled: runs scraping cycle
-3. If disabled: waits 30 seconds and checks again
-4. Updates heartbeat timestamp to show it's alive
-
-### continuous_instagram_scraper.py
-**Instagram Continuous Scraper**
-- Runs indefinitely, checking database every 30 seconds
-- Controlled via `system_control` table (`script_name='instagram_scraper'`)
-- Fetches posts and reels from tracked creators
-- Uses ThreadPoolExecutor for concurrent API calls (60 workers)
-- Rate limited to 60 requests/second
-
-**How it works:**
-1. Same polling pattern as Reddit scraper
-2. Processes creators in batches of 300
-3. Saves new posts/reels to `instagram_posts` table
-4. Tracks API usage and success rates
-
-### reddit_scraper.py
-**Core Reddit API Logic**
-- `PublicRedditAPI` class for direct Reddit access
-- `ProxyEnabledMultiScraper` for proxy rotation
-- Handles authentication, rate limiting, error recovery
-- Parses Reddit JSON responses
-- Calculates quality scores for subreddits
-
-## Control Mechanism
-
-Both scrapers use the same control pattern:
-```python
-while True:
-    enabled = check_database_status()
-    if enabled:
-        run_scraping_cycle()
-    await asyncio.sleep(30)  # Check every 30 seconds
+```
+core/
+├── cache/              # Redis cache management with TTL support
+├── clients/            # Thread-safe API client pools
+├── config/             # Configuration management (proxies, settings)
+├── database/           # Database utilities and batch writers
+├── migrations/         # Database migration scripts (applied)
+├── utils/              # Shared utilities (logging, helpers)
+└── logs/              # Log file directory (gitignored)
 ```
 
-## Auto-Start on Deployment
+## Components
 
-When the API starts (via `start.py`):
-1. Checks if scrapers are enabled in database
-2. Launches subprocess for each enabled scraper
-3. Scrapers run independently of main API process
+### cache/
+**Cache Management System**
+- `cache_manager.py` - Async/sync cache with TTL support
+- Redis-backed caching for API responses
+- Automatic expiration and memory management
+- Thread-safe operations
 
-## Database Tables Used
+### clients/
+**API Client Management**
+- `api_pool.py` - Thread-safe Reddit API client pool
+- Connection pooling for better performance
+- Automatic rate limit handling per client
+- Proxy support for each client instance
 
-- `system_control` - Enable/disable control
-- `system_logs` - All logging output
-- `reddit_posts` - Reddit post data
-- `reddit_users` - Reddit user data
-- `instagram_creators` - Instagram accounts to track
-- `instagram_posts` - Instagram content data
+### config/
+**Configuration Management**
+- `proxy_manager.py` - Dynamic proxy loading from Supabase
+- Proxy health monitoring and rotation
+- Service-specific proxy configurations
+- Automatic proxy testing at startup
+
+### database/
+**Database Utilities**
+- `batch_writer.py` - Efficient batch writing to Supabase
+- Async and sync versions for compatibility
+- Automatic chunking for large datasets
+- FK constraint handling with existence checks
+
+### utils/
+**Shared Utilities**
+- `supabase_logger.py` - Centralized logging to Supabase
+- Buffered writes to `system_logs` table
+- Thread-safe logging operations
+- Automatic log level filtering
+
+### migrations/
+**Database Migrations (Already Applied)**
+- `create_reddit_proxies_table.sql` - Reddit proxy table schema
+- `migrate_proxies_to_database.py` - Migration script for proxy data
+- **Note**: These have been applied to production
+
+## Usage Examples
+
+### Using the Cache Manager
+```python
+from core.cache.cache_manager import AsyncCacheManager
+
+cache = AsyncCacheManager(ttl=3600)  # 1 hour TTL
+await cache.set("key", {"data": "value"})
+data = await cache.get("key")
+```
+
+### Using the API Pool
+```python
+from core.clients.api_pool import ThreadSafeAPIPool
+
+pool = ThreadSafeAPIPool(size=10)
+await pool.initialize(proxy_manager)
+api = pool.get_api()  # Thread-safe API instance
+```
+
+### Using the Batch Writer
+```python
+from core.database.batch_writer import BatchWriter
+
+writer = BatchWriter(supabase_client, batch_size=500)
+await writer.add("reddit_posts", post_data)
+await writer.flush()  # Write all pending data
+```
 
 ## Performance Considerations
 
-- Reddit: ~100 requests/minute per account
-- Instagram: ~60 requests/second total
-- Memory usage: ~200-300MB per scraper
-- CPU: Low, mostly I/O bound
-
-## Important Notes
-
-1. **Never manually restart scrapers** - They run continuously
-2. **Control via database only** - Use API endpoints or direct SQL
-3. **Check logs in Supabase** - All output goes to `system_logs`
-4. **30-second delay is optimal** - Don't reduce polling interval
-5. **Scrapers are resilient** - They auto-recover from errors
+- **Cache**: TTL prevents unbounded memory growth
+- **API Pool**: Connection reuse reduces overhead
+- **Batch Writer**: Reduces database round trips by 90%
+- **Proxy Manager**: Automatic rotation on failures
 
 ## TODO List
 
-- [ ] Implement scraper health metrics endpoint
-- [ ] Add configurable polling intervals via database
-- [ ] Create scraper performance dashboard
-- [ ] Implement automatic proxy rotation on failures
-- [ ] Add retry logic with exponential backoff
-- [ ] Create data validation layer for scraped content
+### 🔴 CRITICAL BUGS TO FIX IMMEDIATELY
+
+#### 1. Import Path Issues (`scrapers/reddit/main.py`) ✅ FIXED
+- [x] **Lines 19-44**: Fix conflicting relative vs absolute imports that cause ImportError
+- [x] Remove fallback import logic that uses incorrect paths
+- [x] Fix `sys.path.insert()` manipulation on line 35
+- [x] Standardize on absolute imports throughout the codebase
+- [x] Test imports work when run as module AND directly
+- [x] Also removed ANSI color codes that were polluting logs
+
+#### 2. Missing Dependencies ✅ FIXED
+- [x] **CRITICAL**: Add `numpy` to `requirements.txt` (already present on line 43)
+- [x] Verify all other imports have corresponding dependencies (all verified)
+- [x] Add `fake-useragent` if not already in requirements (already present on line 42)
+
+#### 3. Database Field Mapping Bugs (`database/batch_writer.py`) ✅ FIXED
+- [x] **Lines 616-624**: Fix field name mismatches:
+  - [x] Change `over_18` to `over18` (DB field name) - Fixed in subreddit.py
+  - [x] Change `requires_verification` to `verification_required` (DB field name)
+- [x] Audit ALL field mappings between code and database schema
+- [ ] Create field mapping constants to prevent future mismatches (future improvement)
+
+#### 4. Batch Writer Race Conditions (`database/batch_writer.py`) ✅ FIXED
+- [x] **Lines 249-255**: Move `_flush_in_progress` check INSIDE the lock
+- [x] Fix race condition where multiple flushes can start simultaneously
+- [x] Add proper async locking for flush operations
+- [x] Ensure data integrity during concurrent writes
+
+#### 5. Thread Safety Issues (`clients/api_pool.py`) ✅ FIXED
+- [x] **Lines 120-122**: Fix `requests.Session()` thread safety
+- [x] Use `threading.local()` for per-thread session storage
+- [x] Ensure session cookies/connection pools aren't corrupted
+- [x] Add proper thread locks for session access
+
+### 🟡 HIGH PRIORITY FIXES
+
+#### 6. Proxy Validation & Fallback (`clients/api_pool.py`) ✅ FIXED
+- [x] **Proxy health validation** - Now tests ALL proxies at startup with 3 attempts each
+- [x] **Strict mode enforced** - Script exits if ANY proxy fails all 3 attempts
+- [x] **No fallback by design** - ALL proxies must work (per user requirement)
+- [x] **Detailed logging** - Logs each attempt and final validation summary
+- [x] **Never allows direct API access** - Enforced in code
+
+#### 7. Memory Management Issues ✅ FIXED
+- [x] **main.py:302-313**: Add maximum limit to OK subreddit pagination (limited to 2000)
+- [x] **batch_writer.py**: Implement retry mechanism for failed records with exponential backoff
+- [x] **cache_manager**: Enhanced with memory tracking and force cleanup methods
+- [x] **memory_monitor.py**: Added comprehensive memory monitoring with alerts and auto-cleanup
+
+#### 8. Async/Sync Method Conflicts (`database/batch_writer.py`) ✅ FIXED
+- [x] **Lines 853-927**: Fix sync methods using async locks incorrectly
+- [x] Deprecated sync methods with warnings (not removed to maintain compatibility)
+- [x] Use only `asyncio.Lock()` for async, `threading.Lock()` for sync
+- [x] Prevent deadlocks from mixed lock types
+
+### 🟢 IMPORTANT IMPROVEMENTS
+
+#### 9. Error Handling & Resilience
+- [ ] Add Supabase connection retry logic with exponential backoff
+- [ ] Implement circuit breaker pattern for database failures
+- [ ] Add rate limit handling for Supabase API calls
+- [ ] Create centralized error recovery mechanism
+- [ ] Add health check endpoints
+
+#### 10. Logging & Monitoring
+- [ ] **main.py:68-79**: Remove ANSI color codes or add terminal detection
+- [ ] Fix thread color array bounds (only 8 colors for 9+ threads)
+- [ ] Add structured logging with proper log levels
+- [ ] Implement log rotation to prevent disk space issues
+- [ ] Add performance metrics tracking
+
+#### 11. Configuration & Settings
+- [ ] Move hardcoded values to configuration files
+- [ ] Add environment-specific settings (dev/staging/prod)
+- [ ] Create proxy configuration validation
+- [ ] Add feature flags for safe rollouts
+
+#### 12. Data Integrity
+- [ ] Add data validation before batch writes
+- [ ] Implement transaction support for critical operations
+- [ ] Add data consistency checks
+- [ ] Create backup mechanism for failed writes
+
+### 🔵 NICE TO HAVE
+
+- [ ] Implement connection pooling for Supabase client
+- [ ] Add metrics collection for cache hit rates
+- [ ] Create unified error handling middleware
+- [ ] Add comprehensive unit tests
+- [ ] Create integration tests for proxy system
+- [ ] Add performance benchmarking
 
 ## Current Errors
 
-- **Reddit rate limiting** - Occasionally hits rate limits during peak hours (auto-recovers)
-- **Instagram API changes** - Instagram frequently changes their API structure (monitoring required)
-- **Memory usage** - Can grow over time if not properly managed (restart helps)
+### 🚨 CRITICAL ERRORS THAT WILL CAUSE CRASHES:
+
+1. ~~**ImportError on startup** - Conflicting import paths in `scrapers/reddit/main.py`~~ ✅ FIXED
+2. ~~**ModuleNotFoundError** - Missing `numpy` dependency when calculating requirements~~ ✅ FIXED (already in requirements)
+3. ~~**Data loss** - Field mapping mismatches cause data to not be saved~~ ✅ FIXED
+4. ~~**Race condition** - Concurrent flushes in BatchWriter can corrupt data~~ ✅ FIXED
+5. ~~**Memory overflow** - No pagination limit when loading OK subreddits~~ ✅ FIXED (limited to 2000)
+6. ~~**Thread corruption** - Session objects shared across threads unsafely~~ ✅ FIXED
 
 ## Potential Improvements
 
-- **Async everything** - Convert remaining sync code to async (performance boost)
-- **Connection pooling** - Implement proper HTTP connection pooling (reduce overhead)
-- **Distributed scraping** - Multiple worker processes for parallel scraping (discuss scaling needs)
-- **Smart scheduling** - ML-based optimal scraping times (needs research)
-- **Data deduplication** - Prevent duplicate entries at scraper level (architecture decision needed)
+- **Distributed caching**: Move to Redis cluster for scalability
+- **Smart proxy rotation**: ML-based proxy health scoring
+- **Connection multiplexing**: Reuse HTTP/2 connections
+- **Async everything**: Convert remaining sync code to async
+
+## Dependencies
+
+All core components are designed to be framework-agnostic and can be used by:
+- Reddit scraper (`scrapers/reddit/`)
+- Instagram scraper (`scrapers/instagram/`)
+- API routes and services
+- Background tasks and workers

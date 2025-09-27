@@ -67,8 +67,10 @@ class ProxyManager:
                 logger.info(f"  - {proxy['display_name']}: {proxy['max_threads']} threads, "
                            f"priority={proxy['priority']}")
 
-            # Test proxies at startup
-            await self.test_proxies_at_startup()
+            # Test proxies at startup - ALL must work or we fail
+            if not await self.test_proxies_at_startup():
+                logger.error("❌ Proxy validation failed! Cannot start scraper.")
+                return False
 
             return True
 
@@ -376,52 +378,85 @@ class ProxyManager:
             logger.error(f"Error checking proxy health: {e}")
 
     async def test_proxies_at_startup(self):
-        """Test all proxies at startup to verify they're working"""
-        logger.info("🔧 Testing proxies at startup...")
+        """Test all proxies at startup to verify they're working - ALL proxies must work"""
+        logger.info("🔧 Testing proxies at startup (strict mode - ALL must work)...")
 
         test_url = "https://www.reddit.com/r/python.json"
-        working_count = 0
-        failed_count = 0
+        all_proxies_working = True
+        proxy_results = {}
 
         for proxy in self.proxies:
-            try:
-                proxy_config = self.get_proxy_config(proxy)
+            proxy_name = proxy['display_name']
+            proxy_id = proxy['id']
+            proxy_working = False
 
-                # Test with a simple Reddit request using aiohttp
-                async with aiohttp.ClientSession() as session:
-                    # Use the full proxy URL with authentication
-                    proxy_url = proxy_config.get('http') if proxy_config else None
+            # Try 3 times for each proxy
+            for attempt in range(1, 4):
+                logger.info(f"🔍 Testing proxy {proxy_name}, attempt {attempt}/3...")
 
-                    async with session.get(
-                        test_url,
-                        proxy=proxy_url,  # aiohttp accepts full http://user:pass@host:port format
-                        headers={'User-Agent': 'Mozilla/5.0'},
-                        timeout=aiohttp.ClientTimeout(total=10)
-                    ) as response:
-                        if response.status == 200:
-                            logger.info(f"✅ Proxy {proxy['display_name']} working (status: {response.status})")
-                            working_count += 1
-                            # Reset consecutive errors on success
-                            await self.update_proxy_stats(proxy['id'], success=True, response_time_ms=1000)
-                        else:
-                            logger.warning(f"⚠️ Proxy {proxy['display_name']} returned status {response.status}")
-                            failed_count += 1
-                            await self.update_proxy_stats(proxy['id'], success=False,
-                                                        error_message=f"Status {response.status}")
-            except asyncio.TimeoutError:
-                logger.error(f"❌ Proxy {proxy['display_name']} timed out")
-                failed_count += 1
-                await self.update_proxy_stats(proxy['id'], success=False, error_message="Timeout")
-            except Exception as e:
-                logger.error(f"❌ Proxy {proxy['display_name']} failed: {e}")
-                failed_count += 1
-                await self.update_proxy_stats(proxy['id'], success=False, error_message=str(e)[:200])
+                try:
+                    proxy_config = self.get_proxy_config(proxy)
 
-        logger.info(f"Proxy test complete: {working_count} working, {failed_count} failed")
+                    # Test with a simple Reddit request using aiohttp
+                    async with aiohttp.ClientSession() as session:
+                        # Use the full proxy URL with authentication
+                        proxy_url = proxy_config.get('http') if proxy_config else None
 
-        if working_count == 0:
-            logger.error("⚠️ WARNING: No working proxies found! Scraper may fail.")
-            # Don't raise exception during testing - proxies might work for actual requests
+                        async with session.get(
+                            test_url,
+                            proxy=proxy_url,  # aiohttp accepts full http://user:pass@host:port format
+                            headers={'User-Agent': 'Mozilla/5.0'},
+                            timeout=aiohttp.ClientTimeout(total=10)
+                        ) as response:
+                            if response.status == 200:
+                                logger.info(f"✅ Proxy {proxy_name} working on attempt {attempt}/3 (status: {response.status})")
+                                proxy_working = True
+                                # Reset consecutive errors on success
+                                await self.update_proxy_stats(proxy_id, success=True, response_time_ms=1000)
+                                break  # Proxy works, no need for more attempts
+                            else:
+                                logger.warning(f"⚠️ Proxy {proxy_name} returned status {response.status} on attempt {attempt}/3")
+                                if attempt < 3:
+                                    await asyncio.sleep(2)  # Wait 2 seconds before retry
+
+                except asyncio.TimeoutError:
+                    logger.error(f"⏱️ Proxy {proxy_name} timed out on attempt {attempt}/3")
+                    if attempt < 3:
+                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+
+                except Exception as e:
+                    logger.error(f"❌ Proxy {proxy_name} failed on attempt {attempt}/3: {e}")
+                    if attempt < 3:
+                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+
+            # After all attempts, check if proxy worked at least once
+            if proxy_working:
+                proxy_results[proxy_name] = "✅ Working"
+                logger.info(f"✅ Proxy {proxy_name} validated successfully")
+            else:
+                proxy_results[proxy_name] = "❌ Failed"
+                all_proxies_working = False
+                logger.error(f"❌ CRITICAL: Proxy {proxy_name} failed all 3 attempts!")
+                await self.update_proxy_stats(proxy_id, success=False, error_message="Failed all attempts")
+
+        # Log final summary
+        logger.info("=" * 60)
+        logger.info("📊 Proxy Validation Summary:")
+        for proxy_name, status in proxy_results.items():
+            logger.info(f"  {status} {proxy_name}")
+
+        working_count = sum(1 for status in proxy_results.values() if "✅" in status)
+        total_count = len(proxy_results)
+
+        if all_proxies_working:
+            logger.info(f"✅ SUCCESS: All {total_count} proxies validated successfully!")
+        else:
+            logger.error(f"❌ FAILURE: Only {working_count}/{total_count} proxies working!")
+            logger.error("❌ Script cannot continue - ALL proxies must be working!")
+
+        logger.info("=" * 60)
+
+        return all_proxies_working  # Return False if ANY proxy failed
 
     def get_proxy_config(self, proxy: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Convert proxy database record to proxy configuration for requests"""

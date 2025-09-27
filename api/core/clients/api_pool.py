@@ -28,7 +28,8 @@ class PublicRedditAPI:
         """
         self.max_retries = max_retries
         self.base_delay = base_delay
-        self.session = None
+        # Use thread-local storage for session to ensure thread safety
+        self._local = threading.local()
 
         # Initialize user agent generator
         try:
@@ -116,11 +117,11 @@ class PublicRedditAPI:
             try:
                 start_time = time.time()
 
-                # Use session if available for connection pooling
-                if not self.session:
-                    self.session = requests.Session()
+                # Use thread-local session for connection pooling
+                if not hasattr(self._local, 'session') or self._local.session is None:
+                    self._local.session = requests.Session()
 
-                response = self.session.get(
+                response = self._local.session.get(
                     url,
                     headers={'User-agent': self.generate_user_agent()},
                     proxies=proxies,
@@ -224,10 +225,10 @@ class PublicRedditAPI:
         return []
 
     def close(self):
-        """Close the session if it exists"""
-        if self.session:
-            self.session.close()
-            self.session = None
+        """Close the thread-local session if it exists"""
+        if hasattr(self._local, 'session') and self._local.session:
+            self._local.session.close()
+            self._local.session = None
 
 
 class ThreadSafeAPIPool:
@@ -356,7 +357,7 @@ class ThreadSafeAPIPool:
         for thread_id, api in self.apis.items():
             instance_info = {
                 'thread_id': thread_id,
-                'has_session': api.session is not None,
+                'has_session': hasattr(api._local, 'session') and api._local.session is not None,
                 'max_retries': api.max_retries,
                 'base_delay': api.base_delay
             }

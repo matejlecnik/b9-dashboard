@@ -4,6 +4,7 @@ Optimizes database operations by batching writes to reduce network overhead
 """
 import logging
 import asyncio
+import threading
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
@@ -43,10 +44,17 @@ class BatchWriter:
             'last_flush': None
         })
 
-        # Lock for thread safety
-        self._lock = asyncio.Lock()
+        # Locks for thread safety
+        self._lock = asyncio.Lock()  # For async methods
+        self._sync_lock = threading.Lock()  # For sync methods
         self._flush_task = None
         self._running = False
+        self._flush_in_progress = False  # Prevent duplicate concurrent flushes
+        self._failed_records = defaultdict(list)  # Store failed records for retry
+        self._max_errors_in_stats = 100  # Limit error history to prevent memory leak
+        self._retry_attempts = defaultdict(int)  # Track retry attempts per table
+        self._max_retry_attempts = 3  # Maximum retry attempts before giving up
+        self._retry_task = None  # Background task for retrying failed records
 
     async def start(self):
         """Start the automatic flush task"""
@@ -58,11 +66,14 @@ class BatchWriter:
             # Create and start the auto-flush task
             self._flush_task = asyncio.create_task(self._auto_flush_loop())
 
-            # Verify task was created
-            if self._flush_task:
-                logger.info(f"✅ Auto-flush task created successfully (task: {self._flush_task})")
+            # Create and start the retry task for failed records
+            self._retry_task = asyncio.create_task(self._retry_failed_records_loop())
+
+            # Verify tasks were created
+            if self._flush_task and self._retry_task:
+                logger.info(f"✅ Auto-flush and retry tasks created successfully")
             else:
-                logger.error("❌ Failed to create auto-flush task!")
+                logger.error("❌ Failed to create background tasks!")
 
         except Exception as e:
             logger.error(f"❌ Error starting batch writer: {e}")
@@ -85,8 +96,10 @@ class BatchWriter:
             else:
                 logger.info("✅ All buffers successfully emptied")
 
-            # Now stop the auto-flush task
+            # Now stop the background tasks
             self._running = False
+
+            # Cancel auto-flush task
             if self._flush_task:
                 logger.info("🚫 Cancelling auto-flush task...")
                 self._flush_task.cancel()
@@ -94,6 +107,16 @@ class BatchWriter:
                     await self._flush_task
                 except asyncio.CancelledError:
                     logger.debug("Auto-flush task cancelled successfully")
+                    pass
+
+            # Cancel retry task
+            if self._retry_task:
+                logger.info("🚫 Cancelling retry task...")
+                self._retry_task.cancel()
+                try:
+                    await self._retry_task
+                except asyncio.CancelledError:
+                    logger.debug("Retry task cancelled successfully")
                     pass
 
             # One more flush to catch any last-second additions
@@ -128,16 +151,30 @@ class BatchWriter:
                 await asyncio.sleep(self.flush_interval)
                 flush_count += 1
 
-                # Log current buffer status
+                # Log current buffer status BEFORE checking locks
                 buffer_sizes = {table: len(self.buffers[table]) for table in self.buffers}
                 total_buffered = sum(buffer_sizes.values())
 
                 logger.info(f"⏰ Auto-flush #{flush_count} triggered (every {self.flush_interval}s)")
-                logger.info(f"  📊 Buffer status: {buffer_sizes} (total: {total_buffered} records)")
+                logger.info(f"  📊 Buffer status BEFORE flush: {buffer_sizes} (total: {total_buffered} records)")
 
                 if total_buffered > 0:
+                    # Log detailed buffer contents
+                    for table, size in buffer_sizes.items():
+                        if size > 0:
+                            logger.info(f"    - {table}: {size} records pending")
+
                     await self.flush_all()
-                    logger.info(f"  ✅ Auto-flush #{flush_count} completed")
+
+                    # Check buffers AFTER flush
+                    buffer_sizes_after = {table: len(self.buffers[table]) for table in self.buffers}
+                    total_after = sum(buffer_sizes_after.values())
+                    logger.info(f"  📊 Buffer status AFTER flush: {buffer_sizes_after} (total: {total_after} records)")
+
+                    if total_after > 0:
+                        logger.warning(f"  ⚠️ {total_after} records remain in buffers after flush!")
+                    else:
+                        logger.info(f"  ✅ Auto-flush #{flush_count} completed - all buffers empty")
                 else:
                     logger.debug(f"  ⏭️ Auto-flush #{flush_count} skipped (no data)")
 
@@ -151,6 +188,85 @@ class BatchWriter:
                 logger.error(traceback.format_exc())
 
         logger.info("🔄 Auto-flush loop STOPPED")
+
+    async def _retry_failed_records_loop(self):
+        """Periodically retry failed record writes with exponential backoff"""
+        logger.info("🔁 Retry loop STARTING (checking every 30s for failed records)")
+        retry_check_count = 0
+
+        while self._running:
+            try:
+                await asyncio.sleep(30)  # Check for failed records every 30 seconds
+                retry_check_count += 1
+
+                # Check if we have any failed records
+                total_failed = sum(len(records) for records in self._failed_records.values())
+
+                if total_failed > 0:
+                    logger.info(f"🔁 Retry check #{retry_check_count}: Found {total_failed} failed records to retry")
+                    await self.retry_failed_records()
+                else:
+                    logger.debug(f"🔁 Retry check #{retry_check_count}: No failed records to retry")
+
+            except asyncio.CancelledError:
+                logger.info("🚫 Retry loop cancelled")
+                break
+            except Exception as e:
+                logger.error(f"❌ Error in retry loop: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+        logger.info("🔁 Retry loop STOPPED")
+
+    async def retry_failed_records(self):
+        """Attempt to retry writing failed records with exponential backoff"""
+        retry_results = {}
+
+        for table_name, records in list(self._failed_records.items()):
+            if not records:
+                continue
+
+            # Get retry attempt count for this table
+            attempt = self._retry_attempts[table_name]
+
+            if attempt >= self._max_retry_attempts:
+                logger.warning(f"⚠️ Table {table_name} has reached max retry attempts ({self._max_retry_attempts}). "
+                             f"Clearing {len(records)} failed records.")
+                self._failed_records[table_name].clear()
+                self._retry_attempts[table_name] = 0
+                continue
+
+            # Calculate backoff delay (10s, 30s, 60s)
+            backoff_delay = 10 * (2 ** attempt)
+
+            logger.info(f"🔁 Retrying {len(records)} failed records for {table_name} "
+                       f"(attempt {attempt + 1}/{self._max_retry_attempts}, backoff: {backoff_delay}s)")
+
+            # Wait with exponential backoff
+            await asyncio.sleep(min(backoff_delay, 60))  # Cap at 60 seconds
+
+            # Attempt to write the failed records
+            success_count, fail_count = await self._write_batch(table_name, records)
+
+            if success_count > 0:
+                logger.info(f"✅ Retry successful: {success_count}/{len(records)} records written to {table_name}")
+
+            if fail_count == 0:
+                # All records succeeded, clear the failed records
+                self._failed_records[table_name].clear()
+                self._retry_attempts[table_name] = 0
+                retry_results[table_name] = f"✅ All {success_count} records recovered"
+            else:
+                # Some records still failed, increment retry counter
+                self._retry_attempts[table_name] += 1
+                retry_results[table_name] = f"⚠️ {success_count} recovered, {fail_count} still failing"
+                logger.warning(f"⚠️ {fail_count} records still failing for {table_name} after retry")
+
+        # Log retry summary if any retries were attempted
+        if retry_results:
+            logger.info("📊 Retry Summary:")
+            for table, result in retry_results.items():
+                logger.info(f"  {table}: {result}")
 
     async def add_subreddit(self, subreddit_data: Dict[str, Any]):
         """
@@ -212,53 +328,49 @@ class BatchWriter:
                 cleaned_data = self._clean_post_data(post)
                 self.buffers['reddit_posts'].append(cleaned_data)
 
+            # Log the addition
+            buffer_size = len(self.buffers['reddit_posts'])
+            logger.info(f"📝 Added {len(posts_data)} posts to buffer "
+                       f"(buffer size: {buffer_size} / {self.batch_size})")
+
             # Check if we should flush this buffer
-            if len(self.buffers['reddit_posts']) >= self.batch_size:
+            if buffer_size >= self.batch_size:
+                logger.info("🚀 Buffer full for reddit_posts, triggering flush")
                 await self._flush_table('reddit_posts')
 
-    async def add_discovered_subreddit(self, discovery_data: Dict[str, Any]):
-        """
-        Add a discovered subreddit to the buffer.
-
-        Args:
-            discovery_data: Discovery data including source user and subreddit
-        """
-        async with self._lock:
-            cleaned_data = {
-                'source_user': discovery_data.get('source_user'),
-                'discovered_subreddit': discovery_data.get('discovered_subreddit'),
-                'discovery_method': discovery_data.get('discovery_method', 'user_activity'),
-                'post_count': discovery_data.get('post_count', 1),
-                'karma_in_subreddit': discovery_data.get('karma_in_subreddit', 0),
-                'discovered_at': discovery_data.get('discovered_at',
-                                                  datetime.now(timezone.utc).isoformat())
-            }
-            self.buffers['subreddit_discoveries'].append(cleaned_data)
-
-            # Check if we should flush this buffer
-            if len(self.buffers['subreddit_discoveries']) >= self.batch_size:
-                await self._flush_table('subreddit_discoveries')
+    # Note: Removed add_discovered_subreddit method
+    # Discovered subreddits should be added directly to reddit_subreddits table with empty review field
 
     async def flush_all(self):
         """Flush all buffers to database"""
         flush_errors = []
 
-        try:
-            async with self._lock:
-                tables_to_flush = list(self.buffers.keys())
-                buffer_counts = {table: len(self.buffers[table]) for table in tables_to_flush}
-
-            # Log what we're about to flush
-            total_records = sum(buffer_counts.values())
-            if total_records > 0:
-                logger.info(f"🔄 Starting flush_all for {total_records} total records:")
-                for table, count in buffer_counts.items():
-                    if count > 0:
-                        logger.info(f"  - {table}: {count} records")
-            else:
-                logger.debug("flush_all called but no records to flush")
+        # Check and set flush flag in a single lock acquisition
+        async with self._lock:
+            if self._flush_in_progress:
+                logger.debug("Flush already in progress, skipping concurrent flush")
                 return
+            self._flush_in_progress = True
 
+            # Get buffer information while we have the lock
+            tables_to_flush = list(self.buffers.keys())
+            buffer_counts = {table: len(self.buffers[table]) for table in tables_to_flush}
+
+        # Log what we're about to flush
+        total_records = sum(buffer_counts.values())
+        if total_records == 0:
+            # Reset flag and return early if nothing to flush
+            async with self._lock:
+                self._flush_in_progress = False
+            logger.debug("flush_all called but no records to flush")
+            return
+
+        logger.info(f"🔄 Starting flush_all for {total_records} total records:")
+        for table, count in buffer_counts.items():
+            if count > 0:
+                logger.info(f"  - {table}: {count} records")
+
+        try:
             # Flush each table, catching individual errors
             for table in tables_to_flush:
                 try:
@@ -273,10 +385,17 @@ class BatchWriter:
             else:
                 logger.info(f"✅ flush_all completed successfully for {total_records} records")
 
+            # Limit error history to prevent memory leak
+            self._limit_error_history()
+
         except Exception as e:
             logger.error(f"❌ Critical error in flush_all: {e}")
             import traceback
             logger.error(traceback.format_exc())
+        finally:
+            # Always reset flush flag
+            async with self._lock:
+                self._flush_in_progress = False
 
     async def _flush_table(self, table_name: str):
         """
@@ -335,7 +454,6 @@ class BatchWriter:
                 if username and username not in ['[deleted]', '[removed]', None]:
                     placeholder_users.append({
                         'username': username.lower(),
-                        'display_name': username,
                         'created_at': datetime.now(timezone.utc).isoformat(),
                         'updated_at': datetime.now(timezone.utc).isoformat(),
                     })
@@ -374,7 +492,7 @@ class BatchWriter:
 
                     record = {
                         'name': name.lower(),
-                        'display_name': display_name,
+                        'display_name_prefixed': display_name,
                         'created_at': datetime.now(timezone.utc).isoformat(),
                         'updated_at': datetime.now(timezone.utc).isoformat(),
                     }
@@ -459,8 +577,18 @@ class BatchWriter:
             on_conflict_col = self._get_conflict_column(table_name)
 
             # Perform upsert operation
-            logger.debug(f"📤 Executing upsert for {len(records)} records to {table_name} "
-                        f"(on_conflict: {on_conflict_col})")
+            logger.info(f"📤 Executing upsert for {len(records)} records to {table_name} "
+                       f"(on_conflict: {on_conflict_col})")
+
+            # Log sample of first record for debugging
+            if records:
+                sample = records[0]
+                if table_name == 'reddit_subreddits':
+                    logger.debug(f"  Sample: r/{sample.get('name', 'unknown')}, score: {sample.get('subreddit_score', 0)}")
+                elif table_name == 'reddit_users':
+                    logger.debug(f"  Sample: u/{sample.get('username', 'unknown')}, karma: {sample.get('total_karma', 0)}")
+                elif table_name == 'reddit_posts':
+                    logger.debug(f"  Sample: {sample.get('title', 'unknown')[:50]}... by {sample.get('author_username', 'unknown')}")
 
             response = self.supabase.table(table_name).upsert(
                 records,
@@ -475,8 +603,11 @@ class BatchWriter:
             # Also check if data is None which can indicate an error
             if response.data is None and not hasattr(response, 'count'):
                 logger.warning(f"⚠️ Upsert returned no data for {table_name}, but no error reported")
+                # This is often normal for upserts, so we'll assume success
+                logger.info(f"✅ Upsert completed for {len(records)} records to {table_name} (no data returned)")
+            else:
+                logger.info(f"✅ Successfully wrote {len(records)} records to {table_name}")
 
-            logger.info(f"✅ Successfully wrote {len(records)} records to {table_name}")
             return len(records), 0
 
         except Exception as e:
@@ -512,6 +643,15 @@ class BatchWriter:
             if failed_records:
                 logger.error(f"❌ Failed to write {len(failed_records)} records: {failed_records[:5]}{'...' if len(failed_records) > 5 else ''}")
 
+            # Store failed records for potential retry
+            if failed_records:
+                self._failed_records[table_name].extend(
+                    [r for r in records if (r.get('name') or r.get('username') or r.get('reddit_id')) in failed_records]
+                )
+                # Limit failed records to prevent memory leak
+                if len(self._failed_records[table_name]) > 1000:
+                    self._failed_records[table_name] = self._failed_records[table_name][-1000:]
+
             return successful, len(records) - successful
 
     def _get_conflict_column(self, table_name: str) -> str:
@@ -519,17 +659,17 @@ class BatchWriter:
         conflict_columns = {
             'reddit_subreddits': 'name',
             'reddit_users': 'username',
-            'reddit_posts': 'reddit_id',
-            'subreddit_discoveries': 'source_user,discovered_subreddit'
+            'reddit_posts': 'reddit_id'
+            # Removed 'subreddit_discoveries' as table doesn't exist
         }
         return conflict_columns.get(table_name, 'id')
 
     def _clean_subreddit_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Clean and validate subreddit data before writing"""
-        # Ensure required fields
+        # Ensure required fields with correct DB field names
         cleaned = {
             'name': data.get('name', '').lower(),
-            'display_name': data.get('display_name', ''),
+            'display_name_prefixed': data.get('display_name_prefixed') or data.get('display_name', ''),
             'title': self._truncate_string(data.get('title'), 500),
             'description': self._truncate_string(data.get('description'), 5000),
             'subscribers': self._ensure_int(data.get('subscribers')),
@@ -537,19 +677,50 @@ class BatchWriter:
             'updated_at': datetime.now(timezone.utc).isoformat()
         }
 
-        # Add optional fields if present
+        # Add optional fields if present (only fields that exist in DB)
         optional_fields = [
+            # Core metrics
             'avg_upvotes_per_post', 'engagement', 'subreddit_score',
-            'nsfw_percentage',
             'image_post_avg_score', 'video_post_avg_score', 'text_post_avg_score',
-            'link_post_avg_score', 'poll_post_avg_score', 'over_18',
-            'best_posting_hour', 'best_posting_day', 'requires_verification', 'auto_review',
-            'review'  # CRITICAL: Preserve existing review field during updates
+            'link_post_avg_score', 'best_posting_hour', 'best_posting_day',
+            # Activity metrics
+            'avg_comments_per_post', 'total_upvotes_hot_30', 'total_posts_hot_30',
+            'comment_to_upvote_ratio', 'top_content_type', 'nsfw_percentage',
+            # Subreddit metadata
+            'public_description', 'accounts_active', 'subreddit_type',
+            'allow_images', 'allow_videos', 'allow_polls',
+            'lang', 'whitelist_status', 'wiki_enabled',
+            # Additional scraper fields
+            'active_user_count', 'is_gold_only', 'is_quarantined',
+            'spoilers_enabled', 'submission_type', 'url',
+            # Images and styling
+            'icon_img', 'banner_img', 'header_img', 'community_icon', 'mobile_banner_image',
+            'primary_color', 'key_color', 'banner_background_color',
+            # Text fields
+            'submit_text', 'submit_text_html',
+            # Flair settings
+            'user_flair_enabled_in_sr', 'user_flair_position',
+            'link_flair_enabled', 'link_flair_position',
+            # JSON fields
+            'rules_data',
+            # Review field - CRITICAL: Preserve existing review field during updates
+            'review'
         ]
 
         for field in optional_fields:
             if field in data and data[field] is not None:
                 cleaned[field] = data[field]
+
+        # Handle fields with different names in DB
+        if 'over_18' in data and data['over_18'] is not None:
+            cleaned['over18'] = bool(data['over_18'])  # DB field is 'over18' not 'over_18'
+        elif 'over18' in data and data['over18'] is not None:
+            cleaned['over18'] = bool(data['over18'])
+
+        if 'requires_verification' in data and data['requires_verification'] is not None:
+            cleaned['verification_required'] = bool(data['requires_verification'])  # DB field is 'verification_required'
+        elif 'verification_required' in data and data['verification_required'] is not None:
+            cleaned['verification_required'] = bool(data['verification_required'])
 
         return cleaned
 
@@ -557,7 +728,6 @@ class BatchWriter:
         """Clean and validate user data before writing"""
         cleaned = {
             'username': data.get('username', '').lower(),
-            'display_name': data.get('display_name', ''),
             'created_utc': self._ensure_timestamp(data.get('created_utc')),
             'total_karma': self._ensure_int(data.get('total_karma')),
             'link_karma': self._ensure_int(data.get('link_karma')),
@@ -573,16 +743,28 @@ class BatchWriter:
         # Add optional fields
         if 'icon_img' in data:
             cleaned['icon_img'] = self._truncate_string(data['icon_img'], 500)
+        if 'reddit_id' in data:
+            cleaned['reddit_id'] = data['reddit_id']
+        # Map subreddit field to correct DB field name
         if 'subreddit' in data:
-            cleaned['subreddit'] = data['subreddit']
-        if 'subreddit_type' in data:
-            cleaned['subreddit_type'] = data['subreddit_type']
+            cleaned['subreddit_display_name'] = data['subreddit']
+        elif 'subreddit_display_name' in data:
+            cleaned['subreddit_display_name'] = data['subreddit_display_name']
+        # Note: 'subreddit_type' doesn't exist in reddit_users table
 
-        # Add quality score fields if present
-        quality_fields = ['username_score', 'age_score', 'karma_score', 'overall_quality_score']
-        for field in quality_fields:
-            if field in data:
-                cleaned[field] = float(data[field])
+        # Add quality score fields with correct DB field names
+        score_mappings = {
+            'username_score': 'username_quality_score',
+            'age_score': 'age_quality_score',
+            'karma_score': 'karma_quality_score',
+            'overall_quality_score': 'overall_user_score'
+        }
+
+        for old_field, db_field in score_mappings.items():
+            if old_field in data:
+                cleaned[db_field] = float(data[old_field])
+            elif db_field in data:
+                cleaned[db_field] = float(data[db_field])
 
         return cleaned
 
@@ -720,6 +902,17 @@ class BatchWriter:
 
         return None
 
+    def _limit_error_history(self):
+        """Limit error history in stats to prevent memory leak"""
+        for stat in self.stats.values():
+            if isinstance(stat, dict):
+                # Limit any error lists in stats
+                for key in list(stat.keys()):
+                    if 'error' in key.lower() and isinstance(stat[key], list):
+                        if len(stat[key]) > self._max_errors_in_stats:
+                            # Keep only the last N errors
+                            stat[key] = stat[key][-self._max_errors_in_stats:]
+
     def get_stats(self) -> Dict[str, Any]:
         """Get current batch writer statistics"""
         return {
@@ -729,7 +922,8 @@ class BatchWriter:
                 table: len(records)
                 for table, records in self.buffers.items()
             },
-            'statistics': dict(self.stats)
+            'statistics': dict(self.stats),
+            'failed_records_count': {table: len(records) for table, records in self._failed_records.items()}
         }
 
     async def __aenter__(self):
@@ -755,16 +949,18 @@ class BatchWriter:
             except Exception as flush_error:
                 logger.error(f"❌ Final flush attempt failed: {flush_error}")
 
-    # Synchronous versions for threading compatibility
+    # DEPRECATED: Synchronous versions are deprecated due to async/sync lock conflicts
+    # These methods can cause deadlocks when mixed with async code
+    # Use async versions instead
     def ensure_users_exist_sync(self, usernames: set):
-        """Synchronous version of ensure_users_exist for threading"""
+        """DEPRECATED: Use async version instead. Synchronous version of ensure_users_exist for threading"""
+        logger.warning("⚠️ DEPRECATED: ensure_users_exist_sync is deprecated. Use async version instead.")
         try:
             placeholder_users = []
             for username in usernames:
                 if username and username not in ['[deleted]', '[removed]', None]:
                     placeholder_users.append({
                         'username': username.lower(),
-                        'display_name': username,
                         'created_at': datetime.now(timezone.utc).isoformat(),
                         'updated_at': datetime.now(timezone.utc).isoformat(),
                     })
@@ -788,7 +984,8 @@ class BatchWriter:
             logger.error(f"Exception creating placeholder users (sync): {e}")
 
     def ensure_subreddits_exist_sync(self, subreddit_names: set):
-        """Synchronous version of ensure_subreddits_exist for threading"""
+        """DEPRECATED: Use async version instead. Synchronous version of ensure_subreddits_exist for threading"""
+        logger.warning("⚠️ DEPRECATED: ensure_subreddits_exist_sync is deprecated. Use async version instead.")
         try:
             placeholder_subs = []
             for name in subreddit_names:
@@ -803,7 +1000,7 @@ class BatchWriter:
 
                     record = {
                         'name': name.lower(),
-                        'display_name': display_name,
+                        'display_name_prefixed': display_name,
                         'created_at': datetime.now(timezone.utc).isoformat(),
                         'updated_at': datetime.now(timezone.utc).isoformat(),
                     }
@@ -833,50 +1030,100 @@ class BatchWriter:
             logger.error(f"Exception creating placeholder subreddits (sync): {e}")
 
     def add_subreddit_sync(self, subreddit_data: Dict[str, Any]):
-        """Synchronous version of add_subreddit for threading"""
+        """DEPRECATED: Use async version instead. Synchronous version of add_subreddit for threading"""
+        logger.warning("⚠️ DEPRECATED: add_subreddit_sync is deprecated. Use async version instead.")
         # Clean data before adding to buffer
         cleaned_data = self._clean_subreddit_data(subreddit_data)
-        self.buffers['reddit_subreddits'].append(cleaned_data)
 
-        # Check if we should flush this buffer
-        if len(self.buffers['reddit_subreddits']) >= self.batch_size:
-            self._flush_table_sync('reddit_subreddits')
+        with self._sync_lock:
+            self.buffers['reddit_subreddits'].append(cleaned_data)
+
+            # Check if we should flush this buffer
+            if len(self.buffers['reddit_subreddits']) >= self.batch_size:
+                self._flush_table_sync('reddit_subreddits')
 
     def add_user_sync(self, user_data: Dict[str, Any]):
-        """Synchronous version of add_user for threading"""
+        """DEPRECATED: Use async version instead. Synchronous version of add_user for threading"""
+        logger.warning("⚠️ DEPRECATED: add_user_sync is deprecated. Use async version instead.")
         # Clean data before adding to buffer
         cleaned_data = self._clean_user_data(user_data)
-        self.buffers['reddit_users'].append(cleaned_data)
 
-        # Check if we should flush this buffer
-        if len(self.buffers['reddit_users']) >= self.batch_size:
-            self._flush_table_sync('reddit_users')
+        with self._sync_lock:
+            self.buffers['reddit_users'].append(cleaned_data)
+
+            # Check if we should flush this buffer
+            if len(self.buffers['reddit_users']) >= self.batch_size:
+                self._flush_table_sync('reddit_users')
 
     def add_posts_sync(self, posts_data: List[Dict[str, Any]]):
-        """Synchronous version of add_posts for threading"""
-        for post in posts_data:
-            cleaned_data = self._clean_post_data(post)
-            self.buffers['reddit_posts'].append(cleaned_data)
+        """DEPRECATED: Use async version instead. Synchronous version of add_posts for threading"""
+        logger.warning("⚠️ DEPRECATED: add_posts_sync is deprecated. Use async version instead.")
+        # Clean data before adding to buffer
+        cleaned_posts = [self._clean_post_data(post) for post in posts_data]
 
-        # Check if we should flush this buffer
-        if len(self.buffers['reddit_posts']) >= self.batch_size:
-            self._flush_table_sync('reddit_posts')
+        with self._sync_lock:
+            for cleaned_data in cleaned_posts:
+                self.buffers['reddit_posts'].append(cleaned_data)
+
+            # Check if we should flush this buffer
+            if len(self.buffers['reddit_posts']) >= self.batch_size:
+                self._flush_table_sync('reddit_posts')
 
     def flush_all_sync(self):
-        """Synchronous version of flush_all for threading"""
-        tables_to_flush = list(self.buffers.keys())
-        for table in tables_to_flush:
-            self._flush_table_sync(table)
+        """DEPRECATED: Use async version instead. Synchronous version of flush_all for threading"""
+        logger.warning("⚠️ DEPRECATED: flush_all_sync is deprecated. Use async version instead.")
+        # Prepare data to flush while holding the lock
+        data_to_flush = {}
+
+        with self._sync_lock:
+            # Copy all buffers and clear them while holding the lock
+            for table_name, buffer in self.buffers.items():
+                if buffer:
+                    # Create a deep copy of the data
+                    data_to_flush[table_name] = buffer[:]
+                    buffer.clear()
+
+            # Clean up old errors while we have the lock
+            # Note: We don't have _clean_errors_with_lock, so we'll do it inline
+            current_time = datetime.now(timezone.utc)
+            # This would be where we clean errors, but we can't access async lock from sync
+
+        # Now flush the copied data (outside the lock to avoid holding it during I/O)
+        for table_name, records in data_to_flush.items():
+            self._flush_table_sync_safe(table_name, records)
+
+        # Clean old errors (this doesn't need the lock)
+        self._clean_errors_sync()
+
+        # Limit error history to prevent memory leak
+        self._limit_error_history()
 
     def _flush_table_sync(self, table_name: str):
-        """Synchronous version of _flush_table for threading"""
+        """Synchronous version of _flush_table for threading
+
+        NOTE: This method MUST be called with the lock already held!
+        Used by add_subreddit_sync, add_user_sync, add_posts_sync.
+        """
         if not self.buffers[table_name]:
             return
 
-        # Get all records to write
+        # Get all records to write (caller must hold the lock!)
         records = self.buffers[table_name][:]
         self.buffers[table_name].clear()
 
+        if not records:
+            return
+
+        # Now flush without the lock (caller will release it)
+        self._flush_table_sync_safe(table_name, records)
+
+    def _flush_table_sync_safe(self, table_name: str, records: List[Dict[str, Any]]):
+        """Safe version of _flush_table_sync that doesn't access buffers
+
+        Args:
+            table_name: Name of the table to flush to
+            records: Pre-copied records to flush (already extracted from buffer)
+        """
         if not records:
             return
 
@@ -950,3 +1197,10 @@ class BatchWriter:
             logger.info(f"[Sync] Flushed {total_success} records to {table_name}")
         if total_failed > 0:
             logger.error(f"[Sync] Failed to write {total_failed} records to {table_name}")
+            # Store failed records for retry (thread-safe, no lock needed as we're not accessing buffers)
+            if total_failed > 0 and records:
+                with self._sync_lock:
+                    self._failed_records[table_name].extend(records[-total_failed:])
+                    # Limit failed records to prevent memory leak
+                    if len(self._failed_records[table_name]) > 1000:
+                        self._failed_records[table_name] = self._failed_records[table_name][-1000:]

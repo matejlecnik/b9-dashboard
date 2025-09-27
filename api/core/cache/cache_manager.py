@@ -42,8 +42,10 @@ class TTLCache:
         self.misses = 0
         self.evictions = 0
         self.expirations = 0
+        self.total_memory_bytes = 0  # Track approximate memory usage
 
         # Start cleanup thread
+        self._running = True
         self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
         self._cleanup_thread.start()
 
@@ -119,12 +121,19 @@ class TTLCache:
         with self._lock:
             self._cache.clear()
 
+    def stop(self):
+        """Stop the cleanup thread"""
+        self._running = False
+        if hasattr(self, '_cleanup_thread'):
+            self._cleanup_thread.join(timeout=1)
+
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
-        while True:
+        while self._running:
             try:
                 time.sleep(self.cleanup_interval)
-                self._cleanup_expired()
+                if self._running:  # Check again after sleep
+                    self._cleanup_expired()
             except Exception as e:
                 logger.error(f"Error in cache cleanup: {e}")
 
@@ -159,8 +168,42 @@ class TTLCache:
                 'misses': self.misses,
                 'hit_rate': f"{hit_rate:.1f}%",
                 'evictions': self.evictions,
-                'expirations': self.expirations
+                'expirations': self.expirations,
+                'memory_mb': self.get_memory_usage_mb()
             }
+
+    def get_memory_usage_mb(self) -> float:
+        """Get approximate memory usage in megabytes"""
+        import sys
+        total_size = 0
+
+        with self._lock:
+            for key, (value, _) in self._cache.items():
+                # Approximate size calculation
+                total_size += sys.getsizeof(key)
+                total_size += sys.getsizeof(value)
+                if isinstance(value, dict):
+                    total_size += sum(sys.getsizeof(k) + sys.getsizeof(v)
+                                    for k, v in value.items())
+                elif isinstance(value, (list, tuple)):
+                    total_size += sum(sys.getsizeof(item) for item in value)
+
+        return round(total_size / (1024 * 1024), 2)
+
+    def force_cleanup(self, target_percentage: float = 0.5):
+        """Force cleanup to reduce cache to target percentage of max size"""
+        with self._lock:
+            target_size = int(self.max_size * target_percentage)
+            current_size = len(self._cache)
+
+            if current_size > target_size:
+                to_remove = current_size - target_size
+                logger.info(f"🧹 Force cleanup: removing {to_remove} oldest cache entries")
+
+                for _ in range(to_remove):
+                    if self._cache:
+                        self._cache.popitem(last=False)  # Remove oldest
+                        self.evictions += 1
 
 
 class CacheManager:
@@ -293,6 +336,7 @@ class TTLSet:
         self.ttl_seconds = ttl_seconds
         self._data: Dict[str, float] = {}
         self._lock = threading.RLock()
+        self._running = True
 
         # Start cleanup thread
         self._cleanup_thread = threading.Thread(
@@ -331,12 +375,19 @@ class TTLSet:
         with self._lock:
             self._data.clear()
 
+    def stop(self):
+        """Stop the cleanup thread"""
+        self._running = False
+        if hasattr(self, '_cleanup_thread'):
+            self._cleanup_thread.join(timeout=1)
+
     def _cleanup_loop(self):
         """Background thread to clean up expired entries"""
-        while True:
+        while self._running:
             try:
                 time.sleep(300)  # Clean up every 5 minutes
-                self._cleanup_expired()
+                if self._running:  # Check again after sleep
+                    self._cleanup_expired()
             except Exception as e:
                 logger.error(f"Error in TTL set cleanup: {e}")
 
