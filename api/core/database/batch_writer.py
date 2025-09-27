@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from core.config.scraper_config import get_scraper_config
+from core.utils.supabase_logger import SupabaseLogHandler
+from core.database.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,21 @@ class BatchWriter:
         self.supabase = supabase_client
         self.batch_size = batch_size or config.batch_writer_size
         self.flush_interval = flush_interval or config.batch_writer_flush_interval
+
+        # Setup Supabase logging if not already configured
+        if not any(isinstance(handler, SupabaseLogHandler) for handler in logger.handlers):
+            try:
+                supabase_handler = SupabaseLogHandler(
+                    supabase_client=get_supabase_client(),
+                    source='batch_writer',
+                    script_name='batch_writer'
+                )
+                supabase_handler.setLevel(logging.INFO)
+                logger.addHandler(supabase_handler)
+                logger.info("✅ SupabaseLogHandler attached to BatchWriter")
+            except Exception as e:
+                logger.warning(f"Could not attach SupabaseLogHandler: {e}")
+
         logger.info(f"🔧 BatchWriter initialized with batch_size={self.batch_size}, flush_interval={self.flush_interval}s")
 
         # Buffers for different tables
@@ -66,6 +83,10 @@ class BatchWriter:
             self._running = True
             logger.info(f"📝 Starting batch writer with batch_size={self.batch_size}, "
                        f"flush_interval={self.flush_interval}s")
+
+            # Log startup with Supabase logging status
+            has_supabase_handler = any(isinstance(handler, SupabaseLogHandler) for handler in logger.handlers)
+            logger.info(f"🚀 BatchWriter initialized - Supabase logging: {'✅ Enabled' if has_supabase_handler else '❌ Disabled'}")
 
             # Create and start the auto-flush task
             self._flush_task = asyncio.create_task(self._auto_flush_loop())
@@ -408,6 +429,9 @@ class BatchWriter:
             if count > 0:
                 logger.info(f"  - {table}: {count} records")
 
+        # Log detailed flush operation to Supabase
+        flush_start_time = datetime.now(timezone.utc)
+
         try:
             # Flush each table, catching individual errors
             for table in tables_to_flush:
@@ -421,7 +445,18 @@ class BatchWriter:
             if flush_errors:
                 logger.error(f"⚠️ flush_all completed with {len(flush_errors)} errors: {flush_errors}")
             else:
-                logger.info(f"✅ flush_all completed successfully for {total_records} records")
+                # Calculate flush duration
+                flush_end_time = datetime.now(timezone.utc)
+                flush_duration = (flush_end_time - flush_start_time).total_seconds()
+
+                # Log successful flush with performance metrics
+                logger.info(f"✅ flush_all completed successfully for {total_records} records in {flush_duration:.2f}s")
+
+                # Log performance metrics to help monitor batch writer efficiency
+                if total_records > 0:
+                    records_per_second = total_records / flush_duration if flush_duration > 0 else 0
+                    logger.info(f"📊 Batch Writer Performance: {records_per_second:.1f} records/second, "
+                              f"Duration: {flush_duration:.2f}s, Total: {total_records} records")
 
             # Limit error history to prevent memory leak
             self._limit_error_history()
@@ -476,6 +511,13 @@ class BatchWriter:
         if total_success > 0:
             logger.info(f"✅ Successfully flushed {total_success} records to {table_name} "
                        f"({len(chunks)} batches)")
+
+            # Log detailed stats for monitoring
+            total_stats = self.stats[table_name]
+            success_rate = (total_stats['successful_writes'] / total_stats['total_records'] * 100) if total_stats['total_records'] > 0 else 0
+            logger.info(f"📈 {table_name} Stats - Total: {total_stats['total_records']:,} records, "
+                      f"Success Rate: {success_rate:.1f}%, Batches: {total_stats['total_batches']}")
+
             # Log sample of what was written (first few records)
             if records and table_name == 'reddit_subreddits':
                 sample_names = [r.get('name', 'unknown') for r in records[:3]]
