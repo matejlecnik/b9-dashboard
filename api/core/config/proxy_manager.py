@@ -452,13 +452,13 @@ class ProxyManager:
             logger.info(f"  {status} {proxy_name}")
 
         total_proxies = len(self.proxies)
-        if working_proxies >= total_proxies * 0.7:  # 70% success rate required
-            logger.info(f"✅ SUCCESS: {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
+        if working_proxies == total_proxies:  # ALL proxies must work
+            logger.info(f"✅ SUCCESS: All {total_proxies} proxies validated successfully")
             return True
         else:
-            logger.error(f"⚠️ WARNING: Only {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
-            logger.error("⚠️ Continuing with degraded proxy performance...")
-            return True  # Allow degraded operation instead of failing completely
+            logger.error(f"❌ FAILURE: Only {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
+            logger.error("❌ Cannot start scraper without all proxies functional")
+            return False  # Fail if ANY proxy is not working
             
     async def _test_proxy_with_rate_limit(self, proxy, test_url):
         """Test a single proxy with rate limiting"""

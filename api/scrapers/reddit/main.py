@@ -64,7 +64,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "2.1.0"
+SCRAPER_VERSION = "2.2.0 - FK & Schema Fixes + Strict Proxy Validation"
 
 
 class RedditScraperV2:
