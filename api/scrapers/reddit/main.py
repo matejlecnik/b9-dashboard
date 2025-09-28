@@ -139,7 +139,7 @@ class RedditScraperV2:
                 'source': 'reddit_scraper',
                 'script_name': 'reddit_scraper_startup',
                 'level': 'info',
-                'message': f'Starting Reddit Scraper v{SCRAPER_VERSION} - LATEST VERSION (Fixed category column issue)',
+                'message': f'Starting Reddit Scraper v{SCRAPER_VERSION}',
                 'context': {
                     'version': SCRAPER_VERSION,
                     'startup_type': 'main_scraper',
