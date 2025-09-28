@@ -33,6 +33,7 @@ interface LogViewerSupabaseProps {
   autoScroll?: boolean
   refreshInterval?: number
   maxLogs?: number
+  minLogsToShow?: number
   tableName?: string
   sourceFilter?: string
   useSystemLogs?: boolean
@@ -44,6 +45,7 @@ export function LogViewerSupabase({
   autoScroll = true,
   refreshInterval = 5000,
   maxLogs = 500,
+  minLogsToShow = 20,
   tableName = 'reddit_scraper_logs',
   sourceFilter,
   useSystemLogs = false
@@ -82,7 +84,7 @@ export function LogViewerSupabase({
         .from(actualTableName)
         .select('*')
         .order('id', { ascending: false })
-        .limit(sinceId ? 50 : 100)
+        .limit(sinceId ? 50 : Math.max(minLogsToShow, 20))
 
       // Add filters based on table type
       if (useSystemLogs) {
@@ -215,7 +217,7 @@ export function LogViewerSupabase({
         })
 
         // Auto-scroll to bottom if enabled
-        if (shouldAutoScroll.current && scrollAreaRef.current && !since && !signal?.aborted) {
+        if (shouldAutoScroll.current && scrollAreaRef.current && !sinceId && !signal?.aborted) {
           // Clear any existing timer
           if (scrollTimerRef.current) {
             clearTimeout(scrollTimerRef.current)
@@ -233,7 +235,7 @@ export function LogViewerSupabase({
       logger.error('Error fetching logs:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     }
-  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter, lastLogId, createLogHash])
+  }, [isPaused, selectedLevel, searchQuery, maxLogs, minLogsToShow, useSystemLogs, tableName, sourceFilter, lastLogId, createLogHash])
 
   // Determine which table to use
   const actualTableName = useMemo(() => useSystemLogs ? 'system_logs' : tableName, [useSystemLogs, tableName])
@@ -379,7 +381,7 @@ export function LogViewerSupabase({
 
   // Periodic refresh for catching up (backup to real-time) using memory-safe interval
   useEffect(() => {
-    if (isPaused || !lastLogId) return
+    if (isPaused) return
 
     // Clear any existing interval
     if (refreshIntervalRef.current) {
@@ -387,7 +389,16 @@ export function LogViewerSupabase({
     }
 
     refreshIntervalRef.current = setInterval(() => {
-      fetchLogs(lastLogId)
+      // Check if we have enough logs visible
+      const currentLogCount = logsMap.size
+
+      // If we have fewer logs than the minimum, fetch without sinceId to get recent logs
+      // Otherwise, fetch new logs since the last ID
+      if (currentLogCount < minLogsToShow) {
+        fetchLogs(undefined)
+      } else if (lastLogId) {
+        fetchLogs(lastLogId)
+      }
     }, refreshInterval)
 
     return () => {
@@ -396,7 +407,7 @@ export function LogViewerSupabase({
         refreshIntervalRef.current = null
       }
     }
-  }, [fetchLogs, refreshInterval, isPaused, lastLogId])
+  }, [fetchLogs, refreshInterval, isPaused, lastLogId, logsMap.size, minLogsToShow])
 
   // Function to check if a log message is important
   const isImportantLog = (title: string): boolean => {
