@@ -31,8 +31,7 @@ load_dotenv()
 
 # Import utilities and services
 from utils import (
-    cache_manager, rate_limiter, health_monitor,
-    request_timer, rate_limit,
+    health_monitor, request_timer,
     system_logger, log_api_call, log_exception
 )
 # Flexible imports for both local development and production
@@ -158,15 +157,7 @@ async def lifespan(app: FastAPI):
         
         # Initialize utilities
         logger.info("🔧 Initializing utilities...")
-        
-        # Initialize cache manager (no-op version)
-        await cache_manager.initialize()
-        logger.info("✅ Cache manager initialized (caching disabled)")
-        
-        # Initialize rate limiter (no-op version)
-        await rate_limiter.initialize()
-        logger.info("✅ Rate limiter initialized (rate limiting disabled)")
-        
+
         # Initialize services
         logger.info("⚙️  Initializing services...")
 
@@ -219,10 +210,7 @@ async def lifespan(app: FastAPI):
     cleanup_start = time.time()
 
     try:
-        # Close utilities
-        await cache_manager.close()
-        await rate_limiter.close()
-
+        # Cleanup complete
         cleanup_time = time.time() - cleanup_start
         logger.info(f"✅ Cleanup completed in {cleanup_time:.2f}s")
         system_logger.info(
@@ -401,14 +389,10 @@ async def get_metrics():
     """System metrics for monitoring"""
     try:
         metrics = await health_monitor.get_system_metrics()
-        cache_stats = await cache_manager.get_stats() if cache_manager.is_connected else {}
-        rate_limit_stats = await rate_limiter.get_stats() if rate_limiter.is_connected else {}
-        
+
         return {
             "system": metrics.__dict__ if hasattr(metrics, '__dict__') else metrics,
             "application": health_monitor.get_stats(),
-            "cache": cache_stats,
-            "rate_limiting": rate_limit_stats,
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
@@ -423,16 +407,8 @@ async def get_metrics():
 # =============================================================================
 
 @app.get("/api/stats")
-@rate_limit("api")
 async def get_system_stats(request: Request):
-    """Get comprehensive system statistics with caching"""
-    cache_key = "system_stats"
-    
-    # Try to get from cache first
-    cached_stats = await cache.get(cache_key, "stats")
-    if cached_stats:
-        return cached_stats
-    
+    """Get comprehensive system statistics"""
     try:
         stats = {}
         
@@ -448,10 +424,7 @@ async def get_system_stats(request: Request):
             "stats": stats,
             "timestamp": datetime.now().isoformat()
         }
-        
-        # Cache for 5 minutes
-        await cache.set(cache_key, result, ttl=300, namespace="stats")
-        
+
         return result
         
     except Exception as e:
@@ -462,7 +435,6 @@ async def get_system_stats(request: Request):
 # =============================================================================
 
 @app.post("/api/categorization/start")
-@rate_limit("api")
 async def start_tag_categorization(request: Request, payload: CategorizationRequest):
     """Start AI tag-based categorization process for approved subreddits"""
     logger.info(f"🏷️  Tag categorization request received: batch_size={payload.batchSize}, limit={payload.limit}")
@@ -496,7 +468,6 @@ async def start_tag_categorization(request: Request, payload: CategorizationRequ
         raise HTTPException(status_code=500, detail=f"Tag categorization failed: {str(e)}")
 
 @app.get("/api/categorization/stats")
-@rate_limit("api")
 async def get_tag_stats(request: Request):
     """Get tag categorization statistics"""
     if not tag_categorization_service:
@@ -515,7 +486,6 @@ async def get_tag_stats(request: Request):
 # =============================================================================
 
 @app.post("/api/subreddits/fetch-single")
-@rate_limit("api")
 async def fetch_single_subreddit(request: Request, payload: SingleSubredditRequest):
     """Fetch data for a single subreddit from Reddit"""
     logger.info(f"📊 Single subreddit fetch request: {payload.subreddit_name}")
@@ -555,7 +525,6 @@ async def fetch_single_subreddit(request: Request, payload: SingleSubredditReque
 # =============================================================================
 
 @app.post("/api/jobs/start")
-@rate_limit("api")
 async def start_background_job(request: Request, job_request: BackgroundJobRequest):
     """Start a background job (replaces Celery functionality)"""
     try:
@@ -579,19 +548,7 @@ async def start_background_job(request: Request, job_request: BackgroundJobReque
         # Save to database
         if supabase:
             supabase.table('background_jobs').insert(job_data).execute()
-        
-        # Add to Redis queue if available
-        if cache_manager.is_connected:
-            queue_data = {
-                'job_id': job_id,
-                'type': job_request.job_type,
-                **job_request.parameters
-            }
-            
-            # Add to appropriate priority queue
-            queue_name = f"job_queue_{job_request.priority}"
-            await cache_manager.redis_client.lpush(queue_name, json.dumps(queue_data))
-        
+
         return {
             'job_id': job_id,
             'status': 'queued',
@@ -604,7 +561,6 @@ async def start_background_job(request: Request, job_request: BackgroundJobReque
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/jobs/{job_id}")
-@rate_limit("api")
 async def get_job_status(request: Request, job_id: str):
     """Get background job status"""
     try:

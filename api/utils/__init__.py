@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 B9 Dashboard API - Utilities Package
-Common utilities for caching, rate limiting, monitoring, and logging
+Common utilities for monitoring and logging
 """
 
-from .cache import cache_manager, CacheManager
-from .rate_limit import rate_limiter, RateLimiter, rate_limit
 from .monitoring import health_monitor, HealthMonitor, HealthCheck, SystemMetrics, request_timer, get_health_monitor
 from .system_logger import (
     system_logger, LogLevel,
@@ -13,17 +11,10 @@ from .system_logger import (
     log_exception, log_api_call, log_scraper_activity,
     flush, shutdown
 )
+from .memory_monitor import MemoryMonitor
+from .supabase_logger import SupabaseLogger
 
 __all__ = [
-    # Cache utilities
-    'cache_manager',
-    'CacheManager',
-
-    # Rate limiting utilities
-    'rate_limiter',
-    'RateLimiter',
-    'rate_limit',
-
     # Monitoring utilities
     'health_monitor',
     'HealthMonitor',
@@ -45,5 +36,11 @@ __all__ = [
     'log_api_call',
     'log_scraper_activity',
     'flush',
-    'shutdown'
+    'shutdown',
+
+    # Memory monitoring
+    'MemoryMonitor',
+
+    # Supabase logging
+    'SupabaseLogger'
 ]
