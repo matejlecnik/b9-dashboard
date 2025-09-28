@@ -12,11 +12,15 @@ const PUBLIC_API_ROUTES = ['/api/health']
 const COMING_SOON_ROUTES = ['/reddit/user-analysis']
 
 // Supabase auth cookie patterns to check
+// Updated to include project-specific cookie pattern
 const SUPABASE_AUTH_COOKIES = [
   'sb-access-token',
   'sb-refresh-token',
   'supabase-auth-token',
-  'supabase.auth.token'
+  'supabase.auth.token',
+  // Project-specific cookie pattern for cetrhongdrjztsrsffuh
+  'sb-cetrhongdrjztsrsffuh-auth-token',
+  'sb-cetrhongdrjztsrsffuh-auth-token-code-verifier'
 ]
 
 // Protected dashboards that require specific permissions
@@ -33,6 +37,12 @@ export async function middleware(request: NextRequest) {
 
   // Check if authentication bypass is enabled (for local development)
   const bypassAuth = process.env.BYPASS_AUTH === 'true'
+
+  // Debug logging for cookie inspection (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Middleware] Request to:', pathname)
+    console.log('[Middleware] Cookies:', Array.from(request.cookies.getAll()).map(c => c.name))
+  }
 
   if (bypassAuth) {
     // In development mode with auth bypass:
@@ -56,7 +66,7 @@ export async function middleware(request: NextRequest) {
 
   // Production mode: Enforce authentication
 
-  // Check if user has unknown Supabase auth cookies
+  // Check if user has Supabase auth cookies
   const hasAuthCookie = SUPABASE_AUTH_COOKIES.some(name =>
     request.cookies.has(name) ||
     // Also check for project-specific cookie patterns
@@ -65,6 +75,11 @@ export async function middleware(request: NextRequest) {
       (cookie.name.includes('auth-token') || cookie.name.includes('refresh-token'))
     )
   )
+
+  // Debug log auth status
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Middleware] Has auth cookie:', hasAuthCookie)
+  }
 
   // If visiting /login and already authenticated, redirect to /dashboards
   if (pathname === '/login') {

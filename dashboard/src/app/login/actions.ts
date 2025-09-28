@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
+import { cookies } from 'next/headers'
 
 // Helper function to format auth errors
 function formatAuthError(error: { message?: string; code?: string }): string {
@@ -24,13 +25,17 @@ function formatAuthError(error: { message?: string; code?: string }): string {
 }
 
 export async function login(prevState: { error: string } | null, formData: FormData) {
-  const supabase = await createClient()
+  try {
+    logger.log('[Login Action] Starting login attempt')
 
-  if (!supabase) {
-    return {
-      error: 'Authentication service is currently unavailable. Please try again later.'
+    const supabase = await createClient()
+
+    if (!supabase) {
+      logger.error('[Login Action] Supabase client is null')
+      return {
+        error: 'Authentication service is currently unavailable. Please check your database connection.'
+      }
     }
-  }
 
   // Validate inputs
   const email = formData.get('email') as string
@@ -51,27 +56,46 @@ export async function login(prevState: { error: string } | null, formData: FormD
   const data = { email, password }
 
   try {
-    const { error } = await supabase.auth.signInWithPassword(data)
+    logger.log('[Login Action] Attempting signInWithPassword for:', email)
+    const { data: authData, error } = await supabase.auth.signInWithPassword(data)
+
+    // Log authentication result for debugging
+    if (authData?.user) {
+      logger.log('[Login Action] Authentication successful for user:', authData.user.email)
+
+      // Check cookies after login
+      const cookieStore = await cookies()
+      const authCookies = cookieStore.getAll().filter(c => c.name.includes('sb-'))
+      logger.log('[Login Action] Auth cookies set:', authCookies.map(c => c.name))
+    }
 
     if (error) {
+      logger.error('[Login Action] Authentication failed:', error)
       return {
         error: formatAuthError(error as { message?: string; code?: string })
       }
     }
 
     // Success - redirect to dashboard
+    logger.log('[Login Action] Login successful, redirecting to /dashboards')
     revalidatePath('/', 'layout')
     redirect('/dashboards')
-  } catch (error: unknown) {
+  } catch (redirectError: unknown) {
     // Check if this is a Next.js redirect (which is normal behavior)
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+    if (redirectError instanceof Error && redirectError.message === 'NEXT_REDIRECT') {
       // Re-throw redirect errors as they are expected Next.js behavior
-      throw error
+      throw redirectError
     }
-    
-    logger.error('Login action error:', error)
+
+    logger.error('[Login Action] Unexpected error:', redirectError)
     return {
       error: 'An unexpected error occurred. Please try again.'
+    }
+  }
+  } catch (error: unknown) {
+    logger.error('[Login Action] Outer catch block error:', error)
+    return {
+      error: 'Failed to initialize authentication. Please refresh the page and try again.'
     }
   }
 }

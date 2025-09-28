@@ -771,24 +771,20 @@ class RedditScraperV2:
                 for i in range(0, len(batch_subreddits), 50):
                     chunk = batch_subreddits[i:i+50]
                     try:
-                        # Normalize names for conflict detection while preserving original case
+                        # Normalize subreddit names to lowercase before saving
                         for sub in chunk:
-                            # Store original case but check conflicts case-insensitively
                             if 'name' in sub:
-                                # Check if this subreddit already exists (case-insensitive)
-                                existing = self.supabase.table('reddit_subreddits').select('*').ilike(
-                                    'name', sub['name']
-                                ).execute()
+                                # Keep original case in display_name if not already set
+                                if 'display_name' not in sub or not sub['display_name']:
+                                    sub['display_name'] = sub['name']
+                                # Normalize name to lowercase for database key
+                                sub['name'] = sub['name'].lower()
 
-                                if existing.data:
-                                    # Update existing entry instead of creating duplicate
-                                    self.supabase.table('reddit_subreddits').update(sub).eq(
-                                        'id', existing.data[0]['id']
-                                    ).execute()
-                                else:
-                                    # Insert new entry with original case
-                                    self.supabase.table('reddit_subreddits').insert(sub).execute()
-
+                        # Batch upsert with normalized names
+                        response = self.supabase.table('reddit_subreddits').upsert(
+                            chunk,
+                            on_conflict='name'
+                        ).execute()
                         logger.info(f"✅ Wrote {len(chunk)} subreddits to database")
                     except Exception as e:
                         logger.error(f"❌ Failed to write subreddits: {e}")
@@ -967,23 +963,20 @@ class RedditScraperV2:
             if processed_discoveries:
                 logger.info(f"📝 Writing {len(processed_discoveries)} discovered subreddits")
                 try:
-                    # Handle each discovered subreddit with case-insensitive check
+                    # Normalize names before saving
                     for discovery in processed_discoveries:
                         if 'name' in discovery:
-                            # Check if exists (case-insensitive)
-                            existing = self.supabase.table('reddit_subreddits').select('*').ilike(
-                                'name', discovery['name']
-                            ).execute()
+                            # Keep original case in display_name
+                            if 'display_name' not in discovery or not discovery['display_name']:
+                                discovery['display_name'] = discovery['name']
+                            # Normalize name to lowercase
+                            discovery['name'] = discovery['name'].lower()
 
-                            if existing.data:
-                                # Update existing
-                                self.supabase.table('reddit_subreddits').update(discovery).eq(
-                                    'id', existing.data[0]['id']
-                                ).execute()
-                            else:
-                                # Insert new
-                                self.supabase.table('reddit_subreddits').insert(discovery).execute()
-
+                    # Batch upsert with normalized names
+                    self.supabase.table('reddit_subreddits').upsert(
+                        processed_discoveries,
+                        on_conflict='name'
+                    ).execute()
                     logger.info(f"✅ Wrote {len(processed_discoveries)} discovered subreddits")
                 except Exception as e:
                     logger.error(f"❌ Failed to write discovered subreddits: {e}")
@@ -1019,7 +1012,7 @@ class RedditScraperV2:
             about_data = result.get('about', {})
             if about_data:
                 response_data['subreddit_data'] = {
-                    'name': subreddit_name,
+                    'name': subreddit_name.lower(),  # Normalize to lowercase
                     'display_name': about_data.get('display_name', subreddit_name),
                     'subscribers': about_data.get('subscribers', 0),
                     'active_users': about_data.get('active_user_count', 0),
@@ -1102,22 +1095,20 @@ class RedditScraperV2:
                 for i in range(0, len(batch_subreddits), 100):
                     chunk = batch_subreddits[i:i+100]
                     try:
-                        # Handle each subreddit with case-insensitive check
+                        # Normalize subreddit names before saving
                         for sub in chunk:
                             if 'name' in sub:
-                                # Check if exists (case-insensitive)
-                                existing = self.supabase.table('reddit_subreddits').select('*').ilike(
-                                    'name', sub['name']
-                                ).execute()
+                                # Keep original case in display_name
+                                if 'display_name' not in sub or not sub['display_name']:
+                                    sub['display_name'] = sub['name']
+                                # Normalize name to lowercase
+                                sub['name'] = sub['name'].lower()
 
-                                if existing.data:
-                                    # Update existing
-                                    self.supabase.table('reddit_subreddits').update(sub).eq(
-                                        'id', existing.data[0]['id']
-                                    ).execute()
-                                else:
-                                    # Insert new
-                                    self.supabase.table('reddit_subreddits').insert(sub).execute()
+                        # Batch upsert with normalized names
+                        self.supabase.table('reddit_subreddits').upsert(
+                            chunk,
+                            on_conflict='name'
+                        ).execute()
                     except Exception as e:
                         logger.error(f"❌ Failed to write subreddit chunk: {e}")
 
