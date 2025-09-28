@@ -25,22 +25,21 @@ function formatAuthError(error: { message?: string; code?: string }): string {
 }
 
 export async function login(prevState: { error: string } | null, formData: FormData) {
-  try {
-    logger.log('[Login Action] Starting login attempt')
+  logger.log('[Login Action] Starting login attempt')
 
-    const supabase = await createClient()
+  const supabase = await createClient()
 
-    if (!supabase) {
-      logger.error('[Login Action] Supabase client is null')
-      return {
-        error: 'Authentication service is currently unavailable. Please check your database connection.'
-      }
+  if (!supabase) {
+    logger.error('[Login Action] Supabase client is null')
+    return {
+      error: 'Authentication service is currently unavailable. Please check your database connection.'
     }
+  }
 
   // Validate inputs
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  
+
   if (!email || !password) {
     return {
       error: 'Please provide both email and password.'
@@ -80,22 +79,16 @@ export async function login(prevState: { error: string } | null, formData: FormD
     logger.log('[Login Action] Login successful, redirecting to /dashboards')
     revalidatePath('/', 'layout')
     redirect('/dashboards')
-  } catch (redirectError: unknown) {
+  } catch (error: unknown) {
     // Check if this is a Next.js redirect (which is normal behavior)
-    if (redirectError instanceof Error && redirectError.message === 'NEXT_REDIRECT') {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       // Re-throw redirect errors as they are expected Next.js behavior
-      throw redirectError
+      throw error
     }
 
-    logger.error('[Login Action] Unexpected error:', redirectError)
+    logger.error('[Login Action] Unexpected error:', error)
     return {
       error: 'An unexpected error occurred. Please try again.'
-    }
-  }
-  } catch (error: unknown) {
-    logger.error('[Login Action] Outer catch block error:', error)
-    return {
-      error: 'Failed to initialize authentication. Please refresh the page and try again.'
     }
   }
 }

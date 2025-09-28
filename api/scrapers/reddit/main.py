@@ -1008,20 +1008,25 @@ class RedditScraperV2:
                 'posts': []
             }
 
-            # Collect subreddit metadata
+            # Collect subreddit metadata - ALWAYS create subreddit_data even without about_data
             about_data = result.get('about', {})
-            if about_data:
-                response_data['subreddit_data'] = {
-                    'name': subreddit_name.lower(),  # Normalize to lowercase
-                    'display_name': about_data.get('display_name', subreddit_name),
-                    'subscribers': about_data.get('subscribers', 0),
-                    'active_users': about_data.get('active_user_count', 0),
-                    'created_utc': about_data.get('created_utc'),
-                    'over18': about_data.get('over18', False),
-                    'public_description': about_data.get('public_description', ''),
-                    'description': about_data.get('description', ''),
-                    'updated_at': datetime.now(timezone.utc).isoformat()
-                }
+
+            # Always create subreddit_data to ensure it's saved to database
+            response_data['subreddit_data'] = {
+                'name': subreddit_name.lower(),  # Normalize to lowercase
+                'display_name': about_data.get('display_name', subreddit_name) if about_data else subreddit_name,
+                'subscribers': about_data.get('subscribers', 0) if about_data else 0,
+                'active_users': about_data.get('active_user_count', 0) if about_data else 0,
+                'created_utc': about_data.get('created_utc') if about_data else None,
+                'over18': about_data.get('over18', False) if about_data else False,
+                'public_description': about_data.get('public_description', '') if about_data else '',
+                'description': about_data.get('description', '') if about_data else '',
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+
+            # Log if we're using fallback data
+            if not about_data:
+                logger.warning(f"Thread {scraper.thread_id}: No about_data for r/{subreddit_name}, using minimal metadata")
 
             # Process posts and extract users
             all_posts = []

@@ -54,15 +54,21 @@ export function LogViewerSupabase({
   const [searchQuery] = useState('')
   const [selectedLevel] = useState<string>('all')
   const [showVerbose] = useState(false)
-  const [lastTimestamp, setLastTimestamp] = useState<string | null>(null)
+  const [lastLogId, setLastLogId] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const shouldAutoScroll = useRef(autoScroll)
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const updateInProgress = useRef(false)
+  const seenMessageHashes = useRef<Set<string>>(new Set())
+  const processingQueue = useRef<Promise<void>>(Promise.resolve())
+
+  // Helper to create hash for deduplication
+  const createLogHash = useCallback((log: LogEntry): string => {
+    return `${log.timestamp}_${log.message || log.title}_${log.source || 'unknown'}`
+  }, [])
 
   // Fetch initial logs directly from Supabase
-  const fetchLogs = useCallback(async (since?: string, signal?: AbortSignal) => {
+  const fetchLogs = useCallback(async (sinceId?: string, signal?: AbortSignal) => {
     if (isPaused || !supabase || signal?.aborted) return
 
     try {
@@ -75,8 +81,8 @@ export function LogViewerSupabase({
       let query = supabase
         .from(actualTableName)
         .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(since ? 50 : 100)
+        .order('id', { ascending: false })
+        .limit(sinceId ? 50 : 100)
 
       // Add filters based on table type
       if (useSystemLogs) {
@@ -117,8 +123,8 @@ export function LogViewerSupabase({
         }
       }
 
-      if (since) {
-        query = query.gt('timestamp', since)
+      if (sinceId) {
+        query = query.gt('id', sinceId)
       }
 
       const { data, error } = await query
@@ -128,19 +134,16 @@ export function LogViewerSupabase({
       }
 
       if (data) {
-        // Wait if another update is in progress
-        while (updateInProgress.current) {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        }
-
-        updateInProgress.current = true
-
-        try {
+        // Queue this update to prevent race conditions
+        processingQueue.current = processingQueue.current.then(async () => {
           const formattedLogs: LogEntry[] = data.map(log => {
+            // Ensure valid ID
+            const logId = log.id ? log.id.toString() : `temp_${Date.now()}_${Math.random()}`
+
             // Handle both table structures
             if (useSystemLogs) {
               return {
-                id: log.id.toString(),
+                id: logId,
                 timestamp: log.timestamp,
                 level: log.level || 'info',
                 title: formatLogMessage(log.message || '', log.context),
@@ -150,7 +153,7 @@ export function LogViewerSupabase({
               }
             } else {
               return {
-                id: log.id.toString(),
+                id: logId,
                 timestamp: log.timestamp,
                 level: log.level || 'info',
                 title: formatLogMessage(log.message || '', log.context),
@@ -163,35 +166,53 @@ export function LogViewerSupabase({
 
           setLogsMap(prev => {
             const newMap = new Map(prev)
+            let highestId = lastLogId
 
-            // Add new logs to the map (automatically handles duplicates by ID)
+            // Add new logs with deduplication
             formattedLogs.forEach(log => {
-              newMap.set(log.id, log)
+              const hash = createLogHash(log)
+
+              // Skip if we've seen this exact log before
+              if (!seenMessageHashes.current.has(hash)) {
+                newMap.set(log.id, log)
+                seenMessageHashes.current.add(hash)
+
+                // Track highest ID for next fetch
+                if (!highestId || parseInt(log.id) > parseInt(highestId)) {
+                  highestId = log.id
+                }
+              }
             })
+
+            // Update highest ID seen
+            if (highestId !== lastLogId) {
+              setLastLogId(highestId)
+            }
 
             // If we have too many logs, remove the oldest ones
             if (newMap.size > maxLogs) {
-              // Convert to array, sort by timestamp, and keep only the most recent
+              // Convert to array, sort by ID (more reliable than timestamp), and keep most recent
               const sortedEntries = Array.from(newMap.entries())
-                .sort((a, b) => new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime())
+                .sort((a, b) => {
+                  const idA = parseInt(a[0]) || 0
+                  const idB = parseInt(b[0]) || 0
+                  return idB - idA
+                })
                 .slice(0, maxLogs)
+
+              // Clean up seen hashes for removed logs
+              const newHashes = new Set<string>()
+              sortedEntries.forEach(([, log]) => {
+                newHashes.add(createLogHash(log))
+              })
+              seenMessageHashes.current = newHashes
 
               return new Map(sortedEntries)
             }
 
             return newMap
           })
-
-          // Update last timestamp for next fetch
-          if (formattedLogs.length > 0) {
-            const sortedLogs = formattedLogs.sort((a, b) =>
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            )
-            setLastTimestamp(sortedLogs[0].timestamp)
-          }
-        } finally {
-          updateInProgress.current = false
-        }
+        })
 
         // Auto-scroll to bottom if enabled
         if (shouldAutoScroll.current && scrollAreaRef.current && !since && !signal?.aborted) {
@@ -212,7 +233,7 @@ export function LogViewerSupabase({
       logger.error('Error fetching logs:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     }
-  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter])
+  }, [isPaused, selectedLevel, searchQuery, maxLogs, useSystemLogs, tableName, sourceFilter, lastLogId, createLogHash])
 
   // Determine which table to use
   const actualTableName = useMemo(() => useSystemLogs ? 'system_logs' : tableName, [useSystemLogs, tableName])
@@ -228,19 +249,16 @@ export function LogViewerSupabase({
     onData: async (payload) => {
       if (!payload.new) return
 
-      // Wait if another update is in progress
-      while (updateInProgress.current) {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }
+      // Queue this update to prevent race conditions
+      processingQueue.current = processingQueue.current.then(async () => {
+        const newData = payload.new as Record<string, unknown>
 
-      updateInProgress.current = true
-
-      try {
-        const newData = payload.new as any
+        // Ensure valid ID
+        const logId = newData.id ? newData.id.toString() : `temp_${Date.now()}_${Math.random()}`
 
         // Handle both table structures
         const newLog: LogEntry = useSystemLogs ? {
-          id: newData.id?.toString() || '',
+          id: logId,
           timestamp: newData.timestamp || '',
           level: newData.level || 'info',
           title: formatLogMessage(newData.message || '', newData.context),
@@ -248,7 +266,7 @@ export function LogViewerSupabase({
           source: newData.source || newData.script_name || 'unknown',
           context: newData.context
         } : {
-          id: newData.id?.toString() || '',
+          id: logId,
           timestamp: newData.timestamp || '',
           level: newData.level || 'info',
           title: formatLogMessage(newData.message || '', newData.context),
@@ -277,26 +295,50 @@ export function LogViewerSupabase({
         if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
         if (searchQuery && newLog.message && !newLog.message.toLowerCase().includes(searchQuery.toLowerCase())) return
 
-        // Add new log to the map
+        // Add new log with deduplication
+        const hash = createLogHash(newLog)
+
+        // Skip if we've seen this exact log before
+        if (seenMessageHashes.current.has(hash)) {
+          return
+        }
+
         setLogsMap(prev => {
           const newMap = new Map(prev)
           newMap.set(newLog.id, newLog)
+          seenMessageHashes.current.add(hash)
+
+          // Update highest ID if this is newer
+          const numericId = parseInt(newLog.id) || 0
+          const currentHighest = parseInt(lastLogId || '0') || 0
+          if (numericId > currentHighest) {
+            setLastLogId(newLog.id)
+          }
 
           // If we have too many logs, remove the oldest one
           if (newMap.size > maxLogs) {
-            // Convert to array, sort by timestamp, and keep only the most recent
+            // Sort by ID for consistent ordering
             const sortedEntries = Array.from(newMap.entries())
-              .sort((a, b) => new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime())
+              .sort((a, b) => {
+                const idA = parseInt(a[0]) || 0
+                const idB = parseInt(b[0]) || 0
+                return idB - idA
+              })
               .slice(0, maxLogs)
+
+            // Clean up seen hashes
+            const newHashes = new Set<string>()
+            sortedEntries.forEach(([, log]) => {
+              newHashes.add(createLogHash(log))
+            })
+            seenMessageHashes.current = newHashes
 
             return new Map(sortedEntries)
           }
 
           return newMap
         })
-      } finally {
-        updateInProgress.current = false
-      }
+      })
 
       // Auto-scroll if at bottom
       if (shouldAutoScroll.current && scrollAreaRef.current) {
@@ -337,7 +379,7 @@ export function LogViewerSupabase({
 
   // Periodic refresh for catching up (backup to real-time) using memory-safe interval
   useEffect(() => {
-    if (isPaused || !lastTimestamp) return
+    if (isPaused || !lastLogId) return
 
     // Clear any existing interval
     if (refreshIntervalRef.current) {
@@ -345,7 +387,7 @@ export function LogViewerSupabase({
     }
 
     refreshIntervalRef.current = setInterval(() => {
-      fetchLogs(lastTimestamp)
+      fetchLogs(lastLogId)
     }, refreshInterval)
 
     return () => {
@@ -354,7 +396,7 @@ export function LogViewerSupabase({
         refreshIntervalRef.current = null
       }
     }
-  }, [fetchLogs, refreshInterval, isPaused, lastTimestamp])
+  }, [fetchLogs, refreshInterval, isPaused, lastLogId])
 
   // Function to check if a log message is important
   const isImportantLog = (title: string): boolean => {
@@ -390,10 +432,17 @@ export function LogViewerSupabase({
 
   // Convert Map to sorted array of logs
   const logs = useMemo(() => {
-    // Convert Map to array and sort by timestamp (newest first)
-    return Array.from(logsMap.values()).sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
+    // Convert Map to array and sort by ID (more reliable than timestamp)
+    return Array.from(logsMap.values()).sort((a, b) => {
+      // Try to parse as numbers first
+      const idA = parseInt(a.id) || 0
+      const idB = parseInt(b.id) || 0
+      if (idA !== 0 && idB !== 0) {
+        return idB - idA // Newest first
+      }
+      // Fallback to timestamp for temporary IDs
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    })
   }, [logsMap])
 
   // Filter logs based on search and importance (for already fetched logs)
@@ -418,17 +467,8 @@ export function LogViewerSupabase({
       return true
     })
 
-    // Remove duplicate consecutive messages (but keep different IDs)
-    const deduped: LogEntry[] = []
-    let lastMessage = ''
-
-    for (const log of filtered) {
-      // Skip if this is the exact same message as the previous one
-      if ((log.message || log.title) !== lastMessage) {
-        deduped.push(log)
-        lastMessage = log.message || log.title
-      }
-    }
+    // No need for additional deduplication as we're using hash-based deduplication upstream
+    const deduped = filtered
 
     // If no important logs found, show the last 20 logs regardless of importance
     if (deduped.length === 0 && searchAndLevelFiltered.length > 0 && !showVerbose) {
