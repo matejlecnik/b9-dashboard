@@ -559,7 +559,7 @@ class RedditScraperV2:
 
                 try:
                     # Check cache first
-                    subreddit_name = subreddit['name']
+                    subreddit_name = subreddit['name'].lower()  # NORMALIZE to lowercase
                     subreddit_type = self.subreddit_types.get(subreddit_name, 'ok')
 
                     if self.cache_manager.is_subreddit_processed(subreddit_name):
@@ -1119,7 +1119,7 @@ class RedditScraperV2:
                                       control_checker: Optional[Callable]) -> Dict:
         """Process a single subreddit and return collected data"""
         try:
-            subreddit_name = subreddit['name']
+            subreddit_name = subreddit['name'].lower()  # NORMALIZE to lowercase
             subreddit_type = self.subreddit_types.get(subreddit_name, 'ok')
 
             logger.info(f"Thread {scraper.thread_id}: Processing r/{subreddit_name} ({subreddit_type.upper()})")
@@ -1161,7 +1161,7 @@ class RedditScraperV2:
             # Process posts and extract users
             all_posts = []
             all_posts.extend(result.get('hot_posts', []))
-            all_posts.extend(result.get('weekly_posts', []))
+            all_posts.extend(result.get('top_posts', []))  # Fixed: was 'weekly_posts', should be 'top_posts'
             all_posts.extend(result.get('yearly_posts', []))
 
             # Extract users and prepare posts
@@ -1196,7 +1196,7 @@ class RedditScraperV2:
 
             # Log success with detailed metrics
             hot_count = len(result.get('hot_posts', []))
-            weekly_count = len(result.get('weekly_posts', []))
+            weekly_count = len(result.get('top_posts', []))  # Fixed: was 'weekly_posts', should be 'top_posts'
             yearly_count = len(result.get('yearly_posts', []))
             unique_users = len(response_data['users'])
             total_posts = len(response_data['posts'])

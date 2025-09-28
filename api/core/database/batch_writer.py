@@ -516,12 +516,21 @@ class BatchWriter:
         flush_start_time = datetime.now(timezone.utc)
 
         try:
-            # Flush each table, catching individual errors
-            for table in tables_to_flush:
-                try:
-                    await self._flush_table(table)
-                except Exception as e:
-                    error_msg = f"Failed to flush {table}: {e}"
+            # CRITICAL: Flush in correct order to avoid foreign key violations
+            # Must be: Subreddits → Users → Posts
+            flush_order = [
+                'reddit_subreddits',  # First: parent table for posts
+                'reddit_users',       # Second: referenced by posts
+                'reddit_posts'        # Last: has foreign keys to subreddits
+            ]
+
+            # Flush each table in order, catching individual errors
+            for table in flush_order:
+                if table in tables_to_flush:
+                    try:
+                        await self._flush_table(table)
+                    except Exception as e:
+                        error_msg = f"Failed to flush {table}: {e}"
                     logger.error(f"❌ {error_msg}")
                     flush_errors.append(error_msg)
 
