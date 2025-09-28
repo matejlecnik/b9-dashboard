@@ -56,7 +56,6 @@ Both Reddit and Instagram scrapers support continuous operation:
 - Automatic retry and error recovery
 
 ## Dependencies
-- Core modules (clients, cache, database, config)
+- Core modules (clients, database, config)
 - Supabase for data storage
-- Redis for caching (via core.cache)
 - Proxy rotation (via core.config)

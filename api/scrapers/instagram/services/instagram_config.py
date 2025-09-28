@@ -57,10 +57,6 @@ class Config:
     ENABLE_WEBHOOK_NOTIFICATIONS = os.getenv("ENABLE_WEBHOOK_NOTIFICATIONS", "false").lower() == "true"
     WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
 
-    # Redis (optional)
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-    USE_REDIS_QUEUE = os.getenv("USE_REDIS_QUEUE", "false").lower() == "true"
-
     # Development
     DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
     TEST_LIMIT = int(os.getenv("TEST_LIMIT", "10"))
