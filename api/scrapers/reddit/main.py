@@ -936,19 +936,32 @@ class RedditScraperV2:
             logger.error(f"Traceback: {traceback.format_exc()}")
 
     async def process_discovered_subreddits(self, discovered_subreddits: List[str], thread_id: int):
-        """Quick-scrape and evaluate discovered subreddits"""
+        """Fully scrape and process discovered subreddits with all data"""
         try:
             from scrapers.reddit.scrapers.subreddit import SubredditScraper
 
             processed_discoveries = []
+            discovered_users = {}
+            discovered_posts = []
 
             for subreddit_name in discovered_subreddits[:20]:  # Limit to top 20
                 try:
-                    # Skip if already processed
+                    # Skip if already processed or categorized
                     if self.cache_manager.is_subreddit_processed(subreddit_name):
                         continue
 
-                    # Quick scrape for basic info
+                    # Skip if already categorized - NEVER process these again
+                    if subreddit_name.lower() in self.non_related_subreddits:
+                        logger.info(f"⏭️ Skipping Non Related subreddit: r/{subreddit_name}")
+                        continue
+                    if subreddit_name.lower() in self.user_feed_subreddits:
+                        logger.info(f"⏭️ Skipping User Feed: r/{subreddit_name}")
+                        continue
+                    if subreddit_name.lower() in self.banned_subreddits:
+                        logger.info(f"⏭️ Skipping Banned subreddit: r/{subreddit_name}")
+                        continue
+
+                    # Create scraper instance
                     scraper = SubredditScraper(self.supabase, thread_id)
                     await scraper.initialize(
                         self.api_pool,
@@ -957,25 +970,73 @@ class RedditScraperV2:
                         self.batch_writer
                     )
 
-                    # Just get subreddit info, not posts
-                    subreddit_info = await scraper.get_subreddit_info(subreddit_name)
+                    # FULL SCRAPE - get all data including posts
+                    logger.info(f"🔍 Full scraping discovered subreddit r/{subreddit_name}")
+                    result = await scraper.scrape(subreddit_name=subreddit_name)
 
-                    if subreddit_info and subreddit_info.get('subscriber_count', 0) > 1000:
-                        discovery_data = {
-                            'name': subreddit_name,
-                            'display_name': subreddit_info.get('display_name', subreddit_name),
-                            'subscriber_count': subreddit_info.get('subscriber_count', 0),
-                            'over18': subreddit_info.get('over18', False),
-                            'public_description': subreddit_info.get('public_description', ''),
-                            'discovered_from_batch': True,
-                            'created_at': datetime.now(timezone.utc).isoformat()
-                        }
-                        processed_discoveries.append(discovery_data)
+                    if result and result.get('success'):
+                        # Process subreddit metadata
+                        subreddit_metadata = result.get('subreddit_data', {})
+                        if subreddit_metadata and subreddit_metadata.get('subscribers', 0) > 1000:
+                            # Prepare subreddit data for saving
+                            discovery_data = {
+                                'name': subreddit_name.lower(),
+                                'display_name': subreddit_metadata.get('display_name', subreddit_name),
+                                'subscribers': subreddit_metadata.get('subscribers', 0),
+                                'active_users': subreddit_metadata.get('active_user_count', 0),
+                                'created_utc': subreddit_metadata.get('created_utc'),
+                                'over18': subreddit_metadata.get('over18', False),
+                                'public_description': subreddit_metadata.get('public_description', ''),
+                                'description': subreddit_metadata.get('description', ''),
+                                'discovered_from_batch': True,
+                                'created_at': datetime.now(timezone.utc).isoformat(),
+                                'updated_at': datetime.now(timezone.utc).isoformat()
+                            }
+                            processed_discoveries.append(discovery_data)
+
+                            # Collect posts and users from the discovered subreddit
+                            all_posts = []
+                            all_posts.extend(result.get('hot_posts', []))
+                            all_posts.extend(result.get('top_posts', []))  # weekly posts
+                            all_posts.extend(result.get('yearly_posts', []))
+
+                            for post in all_posts:
+                                # Extract users
+                                author = post.get('author', '')
+                                if author and author not in ['[deleted]', 'AutoModerator']:
+                                    discovered_users[author] = {
+                                        'username': author,
+                                        'created_at': datetime.now(timezone.utc).isoformat()
+                                    }
+
+                                # Prepare post data
+                                cleaned_post = {
+                                    'reddit_id': post.get('reddit_id'),
+                                    'title': post.get('title'),
+                                    'author_username': post.get('author'),
+                                    'subreddit_name': subreddit_name.lower(),
+                                    'score': post.get('score', 0),
+                                    'upvote_ratio': post.get('upvote_ratio', 0),
+                                    'num_comments': post.get('num_comments', 0),
+                                    'created_utc': post.get('created_utc'),
+                                    'url': post.get('url'),
+                                    'selftext': post.get('selftext'),
+                                    'is_video': post.get('is_video', False),
+                                    'link_flair_text': post.get('link_flair_text'),
+                                    'over_18': post.get('over_18', False),
+                                    'created_at': datetime.now(timezone.utc).isoformat()
+                                }
+                                discovered_posts.append(cleaned_post)
+
+                            logger.info(f"✅ Fully scraped r/{subreddit_name}: "
+                                      f"{len(all_posts)} posts, {len(discovered_users)} users")
 
                 except Exception as e:
-                    logger.debug(f"Failed to quick-scrape r/{subreddit_name}: {e}")
+                    logger.error(f"❌ Failed to fully scrape r/{subreddit_name}: {e}")
 
-            # Write discovered subreddits
+            # CRITICAL: Write in correct order - Subreddits → Users → Posts
+
+            # Step 1: Write discovered subreddits FIRST
             if processed_discoveries:
                 logger.info(f"📝 Writing {len(processed_discoveries)} discovered subreddits")
                 try:
@@ -996,6 +1057,52 @@ class RedditScraperV2:
                     logger.info(f"✅ Wrote {len(processed_discoveries)} discovered subreddits")
                 except Exception as e:
                     logger.error(f"❌ Failed to write discovered subreddits: {e}")
+                    # Don't continue if subreddits failed - posts will have FK violations
+                    return
+
+            # Step 2: Write users SECOND (needed for post foreign keys)
+            if discovered_users:
+                logger.info(f"📝 Writing {len(discovered_users)} users from discovered subreddits")
+                users_list = list(discovered_users.values())
+                for i in range(0, len(users_list), 100):
+                    chunk = users_list[i:i+100]
+                    try:
+                        self.supabase.table('reddit_users').upsert(
+                            chunk,
+                            on_conflict='username'
+                        ).execute()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write user chunk: {e}")
+
+            # Step 3: Write posts LAST (needs both subreddits and users to exist)
+            if discovered_posts:
+                logger.info(f"📝 Writing {len(discovered_posts)} posts from discovered subreddits")
+
+                # Deduplicate posts by reddit_id
+                seen_ids = set()
+                unique_posts = []
+                for post in discovered_posts:
+                    if post['reddit_id'] not in seen_ids:
+                        seen_ids.add(post['reddit_id'])
+                        unique_posts.append(post)
+
+                logger.info(f"Deduplicated: {len(discovered_posts)} → {len(unique_posts)} posts")
+
+                for i in range(0, len(unique_posts), 100):
+                    chunk = unique_posts[i:i+100]
+                    try:
+                        self.supabase.table('reddit_posts').upsert(
+                            chunk,
+                            on_conflict='reddit_id'
+                        ).execute()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write post chunk: {e}")
+
+            # Log final summary
+            logger.info(f"✅ Discovery processing complete: "
+                      f"{len(processed_discoveries)} subreddits, "
+                      f"{len(discovered_users)} users, "
+                      f"{len(discovered_posts)} posts")
 
         except Exception as e:
             logger.error(f"❌ Thread {thread_id}: Discovery processing failed: {e}")
