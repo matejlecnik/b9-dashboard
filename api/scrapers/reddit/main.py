@@ -1055,6 +1055,13 @@ class RedditScraperV2:
                         on_conflict='name'
                     ).execute()
                     logger.info(f"✅ Wrote {len(processed_discoveries)} discovered subreddits")
+
+                    # CRITICAL: Update cache to prevent re-processing in same run
+                    if self.cache_manager:
+                        for discovery in processed_discoveries:
+                            subreddit_name = discovery['name'].lower()
+                            self.cache_manager.mark_subreddit_discovered(subreddit_name)
+                            logger.debug(f"📌 Added r/{subreddit_name} to discovery cache")
                 except Exception as e:
                     logger.error(f"❌ Failed to write discovered subreddits: {e}")
                     # Don't continue if subreddits failed - posts will have FK violations
