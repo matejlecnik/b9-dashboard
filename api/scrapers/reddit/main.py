@@ -771,10 +771,24 @@ class RedditScraperV2:
                 for i in range(0, len(batch_subreddits), 50):
                     chunk = batch_subreddits[i:i+50]
                     try:
-                        response = self.supabase.table('reddit_subreddits').upsert(
-                            chunk,
-                            on_conflict='name'
-                        ).execute()
+                        # Normalize names for conflict detection while preserving original case
+                        for sub in chunk:
+                            # Store original case but check conflicts case-insensitively
+                            if 'name' in sub:
+                                # Check if this subreddit already exists (case-insensitive)
+                                existing = self.supabase.table('reddit_subreddits').select('*').ilike(
+                                    'name', sub['name']
+                                ).execute()
+
+                                if existing.data:
+                                    # Update existing entry instead of creating duplicate
+                                    self.supabase.table('reddit_subreddits').update(sub).eq(
+                                        'id', existing.data[0]['id']
+                                    ).execute()
+                                else:
+                                    # Insert new entry with original case
+                                    self.supabase.table('reddit_subreddits').insert(sub).execute()
+
                         logger.info(f"✅ Wrote {len(chunk)} subreddits to database")
                     except Exception as e:
                         logger.error(f"❌ Failed to write subreddits: {e}")
@@ -953,10 +967,23 @@ class RedditScraperV2:
             if processed_discoveries:
                 logger.info(f"📝 Writing {len(processed_discoveries)} discovered subreddits")
                 try:
-                    self.supabase.table('reddit_subreddits').upsert(
-                        processed_discoveries,
-                        on_conflict='name'
-                    ).execute()
+                    # Handle each discovered subreddit with case-insensitive check
+                    for discovery in processed_discoveries:
+                        if 'name' in discovery:
+                            # Check if exists (case-insensitive)
+                            existing = self.supabase.table('reddit_subreddits').select('*').ilike(
+                                'name', discovery['name']
+                            ).execute()
+
+                            if existing.data:
+                                # Update existing
+                                self.supabase.table('reddit_subreddits').update(discovery).eq(
+                                    'id', existing.data[0]['id']
+                                ).execute()
+                            else:
+                                # Insert new
+                                self.supabase.table('reddit_subreddits').insert(discovery).execute()
+
                     logger.info(f"✅ Wrote {len(processed_discoveries)} discovered subreddits")
                 except Exception as e:
                     logger.error(f"❌ Failed to write discovered subreddits: {e}")
@@ -1024,7 +1051,7 @@ class RedditScraperV2:
                     'reddit_id': post.get('reddit_id'),
                     'title': post.get('title'),
                     'author_username': post.get('author'),
-                    'subreddit_name': post.get('subreddit'),
+                    'subreddit_name': post.get('subreddit_name'),  # Use the already normalized field
                     'score': post.get('score', 0),
                     'upvote_ratio': post.get('upvote_ratio', 0),
                     'num_comments': post.get('num_comments', 0),
@@ -1036,7 +1063,7 @@ class RedditScraperV2:
                     'over_18': post.get('over_18', False),
                     'created_at': datetime.now(timezone.utc).isoformat()
                 }
-                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                # Keep all fields for consistent schema - don't remove None values
                 response_data['posts'].append(cleaned_post)
 
             # Log success with detailed metrics
@@ -1075,10 +1102,22 @@ class RedditScraperV2:
                 for i in range(0, len(batch_subreddits), 100):
                     chunk = batch_subreddits[i:i+100]
                     try:
-                        self.supabase.table('reddit_subreddits').upsert(
-                            chunk,
-                            on_conflict='name'
-                        ).execute()
+                        # Handle each subreddit with case-insensitive check
+                        for sub in chunk:
+                            if 'name' in sub:
+                                # Check if exists (case-insensitive)
+                                existing = self.supabase.table('reddit_subreddits').select('*').ilike(
+                                    'name', sub['name']
+                                ).execute()
+
+                                if existing.data:
+                                    # Update existing
+                                    self.supabase.table('reddit_subreddits').update(sub).eq(
+                                        'id', existing.data[0]['id']
+                                    ).execute()
+                                else:
+                                    # Insert new
+                                    self.supabase.table('reddit_subreddits').insert(sub).execute()
                     except Exception as e:
                         logger.error(f"❌ Failed to write subreddit chunk: {e}")
 
@@ -1097,6 +1136,18 @@ class RedditScraperV2:
 
             # Write posts last (needs users to exist)
             if batch_posts:
+                # Deduplicate posts by reddit_id before writing
+                seen_ids = set()
+                unique_posts = []
+                for post in batch_posts:
+                    if post.get('reddit_id') and post['reddit_id'] not in seen_ids:
+                        seen_ids.add(post['reddit_id'])
+                        unique_posts.append(post)
+
+                if len(unique_posts) < len(batch_posts):
+                    logger.info(f"Deduplicated posts: {len(batch_posts)} -> {len(unique_posts)}")
+                batch_posts = unique_posts
+
                 for i in range(0, len(batch_posts), 100):
                     chunk = batch_posts[i:i+100]
                     try:
