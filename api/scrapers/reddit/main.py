@@ -489,7 +489,7 @@ class RedditScraperV2:
             # Sub-batch collection buffers (written after each sub-batch)
             sub_batch_subreddits = []  # Subreddit data for this sub-batch
             sub_batch_all_users = {}   # ALL users for foreign keys (this sub-batch)
-            sub_sub_batch_posts = []       # All posts from this sub-batch
+            sub_batch_posts = []       # All posts from this sub-batch
 
             for i, subreddit in enumerate(sub_batch):
                 if not scraper.should_continue(control_checker):
