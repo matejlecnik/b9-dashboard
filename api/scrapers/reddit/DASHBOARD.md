@@ -2,12 +2,12 @@
 
 ## 🚨 CRITICAL ISSUES (Last Updated: 2025-09-28)
 
-### ❌ Issue #1: ZERO Subreddits Being Saved
-**Status**: CRITICAL - Data Loss
-**Symptom**: Every batch shows "0 subreddits" in logs despite processing 10
-**Root Cause**: Line 1013 in main.py - subreddit_data only saved if `about_data` exists
-**Impact**: No subreddit metadata being collected or updated
-**Fix**: Always create subreddit_data even without about_data, use existing data as fallback
+### ✅ Issue #1: ZERO Subreddits Being Saved [FIXED]
+**Status**: RESOLVED
+**Symptom**: Every batch showed "0 subreddits" in logs despite processing 10
+**Root Cause**: Key mismatch - looking for 'about' instead of 'subreddit_data'
+**Impact**: No subreddit metadata was being collected or updated
+**Fix Applied**: Changed to use correct key `result.get('subreddit_data')` - now saves real Reddit data
 
 ### ❌ Issue #2: Foreign Key Violations - Posts Lost
 **Status**: CRITICAL - Data Loss
@@ -17,28 +17,28 @@
 **Impact**: Losing ~30% of posts from newly discovered subreddits
 **Fix**: Save discovered subreddits to DB before attempting to save their posts
 
-### ⚠️ Issue #3: Double Processing/Logging
-**Status**: WARNING - Performance Impact
-**Symptom**: Each subreddit logs twice - first with 0 weekly, then with actual count
+### ✅ Issue #3: Double Processing/Logging [FIXED]
+**Status**: RESOLVED
+**Symptom**: Each subreddit logged twice - first with 0 weekly, then with actual count
 **Root Cause**: Duplicate logging in SubredditScraper scrape method
-**Impact**: Confusing logs, potential duplicate API calls
-**Fix**: Remove duplicate logging in subreddit.py
+**Impact**: Confusing logs
+**Fix Applied**: Removed duplicate logging from subreddit.py line 182
 
-### ⚠️ Issue #4: Inefficient Cache Loading
-**Status**: WARNING - Performance Impact
+### ✅ Issue #4: Inefficient Cache Loading [FIXED]
+**Status**: RESOLVED
 **Symptom**: Re-discovering already-known subreddits
 **Root Cause**: Only loading reviewed subreddits at startup, not ALL existing
 **Impact**: Wasting API calls on known subreddits
-**Fix**: Load ALL subreddit names into cache at startup
+**Fix Applied**: Now loads ALL existing subreddit names into cache at startup
 
 ## 📊 Live Status Monitor
 
 ### 🟢 System Status
 ```
-Last Updated: Check system_logs table
+Last Updated: 2025-09-28
 Status: Check system_control.enabled
 Current Mode: PARALLEL BATCH PROCESSING (v3.1)
-Known Issues: 4 CRITICAL/WARNING (see above)
+Known Issues: 1 CRITICAL (Foreign Keys), 3 RESOLVED
 ```
 
 ### ⚡ Performance Metrics

@@ -179,11 +179,7 @@ class SubredditScraper(BaseScraper):
                 )
 
             result['success'] = True
-            await self.log_progress(
-                f"Successfully scraped r/{subreddit_name} - "
-                f"{len(result['hot_posts'])} hot, {len(result['top_posts'])} weekly, "
-                f"{len(result['yearly_posts'])} yearly posts"
-            )
+            # Removed duplicate logging - main.py handles success logging
 
         except Exception as e:
             logger.error(f"Error scraping r/{subreddit_name}: {e}")

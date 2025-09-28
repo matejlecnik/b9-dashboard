@@ -20,10 +20,8 @@ import { TableSkeleton, MetricsCardsSkeleton } from '@/components/SkeletonLoader
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { MetricsCards } from '@/components/shared/cards/MetricsCards'
-import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { Check, X, UserPlus, Tag, Sparkles, Users, TrendingUp, Clock } from 'lucide-react'
-import { logger } from '@/lib/logger'
 
 // Import InstagramCreator type for type safety
 import type { Creator as InstagramCreatorType } from '@/components/shared/tables/UniversalCreatorTable'

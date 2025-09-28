@@ -259,6 +259,22 @@ class RedditScraperV2:
                           f"{len(self.user_feed_subreddits)} User Feed, "
                           f"{len(self.banned_subreddits)} Banned")
 
+            # ALSO load ALL existing subreddit names to avoid re-discovery
+            all_subreddits_response = self.supabase.table('reddit_subreddits').select('name').execute()
+
+            if all_subreddits_response.data:
+                all_existing_count = len(all_subreddits_response.data)
+
+                # Pre-populate the cache with all existing subreddits
+                for sub in all_subreddits_response.data:
+                    name = sub['name'].lower()
+                    # Mark as already discovered in cache to avoid re-discovery attempts
+                    if self.cache_manager:
+                        self.cache_manager.mark_subreddit_discovered(name)
+
+                logger.info(f"📚 Loaded {all_existing_count} total existing subreddits into discovery cache")
+                logger.info(f"🚫 These subreddits will be skipped during discovery to avoid duplicates")
+
         except Exception as e:
             logger.error(f"Error loading reviewed subreddits: {e}")
 
