@@ -464,8 +464,15 @@ class RedditScraperV2:
     async def process_subreddit_batch(self, scraper: SubredditScraper,
                                      subreddits: List[Dict],
                                      control_checker: Optional[Callable]):
-        """Process a batch of subreddits with a single scraper instance"""
+        """Process a batch of subreddits with proper collection and batch writing"""
         processed_count = 0
+
+        # Collection buffers for batch processing
+        batch_subreddits = []  # Subreddit data with metrics
+        batch_users = {}  # Unique users by username
+        batch_posts = []  # All posts from all subreddits
+
+        BATCH_SIZE = 50  # Process and write in batches of 50 subreddits
         for i, subreddit in enumerate(subreddits):
             if not scraper.should_continue(control_checker):
                 logger.info(f"Thread {scraper.thread_id} stopping due to control check")
@@ -529,181 +536,139 @@ class RedditScraperV2:
                         final_data['subreddit_score'] = original_score * 1.2
                         logger.debug(f"Applied SFW boost: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
 
-                    # Save to database via batch writer
-                    logger.info(f"📊 Saving processed data for r/{subreddit_name} to batch writer")
+                    # Collect subreddit data for batch writing
+                    logger.info(f"📊 Collecting data for r/{subreddit_name} for batch processing")
                     logger.debug(f"  Final data keys: {list(final_data.keys())}")
                     if 'subreddit_score' in final_data:
                         logger.debug(f"  Score: {final_data.get('subreddit_score', 0):.1f}, "
                                    f"Engagement: {final_data.get('engagement', 0):.4f}")
-                    await self.batch_writer.add_subreddit(final_data)
+                    batch_subreddits.append(final_data)
 
                     # Mark as processed in cache
                     self.cache_manager.mark_subreddit_processed(subreddit_name)
 
-                    # Process posts if available (save ALL types)
+                    # Collect posts and extract users for batch processing
                     try:
                         if result.get('hot_posts'):
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['hot_posts'])} hot posts using DIRECT WRITE")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['hot_posts'])} hot posts")
 
-                            # TEMPORARY: Write directly to database to bypass DirectPostsWriter issues
-                            try:
-                                posts_to_write = result['hot_posts']
-                                if posts_to_write and len(posts_to_write) > 0:
-                                    # Clean the posts
-                                    cleaned_posts = []
-                                    for post in posts_to_write:
-                                        cleaned = {
-                                            'reddit_id': post.get('reddit_id'),
-                                            'title': post.get('title'),
-                                            'author_username': post.get('author'),  # Column is author_username
-                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
-                                            'score': post.get('score', 0),
-                                            'upvote_ratio': post.get('upvote_ratio', 0),
-                                            'num_comments': post.get('num_comments', 0),
-                                            'created_utc': post.get('created_utc'),
-                                            'url': post.get('url'),
-                                            'selftext': post.get('selftext'),
-                                            'is_video': post.get('is_video', False),
-                                            'link_flair_text': post.get('link_flair_text'),
-                                            'over_18': post.get('over_18', False),
+                            for post in result['hot_posts']:
+                                # Extract user info
+                                author = post.get('author', '')
+                                if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                    if author not in batch_users:
+                                        batch_users[author] = {
+                                            'username': author,
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
-                                        # Remove None values
-                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
-                                        cleaned_posts.append(cleaned)
 
-                                    # Write in chunks of 50
-                                    for i in range(0, len(cleaned_posts), 50):
-                                        chunk = cleaned_posts[i:i+50]
-                                        response = self.supabase.table('reddit_posts').upsert(
-                                            chunk,
-                                            on_conflict='reddit_id'
-                                        ).execute()
-                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} hot posts to database")
+                                # Clean and collect post
+                                cleaned_post = {
+                                    'reddit_id': post.get('reddit_id'),
+                                    'title': post.get('title'),
+                                    'author_username': post.get('author'),  # Column is author_username
+                                    'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
+                                    'score': post.get('score', 0),
+                                    'upvote_ratio': post.get('upvote_ratio', 0),
+                                    'num_comments': post.get('num_comments', 0),
+                                    'created_utc': post.get('created_utc'),
+                                    'url': post.get('url'),
+                                    'selftext': post.get('selftext'),
+                                    'is_video': post.get('is_video', False),
+                                    'link_flair_text': post.get('link_flair_text'),
+                                    'over_18': post.get('over_18', False),
+                                    'created_at': datetime.now(timezone.utc).isoformat()
+                                }
+                                # Remove None values
+                                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                                batch_posts.append(cleaned_post)
 
-                                    success = True
-                                else:
-                                    success = False
-                            except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for hot posts: {e}")
-                                import traceback
-                                logger.error(f"Traceback: {traceback.format_exc()}")
-                                success = False
-
-                            if success:
-                                self.stats['posts_processed'] += len(result['hot_posts'])
-                            logger.info(f"✅ Thread {scraper.thread_id}: Hot posts added successfully")
+                            self.stats['posts_processed'] += len(result['hot_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Hot posts collected successfully")
 
                         if result.get('top_posts'):  # Weekly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['top_posts'])} weekly posts using DIRECT WRITE")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['top_posts'])} weekly posts")
 
-                            # TEMPORARY: Write directly to database
-                            try:
-                                posts_to_write = result['top_posts']
-                                if posts_to_write and len(posts_to_write) > 0:
-                                    cleaned_posts = []
-                                    for post in posts_to_write:
-                                        cleaned = {
-                                            'reddit_id': post.get('reddit_id'),
-                                            'title': post.get('title'),
-                                            'author_username': post.get('author'),  # Column is author_username
-                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
-                                            'score': post.get('score', 0),
-                                            'upvote_ratio': post.get('upvote_ratio', 0),
-                                            'num_comments': post.get('num_comments', 0),
-                                            'created_utc': post.get('created_utc'),
-                                            'url': post.get('url'),
-                                            'selftext': post.get('selftext'),
-                                            'is_video': post.get('is_video', False),
-                                            'link_flair_text': post.get('link_flair_text'),
-                                            'over_18': post.get('over_18', False),
+                            for post in result['top_posts']:
+                                # Extract user info
+                                author = post.get('author', '')
+                                if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                    if author not in batch_users:
+                                        batch_users[author] = {
+                                            'username': author,
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
-                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
-                                        cleaned_posts.append(cleaned)
 
-                                    for i in range(0, len(cleaned_posts), 50):
-                                        chunk = cleaned_posts[i:i+50]
-                                        response = self.supabase.table('reddit_posts').upsert(
-                                            chunk,
-                                            on_conflict='reddit_id'
-                                        ).execute()
-                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} weekly posts to database")
-                                    success = True
-                                else:
-                                    success = False
-                            except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for weekly posts: {e}")
-                                import traceback
-                                logger.error(f"Traceback: {traceback.format_exc()}")
-                                success = False
+                                # Clean and collect post
+                                cleaned_post = {
+                                    'reddit_id': post.get('reddit_id'),
+                                    'title': post.get('title'),
+                                    'author_username': post.get('author'),
+                                    'subreddit_name': post.get('subreddit'),
+                                    'score': post.get('score', 0),
+                                    'upvote_ratio': post.get('upvote_ratio', 0),
+                                    'num_comments': post.get('num_comments', 0),
+                                    'created_utc': post.get('created_utc'),
+                                    'url': post.get('url'),
+                                    'selftext': post.get('selftext'),
+                                    'is_video': post.get('is_video', False),
+                                    'link_flair_text': post.get('link_flair_text'),
+                                    'over_18': post.get('over_18', False),
+                                    'created_at': datetime.now(timezone.utc).isoformat()
+                                }
+                                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                                batch_posts.append(cleaned_post)
 
-                            if success:
-                                self.stats['posts_processed'] += len(result['top_posts'])
-                            logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts added successfully")
+                            self.stats['posts_processed'] += len(result['top_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts collected successfully")
 
                         if result.get('yearly_posts'):  # Yearly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Adding {len(result['yearly_posts'])} yearly posts using DIRECT WRITE")
+                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['yearly_posts'])} yearly posts")
 
-                            # TEMPORARY: Write directly to database
-                            try:
-                                posts_to_write = result['yearly_posts']
-                                if posts_to_write and len(posts_to_write) > 0:
-                                    cleaned_posts = []
-                                    for post in posts_to_write:
-                                        cleaned = {
-                                            'reddit_id': post.get('reddit_id'),
-                                            'title': post.get('title'),
-                                            'author_username': post.get('author'),  # Column is author_username
-                                            'subreddit_name': post.get('subreddit'),  # Column is subreddit_name
-                                            'score': post.get('score', 0),
-                                            'upvote_ratio': post.get('upvote_ratio', 0),
-                                            'num_comments': post.get('num_comments', 0),
-                                            'created_utc': post.get('created_utc'),
-                                            'url': post.get('url'),
-                                            'selftext': post.get('selftext'),
-                                            'is_video': post.get('is_video', False),
-                                            'link_flair_text': post.get('link_flair_text'),
-                                            'over_18': post.get('over_18', False),
+                            for post in result['yearly_posts']:
+                                # Extract user info
+                                author = post.get('author', '')
+                                if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                    if author not in batch_users:
+                                        batch_users[author] = {
+                                            'username': author,
                                             'created_at': datetime.now(timezone.utc).isoformat()
                                         }
-                                        cleaned = {k: v for k, v in cleaned.items() if v is not None}
-                                        cleaned_posts.append(cleaned)
 
-                                    for i in range(0, len(cleaned_posts), 50):
-                                        chunk = cleaned_posts[i:i+50]
-                                        response = self.supabase.table('reddit_posts').upsert(
-                                            chunk,
-                                            on_conflict='reddit_id'
-                                        ).execute()
-                                        logger.info(f"✅ Thread {scraper.thread_id}: Wrote {len(chunk)} yearly posts to database")
-                                    success = True
-                                else:
-                                    success = False
-                            except Exception as e:
-                                logger.error(f"❌ Thread {scraper.thread_id}: Direct write error for yearly posts: {e}")
-                                import traceback
-                                logger.error(f"Traceback: {traceback.format_exc()}")
-                                success = False
+                                # Clean and collect post
+                                cleaned_post = {
+                                    'reddit_id': post.get('reddit_id'),
+                                    'title': post.get('title'),
+                                    'author_username': post.get('author'),
+                                    'subreddit_name': post.get('subreddit'),
+                                    'score': post.get('score', 0),
+                                    'upvote_ratio': post.get('upvote_ratio', 0),
+                                    'num_comments': post.get('num_comments', 0),
+                                    'created_utc': post.get('created_utc'),
+                                    'url': post.get('url'),
+                                    'selftext': post.get('selftext'),
+                                    'is_video': post.get('is_video', False),
+                                    'link_flair_text': post.get('link_flair_text'),
+                                    'over_18': post.get('over_18', False),
+                                    'created_at': datetime.now(timezone.utc).isoformat()
+                                }
+                                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                                batch_posts.append(cleaned_post)
 
-                            if success:
-                                self.stats['posts_processed'] += len(result['yearly_posts'])
-                            logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts added successfully")
+                            self.stats['posts_processed'] += len(result['yearly_posts'])
+                            logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts collected successfully")
                     except Exception as e:
                         logger.error(f"❌ Thread {scraper.thread_id}: Failed to add posts to batch writer: {e}")
                         logger.error(f"Exception type: {type(e).__name__}, Details: {str(e)}")
 
-                    # Manual flush every subreddit for first 5, then every 3 subreddits
-                    if processed_count <= 5 or processed_count % 3 == 0:
-                        logger.info(f"💾 Thread {scraper.thread_id}: About to manually flush after {processed_count} subreddits")
-                        try:
-                            # Add timeout to prevent hanging
-                            await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
-                            logger.info(f"✅ Thread {scraper.thread_id}: Flush completed successfully")
-                        except asyncio.TimeoutError:
-                            logger.error(f"⚠️ Thread {scraper.thread_id}: Flush timed out after 30s, continuing anyway")
-                        except Exception as e:
-                            logger.error(f"❌ Thread {scraper.thread_id}: Flush failed: {e}, continuing anyway")
+                    # Batch write after collecting BATCH_SIZE subreddits or when processing is done
+                    if len(batch_subreddits) >= BATCH_SIZE or (i == len(subreddits) - 1 and batch_subreddits):
+                        await self.batch_write_data(batch_subreddits, batch_users, batch_posts, scraper.thread_id)
+
+                        # Clear buffers after successful write
+                        batch_subreddits = []
+                        batch_users = {}
+                        batch_posts = []
 
                     # For OK subreddits, track users for later analysis
                     if subreddit_type == 'ok' and result.get('hot_posts'):
@@ -713,31 +678,70 @@ class RedditScraperV2:
                 await self.stealth_delay("subreddit_analysis")
                 await self.randomize_request_pattern()
 
-                # Periodic flush every 3 subreddits to ensure data is saved
-                if (i + 1) % 3 == 0:
-                    logger.info(f"📤 Thread {scraper.thread_id}: About to periodic flush after {i + 1} subreddits")
-                    try:
-                        # Add timeout to prevent hanging
-                        await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
-                        logger.info(f"✅ Thread {scraper.thread_id}: Periodic flush completed successfully")
-                    except asyncio.TimeoutError:
-                        logger.error(f"⚠️ Thread {scraper.thread_id}: Periodic flush timed out after 30s, continuing")
-                    except Exception as e:
-                        logger.error(f"❌ Thread {scraper.thread_id}: Periodic flush failed: {e}, continuing")
-
             except Exception as e:
                 logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
 
-        # Final flush at the end of the batch
-        if processed_count > 0:
-            logger.info(f"💾 Thread {scraper.thread_id}: About to final flush after processing {processed_count} subreddits")
-            try:
-                await asyncio.wait_for(self.batch_writer.flush_all(), timeout=30.0)
-                logger.info(f"✅ Thread {scraper.thread_id}: Final flush completed successfully")
-            except asyncio.TimeoutError:
-                logger.error(f"⚠️ Thread {scraper.thread_id}: Final flush timed out after 30s")
-            except Exception as e:
-                logger.error(f"❌ Thread {scraper.thread_id}: Final flush failed: {e}")
+        # Final batch write for any remaining data
+        if batch_subreddits or batch_posts:
+            logger.info(f"💾 Thread {scraper.thread_id}: Final batch write after processing {processed_count} subreddits")
+            await self.batch_write_data(batch_subreddits, batch_users, batch_posts, scraper.thread_id)
+
+    async def batch_write_data(self, batch_subreddits: List[Dict], batch_users: Dict,
+                              batch_posts: List[Dict], thread_id: int):
+        """Write collected data to database in the correct order: subreddits → users → posts"""
+        try:
+            logger.info(f"📝 Thread {thread_id}: Starting batch write - {len(batch_subreddits)} subreddits, "
+                       f"{len(batch_users)} users, {len(batch_posts)} posts")
+
+            # 1. Write subreddits first
+            if batch_subreddits:
+                logger.info(f"📊 Writing {len(batch_subreddits)} subreddits...")
+                for i in range(0, len(batch_subreddits), 50):
+                    chunk = batch_subreddits[i:i+50]
+                    try:
+                        response = self.supabase.table('reddit_subreddits').upsert(
+                            chunk,
+                            on_conflict='name'
+                        ).execute()
+                        logger.info(f"✅ Wrote {len(chunk)} subreddits to database")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write subreddits: {e}")
+
+            # 2. Write users second (so they exist for foreign key constraints)
+            if batch_users:
+                logger.info(f"👥 Writing {len(batch_users)} users...")
+                users_list = list(batch_users.values())
+                for i in range(0, len(users_list), 100):
+                    chunk = users_list[i:i+100]
+                    try:
+                        response = self.supabase.table('reddit_users').upsert(
+                            chunk,
+                            on_conflict='username'
+                        ).execute()
+                        logger.info(f"✅ Wrote {len(chunk)} users to database")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write users: {e}")
+
+            # 3. Write posts last (now that users exist)
+            if batch_posts:
+                logger.info(f"📮 Writing {len(batch_posts)} posts...")
+                for i in range(0, len(batch_posts), 100):
+                    chunk = batch_posts[i:i+100]
+                    try:
+                        response = self.supabase.table('reddit_posts').upsert(
+                            chunk,
+                            on_conflict='reddit_id'
+                        ).execute()
+                        logger.info(f"✅ Wrote {len(chunk)} posts to database")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write posts: {e}")
+
+            logger.info(f"✅ Thread {thread_id}: Batch write completed successfully")
+
+        except Exception as e:
+            logger.error(f"❌ Thread {thread_id}: Batch write failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
     async def track_users_from_posts(self, posts: List[Dict], subreddit_name: str):
         """Track users from OK subreddit posts for later analysis"""
