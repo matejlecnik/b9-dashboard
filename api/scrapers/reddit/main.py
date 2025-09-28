@@ -981,9 +981,9 @@ class RedditScraperV2:
                             # Prepare subreddit data for saving
                             discovery_data = {
                                 'name': subreddit_name.lower(),
-                                'display_name': subreddit_metadata.get('display_name', subreddit_name),
+                                'display_name_prefixed': f"r/{subreddit_metadata.get('display_name', subreddit_name)}",  # Fixed field name
                                 'subscribers': subreddit_metadata.get('subscribers', 0),
-                                'active_users': subreddit_metadata.get('active_user_count', 0),
+                                'active_user_count': subreddit_metadata.get('active_user_count', 0),  # Fixed: was 'active_users'
                                 'created_utc': subreddit_metadata.get('created_utc'),
                                 'over18': subreddit_metadata.get('over18', False),
                                 'public_description': subreddit_metadata.get('public_description', ''),
@@ -1043,9 +1043,9 @@ class RedditScraperV2:
                     # Normalize names before saving
                     for discovery in processed_discoveries:
                         if 'name' in discovery:
-                            # Keep original case in display_name
-                            if 'display_name' not in discovery or not discovery['display_name']:
-                                discovery['display_name'] = discovery['name']
+                            # Ensure display_name_prefixed is set if missing
+                            if 'display_name_prefixed' not in discovery or not discovery['display_name_prefixed']:
+                                discovery['display_name_prefixed'] = f"r/{discovery['name']}"
                             # Normalize name to lowercase
                             discovery['name'] = discovery['name'].lower()
 
@@ -1145,9 +1145,9 @@ class RedditScraperV2:
                 # Use the real data from Reddit API
                 response_data['subreddit_data'] = {
                     'name': subreddit_name.lower(),  # Normalize to lowercase
-                    'display_name': subreddit_metadata.get('display_name', subreddit_name),
+                    'display_name_prefixed': f"r/{subreddit_metadata.get('display_name', subreddit_name)}",
                     'subscribers': subreddit_metadata.get('subscribers', 0),
-                    'active_users': subreddit_metadata.get('active_user_count', 0),
+                    'active_user_count': subreddit_metadata.get('active_user_count', 0),  # Fixed: was 'active_users'
                     'created_utc': subreddit_metadata.get('created_utc'),
                     'over18': subreddit_metadata.get('over18', False),
                     'public_description': subreddit_metadata.get('public_description', ''),
@@ -1179,7 +1179,7 @@ class RedditScraperV2:
                     'reddit_id': post.get('reddit_id'),
                     'title': post.get('title'),
                     'author_username': post.get('author'),
-                    'subreddit_name': post.get('subreddit_name'),  # Use the already normalized field
+                    'subreddit_name': post.get('subreddit_name', '').lower(),  # CRITICAL: Normalize to lowercase to match DB
                     'score': post.get('score', 0),
                     'upvote_ratio': post.get('upvote_ratio', 0),
                     'num_comments': post.get('num_comments', 0),
