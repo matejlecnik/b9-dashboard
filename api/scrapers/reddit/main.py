@@ -302,11 +302,9 @@ class RedditScraperV2:
                 all_subreddits.append(sub)
                 self.subreddit_types[sub['name']] = 'no_seller'
 
-            # Step 4: Distribute work across threads
-            subreddit_batches = self.distribute_work(all_subreddits, thread_count)
-
-            # Step 5: Process subreddits in parallel
-            await self.process_subreddits_parallel(subreddit_batches, control_checker)
+            # Step 4: Process subreddits in parallel batches
+            # NEW APPROACH: Process 10 subreddits at a time across all 9 threads
+            await self.process_subreddits_parallel_batches(all_subreddits, thread_count, control_checker)
 
             # Step 6: Process discovered users (only from OK subreddits)
             await self.process_discovered_users(control_checker)
@@ -435,31 +433,78 @@ class RedditScraperV2:
 
         return batches
 
-    async def process_subreddits_parallel(self, subreddit_batches: List[List[Dict]],
-                                         control_checker: Optional[Callable]):
-        """Process subreddit batches in parallel across threads"""
-        logger.info(f"🔧 Processing subreddits across {len(subreddit_batches)} threads")
+    async def process_subreddits_parallel_batches(self, all_subreddits: List[Dict],
+                                                 thread_count: int,
+                                                 control_checker: Optional[Callable]):
+        """Process subreddits in parallel batches of 10 across all threads"""
+        BATCH_SIZE = 10  # Process 10 subreddits at a time
+        total_subreddits = len(all_subreddits)
+        total_batches = (total_subreddits + BATCH_SIZE - 1) // BATCH_SIZE
 
-        tasks = []
-        for thread_id, batch in enumerate(subreddit_batches):
-            if batch:  # Only create task if batch has items
+        logger.info(f"📦 Processing {total_subreddits} subreddits in {total_batches} parallel batches")
+        logger.info(f"⚡ Using {thread_count} threads for parallel processing")
+
+        for batch_num in range(total_batches):
+            if control_checker and not control_checker():
+                logger.info("⏹️ Stopping due to control signal")
+                break
+
+            # Get the next batch of 10 subreddits
+            start_idx = batch_num * BATCH_SIZE
+            end_idx = min(start_idx + BATCH_SIZE, total_subreddits)
+            batch_subreddits = all_subreddits[start_idx:end_idx]
+
+            batch_start_time = time.time()
+            logger.info(f"\n🚀 Starting parallel batch {batch_num + 1}/{total_batches} "
+                       f"({len(batch_subreddits)} subreddits)")
+
+            # Distribute this batch across all threads
+            tasks = []
+            for i, subreddit in enumerate(batch_subreddits):
+                thread_id = i % thread_count  # Distribute across threads
                 scraper = self.scrapers[thread_id]
+
+                # Process single subreddit per thread
                 task = asyncio.create_task(
-                    self.process_subreddit_batch(scraper, batch, control_checker)
+                    self.process_single_subreddit(scraper, subreddit, control_checker)
                 )
-                tasks.append(task)
+                tasks.append((thread_id, subreddit['name'], task))
 
-        # Wait for all tasks to complete
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Wait for all threads to complete this batch
+            results = await asyncio.gather(*[t[2] for t in tasks], return_exceptions=True)
 
-        # Log any exceptions
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"Thread {i} failed: {result}")
-                self.stats['errors'].append({
-                    'thread': i,
-                    'error': str(result)
-                })
+            # Log results and collect data for batch write
+            batch_subreddits_data = []
+            batch_users = {}
+            batch_posts = []
+
+            for (thread_id, sub_name, _), result in zip(tasks, results):
+                if isinstance(result, Exception):
+                    logger.error(f"❌ Thread {thread_id} failed on r/{sub_name}: {result}")
+                    self.stats['errors'].append({
+                        'thread': thread_id,
+                        'subreddit': sub_name,
+                        'error': str(result)
+                    })
+                elif result:
+                    # Successful result - collect data
+                    if result.get('subreddit_data'):
+                        batch_subreddits_data.append(result['subreddit_data'])
+                    if result.get('users'):
+                        batch_users.update(result['users'])
+                    if result.get('posts'):
+                        batch_posts.extend(result['posts'])
+
+            # Batch write all data from this parallel batch
+            if batch_subreddits_data or batch_posts:
+                await self.batch_write_parallel_data(
+                    batch_subreddits_data, batch_users, batch_posts, batch_num
+                )
+
+            batch_duration = time.time() - batch_start_time
+            logger.info(f"✅ Parallel batch {batch_num + 1} completed in {batch_duration:.1f} seconds")
+            logger.info(f"📊 Collected: {len(batch_subreddits_data)} subreddits, "
+                       f"{len(batch_users)} users, {len(batch_posts)} posts")
 
     async def process_subreddit_batch(self, scraper: SubredditScraper,
                                      subreddits: List[Dict],
@@ -854,8 +899,10 @@ class RedditScraperV2:
                 logger.info(f"🔍 Thread {thread_id}: Processing {len(discovered_subreddits)} discovered subreddits")
                 await self.process_discovered_subreddits(list(discovered_subreddits)[:20], thread_id)
 
-            logger.info(f"✅ Thread {thread_id}: User enrichment phase completed - "
-                       f"{len(enriched_users)} users enriched, {len(discovered_subreddits)} subreddits discovered")
+            # Enhanced success logging
+            logger.info(f"[UserEnrichment] Successfully enriched {len(enriched_users)} users - "
+                       f"{len(discovered_subreddits)} new subreddits discovered")
+            logger.info(f"✅ Thread {thread_id}: User enrichment phase completed")
 
         except Exception as e:
             logger.error(f"❌ Thread {thread_id}: User enrichment failed: {e}")
@@ -916,6 +963,156 @@ class RedditScraperV2:
 
         except Exception as e:
             logger.error(f"❌ Thread {thread_id}: Discovery processing failed: {e}")
+
+    async def process_single_subreddit(self, scraper: SubredditScraper,
+                                      subreddit: Dict,
+                                      control_checker: Optional[Callable]) -> Dict:
+        """Process a single subreddit and return collected data"""
+        try:
+            subreddit_name = subreddit['name']
+            subreddit_type = self.subreddit_types.get(subreddit_name, 'ok')
+
+            logger.info(f"Thread {scraper.thread_id}: Processing r/{subreddit_name} ({subreddit_type.upper()})")
+
+            # Scrape the subreddit
+            result = await scraper.scrape(subreddit_name=subreddit_name)
+
+            if not result or not result.get('success'):
+                logger.warning(f"Thread {scraper.thread_id}: Failed to scrape r/{subreddit_name}")
+                return {}
+
+            # Prepare response data
+            response_data = {
+                'subreddit_data': None,
+                'users': {},
+                'posts': []
+            }
+
+            # Collect subreddit metadata
+            about_data = result.get('about', {})
+            if about_data:
+                response_data['subreddit_data'] = {
+                    'name': subreddit_name,
+                    'display_name': about_data.get('display_name', subreddit_name),
+                    'subscribers': about_data.get('subscribers', 0),
+                    'active_users': about_data.get('active_user_count', 0),
+                    'created_utc': about_data.get('created_utc'),
+                    'over18': about_data.get('over18', False),
+                    'public_description': about_data.get('public_description', ''),
+                    'description': about_data.get('description', ''),
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+
+            # Process posts and extract users
+            all_posts = []
+            all_posts.extend(result.get('hot_posts', []))
+            all_posts.extend(result.get('weekly_posts', []))
+            all_posts.extend(result.get('yearly_posts', []))
+
+            # Extract users and prepare posts
+            for post in all_posts:
+                author = post.get('author', '')
+                if author and author not in ['[deleted]', 'AutoModerator']:
+                    # Add user for foreign key
+                    response_data['users'][author] = {
+                        'username': author,
+                        'created_at': datetime.now(timezone.utc).isoformat()
+                    }
+
+                # Prepare post data
+                cleaned_post = {
+                    'reddit_id': post.get('reddit_id'),
+                    'title': post.get('title'),
+                    'author_username': post.get('author'),
+                    'subreddit_name': post.get('subreddit'),
+                    'score': post.get('score', 0),
+                    'upvote_ratio': post.get('upvote_ratio', 0),
+                    'num_comments': post.get('num_comments', 0),
+                    'created_utc': post.get('created_utc'),
+                    'url': post.get('url'),
+                    'selftext': post.get('selftext'),
+                    'is_video': post.get('is_video', False),
+                    'link_flair_text': post.get('link_flair_text'),
+                    'over_18': post.get('over_18', False),
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                response_data['posts'].append(cleaned_post)
+
+            # Log success with detailed metrics
+            hot_count = len(result.get('hot_posts', []))
+            weekly_count = len(result.get('weekly_posts', []))
+            yearly_count = len(result.get('yearly_posts', []))
+
+            logger.info(f"[SubredditScraper] Successfully scraped r/{subreddit_name} - "
+                       f"{hot_count} hot, {weekly_count} weekly, {yearly_count} yearly posts")
+
+            # Track stats
+            self.stats['subreddits_processed'] += 1
+            self.stats['posts_processed'] += len(response_data['posts'])
+
+            # For OK subreddits, track hot post users for enrichment
+            if subreddit_type == 'ok' and result.get('hot_posts'):
+                await self.track_users_from_posts(result['hot_posts'], subreddit_name)
+
+            return response_data
+
+        except Exception as e:
+            logger.error(f"❌ Thread {scraper.thread_id}: Error processing r/{subreddit.get('name')}: {e}")
+            return {}
+
+    async def batch_write_parallel_data(self, batch_subreddits: List[Dict],
+                                       batch_users: Dict,
+                                       batch_posts: List[Dict],
+                                       batch_num: int):
+        """Write data from a parallel batch to the database"""
+        try:
+            logger.info(f"📝 Writing parallel batch {batch_num + 1} data: "
+                       f"{len(batch_subreddits)} subreddits, {len(batch_users)} users, {len(batch_posts)} posts")
+
+            # Write subreddits first
+            if batch_subreddits:
+                for i in range(0, len(batch_subreddits), 100):
+                    chunk = batch_subreddits[i:i+100]
+                    try:
+                        self.supabase.table('reddit_subreddits').upsert(
+                            chunk,
+                            on_conflict='name'
+                        ).execute()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write subreddit chunk: {e}")
+
+            # Write users second (for foreign keys)
+            if batch_users:
+                users_list = list(batch_users.values())
+                for i in range(0, len(users_list), 100):
+                    chunk = users_list[i:i+100]
+                    try:
+                        self.supabase.table('reddit_users').upsert(
+                            chunk,
+                            on_conflict='username'
+                        ).execute()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write user chunk: {e}")
+
+            # Write posts last (needs users to exist)
+            if batch_posts:
+                for i in range(0, len(batch_posts), 100):
+                    chunk = batch_posts[i:i+100]
+                    try:
+                        self.supabase.table('reddit_posts').upsert(
+                            chunk,
+                            on_conflict='reddit_id'
+                        ).execute()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to write posts chunk: {e}")
+
+            logger.info(f"✅ Batch write completed for parallel batch {batch_num + 1}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to write parallel batch data: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
     async def track_users_from_posts(self, posts: List[Dict], subreddit_name: str):
         """Track users from OK subreddit posts for later analysis"""
