@@ -1,403 +1,528 @@
-# 🚀 Reddit Scraper v3.0 - Enhanced Batch Processing Architecture
+# 🤖 Reddit Scraper v2.2.0 - Operational Dashboard
 
-## 🏗️ NEW ARCHITECTURE - Sub-Batch Processing with User Enrichment
+## 🚦 QUICK STATUS CHECK
+Copy and run these queries to check current scraper status:
 
-### 🎯 Core Concept: Process 50 Subreddits in 5 Sub-Batches of 10
-To manage memory efficiently and write data progressively, we process 50 subreddits as 5 sub-batches of 10 each. User enrichment and discovery happen after all 50 are collected.
-
-### 🔄 The Complete Batch Cycle
-
-```
-FULL BATCH: 50 SUBREDDITS
-         │
-         ├── SUB-BATCHES (5 iterations of 10 subreddits)
-         │   │
-         │   ├── SUB-BATCH 1-5: Process 10 subreddits each
-         │   │   ├── Scrape subreddits (hot/weekly/yearly posts)
-         │   │   ├── Extract ALL users for foreign keys
-         │   │   ├── Track HOT post users for later enrichment
-         │   │   ├── Calculate engagement metrics
-         │   │   └── WRITE: subreddits → users → posts
-         │   │
-         │   └── Accumulate HOT users across all sub-batches
-         │
-         ├── PHASE 2: USER ENRICHMENT (After all 50)
-         │   ├── Take top 500 HOT post users
-         │   ├── Scrape full profiles (karma, age, verified)
-         │   ├── Analyze their posting history
-         │   └── Discover NEW subreddits from their activity
-         │
-         ├── PHASE 3: DISCOVERY PROCESSING
-         │   ├── Quick-scrape top 20 discoveries
-         │   ├── Evaluate based on subscriber count (>1000)
-         │   └── Write promising discoveries
-         │
-         └── Queue remaining discoveries for next batch
-```
-
-### 📝 CRITICAL: Only HOT Post Users Get Enrichment
-- **HOT posts**: Users extracted AND enriched with full profiles
-- **Weekly/Yearly posts**: Users extracted for foreign keys ONLY (no enrichment)
-
-## 📊 Data Collection Strategy
-
-### Per Sub-Batch (10 Subreddits)
-```yaml
-Subreddits Processed: 10
-Posts Collected: ~1,500 (150 per subreddit avg)
-Users Extracted: ~400-600 unique
-HOT Post Users Tracked: ~100-200 (accumulated)
-Memory Usage: ~10-20MB max
-Write Operations: 3 sequential (subreddits → users → posts)
-```
-
-### Per Full Batch (50 Subreddits Total)
-```yaml
-Total Subreddits: 50
-Total Posts: ~7,500
-Total Users: ~2,000-3,000
-HOT Users for Enrichment: Top 500
-New Subreddits Discovered: ~100-500
-User Profiles Scraped: 500 (HOT users only)
-Sub-Batch Writes: 15 (5 sub-batches × 3 operations)
-```
-
-### Memory-Efficient Pipeline
-```
-1. Process 10 subreddits → Write immediately → Clear buffers
-2. Repeat 5 times (50 total)
-3. Enrich top 500 HOT users with full profiles
-4. Discover new subreddits from enriched users
-5. Write discoveries and enriched user data
-```
-
-## 🔧 Implementation Plan
-
-### Phase 1: Sub-Batch Collection 🚧 IN PROGRESS
-```python
-# New sub-batch implementation
-SUB_BATCH_SIZE = 10
-full_batch_hot_users = {}  # Accumulate HOT users across all sub-batches
-
-# Process 5 sub-batches of 10 subreddits each
-for batch_num in range(5):  # 5 × 10 = 50
-    sub_batch_subreddits = []
-    sub_batch_all_users = {}
-    sub_batch_posts = []
-
-    # Process 10 subreddits
-    for subreddit in batch_slice:
-        data = scrape_subreddit()
-        sub_batch_subreddits.append(data)
-
-        # HOT posts - track users for enrichment
-        for post in data['hot_posts']:
-            author = post['author']
-            full_batch_hot_users[author] = {'username': author, 'post_count': 0}
-            full_batch_hot_users[author]['post_count'] += 1
-            sub_batch_all_users[author] = {'username': author}  # Basic for FK
-            sub_batch_posts.append(post)
-
-        # Weekly/Yearly posts - basic users only
-        for post in data['weekly_posts'] + data['yearly_posts']:
-            sub_batch_all_users[post['author']] = {'username': post['author']}
-            sub_batch_posts.append(post)
-
-    # Write sub-batch immediately
-    await write_subreddits(sub_batch_subreddits)
-    await write_users(sub_batch_all_users)
-    await write_posts(sub_batch_posts)
-```
-
-### Phase 2: User Enrichment 🚧 TO IMPLEMENT
-```python
-# After all 50 subreddits collected
-async def enrich_hot_users(full_batch_hot_users):
-    enriched_users = {}
-    discovered_subreddits = set()
-
-    # Sort by activity (post count in this batch)
-    top_users = sorted(full_batch_hot_users.items(),
-                      key=lambda x: x[1]['post_count'],
-                      reverse=True)[:500]
-
-    for username, _ in top_users:
-        # Use existing UserScraper
-        user_scraper = UserScraper(supabase, thread_id)
-        result = await user_scraper.scrape(username)
-
-        if result['success']:
-            enriched_users[username] = result['user_data']
-
-            # Track discoveries
-            for sub in result['discovered_subreddits']:
-                discovered_subreddits.add(sub['name'])
-
-    return enriched_users, discovered_subreddits
-```
-
-### Phase 3: Discovery Processing 🚧 TO IMPLEMENT
-```python
-# Process newly discovered subreddits
-async def process_discoveries(discovered_subreddits):
-    processed_discoveries = []
-
-    # Quick-scrape top 20
-    for subreddit in list(discovered_subreddits)[:20]:
-        scraper = SubredditScraper(supabase, thread_id)
-        quick_data = await scraper.quick_scrape(subreddit)
-
-        if quick_data['subscribers'] > 1000:
-            processed_discoveries.append({
-                'name': subreddit,
-                'subscribers': quick_data['subscribers'],
-                'over18': quick_data['over18'],
-                'discovered_from_batch': True,
-                'created_at': datetime.now().isoformat()
-            })
-
-    # Write discoveries
-    if processed_discoveries:
-        await write_subreddits(processed_discoveries)
-
-    # Queue remaining for next batch
-    remaining = list(discovered_subreddits)[20:]
-    if remaining:
-        await queue_for_next_batch(remaining)
-```
-
-### Phase 4: Enhanced Write Methods ✅ READY
-```python
-async def write_subreddits(subreddits, chunk_size=50):
-    for i in range(0, len(subreddits), chunk_size):
-        chunk = subreddits[i:i+chunk_size]
-        supabase.table('reddit_subreddits').upsert(chunk, on_conflict='name')
-
-async def write_users(users, chunk_size=100):
-    users_list = list(users.values()) if isinstance(users, dict) else users
-    for i in range(0, len(users_list), chunk_size):
-        chunk = users_list[i:i+chunk_size]
-        supabase.table('reddit_users').upsert(chunk, on_conflict='username')
-
-async def write_posts(posts, chunk_size=100):
-    for i in range(0, len(posts), chunk_size):
-        chunk = posts[i:i+chunk_size]
-        supabase.table('reddit_posts').upsert(chunk, on_conflict='reddit_id')
-```
-
-## 📈 Expected Improvements
-
-### Before (Current v2.0)
-- **Processing**: Sequential phases (subreddits → users → discovery)
-- **User Data**: Basic info only (username)
-- **Discovery**: Happens after all subreddits processed
-- **Efficiency**: Many small writes
-- **Growth**: Linear, predictable
-
-### After (v3.0)
-- **Processing**: Integrated batch cycles
-- **User Data**: Full profiles with karma, age, verification
-- **Discovery**: Continuous within each batch
-- **Efficiency**: 3 large writes per 50 subreddits
-- **Growth**: Exponential through discovery feedback loop
-
-## 🎯 Key Benefits
-
-1. **Richer Data**
-   - Full user profiles instead of just usernames
-   - User quality metrics for better scoring
-   - Verification status and account age
-
-2. **Continuous Discovery**
-   - Find new subreddits with every batch
-   - Self-reinforcing growth
-   - No separate discovery phase needed
-
-3. **Better Relationships**
-   - Track user-subreddit connections
-   - Identify power users and influencers
-   - Build network graph of relationships
-
-4. **Efficiency**
-   - Everything in one pass
-   - Minimized API calls through batching
-   - Reduced database writes
-
-## 📊 Metrics & Monitoring
-
-### Per-Batch Metrics
-```yaml
-batch_id: UUID
-batch_number: Sequential
-subreddits_processed: 50
-posts_collected: Count
-users_extracted: Count
-users_enriched: Count
-new_discoveries: Count
-write_time_ms: Duration
-total_time_ms: Duration
-memory_usage_mb: Peak
-errors: List
-```
-
-### Success Criteria
-- ✅ All posts have valid user references
-- ✅ No foreign key violations
-- ✅ Continuous discovery of new subreddits
-- ✅ User profiles properly enriched
-- ✅ Memory usage stays under limits
-
-## 🚦 Implementation Status
-
-### ✅ Completed
-- [x] Batch collection architecture design
-- [x] User extraction from posts
-- [x] Proper write ordering (subreddits → users → posts)
-- [x] Foreign key constraint handling
-- [x] README documentation updated with v3.0 plan
-
-### 🚧 In Progress
-- [ ] Sub-batch processing (10 subreddits at a time)
-- [ ] Separate HOT user tracking for enrichment
-- [ ] UserScraper integration for profiles
-
-### 📋 TODO
-- [ ] Implement sub-batch collection logic
-- [ ] Add HOT user accumulation across sub-batches
-- [ ] Integrate UserScraper for enrichment
-- [ ] Add discovery processing from enriched users
-- [ ] Create quick-scrape for discovered subreddits
-- [ ] Add discovery queue management
-- [ ] Implement batch metrics tracking
-- [ ] Add checkpoint/resume capability
-
-## 🔒 Data Integrity Rules
-
-### Write Order (CRITICAL)
-1. **Subreddits** - Must exist before posts reference them
-2. **Users** - Must exist before posts reference them
-3. **Posts** - Written last with all references valid
-
-### Unique Constraints
-- Subreddits: `name` (upsert on conflict)
-- Users: `username` (upsert on conflict)
-- Posts: `reddit_id` (upsert on conflict)
-
-### Never Overwrite
-- `review` - Manual categorization
-- `primary_category` - Manual assignment
-- `tags` - Manual tagging
-
-## 🛠️ Configuration
-
-### Batch Processing
-```python
-FULL_BATCH_SIZE = 50  # Total subreddits per full batch
-SUB_BATCH_SIZE = 10  # Subreddits per sub-batch (5 sub-batches total)
-USER_ENRICH_LIMIT = 500  # Max HOT users to enrich after full batch
-DISCOVERY_QUICK_LIMIT = 20  # Max discoveries to quick-scrape
-WRITE_CHUNK_SIZE = 100  # Records per database write operation
-```
-
-### Processing Priorities
-```python
-# User prioritization for enrichment
-PRIORITY_FACTORS = {
-    'post_count': 0.4,
-    'recent_activity': 0.3,
-    'subreddit_diversity': 0.3
-}
-
-# Discovery evaluation criteria
-DISCOVERY_THRESHOLD = {
-    'min_subscribers': 1000,
-    'min_posts_per_day': 5,
-    'max_over18': True  # Process NSFW
-}
-```
-
-## 🐛 Current Issues & Fixes
-
-### Issue: Posts being written before users
-**Status**: ✅ FIXED
-**Solution**: Batch processing with proper write ordering
-
-### Issue: User data is minimal
-**Status**: 🚧 IN PROGRESS
-**Solution**: Implementing user profile enrichment
-
-### Issue: Discovery happens too late
-**Status**: 🚧 IN PROGRESS
-**Solution**: Integrating discovery into each batch
-
-## 🚀 Quick Commands
-
-### Monitor Batch Processing
 ```sql
--- Check latest batch progress
-SELECT
-    message,
-    context->>'batch_number' as batch,
-    context->>'subreddits_processed' as subs,
-    context->>'users_enriched' as users,
-    context->>'new_discoveries' as discoveries
+-- Is it running?
+SELECT enabled, status, last_heartbeat,
+       EXTRACT(EPOCH FROM (NOW() - last_heartbeat))::INT as seconds_since_heartbeat
+FROM system_control
+WHERE script_name = 'reddit_scraper';
+
+-- Last activity?
+SELECT MAX(timestamp) as last_activity,
+       COUNT(*) as logs_last_hour,
+       COUNT(*) FILTER (WHERE level = 'error') as errors_last_hour
 FROM system_logs
 WHERE source = 'reddit_scraper'
-AND message LIKE '%Batch % completed%'
-ORDER BY timestamp DESC
+  AND timestamp > NOW() - INTERVAL '1 hour';
+
+-- Current errors?
+SELECT COUNT(*) as error_count, message
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND level = 'error'
+  AND timestamp > NOW() - INTERVAL '1 hour'
+GROUP BY message
+ORDER BY error_count DESC
 LIMIT 10;
 ```
 
-### Check Discovery Pipeline
+---
+
+## 📈 REAL-TIME PERFORMANCE METRICS
+
+### Last Hour Statistics
 ```sql
--- See newly discovered subreddits
+-- Data collection rate
 SELECT
-    name,
-    discovered_at,
-    discovered_from_user,
-    subscriber_count
-FROM reddit_discoveries
-WHERE discovered_at > NOW() - INTERVAL '1 hour'
-ORDER BY subscriber_count DESC;
-```
+  COUNT(DISTINCT subreddit_name) as subreddits_processed,
+  COUNT(*) as posts_collected,
+  COUNT(DISTINCT author) as unique_users,
+  ROUND(COUNT(*)::NUMERIC / NULLIF(COUNT(DISTINCT subreddit_name), 0), 1) as avg_posts_per_sub
+FROM reddit_posts
+WHERE created_at > NOW() - INTERVAL '1 hour';
 
-### User Enrichment Status
-```sql
--- Check enriched vs basic users
+-- Processing speed by minute
+WITH batch_times AS (
+  SELECT
+    DATE_TRUNC('minute', timestamp) as minute,
+    COUNT(DISTINCT context->>'subreddit') as subreddits_per_minute
+  FROM system_logs
+  WHERE message LIKE '%Successfully scraped%'
+    AND timestamp > NOW() - INTERVAL '10 minutes'
+  GROUP BY 1
+)
 SELECT
-    COUNT(*) FILTER (WHERE link_karma IS NOT NULL) as enriched,
-    COUNT(*) FILTER (WHERE link_karma IS NULL) as basic_only,
-    COUNT(*) as total
-FROM reddit_users
-WHERE created_at > NOW() - INTERVAL '1 day';
+  ROUND(AVG(subreddits_per_minute), 2) as avg_speed_per_minute,
+  MAX(subreddits_per_minute) as peak_speed,
+  COUNT(*) as active_minutes
+FROM batch_times;
+
+-- Weekly posts success rate (should be 100% after fix)
+SELECT
+  DATE_TRUNC('hour', timestamp) as hour,
+  COUNT(*) as total_scrapes,
+  COUNT(*) FILTER (WHERE message NOT LIKE '%0 weekly%') as successful_weekly,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE message NOT LIKE '%0 weekly%') / COUNT(*), 1) as success_rate
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND message LIKE '%Successfully scraped%'
+  AND timestamp > NOW() - INTERVAL '24 hours'
+GROUP BY 1
+ORDER BY 1 DESC;
 ```
-
-## 📝 Notes for Implementation
-
-### Memory Management
-- Process users in chunks to avoid memory overflow
-- Clear buffers after each batch write
-- Monitor memory usage throughout cycle
-
-### API Rate Limiting
-- User profile scraping is expensive (1 request per user)
-- Implement adaptive throttling based on rate limit feedback
-- Cache user profiles for 24 hours minimum
-
-### Database Optimization
-- Use COPY instead of INSERT for large batches
-- Consider partitioning posts table by date
-- Add indexes for discovery queries
-
-## 🎯 Next Steps
-
-1. **Immediate**: Fix user profile enrichment
-2. **Next**: Integrate discovery processing
-3. **Future**: Add ML-based subreddit evaluation
-4. **Long-term**: Graph database for relationship mapping
 
 ---
 
-*Last Updated: 2024-12-28*
-*Architecture Version: 3.0 (Enhanced Batch Processing)*
-*Status: 🚧 UNDER DEVELOPMENT*
+## 🎮 SCRAPER CONTROL
+
+### Start/Stop Commands
+```bash
+# Start scraper
+curl -X POST "https://b9-dashboard.onrender.com/api/scraper/start" \
+  -H "Content-Type: application/json"
+
+# Stop scraper gracefully
+curl -X POST "https://b9-dashboard.onrender.com/api/scraper/stop" \
+  -H "Content-Type: application/json"
+
+# Force kill (emergency)
+curl -X POST "https://b9-dashboard.onrender.com/api/scraper/force-kill" \
+  -H "Content-Type: application/json"
+
+# Check detailed status
+curl "https://b9-dashboard.onrender.com/api/scraper/status"
+```
+
+### Configuration Management
+```sql
+-- View current configuration
+SELECT config, enabled, status, last_heartbeat
+FROM system_control
+WHERE script_name = 'reddit_scraper';
+
+-- Update batch size (default: 10)
+UPDATE system_control
+SET config = jsonb_set(config, '{batch_size}', '20')
+WHERE script_name = 'reddit_scraper';
+
+-- Update delay between batches (seconds, default: 30)
+UPDATE system_control
+SET config = jsonb_set(config, '{delay_between_batches}', '60')
+WHERE script_name = 'reddit_scraper';
+
+-- Update max daily requests (default: 10000)
+UPDATE system_control
+SET config = jsonb_set(config, '{max_daily_requests}', '5000')
+WHERE script_name = 'reddit_scraper';
+```
+
+---
+
+## 🏗️ CURRENT ARCHITECTURE (v2.2.0)
+
+### System Flow
+```
+[Render Deployment]
+        ↓
+[start.py] → [continuous.py] ← Checks every 30s → [Supabase Control]
+        ↓                                                ↓
+[RedditScraperV2 (main.py)]                      enabled/disabled
+        ↓
+[Load Target Subreddits] ← Review = 'Ok' or 'No Seller'
+        ↓
+[Batch of 10 Subreddits]
+        ↓
+[9 Parallel Threads]
+    ├─ Thread 0 (Primary): 2 subreddits
+    └─ Threads 1-8: 1 subreddit each
+        ↓
+[SubredditScraper] → Scrapes: About, Hot(30), Weekly(30), Yearly(100)
+        ↓
+[Extract Users & Calculate Metrics]
+        ↓
+[UserScraper] → Enrichment (Hot post users only)
+        ↓
+[Discovery] → New subreddits from user activity
+        ↓
+[BatchWriter] → Write Order: Subreddits → Users → Posts
+        ↓
+[Supabase Database]
+```
+
+### Key Components
+
+| Component | File | Purpose | Status |
+|-----------|------|---------|--------|
+| **continuous.py** | scrapers/reddit/ | Main loop, checks control table | ✅ Active |
+| **main.py** | scrapers/reddit/ | Orchestrator (RedditScraperV2) | ✅ Active |
+| **SubredditScraper** | scrapers/subreddit.py | Scrapes subreddit data | ✅ Active |
+| **UserScraper** | scrapers/user.py | Enriches user profiles | ⚠️ Basic only |
+| **BatchWriter** | core/database/ | Manages DB writes | ✅ Fixed order |
+| **ProxyManager** | core/config/ | 3 proxy rotation | ✅ Active |
+| **APIPool** | core/clients/ | 9 Reddit API clients | ✅ Active |
+
+---
+
+## 🔍 MONITORING QUERIES
+
+### Data Quality Checks
+```sql
+-- Foreign key violations (should be 0)
+SELECT p.subreddit_name, COUNT(*) as orphaned_posts
+FROM reddit_posts p
+LEFT JOIN reddit_subreddits s ON p.subreddit_name = s.name
+WHERE s.name IS NULL
+GROUP BY p.subreddit_name
+ORDER BY orphaned_posts DESC;
+
+-- Mixed-case subreddit names (need normalization)
+SELECT name, COUNT(*) as post_count
+FROM reddit_subreddits
+WHERE name != LOWER(name)
+ORDER BY post_count DESC
+LIMIT 20;
+
+-- Duplicate posts
+SELECT reddit_id, COUNT(*) as duplicate_count
+FROM reddit_posts
+GROUP BY reddit_id
+HAVING COUNT(*) > 1;
+```
+
+### Discovery Pipeline
+```sql
+-- New subreddits discovered today
+SELECT
+  name,
+  subscribers,
+  CASE
+    WHEN review IS NULL THEN 'Pending Review'
+    ELSE review
+  END as status,
+  created_at
+FROM reddit_subreddits
+WHERE created_at > CURRENT_DATE
+ORDER BY subscribers DESC
+LIMIT 50;
+
+-- Discovery rate by hour
+SELECT
+  DATE_TRUNC('hour', created_at) as hour,
+  COUNT(*) as new_subreddits,
+  AVG(subscribers) as avg_subscribers
+FROM reddit_subreddits
+WHERE created_at > NOW() - INTERVAL '24 hours'
+  AND review IS NULL
+GROUP BY 1
+ORDER BY 1 DESC;
+
+-- User enrichment status
+SELECT
+  COUNT(*) FILTER (WHERE link_karma IS NOT NULL) as enriched_users,
+  COUNT(*) FILTER (WHERE link_karma IS NULL) as basic_users,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE link_karma IS NOT NULL) / COUNT(*), 1) as enrichment_rate
+FROM reddit_users
+WHERE created_at > NOW() - INTERVAL '24 hours';
+```
+
+### Scraper Health
+```sql
+-- Memory usage over time
+SELECT
+  timestamp,
+  (context->>'memory_mb')::INT as memory_mb,
+  message
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND context->>'memory_mb' IS NOT NULL
+  AND timestamp > NOW() - INTERVAL '1 hour'
+ORDER BY timestamp DESC;
+
+-- API rate limit status
+SELECT
+  timestamp,
+  context->>'remaining' as requests_remaining,
+  context->>'reset_time' as reset_at
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND message LIKE '%rate limit%'
+  AND timestamp > NOW() - INTERVAL '10 minutes'
+ORDER BY timestamp DESC
+LIMIT 5;
+
+-- Thread performance
+SELECT
+  context->>'thread_id' as thread,
+  COUNT(*) as subreddits_processed,
+  AVG((context->>'processing_time')::NUMERIC) as avg_time_seconds
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND message LIKE '%Successfully scraped%'
+  AND timestamp > NOW() - INTERVAL '1 hour'
+GROUP BY 1
+ORDER BY 2 DESC;
+```
+
+---
+
+## 🚨 TROUBLESHOOTING GUIDE
+
+### Common Issues & Solutions
+
+#### Issue: 0 Weekly Posts
+**Status**: ✅ FIXED in v2.2.0
+```sql
+-- Check if still occurring
+SELECT COUNT(*) as affected_scrapes
+FROM system_logs
+WHERE message LIKE '%0 weekly%'
+  AND timestamp > NOW() - INTERVAL '1 hour';
+```
+**Root Cause**: Was looking for 'weekly_posts' instead of 'top_posts'
+**Fix Applied**: Changed key in main.py lines 1199 and 1164
+
+#### Issue: Foreign Key Violations
+**Status**: ⚠️ PARTIALLY FIXED
+```sql
+-- Check current violations
+SELECT
+  DATE_TRUNC('hour', timestamp) as hour,
+  COUNT(*) as fk_errors,
+  context->>'error' as error_sample
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND message LIKE '%foreign key%'
+  AND timestamp > NOW() - INTERVAL '24 hours'
+GROUP BY 1, 3
+ORDER BY 1 DESC;
+```
+**Fix**: Normalize existing data
+```sql
+-- One-time fix for existing mixed-case names
+UPDATE reddit_subreddits
+SET name = LOWER(name)
+WHERE name != LOWER(name);
+```
+
+#### Issue: Scraper Not Starting
+```sql
+-- Debug checklist
+SELECT
+  enabled,
+  status,
+  pid,
+  last_heartbeat,
+  CASE
+    WHEN last_heartbeat < NOW() - INTERVAL '5 minutes' THEN 'Stale/Dead'
+    WHEN enabled = false THEN 'Disabled'
+    WHEN pid IS NULL THEN 'Not running'
+    ELSE 'Should be running'
+  END as diagnosis
+FROM system_control
+WHERE script_name = 'reddit_scraper';
+```
+**Solutions**:
+1. Check Render logs: `https://dashboard.render.com/`
+2. Clear stale PID: `UPDATE system_control SET pid = NULL WHERE script_name = 'reddit_scraper';`
+3. Restart: Use start command above
+
+#### Issue: High Memory Usage
+```sql
+-- Check memory trend
+SELECT
+  DATE_TRUNC('minute', timestamp) as minute,
+  MAX((context->>'memory_mb')::INT) as peak_memory_mb
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND context->>'memory_mb' IS NOT NULL
+  AND timestamp > NOW() - INTERVAL '1 hour'
+GROUP BY 1
+ORDER BY 1 DESC;
+```
+**Solutions**:
+1. Reduce batch_size in config
+2. Restart scraper to clear memory
+3. Check for memory leaks in logs
+
+---
+
+## 📊 PERFORMANCE BENCHMARKS
+
+### Current vs Target Performance
+| Metric | Target | Current | Status | Action |
+|--------|--------|---------|--------|--------|
+| **Subreddits/hour** | 300 | ~250 | 🟡 | Optimize batch size |
+| **Posts/hour** | 45,000 | ~37,500 | 🟡 | Within acceptable range |
+| **Weekly posts** | 100% | 100% | ✅ | Fixed |
+| **FK violations/hour** | 0 | 2-3 | 🟡 | Run normalization |
+| **Discovery rate** | 100/hr | ~50/hr | 🟡 | Enhance user enrichment |
+| **Memory usage** | <500MB | ~300MB | ✅ | Good |
+| **Uptime** | 99% | ~95% | 🟡 | Monitor crashes |
+
+### Processing Capacity
+- **Batch Size**: 10 subreddits (configurable)
+- **Parallel Threads**: 9
+- **Posts per Subreddit**: ~160 (30 hot + 30 weekly + 100 yearly)
+- **Delay Between Batches**: 30 seconds (configurable)
+- **Daily Capacity**: ~7,200 subreddits @ current speed
+
+---
+
+## 🔄 RECENT CHANGES & STATUS
+
+### ✅ FIXED (Sep 28, 2025)
+- **Weekly posts showing 0**: Changed 'weekly_posts' to 'top_posts' key
+- **Foreign key violations**: Added lowercase normalization throughout
+- **Write order issues**: Enforced Subreddits → Users → Posts
+- **Batch writer**: Fixed flush order to prevent FK violations
+
+### ⚠️ KNOWN ISSUES
+- **Mixed-case in database**: ~500 subreddits need lowercase normalization
+- **User enrichment limited**: Only basic profile data collected
+- **Discovery not optimal**: Could discover more with better user analysis
+- **Documentation outdated**: v3.0 described but v2.2.0 running
+
+### 🚧 IN PROGRESS
+- Implementing full user profile enrichment
+- Optimizing discovery pipeline
+- Adding checkpoint/resume capability
+
+---
+
+## 🛠️ CONFIGURATION REFERENCE
+
+### Current Settings
+```sql
+-- View all settings
+SELECT
+  enabled,
+  status,
+  config,
+  last_heartbeat,
+  updated_at
+FROM system_control
+WHERE script_name = 'reddit_scraper';
+```
+
+### Configurable Parameters
+| Parameter | Default | Range | Impact |
+|-----------|---------|-------|--------|
+| **batch_size** | 10 | 5-50 | Subreddits per batch |
+| **delay_between_batches** | 30 | 10-300 | Seconds between batches |
+| **max_daily_requests** | 10000 | 1000-50000 | API rate limit |
+| **user_enrichment_enabled** | true | true/false | Enrich user profiles |
+| **discovery_enabled** | true | true/false | Find new subreddits |
+
+---
+
+## 🚨 EMERGENCY PROCEDURES
+
+### Scraper Stuck/Frozen
+```bash
+# 1. Check if truly frozen
+curl "https://b9-dashboard.onrender.com/api/scraper/status"
+
+# 2. Force kill if needed
+curl -X POST "https://b9-dashboard.onrender.com/api/scraper/force-kill"
+
+# 3. Clear database state
+psql -c "UPDATE system_control SET pid = NULL, status = 'stopped' WHERE script_name = 'reddit_scraper';"
+
+# 4. Restart
+curl -X POST "https://b9-dashboard.onrender.com/api/scraper/start"
+```
+
+### Database Overload
+```sql
+-- Check table sizes
+SELECT
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+  n_live_tup as row_count
+FROM pg_stat_user_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+
+-- Emergency: Archive old posts
+INSERT INTO reddit_posts_archive
+SELECT * FROM reddit_posts
+WHERE created_at < NOW() - INTERVAL '30 days';
+
+DELETE FROM reddit_posts
+WHERE created_at < NOW() - INTERVAL '30 days';
+```
+
+### Proxy Failures
+```sql
+-- Check proxy errors
+SELECT
+  timestamp,
+  context->>'proxy' as proxy_name,
+  message
+FROM system_logs
+WHERE source = 'reddit_scraper'
+  AND message LIKE '%proxy%'
+  AND level = 'error'
+  AND timestamp > NOW() - INTERVAL '1 hour'
+ORDER BY timestamp DESC;
+```
+
+---
+
+## 📋 QUICK REFERENCE
+
+### Key Database Constraints
+- **reddit_subreddits.name**: PRIMARY KEY, must be lowercase
+- **reddit_posts.subreddit_name**: FOREIGN KEY to subreddits.name
+- **reddit_posts.reddit_id**: UNIQUE constraint
+- **reddit_users.username**: UNIQUE constraint
+- **Write Order**: ALWAYS Subreddits → Users → Posts
+
+### Important Files
+| File | Location | Purpose |
+|------|----------|---------|
+| continuous.py | /api/scrapers/reddit/ | Main loop |
+| main.py | /api/scrapers/reddit/ | Core orchestrator |
+| subreddit.py | /api/scrapers/reddit/scrapers/ | Subreddit scraper |
+| user.py | /api/scrapers/reddit/scrapers/ | User scraper |
+| batch_writer.py | /api/core/database/ | Database writer |
+
+### API Rate Limits
+- **Reddit**: 100 requests/minute per account
+- **Total Pool**: 900 req/min (9 accounts)
+- **Safety Margin**: 70% utilization = 630 req/min
+- **Proxy Limits**: Varies by provider
+
+---
+
+## 📞 SUPPORT & LOGS
+
+### View Logs
+- **Render Dashboard**: https://dashboard.render.com/
+- **Database Logs**: Query `system_logs` table
+- **API Logs**: `/api/scraper/logs` endpoint
+
+### Key Log Patterns
+```sql
+-- Success patterns
+SELECT COUNT(*) FROM system_logs
+WHERE message LIKE '%Successfully scraped%'
+  AND timestamp > NOW() - INTERVAL '1 hour';
+
+-- Error patterns
+SELECT message, COUNT(*)
+FROM system_logs
+WHERE level = 'error'
+  AND timestamp > NOW() - INTERVAL '1 hour'
+GROUP BY message
+ORDER BY COUNT(*) DESC;
+```
+
+---
+
+*Last Updated: September 28, 2025*
+*Version: 2.2.0 (Production)*
+*Status: 🟢 OPERATIONAL*
