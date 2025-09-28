@@ -464,105 +464,133 @@ class RedditScraperV2:
     async def process_subreddit_batch(self, scraper: SubredditScraper,
                                      subreddits: List[Dict],
                                      control_checker: Optional[Callable]):
-        """Process a batch of subreddits with proper collection and batch writing"""
+        """Process a batch of subreddits with sub-batch processing and user enrichment"""
         processed_count = 0
 
-        # Collection buffers for batch processing
-        batch_subreddits = []  # Subreddit data with metrics
-        batch_users = {}  # Unique users by username
-        batch_posts = []  # All posts from all subreddits
+        # Constants for batch processing
+        FULL_BATCH_SIZE = 50  # Total subreddits per full batch
+        SUB_BATCH_SIZE = 10   # Subreddits per sub-batch (5 sub-batches total)
 
-        BATCH_SIZE = 50  # Process and write in batches of 50 subreddits
-        for i, subreddit in enumerate(subreddits):
-            if not scraper.should_continue(control_checker):
-                logger.info(f"Thread {scraper.thread_id} stopping due to control check")
-                break
+        # Full batch accumulator for HOT users (for enrichment after all 50)
+        full_batch_hot_users = {}  # HOT post users accumulated across all sub-batches
 
-            try:
-                # Check cache first
-                subreddit_name = subreddit['name']
-                subreddit_type = self.subreddit_types.get(subreddit_name, 'ok')
+        # Process in sub-batches of 10 subreddits
+        num_sub_batches = (len(subreddits) + SUB_BATCH_SIZE - 1) // SUB_BATCH_SIZE
 
-                if self.cache_manager.is_subreddit_processed(subreddit_name):
-                    logger.debug(f"Skipping cached subreddit: r/{subreddit_name}")
-                    continue
+        for sub_batch_num in range(num_sub_batches):
+            # Get the slice for this sub-batch
+            start_idx = sub_batch_num * SUB_BATCH_SIZE
+            end_idx = min(start_idx + SUB_BATCH_SIZE, len(subreddits))
+            sub_batch = subreddits[start_idx:end_idx]
 
-                # Log subreddit type
-                type_indicator = "📊 [No Seller]" if subreddit_type == 'no_seller' else "✅ [OK]"
-                logger.info(f"Thread {scraper.thread_id}: {type_indicator} Processing r/{subreddit_name}")
+            logger.info(f"📦 Thread {scraper.thread_id}: Starting sub-batch {sub_batch_num + 1}/{num_sub_batches} "
+                       f"({len(sub_batch)} subreddits)")
 
-                # Scrape subreddit
-                result = await scraper.scrape(subreddit_name=subreddit_name)
+            # Sub-batch collection buffers (written after each sub-batch)
+            sub_batch_subreddits = []  # Subreddit data for this sub-batch
+            sub_batch_all_users = {}   # ALL users for foreign keys (this sub-batch)
+            sub_sub_batch_posts = []       # All posts from this sub-batch
 
-                if result and result.get('success'):
-                    self.stats['subreddits_processed'] += 1
-                    processed_count += 1
+            for i, subreddit in enumerate(sub_batch):
+                if not scraper.should_continue(control_checker):
+                    logger.info(f"Thread {scraper.thread_id} stopping due to control check")
+                    break
 
-                    # Calculate metrics
-                    calculated_data = self.metrics_calculator.calculate_all_metrics(
-                        result.get('hot_posts', []),
-                        result.get('top_posts', []),  # Weekly posts for metrics
-                        result.get('yearly_posts', [])  # Yearly posts for timing analysis
-                    )
+                try:
+                    # Check cache first
+                    subreddit_name = subreddit['name']
+                    subreddit_type = self.subreddit_types.get(subreddit_name, 'ok')
 
-                    # Merge calculated data
-                    final_data = {**result.get('subreddit_data', {}), **calculated_data}
+                    if self.cache_manager.is_subreddit_processed(subreddit_name):
+                        logger.debug(f"Skipping cached subreddit: r/{subreddit_name}")
+                        continue
 
-                    # CRITICAL: Fetch and preserve existing review, primary_category, and tags
-                    try:
-                        existing_sub = self.supabase.table('reddit_subreddits').select(
-                            'review, primary_category, tags'
-                        ).eq('name', subreddit_name).execute()
+                    # Log subreddit type
+                    type_indicator = "📊 [No Seller]" if subreddit_type == 'no_seller' else "✅ [OK]"
+                    logger.info(f"Thread {scraper.thread_id}: {type_indicator} Processing r/{subreddit_name}")
 
-                        if existing_sub.data and len(existing_sub.data) > 0:
-                            existing_fields = existing_sub.data[0]
-                            # Only add if not already in final_data (don't override new values)
-                            if 'review' not in final_data and existing_fields.get('review'):
-                                final_data['review'] = existing_fields['review']
-                                logger.debug(f"Preserving review: {existing_fields['review']} for r/{subreddit_name}")
-                            if 'primary_category' not in final_data and existing_fields.get('primary_category'):
-                                final_data['primary_category'] = existing_fields['primary_category']
-                                logger.debug(f"Preserving primary_category: {existing_fields['primary_category']}")
-                            if 'tags' not in final_data and existing_fields.get('tags'):
-                                final_data['tags'] = existing_fields['tags']
-                                logger.debug(f"Preserving tags: {existing_fields['tags']}")
-                    except Exception as e:
-                        logger.warning(f"Could not fetch existing fields for r/{subreddit_name}: {e}")
+                    # Scrape subreddit
+                    result = await scraper.scrape(subreddit_name=subreddit_name)
 
-                    # Apply 20% boost for SFW subreddits
-                    nsfw_percentage = final_data.get('nsfw_percentage', 0)
-                    if nsfw_percentage < 10 and 'subreddit_score' in final_data:
-                        original_score = final_data['subreddit_score']
-                        final_data['subreddit_score'] = original_score * 1.2
-                        logger.debug(f"Applied SFW boost: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
+                    if result and result.get('success'):
+                        self.stats['subreddits_processed'] += 1
+                        processed_count += 1
 
-                    # Collect subreddit data for batch writing
-                    logger.info(f"📊 Collecting data for r/{subreddit_name} for batch processing")
-                    logger.debug(f"  Final data keys: {list(final_data.keys())}")
-                    if 'subreddit_score' in final_data:
-                        logger.debug(f"  Score: {final_data.get('subreddit_score', 0):.1f}, "
-                                   f"Engagement: {final_data.get('engagement', 0):.4f}")
-                    batch_subreddits.append(final_data)
+                        # Calculate metrics
+                        calculated_data = self.metrics_calculator.calculate_all_metrics(
+                            result.get('hot_posts', []),
+                            result.get('top_posts', []),  # Weekly posts for metrics
+                            result.get('yearly_posts', [])  # Yearly posts for timing analysis
+                        )
 
-                    # Mark as processed in cache
-                    self.cache_manager.mark_subreddit_processed(subreddit_name)
+                        # Merge calculated data
+                        final_data = {**result.get('subreddit_data', {}), **calculated_data}
 
-                    # Collect posts and extract users for batch processing
-                    try:
-                        if result.get('hot_posts'):
-                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['hot_posts'])} hot posts")
+                        # CRITICAL: Fetch and preserve existing review, primary_category, and tags
+                        try:
+                            existing_sub = self.supabase.table('reddit_subreddits').select(
+                                'review, primary_category, tags'
+                            ).eq('name', subreddit_name).execute()
 
-                            for post in result['hot_posts']:
-                                # Extract user info
-                                author = post.get('author', '')
-                                if author and author not in ['[deleted]', 'AutoModerator', None]:
-                                    if author not in batch_users:
-                                        batch_users[author] = {
-                                            'username': author,
-                                            'created_at': datetime.now(timezone.utc).isoformat()
-                                        }
+                            if existing_sub.data and len(existing_sub.data) > 0:
+                                existing_fields = existing_sub.data[0]
+                                # Only add if not already in final_data (don't override new values)
+                                if 'review' not in final_data and existing_fields.get('review'):
+                                    final_data['review'] = existing_fields['review']
+                                    logger.debug(f"Preserving review: {existing_fields['review']} for r/{subreddit_name}")
+                                if 'primary_category' not in final_data and existing_fields.get('primary_category'):
+                                    final_data['primary_category'] = existing_fields['primary_category']
+                                    logger.debug(f"Preserving primary_category: {existing_fields['primary_category']}")
+                                if 'tags' not in final_data and existing_fields.get('tags'):
+                                    final_data['tags'] = existing_fields['tags']
+                                    logger.debug(f"Preserving tags: {existing_fields['tags']}")
+                        except Exception as e:
+                            logger.warning(f"Could not fetch existing fields for r/{subreddit_name}: {e}")
 
-                                # Clean and collect post
+                        # Apply 20% boost for SFW subreddits
+                        nsfw_percentage = final_data.get('nsfw_percentage', 0)
+                        if nsfw_percentage < 10 and 'subreddit_score' in final_data:
+                            original_score = final_data['subreddit_score']
+                            final_data['subreddit_score'] = original_score * 1.2
+                            logger.debug(f"Applied SFW boost: {original_score:.1f} -> {final_data['subreddit_score']:.1f}")
+
+                        # Collect subreddit data for sub-batch writing
+                        logger.info(f"📊 Collecting data for r/{subreddit_name} for sub-batch processing")
+                        logger.debug(f"  Final data keys: {list(final_data.keys())}")
+                        if 'subreddit_score' in final_data:
+                            logger.debug(f"  Score: {final_data.get('subreddit_score', 0):.1f}, "
+                                       f"Engagement: {final_data.get('engagement', 0):.4f}")
+                        sub_batch_subreddits.append(final_data)
+
+                        # Mark as processed in cache
+                        self.cache_manager.mark_subreddit_processed(subreddit_name)
+
+                        # Collect posts and extract users for batch processing
+                        try:
+                            if result.get('hot_posts'):
+                                logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['hot_posts'])} hot posts")
+
+                                for post in result['hot_posts']:
+                                    # Extract user info
+                                    author = post.get('author', '')
+                                    if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                        # Track HOT user for enrichment (full batch accumulator)
+                                        if author not in full_batch_hot_users:
+                                            full_batch_hot_users[author] = {
+                                                'username': author,
+                                                'post_count': 0,
+                                                'created_at': datetime.now(timezone.utc).isoformat()
+                                            }
+                                        full_batch_hot_users[author]['post_count'] += 1
+
+                                        # Also add to sub-batch users for foreign keys
+                                        if author not in sub_batch_all_users:
+                                            sub_batch_all_users[author] = {
+                                                'username': author,
+                                                'created_at': datetime.now(timezone.utc).isoformat()
+                                            }
+
+                                    # Clean and collect post
                                 cleaned_post = {
                                     'reddit_id': post.get('reddit_id'),
                                     'title': post.get('title'),
@@ -581,117 +609,116 @@ class RedditScraperV2:
                                 }
                                 # Remove None values
                                 cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
-                                batch_posts.append(cleaned_post)
+                                sub_batch_posts.append(cleaned_post)
 
                             self.stats['posts_processed'] += len(result['hot_posts'])
                             logger.info(f"✅ Thread {scraper.thread_id}: Hot posts collected successfully")
 
-                        if result.get('top_posts'):  # Weekly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['top_posts'])} weekly posts")
+                            if result.get('top_posts'):  # Weekly posts
+                                logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['top_posts'])} weekly posts")
 
-                            for post in result['top_posts']:
-                                # Extract user info
-                                author = post.get('author', '')
-                                if author and author not in ['[deleted]', 'AutoModerator', None]:
-                                    if author not in batch_users:
-                                        batch_users[author] = {
-                                            'username': author,
-                                            'created_at': datetime.now(timezone.utc).isoformat()
-                                        }
+                                for post in result['top_posts']:
+                                    # Extract user info - NO ENRICHMENT FOR WEEKLY POSTS
+                                    author = post.get('author', '')
+                                    if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                        # Only add to sub-batch users for foreign keys (not to HOT users)
+                                        if author not in sub_batch_all_users:
+                                            sub_batch_all_users[author] = {
+                                                'username': author,
+                                                'created_at': datetime.now(timezone.utc).isoformat()
+                                            }
 
-                                # Clean and collect post
-                                cleaned_post = {
-                                    'reddit_id': post.get('reddit_id'),
-                                    'title': post.get('title'),
-                                    'author_username': post.get('author'),
-                                    'subreddit_name': post.get('subreddit'),
-                                    'score': post.get('score', 0),
-                                    'upvote_ratio': post.get('upvote_ratio', 0),
-                                    'num_comments': post.get('num_comments', 0),
-                                    'created_utc': post.get('created_utc'),
-                                    'url': post.get('url'),
-                                    'selftext': post.get('selftext'),
-                                    'is_video': post.get('is_video', False),
-                                    'link_flair_text': post.get('link_flair_text'),
-                                    'over_18': post.get('over_18', False),
-                                    'created_at': datetime.now(timezone.utc).isoformat()
-                                }
-                                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
-                                batch_posts.append(cleaned_post)
+                                    # Clean and collect post
+                                    cleaned_post = {
+                                        'reddit_id': post.get('reddit_id'),
+                                        'title': post.get('title'),
+                                        'author_username': post.get('author'),
+                                        'subreddit_name': post.get('subreddit'),
+                                        'score': post.get('score', 0),
+                                        'upvote_ratio': post.get('upvote_ratio', 0),
+                                        'num_comments': post.get('num_comments', 0),
+                                        'created_utc': post.get('created_utc'),
+                                        'url': post.get('url'),
+                                        'selftext': post.get('selftext'),
+                                        'is_video': post.get('is_video', False),
+                                        'link_flair_text': post.get('link_flair_text'),
+                                        'over_18': post.get('over_18', False),
+                                        'created_at': datetime.now(timezone.utc).isoformat()
+                                    }
+                                    cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                                    sub_batch_posts.append(cleaned_post)
 
-                            self.stats['posts_processed'] += len(result['top_posts'])
-                            logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts collected successfully")
+                                self.stats['posts_processed'] += len(result['top_posts'])
+                                logger.info(f"✅ Thread {scraper.thread_id}: Weekly posts collected successfully")
 
-                        if result.get('yearly_posts'):  # Yearly posts
-                            logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['yearly_posts'])} yearly posts")
+                            if result.get('yearly_posts'):  # Yearly posts
+                                logger.info(f"📮 Thread {scraper.thread_id}: Collecting {len(result['yearly_posts'])} yearly posts")
 
-                            for post in result['yearly_posts']:
-                                # Extract user info
-                                author = post.get('author', '')
-                                if author and author not in ['[deleted]', 'AutoModerator', None]:
-                                    if author not in batch_users:
-                                        batch_users[author] = {
-                                            'username': author,
-                                            'created_at': datetime.now(timezone.utc).isoformat()
-                                        }
+                                for post in result['yearly_posts']:
+                                    # Extract user info - NO ENRICHMENT FOR YEARLY POSTS
+                                    author = post.get('author', '')
+                                    if author and author not in ['[deleted]', 'AutoModerator', None]:
+                                        # Only add to sub-batch users for foreign keys (not to HOT users)
+                                        if author not in sub_batch_all_users:
+                                            sub_batch_all_users[author] = {
+                                                'username': author,
+                                                'created_at': datetime.now(timezone.utc).isoformat()
+                                            }
 
-                                # Clean and collect post
-                                cleaned_post = {
-                                    'reddit_id': post.get('reddit_id'),
-                                    'title': post.get('title'),
-                                    'author_username': post.get('author'),
-                                    'subreddit_name': post.get('subreddit'),
-                                    'score': post.get('score', 0),
-                                    'upvote_ratio': post.get('upvote_ratio', 0),
-                                    'num_comments': post.get('num_comments', 0),
-                                    'created_utc': post.get('created_utc'),
-                                    'url': post.get('url'),
-                                    'selftext': post.get('selftext'),
-                                    'is_video': post.get('is_video', False),
-                                    'link_flair_text': post.get('link_flair_text'),
-                                    'over_18': post.get('over_18', False),
-                                    'created_at': datetime.now(timezone.utc).isoformat()
-                                }
-                                cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
-                                batch_posts.append(cleaned_post)
+                                    # Clean and collect post
+                                    cleaned_post = {
+                                        'reddit_id': post.get('reddit_id'),
+                                        'title': post.get('title'),
+                                        'author_username': post.get('author'),
+                                        'subreddit_name': post.get('subreddit'),
+                                        'score': post.get('score', 0),
+                                        'upvote_ratio': post.get('upvote_ratio', 0),
+                                        'num_comments': post.get('num_comments', 0),
+                                        'created_utc': post.get('created_utc'),
+                                        'url': post.get('url'),
+                                        'selftext': post.get('selftext'),
+                                        'is_video': post.get('is_video', False),
+                                        'link_flair_text': post.get('link_flair_text'),
+                                        'over_18': post.get('over_18', False),
+                                        'created_at': datetime.now(timezone.utc).isoformat()
+                                    }
+                                    cleaned_post = {k: v for k, v in cleaned_post.items() if v is not None}
+                                    sub_batch_posts.append(cleaned_post)
 
-                            self.stats['posts_processed'] += len(result['yearly_posts'])
-                            logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts collected successfully")
-                    except Exception as e:
-                        logger.error(f"❌ Thread {scraper.thread_id}: Failed to add posts to batch writer: {e}")
-                        logger.error(f"Exception type: {type(e).__name__}, Details: {str(e)}")
+                                self.stats['posts_processed'] += len(result['yearly_posts'])
+                                logger.info(f"✅ Thread {scraper.thread_id}: Yearly posts collected successfully")
+                        except Exception as e:
+                            logger.error(f"❌ Thread {scraper.thread_id}: Failed to add posts to batch writer: {e}")
+                            logger.error(f"Exception type: {type(e).__name__}, Details: {str(e)}")
 
-                    # Batch write after collecting BATCH_SIZE subreddits or when processing is done
-                    if len(batch_subreddits) >= BATCH_SIZE or (i == len(subreddits) - 1 and batch_subreddits):
-                        await self.batch_write_data(batch_subreddits, batch_users, batch_posts, scraper.thread_id)
+                        # For OK subreddits, track users for later analysis
+                        if subreddit_type == 'ok' and result.get('hot_posts'):
+                            await self.track_users_from_posts(result['hot_posts'], subreddit_name)
 
-                        # Clear buffers after successful write
-                        batch_subreddits = []
-                        batch_users = {}
-                        batch_posts = []
+                    # Apply stealth delay between subreddits
+                    await self.stealth_delay("subreddit_analysis")
+                    await self.randomize_request_pattern()
 
-                    # For OK subreddits, track users for later analysis
-                    if subreddit_type == 'ok' and result.get('hot_posts'):
-                        await self.track_users_from_posts(result['hot_posts'], subreddit_name)
+                except Exception as e:
+                    logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
 
-                # Apply stealth delay between subreddits
-                await self.stealth_delay("subreddit_analysis")
-                await self.randomize_request_pattern()
+            # After processing this sub-batch of 10 subreddits, write the data
+            if sub_batch_subreddits or sub_batch_posts:
+                logger.info(f"💾 Thread {scraper.thread_id}: Writing sub-batch {sub_batch_num + 1}/{num_sub_batches}")
+                await self.batch_write_data(sub_batch_subreddits, sub_batch_all_users, sub_batch_posts, scraper.thread_id)
+                processed_count += len(sub_batch_subreddits)
 
-            except Exception as e:
-                logger.error(f"Error processing subreddit {subreddit.get('name')}: {e}")
-
-        # Final batch write for any remaining data
-        if batch_subreddits or batch_posts:
-            logger.info(f"💾 Thread {scraper.thread_id}: Final batch write after processing {processed_count} subreddits")
-            await self.batch_write_data(batch_subreddits, batch_users, batch_posts, scraper.thread_id)
+        # After all sub-batches are processed, enrich HOT users and process discoveries
+        if full_batch_hot_users and processed_count > 0:
+            logger.info(f"🔬 Thread {scraper.thread_id}: Starting user enrichment phase for {len(full_batch_hot_users)} HOT users")
+            await self.enrich_hot_users_and_discover(full_batch_hot_users, scraper.thread_id)
 
     async def batch_write_data(self, batch_subreddits: List[Dict], batch_users: Dict,
-                              batch_posts: List[Dict], thread_id: int):
+                              sub_batch_posts: List[Dict], thread_id: int):
         """Write collected data to database in the correct order: subreddits → users → posts"""
         try:
             logger.info(f"📝 Thread {thread_id}: Starting batch write - {len(batch_subreddits)} subreddits, "
-                       f"{len(batch_users)} users, {len(batch_posts)} posts")
+                       f"{len(batch_users)} users, {len(sub_batch_posts)} posts")
 
             # 1. Write subreddits first
             if batch_subreddits:
@@ -723,10 +750,10 @@ class RedditScraperV2:
                         logger.error(f"❌ Failed to write users: {e}")
 
             # 3. Write posts last (now that users exist)
-            if batch_posts:
-                logger.info(f"📮 Writing {len(batch_posts)} posts...")
-                for i in range(0, len(batch_posts), 100):
-                    chunk = batch_posts[i:i+100]
+            if sub_batch_posts:
+                logger.info(f"📮 Writing {len(sub_batch_posts)} posts...")
+                for i in range(0, len(sub_batch_posts), 100):
+                    chunk = sub_batch_posts[i:i+100]
                     try:
                         response = self.supabase.table('reddit_posts').upsert(
                             chunk,
@@ -742,6 +769,153 @@ class RedditScraperV2:
             logger.error(f"❌ Thread {thread_id}: Batch write failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+
+    async def enrich_hot_users_and_discover(self, full_batch_hot_users: Dict[str, Dict], thread_id: int):
+        """Enrich HOT users with full profiles and discover new subreddits"""
+        try:
+            # Sort users by post count in this batch
+            sorted_users = sorted(
+                full_batch_hot_users.items(),
+                key=lambda x: x[1].get('post_count', 0),
+                reverse=True
+            )[:500]  # Take top 500 most active users
+
+            logger.info(f"👥 Thread {thread_id}: Enriching top {len(sorted_users)} users from HOT posts")
+
+            enriched_users = []
+            discovered_subreddits = set()
+
+            # Import UserScraper
+            from scrapers.reddit.scrapers.user import UserScraper
+
+            # Create user scraper
+            user_scraper = UserScraper(self.supabase, thread_id)
+            await user_scraper.initialize(
+                self.api_pool,
+                self.proxy_manager,
+                self.cache_manager,
+                self.batch_writer
+            )
+
+            # Process each user
+            for username, user_info in sorted_users:
+                try:
+                    # Skip if already processed
+                    if self.cache_manager.is_user_processed(username):
+                        continue
+
+                    # Scrape full user profile
+                    result = await user_scraper.scrape(username=username)
+
+                    if result and result.get('success'):
+                        user_data = result.get('user_data', {})
+                        if user_data:
+                            # Add full profile data
+                            enriched_user = {
+                                'username': username,
+                                'link_karma': user_data.get('link_karma', 0),
+                                'comment_karma': user_data.get('comment_karma', 0),
+                                'total_karma': user_data.get('total_karma', 0),
+                                'created_utc': user_data.get('created_utc'),
+                                'verified': user_data.get('verified', False),
+                                'is_gold': user_data.get('is_gold', False),
+                                'is_mod': user_data.get('is_mod', False),
+                                'has_verified_email': user_data.get('has_verified_email', False),
+                                'updated_at': datetime.now(timezone.utc).isoformat()
+                            }
+                            enriched_users.append(enriched_user)
+
+                            # Track discovered subreddits
+                            for sub in result.get('discovered_subreddits', []):
+                                discovered_subreddits.add(sub.get('name', ''))
+
+                    # Apply rate limiting
+                    await self.stealth_delay("user_enrichment")
+
+                except Exception as e:
+                    logger.warning(f"Failed to enrich user {username}: {e}")
+
+            # Write enriched users to database
+            if enriched_users:
+                logger.info(f"✍️ Thread {thread_id}: Updating {len(enriched_users)} users with full profiles")
+                for i in range(0, len(enriched_users), 100):
+                    chunk = enriched_users[i:i+100]
+                    try:
+                        self.supabase.table('reddit_users').upsert(
+                            chunk,
+                            on_conflict='username'
+                        ).execute()
+                        logger.info(f"✅ Updated {len(chunk)} user profiles")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to update user profiles: {e}")
+
+            # Process discovered subreddits
+            if discovered_subreddits:
+                logger.info(f"🔍 Thread {thread_id}: Processing {len(discovered_subreddits)} discovered subreddits")
+                await self.process_discovered_subreddits(list(discovered_subreddits)[:20], thread_id)
+
+            logger.info(f"✅ Thread {thread_id}: User enrichment phase completed - "
+                       f"{len(enriched_users)} users enriched, {len(discovered_subreddits)} subreddits discovered")
+
+        except Exception as e:
+            logger.error(f"❌ Thread {thread_id}: User enrichment failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+    async def process_discovered_subreddits(self, discovered_subreddits: List[str], thread_id: int):
+        """Quick-scrape and evaluate discovered subreddits"""
+        try:
+            from scrapers.reddit.scrapers.subreddit import SubredditScraper
+
+            processed_discoveries = []
+
+            for subreddit_name in discovered_subreddits[:20]:  # Limit to top 20
+                try:
+                    # Skip if already processed
+                    if self.cache_manager.is_subreddit_processed(subreddit_name):
+                        continue
+
+                    # Quick scrape for basic info
+                    scraper = SubredditScraper(self.supabase, thread_id)
+                    await scraper.initialize(
+                        self.api_pool,
+                        self.proxy_manager,
+                        self.cache_manager,
+                        self.batch_writer
+                    )
+
+                    # Just get subreddit info, not posts
+                    subreddit_info = await scraper.get_subreddit_info(subreddit_name)
+
+                    if subreddit_info and subreddit_info.get('subscriber_count', 0) > 1000:
+                        discovery_data = {
+                            'name': subreddit_name,
+                            'display_name': subreddit_info.get('display_name', subreddit_name),
+                            'subscriber_count': subreddit_info.get('subscriber_count', 0),
+                            'over18': subreddit_info.get('over18', False),
+                            'public_description': subreddit_info.get('public_description', ''),
+                            'discovered_from_batch': True,
+                            'created_at': datetime.now(timezone.utc).isoformat()
+                        }
+                        processed_discoveries.append(discovery_data)
+
+                except Exception as e:
+                    logger.debug(f"Failed to quick-scrape r/{subreddit_name}: {e}")
+
+            # Write discovered subreddits
+            if processed_discoveries:
+                logger.info(f"📝 Writing {len(processed_discoveries)} discovered subreddits")
+                try:
+                    self.supabase.table('reddit_subreddits').upsert(
+                        processed_discoveries,
+                        on_conflict='name'
+                    ).execute()
+                    logger.info(f"✅ Wrote {len(processed_discoveries)} discovered subreddits")
+                except Exception as e:
+                    logger.error(f"❌ Failed to write discovered subreddits: {e}")
+
+        except Exception as e:
+            logger.error(f"❌ Thread {thread_id}: Discovery processing failed: {e}")
 
     async def track_users_from_posts(self, posts: List[Dict], subreddit_name: str):
         """Track users from OK subreddit posts for later analysis"""

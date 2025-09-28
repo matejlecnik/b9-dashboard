@@ -8,9 +8,9 @@ import traceback
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
-from core.config.scraper_config import get_scraper_config
-from core.utils.supabase_logger import SupabaseLogHandler
-from core.database.supabase_client import get_supabase_client
+from api.core.config.scraper_config import get_scraper_config
+from api.core.utils.supabase_logger import SupabaseLogHandler
+from api.core.database.supabase_client import get_supabase_client
 
 # DEBUG: Add module-level logging to see what's happening
 print(f"[BATCH_WRITER MODULE] Loading batch_writer.py module", flush=True)

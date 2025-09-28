@@ -16,6 +16,30 @@ class SubredditScraper(BaseScraper):
     Fetches subreddit info, hot posts, top posts, and rules.
     """
 
+    async def get_subreddit_info(self, subreddit_name: str) -> Dict[str, Any]:
+        """Get basic subreddit info without posts - used for quick discovery evaluation"""
+        try:
+            # Fetch subreddit info
+            subreddit_info = await self.make_api_request(
+                'get_subreddit_info',
+                subreddit_name
+            )
+
+            if not subreddit_info:
+                return None
+
+            # Check for errors
+            if isinstance(subreddit_info, dict):
+                if subreddit_info.get('error') in ['banned', 'not_found', 'forbidden']:
+                    return None
+
+            # Parse and return basic info
+            return self.parse_subreddit_info(subreddit_info)
+
+        except Exception as e:
+            logger.debug(f"Failed to get info for r/{subreddit_name}: {e}")
+            return None
+
     async def scrape(self, subreddit_name: str) -> Dict[str, Any]:
         """
         Scrape comprehensive data for a subreddit.
