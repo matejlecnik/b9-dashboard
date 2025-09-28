@@ -1008,25 +1008,25 @@ class RedditScraperV2:
                 'posts': []
             }
 
-            # Collect subreddit metadata - ALWAYS create subreddit_data even without about_data
-            about_data = result.get('about', {})
+            # Collect subreddit metadata from the correct key
+            subreddit_metadata = result.get('subreddit_data', {})  # Fixed: was looking for 'about' instead of 'subreddit_data'
 
-            # Always create subreddit_data to ensure it's saved to database
-            response_data['subreddit_data'] = {
-                'name': subreddit_name.lower(),  # Normalize to lowercase
-                'display_name': about_data.get('display_name', subreddit_name) if about_data else subreddit_name,
-                'subscribers': about_data.get('subscribers', 0) if about_data else 0,
-                'active_users': about_data.get('active_user_count', 0) if about_data else 0,
-                'created_utc': about_data.get('created_utc') if about_data else None,
-                'over18': about_data.get('over18', False) if about_data else False,
-                'public_description': about_data.get('public_description', '') if about_data else '',
-                'description': about_data.get('description', '') if about_data else '',
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }
-
-            # Log if we're using fallback data
-            if not about_data:
-                logger.warning(f"Thread {scraper.thread_id}: No about_data for r/{subreddit_name}, using minimal metadata")
+            if subreddit_metadata:
+                # Use the real data from Reddit API
+                response_data['subreddit_data'] = {
+                    'name': subreddit_name.lower(),  # Normalize to lowercase
+                    'display_name': subreddit_metadata.get('display_name', subreddit_name),
+                    'subscribers': subreddit_metadata.get('subscribers', 0),
+                    'active_users': subreddit_metadata.get('active_user_count', 0),
+                    'created_utc': subreddit_metadata.get('created_utc'),
+                    'over18': subreddit_metadata.get('over18', False),
+                    'public_description': subreddit_metadata.get('public_description', ''),
+                    'description': subreddit_metadata.get('description', ''),
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+                logger.info(f"Thread {scraper.thread_id}: Collected metadata for r/{subreddit_name} - {subreddit_metadata.get('subscribers', 0)} subscribers")
+            else:
+                logger.warning(f"Thread {scraper.thread_id}: No subreddit metadata returned for r/{subreddit_name}")
 
             # Process posts and extract users
             all_posts = []
@@ -1068,13 +1068,17 @@ class RedditScraperV2:
             hot_count = len(result.get('hot_posts', []))
             weekly_count = len(result.get('weekly_posts', []))
             yearly_count = len(result.get('yearly_posts', []))
+            unique_users = len(response_data['users'])
+            total_posts = len(response_data['posts'])
 
             logger.info(f"[SubredditScraper] Successfully scraped r/{subreddit_name} - "
                        f"{hot_count} hot, {weekly_count} weekly, {yearly_count} yearly posts")
+            logger.info(f"Thread {scraper.thread_id}: Collected {unique_users} unique users and {total_posts} total posts from r/{subreddit_name}")
 
             # Track stats
             self.stats['subreddits_processed'] += 1
-            self.stats['posts_processed'] += len(response_data['posts'])
+            self.stats['posts_processed'] += total_posts
+            self.stats['users_processed'] += unique_users
 
             # For OK subreddits, track hot post users for enrichment
             if subreddit_type == 'ok' and result.get('hot_posts'):

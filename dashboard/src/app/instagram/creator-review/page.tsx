@@ -1,24 +1,10 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import {
-  Check,
-  X,
-  UserPlus,
-  Tag,
-  Sparkles,
-  Users,
-  TrendingUp,
-  Clock
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { DashboardLayout, MetricsCards, StandardToolbar, UniversalCreatorTable } from '@/components/shared'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { useDebounce } from '@/hooks/useDebounce'
-import { MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
 
-// Import React Query hooks and types
+// Import React Query hooks
 import {
   useInstagramCreators,
   useCreatorStats,
@@ -29,8 +15,24 @@ import {
   type CreatorStats
 } from '@/hooks/queries/useInstagramReview'
 
+// Import components
+import { TableSkeleton, MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { MetricsCards } from '@/components/shared/cards/MetricsCards'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
+import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { Check, X, UserPlus, Tag, Sparkles, Users, TrendingUp, Clock } from 'lucide-react'
+import { logger } from '@/lib/logger'
+
 // Import InstagramCreator type for type safety
-import type { Creator as InstagramCreatorType } from '@/components/shared'
+import type { Creator as InstagramCreatorType } from '@/components/shared/tables/UniversalCreatorTable'
+
+// Dynamic imports for heavy components
+const UniversalCreatorTable = dynamic(
+  () => import('@/components/shared/tables/UniversalCreatorTable').then(mod => mod.UniversalCreatorTable),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
 
 const RelatedCreatorsModal = dynamic(
   () => import('@/components/instagram/RelatedCreatorsModal').then(mod => ({ default: mod.RelatedCreatorsModal })),
@@ -186,29 +188,11 @@ export default function CreatorReviewPage() {
   const postsMetrics = new Map<string, { avgLikes: number, avgComments: number }>()
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Creator Review</h1>
-              <p className="text-sm text-gray-600 mt-1">Review and categorize Instagram creators</p>
-            </div>
-            <Button
-              onClick={() => setIsRelatedCreatorsModalOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Find Related
-            </Button>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+    <DashboardLayout
+      title="Creator Review"
+      subtitle="Review and categorize Instagram creators"
+    >
+      <div className="space-y-6">
             {/* Metrics Cards */}
             <ComponentErrorBoundary>
               {!stats ? (
@@ -228,96 +212,96 @@ export default function CreatorReviewPage() {
             {/* StandardToolbar */}
             <ComponentErrorBoundary>
               <StandardToolbar
-              // Search
-              searchValue={searchQuery}
-              onSearchChange={handleSearchChange}
+                // Search
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
 
-              // Filters
-              filters={[
-                {
-                  id: 'pending',
-                  label: 'Pending',
-                  count: reviewCounts.pending
-                },
-                {
-                  id: 'approved',
-                  label: 'Approved',
-                  count: reviewCounts.approved
-                },
-                {
-                  id: 'rejected',
-                  label: 'Rejected',
-                  count: reviewCounts.rejected
-                },
-                {
-                  id: 'needs_review',
-                  label: 'Needs Review',
-                  count: reviewCounts.needsReview
-                },
-                {
-                  id: 'blacklisted',
-                  label: 'Blacklisted',
-                  count: reviewCounts.blacklisted
-                }
-              ]}
-              currentFilter={currentFilter}
-              onFilterChange={handleFilterChange as (filter: string) => void}
+                // Filters
+                filters={[
+                  {
+                    id: 'pending',
+                    label: 'Pending',
+                    count: reviewCounts.pending
+                  },
+                  {
+                    id: 'approved',
+                    label: 'Approved',
+                    count: reviewCounts.approved
+                  },
+                  {
+                    id: 'rejected',
+                    label: 'Rejected',
+                    count: reviewCounts.rejected
+                  },
+                  {
+                    id: 'needs_review',
+                    label: 'Needs Review',
+                    count: reviewCounts.needsReview
+                  },
+                  {
+                    id: 'blacklisted',
+                    label: 'Blacklisted',
+                    count: reviewCounts.blacklisted
+                  }
+                ]}
+                currentFilter={currentFilter}
+                onFilterChange={handleFilterChange as (filter: string) => void}
 
-              // Sort options
-              sortOptions={[
-                { id: 'followers', label: 'Followers', icon: Users },
-                { id: 'engagement', label: 'Engagement', icon: TrendingUp },
-                { id: 'recent', label: 'Recent', icon: Clock }
-              ]}
-              currentSort={currentFilter === 'pending' ? 'followers' : 'recent'}
-              onSortChange={() => {
-                // Sort is handled by the query hooks with orderBy parameter
-              }}
+                // Sort options
+                sortOptions={[
+                  { id: 'followers', label: 'Followers', icon: Users },
+                  { id: 'engagement', label: 'Engagement', icon: TrendingUp },
+                  { id: 'recent', label: 'Recent', icon: Clock }
+                ]}
+                currentSort={currentFilter === 'pending' ? 'followers' : 'recent'}
+                onSortChange={() => {
+                  // Sort is handled by the query hooks with orderBy parameter
+                }}
 
-              // Action buttons
-              actionButtons={[
-                {
-                  id: 'find-related',
-                  label: 'Find Related',
-                  icon: Sparkles,
-                  onClick: () => setIsRelatedCreatorsModalOpen(true),
-                  variant: 'outline' as const
-                }
-              ]}
+                // Action buttons
+                actionButtons={[
+                  {
+                    id: 'find-related',
+                    label: 'Find Related',
+                    icon: Sparkles,
+                    onClick: () => setIsRelatedCreatorsModalOpen(true),
+                    variant: 'outline' as const
+                  }
+                ]}
 
-              // Bulk actions (when items selected)
-              selectedCount={selectedCreators.size}
-              bulkActions={selectedCreators.size > 0 ? [
-                {
-                  id: 'approve',
-                  label: 'Approve',
-                  icon: Check,
-                  onClick: () => updateBulkStatus('approved'),
-                  variant: 'secondary' as const
-                },
-                {
-                  id: 'reject',
-                  label: 'Reject',
-                  icon: X,
-                  onClick: () => updateBulkStatus('rejected'),
-                  variant: 'secondary' as const
-                },
-                {
-                  id: 'needs-review',
-                  label: 'Needs Review',
-                  icon: UserPlus,
-                  onClick: () => updateBulkStatus('needs_review'),
-                  variant: 'secondary' as const
-                },
-                {
-                  id: 'blacklist',
-                  label: 'Blacklist',
-                  icon: Tag,
-                  onClick: () => updateBulkStatus('blacklisted'),
-                  variant: 'secondary' as const
-                }
-              ] : []}
-              onClearSelection={() => setSelectedCreators(new Set())}
+                // Bulk actions (when items selected)
+                selectedCount={selectedCreators.size}
+                bulkActions={selectedCreators.size > 0 ? [
+                  {
+                    id: 'approve',
+                    label: 'Approve',
+                    icon: Check,
+                    onClick: () => updateBulkStatus('approved'),
+                    variant: 'secondary' as const
+                  },
+                  {
+                    id: 'reject',
+                    label: 'Reject',
+                    icon: X,
+                    onClick: () => updateBulkStatus('rejected'),
+                    variant: 'secondary' as const
+                  },
+                  {
+                    id: 'needs-review',
+                    label: 'Needs Review',
+                    icon: UserPlus,
+                    onClick: () => updateBulkStatus('needs_review'),
+                    variant: 'secondary' as const
+                  },
+                  {
+                    id: 'blacklist',
+                    label: 'Blacklist',
+                    icon: Tag,
+                    onClick: () => updateBulkStatus('blacklisted'),
+                    variant: 'secondary' as const
+                  }
+                ] : []}
+                onClearSelection={() => setSelectedCreators(new Set())}
 
                 loading={isLoading || bulkUpdateMutation.isPending}
                 accentColor="linear-gradient(135deg, #E1306C, #F77737)"
@@ -344,15 +328,15 @@ export default function CreatorReviewPage() {
                 loadingMore={isFetchingNextPage}
               />
             </ComponentErrorBoundary>
-          </div>
-        </div>
       </div>
 
       {/* Related Creators Modal */}
-      <RelatedCreatorsModal
-        isOpen={isRelatedCreatorsModalOpen}
-        onClose={() => setIsRelatedCreatorsModalOpen(false)}
-      />
+      {isRelatedCreatorsModalOpen && (
+        <RelatedCreatorsModal
+          isOpen={isRelatedCreatorsModalOpen}
+          onClose={() => setIsRelatedCreatorsModalOpen(false)}
+        />
+      )}
     </DashboardLayout>
   )
 }
