@@ -63,7 +63,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.0.0 - Simplified Architecture"
+SCRAPER_VERSION = "3.1.0 - Protected Field UPSERT"
 
 # Constants (replacing complex config)
 BATCH_SIZE = 50  # Posts per batch insert
@@ -135,6 +135,26 @@ class SimplifiedRedditScraper:
                 'context': {'version': SCRAPER_VERSION, 'action': 'initialization_start'}
             }).execute()
             logger.info("✅ Supabase client initialized")
+
+            # Log version prominently at startup
+            logger.info("")
+            logger.info("="*80)
+            logger.info(f"Reddit Scraper v{SCRAPER_VERSION}")
+            logger.info("="*80)
+            logger.info("")
+
+            self.supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'simple_main',
+                'level': 'info',
+                'message': f'📊 Scraper Version: {SCRAPER_VERSION}',
+                'context': {
+                    'version': SCRAPER_VERSION,
+                    'action': 'version_log',
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }
+            }).execute()
 
             # Initialize proxy manager and API pool
             self.proxy_manager = ProxyManager(self.supabase)
@@ -322,6 +342,53 @@ class SimplifiedRedditScraper:
                 },
                 'duration_ms': int(load_duration * 1000)
             }).execute()
+
+            # Validate cache completeness
+            try:
+                total_in_db = self.supabase.table('reddit_subreddits').select('id', count='exact').limit(1).execute()
+                expected_count = total_in_db.count
+
+                cache_complete = total_loaded >= expected_count
+                completion_rate = 100 * total_loaded / expected_count if expected_count > 0 else 0
+
+                if not cache_complete:
+                    logger.error(f"⚠️ CACHE INCOMPLETE: Loaded {total_loaded}/{expected_count} subreddits ({completion_rate:.1f}%)")
+
+                    # Log to Supabase for monitoring
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'error',
+                        'message': f'⚠️ Cache incomplete: {total_loaded}/{expected_count} ({completion_rate:.1f}%)',
+                        'context': {
+                            'action': 'cache_validation_failed',
+                            'loaded': total_loaded,
+                            'expected': expected_count,
+                            'batches': batch_num,
+                            'completion_rate': round(completion_rate, 1)
+                        }
+                    }).execute()
+                else:
+                    logger.info(f"✅ Cache complete: {total_loaded}/{expected_count} subreddits verified")
+
+                    # Log success
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'success',
+                        'message': f'✅ Cache validation passed: {total_loaded}/{expected_count}',
+                        'context': {
+                            'action': 'cache_validation_success',
+                            'loaded': total_loaded,
+                            'expected': expected_count,
+                            'batches': batch_num
+                        }
+                    }).execute()
+
+            except Exception as validation_error:
+                logger.warning(f"⚠️ Cache validation failed: {validation_error}")
 
             logger.info(f"✅ Loaded {total_loaded} subreddits into cache in {batch_num} batches ({load_duration:.1f}s)")
 
@@ -2412,33 +2479,93 @@ class SimplifiedRedditScraper:
                 # Use cache to check if subreddit exists (faster than database query)
                 is_new_subreddit = name.lower() not in self.all_subreddits_cache
 
-                if is_new_subreddit:
-                    # Determine review status - User Feed for u_ prefixed subreddits
-                    if name.startswith('u_'):
-                        review_status = 'User Feed'
-                        category = 'User Profile'
-                        logger.info(f"👤 Detected user profile subreddit: r/{name}")
+                # Determine review status - User Feed for u_ prefixed subreddits
+                if name.startswith('u_'):
+                    review_status = 'User Feed'
+                    category = 'User Profile'
+                    logger.info(f"👤 Detected user profile subreddit: r/{name}")
+                else:
+                    review_status = None  # Empty review field for manual review
+                    category = 'Unknown'
+
+                # CRITICAL FIX: Fetch existing data before UPSERT to prevent data loss
+                # This prevents overwriting protected fields when cache is incomplete
+                queue_start = datetime.now(timezone.utc)
+                try:
+                    # Fetch existing protected fields
+                    existing = self.supabase.table('reddit_subreddits').select(
+                        'review, primary_category, tags, over18, subscribers, accounts_active'
+                    ).eq('name', name).execute()
+
+                    existing_data = existing.data[0] if existing.data else {}
+
+                    # Build UPSERT data with field protection
+                    upsert_data = {
+                        'name': name,
+                        'display_name_prefixed': f'r/{name}',
+                        'url': f'/r/{name}/',
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                        'last_scraped_at': None  # Re-queue for scraping
+                    }
+
+                    # Protected fields: Only set if existing value is NULL/empty
+                    protected_fields = []
+
+                    # 1. REVIEW: Preserve if set, otherwise use determined value
+                    if existing_data.get('review'):
+                        # Keep existing - don't include in upsert_data
+                        protected_fields.append('review')
                     else:
-                        review_status = None  # Empty review field for manual review
-                        category = 'Unknown'
+                        # Not set - use determined value (User Feed for u_, None for others)
+                        upsert_data['review'] = review_status
 
-                    # NEW SUBREDDIT: Use UPSERT to create
-                    queue_start = datetime.now(timezone.utc)
-                    try:
-                        result = self.supabase.table('reddit_subreddits').upsert({
-                            'name': name,
-                            'display_name_prefixed': f'r/{name}',
-                            'url': f'/r/{name}/',
-                            'review': review_status,  # User Feed for u_ subreddits, None for others
-                            'primary_category': category,
-                            'subscribers': 0,
-                            'accounts_active': 0,
-                            'created_at': datetime.now(timezone.utc).isoformat(),
-                            'last_scraped_at': None  # Not scraped yet
-                        }, on_conflict='name').execute()
+                    # 2. PRIMARY_CATEGORY: Preserve if not Unknown/NULL
+                    if existing_data.get('primary_category') and existing_data.get('primary_category') != 'Unknown':
+                        # Keep existing - don't include
+                        protected_fields.append('primary_category')
+                    else:
+                        # Unknown or NULL - use determined value
+                        upsert_data['primary_category'] = category
 
-                        # Log NEW subreddit discovered
-                        queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
+                    # 3. TAGS: Preserve if set
+                    if existing_data.get('tags') and len(existing_data.get('tags', [])) > 0:
+                        # Keep existing - don't include
+                        protected_fields.append('tags')
+                    # Don't set tags in UPSERT - will be populated by update_subreddit_and_metrics
+
+                    # 4. OVER18: Preserve if set
+                    if 'over18' in existing_data and existing_data['over18'] is not None:
+                        # Keep existing - don't include
+                        protected_fields.append('over18')
+                    # Don't set over18 - will be fetched from API
+
+                    # 5. SUBSCRIBERS/ACCOUNTS_ACTIVE: Preserve if non-zero
+                    if existing_data.get('subscribers', 0) > 0:
+                        # Keep existing - don't include
+                        protected_fields.append('subscribers')
+                    else:
+                        upsert_data['subscribers'] = 0  # Will be updated by API fetch
+
+                    if existing_data.get('accounts_active', 0) > 0:
+                        # Keep existing - don't include
+                        protected_fields.append('accounts_active')
+                    else:
+                        upsert_data['accounts_active'] = 0  # Will be updated by API fetch
+
+                    # Execute protected UPSERT
+                    result = self.supabase.table('reddit_subreddits').upsert(
+                        upsert_data,
+                        on_conflict='name'
+                    ).execute()
+
+                    # Determine if truly new or existing
+                    is_truly_new = not existing.data
+
+                    # Log with proper status
+                    queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
+
+                    if is_truly_new:
+                        # NEW subreddit discovered
                         self.supabase.table('system_logs').insert({
                             'timestamp': datetime.now(timezone.utc).isoformat(),
                             'source': 'reddit_scraper',
@@ -2451,73 +2578,51 @@ class SimplifiedRedditScraper:
                                 'category': category,
                                 'action': 'subreddit_new_discovered',
                                 'is_new': True,
-                                'is_user_profile': name.startswith('u_')
+                                'is_user_profile': name.startswith('u_'),
+                                'protected_fields': protected_fields
                             },
                             'duration_ms': int(queue_duration * 1000)
                         }).execute()
-
                         logger.info(f"🆕 Discovered new subreddit: r/{name}")
                         new_count += 1
-                    except Exception as queue_error:
-                        # Log queue failure
-                        self.supabase.table('system_logs').insert({
-                            'timestamp': datetime.now(timezone.utc).isoformat(),
-                            'source': 'reddit_scraper',
-                            'script_name': 'simple_main',
-                            'level': 'error',
-                            'message': f'❌ Failed to queue new subreddit: r/{name}',
-                            'context': {
-                                'subreddit': name,
-                                'error': str(queue_error),
-                                'error_type': type(queue_error).__name__,
-                                'action': 'subreddit_new_queue_failed',
-                                'is_new': True
-                            }
-                        }).execute()
-                        raise queue_error
-                else:
-                    # EXISTING SUBREDDIT: Just update last_scraped_at to re-queue it
-                    queue_start = datetime.now(timezone.utc)
-                    try:
-                        result = self.supabase.table('reddit_subreddits').update({
-                            'last_scraped_at': None  # Reset to re-queue for scraping
-                        }).eq('name', name).execute()
-
-                        # Log EXISTING subreddit re-queued
-                        queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
+                    else:
+                        # EXISTING subreddit re-queued with protection
                         self.supabase.table('system_logs').insert({
                             'timestamp': datetime.now(timezone.utc).isoformat(),
                             'source': 'reddit_scraper',
                             'script_name': 'simple_main',
                             'level': 'info',
-                            'message': f'🔄 Existing subreddit re-queued: r/{name}',
+                            'message': f'🔄 Existing subreddit re-queued (protected): r/{name}',
                             'context': {
                                 'subreddit': name,
-                                'action': 'subreddit_existing_requeued',
+                                'action': 'subreddit_existing_requeued_protected',
                                 'is_new': False,
-                                'existing_review': self.all_subreddits_cache.get(name.lower(), {}).get('review')
+                                'existing_review': existing_data.get('review'),
+                                'existing_category': existing_data.get('primary_category'),
+                                'existing_tags': existing_data.get('tags'),
+                                'protected_fields': protected_fields,
+                                'cache_miss': is_new_subreddit
                             },
                             'duration_ms': int(queue_duration * 1000)
                         }).execute()
+                        logger.info(f"🔄 Re-queued existing subreddit (protected): r/{name}")
 
-                        logger.info(f"🔄 Re-queued existing subreddit: r/{name}")
-
-                    except Exception as queue_error:
-                        # Log queue failure
-                        self.supabase.table('system_logs').insert({
-                            'timestamp': datetime.now(timezone.utc).isoformat(),
-                            'source': 'reddit_scraper',
-                            'script_name': 'simple_main',
-                            'level': 'error',
-                            'message': f'❌ Failed to queue subreddit: r/{name}',
-                            'context': {
-                                'subreddit': name,
-                                'error': str(queue_error),
-                                'error_type': type(queue_error).__name__,
-                                'action': 'subreddit_queue_failed'
-                            }
-                        }).execute()
-                        raise queue_error
+                except Exception as queue_error:
+                    # Log queue failure
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'error',
+                        'message': f'❌ Failed to queue subreddit: r/{name}',
+                        'context': {
+                            'subreddit': name,
+                            'error': str(queue_error),
+                            'error_type': type(queue_error).__name__,
+                            'action': 'subreddit_queue_failed'
+                        }
+                    }).execute()
+                    logger.error(f"❌ Failed to queue r/{name}: {queue_error}")
 
             except Exception as e:
                 logger.error(f"❌ Error queueing subreddit {name}: {e}")
