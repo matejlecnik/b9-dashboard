@@ -1,22 +1,26 @@
 # Reddit Scraper Logging Improvement Plan v3.2.0
 
-┌─ CURRENT STATUS ────────────────────────────────────────┐
-│ 🟡 INCOMPLETE  │ ████████░░░░░░░░░░░░ 42% TO SUPABASE  │
+┌─ STATUS: ✅ IMPLEMENTED ────────────────────────────────┐
+│ v3.2.0 DEPLOYED: 2025-09-29                             │
+│ COVERAGE: Improved logging with aggregation & tracking  │
 └─────────────────────────────────────────────────────────┘
 
 ## Issue Summary
 
 ```json
 {
-  "severity": "MEDIUM",
-  "impact": "58% of logs lost in Render console (30-day retention)",
-  "current_coverage": "42% (60/143 logs to Supabase)",
-  "target_coverage": "85% (critical + important events)",
-  "version_current": "3.1.1 - Cache Pagination Fix",
-  "version_target": "3.2.0 - Enhanced Supabase Logging",
-  "estimated_time": "2-3 hours",
-  "priority": "MEDIUM",
-  "status": "PLANNED (not yet implemented)"
+  "severity": "RESOLVED",
+  "impact": "Enhanced Supabase logging with skip aggregation",
+  "version_deployed": "3.2.0 - Enhanced Supabase Logging",
+  "changes_implemented": [
+    "LoggingHelper class with dual console + Supabase logging",
+    "Skip aggregation (33+ logs → 1 summary per cycle)",
+    "Progress updates to Supabase every 10 subreddits",
+    "Categorization logging with log_helper"
+  ],
+  "estimated_time": "1h 30m (actual)",
+  "priority": "COMPLETE",
+  "status": "PRODUCTION"
 }
 ```
 

@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Set, Tuple
 from collections import defaultdict
+from contextlib import contextmanager
 from pathlib import Path
 import json
 
@@ -63,7 +64,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.1.1 - Cache Pagination Fix"
+SCRAPER_VERSION = "3.2.0 - Enhanced Supabase Logging"
 
 # Constants (replacing complex config)
 BATCH_SIZE = 50  # Posts per batch insert
@@ -73,6 +74,102 @@ POSTS_PER_SUBREDDIT = 30  # Hot posts to analyze
 USER_SUBMISSIONS_LIMIT = 30  # Recent user submissions to check
 RATE_LIMIT_DELAY = 1.0  # Seconds between requests
 MAX_RETRIES = 3  # Retry attempts for failed requests
+
+
+class LoggingHelper:
+    """Helper for dual console + Supabase logging"""
+
+    def __init__(self, supabase, logger, source='reddit_scraper'):
+        self.supabase = supabase
+        self.logger = logger
+        self.source = source
+
+    def log_to_both(
+        self,
+        level: str,
+        message: str,
+        context: dict = None,
+        duration_ms: int = None,
+        console_only: bool = False
+    ):
+        """
+        Log to both console and Supabase
+
+        Args:
+            level: 'info', 'error', 'warning', 'debug', 'success'
+            message: Log message
+            context: Additional structured context
+            duration_ms: Operation duration in milliseconds
+            console_only: If True, skip Supabase (for debug spam)
+        """
+        # Always log to console
+        console_level = 'info' if level == 'success' else level
+        getattr(self.logger, console_level)(message)
+
+        # Skip Supabase for debug unless explicitly requested
+        if console_only or (level == 'debug' and context is None):
+            return
+
+        # Map 'success' to 'info' for Supabase
+        supabase_level = 'info' if level == 'success' else level
+
+        # Build Supabase log entry
+        log_entry = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'source': self.source,
+            'script_name': 'simple_main',
+            'level': supabase_level,
+            'message': message,
+            'context': context or {}
+        }
+
+        if duration_ms is not None:
+            log_entry['duration_ms'] = duration_ms
+
+        try:
+            self.supabase.table('system_logs').insert(log_entry).execute()
+        except Exception as e:
+            self.logger.error(f"Failed to log to Supabase: {e}")
+
+    @contextmanager
+    def track_operation(self, operation_name: str, context: dict = None):
+        """
+        Context manager for tracking operation duration
+
+        Usage:
+            with self.log_helper.track_operation('process_subreddit', {'subreddit': name}):
+                # ... do work ...
+                pass
+        """
+        start_time = datetime.now(timezone.utc)
+
+        try:
+            yield
+
+            # Success
+            duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+            self.log_to_both(
+                'success',
+                f'✅ {operation_name} completed',
+                context={**(context or {}), 'operation': operation_name},
+                duration_ms=duration_ms
+            )
+
+        except Exception as e:
+            # Failure
+            duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+            self.log_to_both(
+                'error',
+                f'❌ {operation_name} failed: {e}',
+                context={
+                    **(context or {}),
+                    'operation': operation_name,
+                    'error': str(e),
+                    'error_type': type(e).__name__
+                },
+                duration_ms=duration_ms
+            )
+            raise
 
 
 class SimplifiedRedditScraper:
@@ -118,6 +215,12 @@ class SimplifiedRedditScraper:
             'errors': []
         }
 
+        # Logging helper (initialized after Supabase)
+        self.log_helper = None
+
+        # Skip statistics for aggregation
+        self.skip_stats = defaultdict(int)
+
     async def initialize(self):
         """Initialize core components"""
         init_start = datetime.now(timezone.utc)
@@ -135,6 +238,9 @@ class SimplifiedRedditScraper:
                 'context': {'version': SCRAPER_VERSION, 'action': 'initialization_start'}
             }).execute()
             logger.info("✅ Supabase client initialized")
+
+            # Initialize logging helper
+            self.log_helper = LoggingHelper(self.supabase, logger)
 
             # Log version prominently at startup
             logger.info("")
@@ -530,21 +636,31 @@ class SimplifiedRedditScraper:
 
                 # Log progress every 10 subreddits
                 if processed % 10 == 0:
-                    logger.info(f"📊 Progress: {processed}/{total_subs} subreddits (skipped: {skipped})")
+                    self.log_helper.log_to_both(
+                        'info',
+                        f"📊 Progress: {processed}/{total_subs} subreddits (skipped: {skipped})",
+                        context={
+                            'action': 'cycle_progress',
+                            'processed': processed,
+                            'total': total_subs,
+                            'skipped': skipped,
+                            'progress_pct': round(processed / total_subs * 100, 1) if total_subs > 0 else 0
+                        }
+                    )
 
                 # Skip if already in skip lists WITH COMPREHENSIVE LOGGING
                 skip_reason = None
                 if sub_name in self.non_related_subreddits:
                     skip_reason = 'Non Related'
-                    logger.debug(f"⏭️ Skipping {sub_name} (Non Related)")
+                    self.skip_stats['Non Related'] += 1
                     skipped += 1
                 elif sub_name in self.user_feed_subreddits:
                     skip_reason = 'User Feed'
-                    logger.debug(f"⏭️ Skipping {sub_name} (User Feed)")
+                    self.skip_stats['User Feed'] += 1
                     skipped += 1
                 elif sub_name in self.banned_subreddits:
                     skip_reason = 'Banned'
-                    logger.debug(f"⏭️ Skipping {sub_name} (Banned)")
+                    self.skip_stats['Banned'] += 1
                     skipped += 1
 
                 if skip_reason:
@@ -590,7 +706,7 @@ class SimplifiedRedditScraper:
 
                         # Now safe to compare with timezone-aware datetime
                         if (datetime.now(timezone.utc) - last_scraped) < timedelta(hours=24):
-                            logger.debug(f"⏭️ Skipping {sub_name} (recently scraped)")
+                            self.skip_stats['Recently Scraped'] += 1
                             continue
                     except Exception as e:
                         logger.warning(f"Failed to parse last_scraped_at for {sub_name}: {e}, continuing anyway")
@@ -615,25 +731,18 @@ class SimplifiedRedditScraper:
                     await self.save_review_status(sub_name, 'User Feed')
 
             # Log categorization results
-            try:
-                self.supabase.table('system_logs').insert({
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': 'reddit_scraper',
-                    'script_name': 'simple_main',
-                    'level': 'info',
-                    'message': f'📊 Categorized subreddits',
-                    'context': {
-                        'cycle_id': cycle_id,
-                        'ok_count': len(ok_subs),
-                        'no_seller_count': len(no_seller_subs),
-                        'new_count': len(new_subs),
-                        'skipped_count': len(subreddits) - len(ok_subs) - len(no_seller_subs) - len(new_subs),
-                        'action': 'categorization_complete'
-                    }
-                }).execute()
-            except:
-                pass
-            logger.info(f"📊 Categorized: {len(ok_subs)} Ok, {len(no_seller_subs)} No Seller")
+            self.log_helper.log_to_both(
+                'info',
+                f'📊 Categorized: {len(ok_subs)} Ok, {len(no_seller_subs)} No Seller, {len(new_subs)} New',
+                context={
+                    'cycle_id': cycle_id,
+                    'ok_count': len(ok_subs),
+                    'no_seller_count': len(no_seller_subs),
+                    'new_count': len(new_subs),
+                    'skipped_count': len(subreddits) - len(ok_subs) - len(no_seller_subs) - len(new_subs),
+                    'action': 'categorization_complete'
+                }
+            )
 
             # 3. Process subreddits with threading
             # Process No Seller subreddits (limited data)
@@ -707,6 +816,20 @@ class SimplifiedRedditScraper:
 
             # Clean up memory at the end of each cycle
             self.cleanup_memory()
+
+            # Log skip summary if any skips occurred
+            if self.skip_stats:
+                total_skipped = sum(self.skip_stats.values())
+                self.log_helper.log_to_both(
+                    'info',
+                    f'📊 Skip Summary: {total_skipped} subreddits skipped',
+                    context={
+                        'skip_reasons': dict(self.skip_stats),
+                        'total_skipped': total_skipped
+                    }
+                )
+                # Clear stats for next cycle
+                self.skip_stats.clear()
 
             # Log final stats
             cycle_duration = (datetime.now(timezone.utc) - self.stats['start_time']).total_seconds() if self.stats['start_time'] else 0

@@ -10,7 +10,7 @@
 {
   "parent": "../../README.md",
   "current": "scrapers/reddit/README.md",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "status": "PRODUCTION",
   "components": [
     {"file": "simple_main.py", "desc": "Main v3 scraper", "status": "RUNNING"},
@@ -25,7 +25,7 @@
 ## System Health
 
 ```
-SCRAPER   [OK]   Running v3.1.1   | Heartbeat: 10s ago
+SCRAPER   [OK]   Running v3.2.0   | Heartbeat: 10s ago
 DATABASE  [OK]   Connected        | Cache: 10,850/10,850 (100%)
 RATE_LIMIT[OK]   Available: 580   | Reset: 5min
 MEMORY    [OK]   Usage: 480MB     | Limit: 2GB (-20% usage)
