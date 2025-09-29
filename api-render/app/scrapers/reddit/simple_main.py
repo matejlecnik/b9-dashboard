@@ -596,9 +596,68 @@ class SimplifiedRedditScraper:
 
     # Direct API call methods (replacing old scraper classes)
     async def get_subreddit_about(self, sub_name: str) -> Optional[Dict]:
-        """Get subreddit about information"""
+        """Get subreddit about information - WITH BANNED DETECTION"""
         try:
             response = await self.api_pool.make_request(f'/r/{sub_name}/about.json')
+
+            # DETECT BANNED SUBREDDITS
+            if response and response.get('error') == 'banned':
+                logger.warning(f"🚫 Detected BANNED subreddit: r/{sub_name}")
+
+                # Mark as Banned in database
+                try:
+                    self.supabase.table('reddit_subreddits').update({
+                        'review': 'Banned',
+                        'last_scraped_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('name', sub_name).execute()
+
+                    # Add to banned skip list
+                    self.banned_subreddits.add(sub_name.lower())
+
+                    # Log banned detection
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'warning',
+                        'message': f'🚫 Banned subreddit detected and marked: r/{sub_name}',
+                        'context': {
+                            'subreddit': sub_name,
+                            'action': 'subreddit_banned_detected',
+                            'review_status': 'Banned',
+                            'added_to_skip_list': True
+                        }
+                    }).execute()
+
+                    logger.info(f"✅ Marked r/{sub_name} as Banned and added to skip list")
+                except Exception as mark_error:
+                    logger.error(f"Failed to mark r/{sub_name} as Banned: {mark_error}")
+
+                return None
+
+            # DETECT PRIVATE/FORBIDDEN SUBREDDITS
+            if response and response.get('error') == 'forbidden':
+                logger.warning(f"🔒 Detected PRIVATE/FORBIDDEN subreddit: r/{sub_name}")
+
+                # Log private detection
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'warning',
+                        'message': f'🔒 Private/Forbidden subreddit detected: r/{sub_name}',
+                        'context': {
+                            'subreddit': sub_name,
+                            'action': 'subreddit_private_detected',
+                            'status_code': response.get('status', 403)
+                        }
+                    }).execute()
+                except:
+                    pass
+
+                return None
+
             if response and 'data' in response:
                 # Log successful API call
                 try:
@@ -828,14 +887,59 @@ class SimplifiedRedditScraper:
             return []
 
     async def get_subreddit_rules(self, sub_name: str) -> List[Dict]:
-        """Get subreddit rules"""
+        """Get subreddit rules - WITH COMPREHENSIVE LOGGING"""
+        api_start = datetime.now(timezone.utc)
         try:
             response = await self.api_pool.make_request(f'/r/{sub_name}/about/rules.json')
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
+
             if response and 'rules' in response:
-                return response['rules']
+                rules = response['rules']
+
+                # Log successful API call
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Retrieved {len(rules)} rules for r/{sub_name}',
+                        'context': {
+                            'subreddit': sub_name,
+                            'action': 'api_rules',
+                            'rules_count': len(rules),
+                            'has_rules': len(rules) > 0
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
+                return rules
             return []
         except Exception as e:
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
             logger.debug(f"Error getting rules for r/{sub_name}: {e}")
+
+            # Log API error
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'debug',
+                    'message': f'Failed to get rules for r/{sub_name}',
+                    'context': {
+                        'subreddit': sub_name,
+                        'action': 'api_rules_failed',
+                        'error': str(e),
+                        'error_type': type(e).__name__
+                    },
+                    'duration_ms': int(api_duration * 1000)
+                }).execute()
+            except:
+                pass
+
             return []
 
     def check_verification_required(self, about_data: Dict, rules: List[Dict]) -> bool:
@@ -1990,29 +2094,61 @@ class SimplifiedRedditScraper:
                 on_conflict='name'
             ).execute()
 
-            # Log successful update with details
+            # DIFFERENTIATE: New vs Updated Subreddit in logs
+            # Check if this was the first time the subreddit was fully scraped
+            was_previously_scraped = existing_data.get('last_scraped_at') is not None if existing_data else False
+
+            # Log successful update with NEW vs UPDATED differentiation
             update_duration = (datetime.now(timezone.utc) - update_start).total_seconds()
-            self.supabase.table('system_logs').insert({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'source': 'reddit_scraper',
-                'script_name': 'simple_main',
-                'level': 'success',
-                'message': f'📊 Updated subreddit: r/{name}',
-                'context': {
-                    'subreddit': name,
-                    'action': 'subreddit_updated',
-                    'metrics': {
-                        'engagement': metrics.get('engagement', 0),
-                        'subreddit_score': metrics.get('subreddit_score', 0),
-                        'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+
+            if not was_previously_scraped:
+                # First time scraping this subreddit - treat as NEW
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'success',
+                    'message': f'🆕 New subreddit fully scraped: r/{name}',
+                    'context': {
+                        'subreddit': name,
+                        'action': 'subreddit_first_scrape',
+                        'is_new': True,
+                        'metrics': {
+                            'engagement': metrics.get('engagement', 0),
+                            'subreddit_score': metrics.get('subreddit_score', 0),
+                            'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+                        },
+                        'protected_fields': protected_fields,
+                        'verification_required': verification_required,
+                        'subscribers': about_data.get('subscribers', 0),
+                        'records_affected': len(result.data) if result and result.data else 0
                     },
-                    'protected_fields': protected_fields,
-                    'verification_required': verification_required,
-                    'subscribers': about_data.get('subscribers', 0),
-                    'records_affected': len(result.data) if result and result.data else 0
-                },
-                'duration_ms': int(update_duration * 1000)
-            }).execute()
+                    'duration_ms': int(update_duration * 1000)
+                }).execute()
+            else:
+                # Previously scraped - this is an UPDATE
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'success',
+                    'message': f'🔄 Subreddit updated: r/{name}',
+                    'context': {
+                        'subreddit': name,
+                        'action': 'subreddit_updated',
+                        'is_new': False,
+                        'metrics': {
+                            'engagement': metrics.get('engagement', 0),
+                            'subreddit_score': metrics.get('subreddit_score', 0),
+                            'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+                        },
+                        'protected_fields': protected_fields,
+                        'verification_required': verification_required,
+                        'subscribers': about_data.get('subscribers', 0),
+                        'records_affected': len(result.data) if result and result.data else 0
+                    },
+                    'duration_ms': int(update_duration * 1000)
+                }).execute()
 
             logger.debug(f"📊 Updated r/{name} with metrics (protected: {protected_fields})")
 
@@ -2135,7 +2271,10 @@ class SimplifiedRedditScraper:
                     'name'
                 ).eq('name', name).execute()
 
-                if not check_result.data:
+                # DIFFERENTIATE: New vs Existing Subreddit
+                is_new_subreddit = not check_result.data or len(check_result.data) == 0
+
+                if is_new_subreddit:
                     # Determine review status - User Feed for u_ prefixed subreddits
                     if name.startswith('u_'):
                         review_status = 'User Feed'
@@ -2145,7 +2284,7 @@ class SimplifiedRedditScraper:
                         review_status = None  # Empty review field for manual review
                         category = 'Unknown'
 
-                    # FIXED: Use UPSERT instead of INSERT to handle existing subreddits
+                    # NEW SUBREDDIT: Use UPSERT to create
                     queue_start = datetime.now(timezone.utc)
                     try:
                         result = self.supabase.table('reddit_subreddits').upsert({
@@ -2160,26 +2299,70 @@ class SimplifiedRedditScraper:
                             'last_scraped_at': None  # Not scraped yet
                         }, on_conflict='name').execute()
 
-                        # Log successful queue
+                        # Log NEW subreddit discovered
                         queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
                         self.supabase.table('system_logs').insert({
                             'timestamp': datetime.now(timezone.utc).isoformat(),
                             'source': 'reddit_scraper',
                             'script_name': 'simple_main',
                             'level': 'success',
-                            'message': f'🆕 Queued new subreddit: r/{name}',
+                            'message': f'🆕 New subreddit discovered: r/{name}',
                             'context': {
                                 'subreddit': name,
                                 'review_status': review_status,
                                 'category': category,
-                                'action': 'subreddit_queued',
+                                'action': 'subreddit_new_discovered',
+                                'is_new': True,
                                 'is_user_profile': name.startswith('u_')
                             },
                             'duration_ms': int(queue_duration * 1000)
                         }).execute()
 
-                        logger.info(f"🆕 Discovered and queued new subreddit: r/{name}")
+                        logger.info(f"🆕 Discovered new subreddit: r/{name}")
                         new_count += 1
+                    except Exception as queue_error:
+                        # Log queue failure
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'error',
+                            'message': f'❌ Failed to queue new subreddit: r/{name}',
+                            'context': {
+                                'subreddit': name,
+                                'error': str(queue_error),
+                                'error_type': type(queue_error).__name__,
+                                'action': 'subreddit_new_queue_failed',
+                                'is_new': True
+                            }
+                        }).execute()
+                        raise queue_error
+                else:
+                    # EXISTING SUBREDDIT: Just update last_scraped_at to re-queue it
+                    queue_start = datetime.now(timezone.utc)
+                    try:
+                        result = self.supabase.table('reddit_subreddits').update({
+                            'last_scraped_at': None  # Reset to re-queue for scraping
+                        }).eq('name', name).execute()
+
+                        # Log EXISTING subreddit re-queued
+                        queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'info',
+                            'message': f'🔄 Existing subreddit re-queued: r/{name}',
+                            'context': {
+                                'subreddit': name,
+                                'action': 'subreddit_existing_requeued',
+                                'is_new': False,
+                                'existing_review': check_result.data[0].get('review') if check_result.data else None
+                            },
+                            'duration_ms': int(queue_duration * 1000)
+                        }).execute()
+
+                        logger.info(f"🔄 Re-queued existing subreddit: r/{name}")
 
                     except Exception as queue_error:
                         # Log queue failure
