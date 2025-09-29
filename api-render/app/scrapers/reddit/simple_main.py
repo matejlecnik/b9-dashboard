@@ -1497,6 +1497,7 @@ class SimplifiedRedditScraper:
 
     async def queue_new_subreddits(self, subreddit_names: Set[str]):
         """Queue newly discovered subreddits for processing"""
+        new_count = 0
         for name in subreddit_names:
             # Skip if already known
             if (name in self.non_related_subreddits or
@@ -1506,16 +1507,33 @@ class SimplifiedRedditScraper:
                 continue
 
             try:
-                # Insert as new subreddit (will be processed in next cycle)
-                self.supabase.table('reddit_subreddits').upsert({
-                    'name': name,
-                    'created_at': datetime.now(timezone.utc).isoformat()
-                }, on_conflict='name').execute()
+                # Check if subreddit already exists in database
+                check_result = self.supabase.table('reddit_subreddits').select(
+                    'name'
+                ).eq('name', name).execute()
 
-                logger.debug(f"🆕 Queued new subreddit: r/{name}")
+                if not check_result.data:
+                    # Insert as new subreddit with all required fields
+                    self.supabase.table('reddit_subreddits').insert({
+                        'name': name,
+                        'display_name_prefixed': f'r/{name}',
+                        'url': f'/r/{name}/',
+                        'review': None,  # Empty review field for manual review
+                        'primary_category': 'Unknown',
+                        'subscribers': 0,
+                        'accounts_active': 0,
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                        'last_scraped_at': None  # Not scraped yet
+                    }).execute()
+
+                    logger.info(f"🆕 Discovered and queued new subreddit: r/{name}")
+                    new_count += 1
 
             except Exception as e:
-                logger.debug(f"Error queueing subreddit {name}: {e}")
+                logger.error(f"❌ Error queueing subreddit {name}: {e}")
+
+        if new_count > 0:
+            logger.info(f"✅ Successfully queued {new_count} new subreddits for processing")
 
     def determine_content_type(self, post: Dict) -> str:
         """Determine the content type of a post"""
