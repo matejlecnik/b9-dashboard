@@ -209,7 +209,7 @@ def run_api():
         # Change to app directory for API as well
         os.chdir('/app')
         subprocess.run([
-            "uvicorn", "app.main:app",
+            "uvicorn", "main:app",
             "--host", "0.0.0.0",
             "--port", port
         ])
