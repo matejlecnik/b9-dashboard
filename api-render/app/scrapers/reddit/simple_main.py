@@ -1038,9 +1038,10 @@ class SimplifiedRedditScraper:
                     'must verify', 'verification process']
 
         # Check subreddit descriptions
+        # Handle None values explicitly (get() returns None if key exists with None value)
         text_to_check = (
-            about_data.get('description', '') + ' ' +
-            about_data.get('public_description', '')
+            (about_data.get('description') or '') + ' ' +
+            (about_data.get('public_description') or '')
         ).lower()
 
         # Check if any keyword is in descriptions
@@ -1050,8 +1051,9 @@ class SimplifiedRedditScraper:
 
         # Check subreddit rules
         for rule in rules:
-            rule_name = rule.get('short_name', '').lower()
-            rule_desc = rule.get('description', '').lower()
+            # Handle None values explicitly
+            rule_name = (rule.get('short_name') or '').lower()
+            rule_desc = (rule.get('description') or '').lower()
             for keyword in keywords:
                 if keyword in rule_name or keyword in rule_desc:
                     return True
@@ -1642,6 +1644,23 @@ class SimplifiedRedditScraper:
         if unique_authors:
             logger.info(f"📝 Ensuring {len(unique_authors)} unique authors exist for r/{subreddit_name}")
             await self.ensure_users_exist(list(unique_authors))
+
+        # CRITICAL FIX: Deduplicate posts by reddit_id to prevent batch conflicts
+        # This prevents "ON CONFLICT DO UPDATE command cannot affect row a second time" errors
+        seen_ids = set()
+        unique_posts = []
+        duplicates_removed = 0
+        for post in posts:
+            reddit_id = post.get('reddit_id')
+            if reddit_id and reddit_id not in seen_ids:
+                seen_ids.add(reddit_id)
+                unique_posts.append(post)
+            elif reddit_id:
+                duplicates_removed += 1
+
+        if duplicates_removed > 0:
+            logger.info(f"🔄 Removed {duplicates_removed} duplicate posts from {len(posts)} total (keeping {len(unique_posts)} unique)")
+            posts = unique_posts
 
         # Process in batches
         for i in range(0, len(posts), BATCH_SIZE):
@@ -2476,7 +2495,7 @@ class SimplifiedRedditScraper:
                                 'subreddit': name,
                                 'action': 'subreddit_existing_requeued',
                                 'is_new': False,
-                                'existing_review': check_result.data[0].get('review') if check_result.data else None
+                                'existing_review': self.all_subreddits_cache.get(name.lower(), {}).get('review')
                             },
                             'duration_ms': int(queue_duration * 1000)
                         }).execute()
