@@ -10,15 +10,10 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from collections import defaultdict
-
-# Import Supabase for logging
-try:
-    from app.core.database.supabase_client import get_supabase_client
-    supabase = get_supabase_client()
-except:
-    supabase = None
+from app.core.logging_helper import LoggingHelper
 
 logger = logging.getLogger(__name__)
+logger_helper = LoggingHelper(source='reddit_scraper', script_name='calculator')
 
 
 class MetricsCalculator:
@@ -415,10 +410,24 @@ class MetricsCalculator:
         Returns:
             Dictionary containing all calculated metrics
         """
+        calc_start = datetime.now(timezone.utc)
+
         # Core metrics (from weekly posts)
         avg_upvotes = MetricsCalculator.calculate_avg_upvotes_per_post(weekly_posts)
         engagement = MetricsCalculator.calculate_engagement(weekly_posts)
         subreddit_score = MetricsCalculator.calculate_subreddit_score(engagement, avg_upvotes)
+
+        # Log core metrics
+        logger_helper.metric(
+            'subreddit_score_calculated',
+            subreddit_score,
+            context={
+                'avg_upvotes': avg_upvotes,
+                'engagement': engagement,
+                'weekly_posts_count': len(weekly_posts)
+            },
+            action='metric_calculation'
+        )
 
         # Activity metrics (from hot posts)
         avg_comments = MetricsCalculator.calculate_avg_comments_per_post(hot_posts)
@@ -462,30 +471,26 @@ class MetricsCalculator:
             'nsfw_percentage': nsfw_percentage
         }
 
+        # Calculate duration
+        calc_duration_ms = int((datetime.now(timezone.utc) - calc_start).total_seconds() * 1000)
+
         # Log overall metrics summary
-        if supabase:
-            try:
-                supabase.table('system_logs').insert({
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': 'reddit_scraper',
-                    'script_name': 'calculator',
-                    'level': 'info',
-                    'message': f'📈 Calculated all metrics: score={subreddit_score:.1f}',
-                    'context': {
-                        'action': 'all_metrics_calculated',
-                        'engagement': engagement,
-                        'subreddit_score': subreddit_score,
-                        'avg_upvotes': avg_upvotes,
-                        'avg_comments': avg_comments,
-                        'hot_posts': len(hot_posts),
-                        'weekly_posts': len(weekly_posts),
-                        'yearly_posts': len(yearly_posts),
-                        'nsfw_percentage': nsfw_percentage,
-                        'top_content_type': top_content_type
-                    }
-                }).execute()
-            except:
-                pass
+        logger_helper.success(
+            f'Calculated all metrics: score={subreddit_score:.1f}',
+            context={
+                'engagement': engagement,
+                'subreddit_score': subreddit_score,
+                'avg_upvotes': avg_upvotes,
+                'avg_comments': avg_comments,
+                'hot_posts': len(hot_posts),
+                'weekly_posts': len(weekly_posts),
+                'yearly_posts': len(yearly_posts),
+                'nsfw_percentage': nsfw_percentage,
+                'top_content_type': top_content_type
+            },
+            action='all_metrics_calculated',
+            duration_ms=calc_duration_ms
+        )
 
         logger.info(f"📈 Calculated metrics: score={subreddit_score:.1f}, "
                    f"engagement={engagement:.4f}, avg_upvotes={avg_upvotes:.1f}")

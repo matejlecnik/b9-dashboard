@@ -10,15 +10,10 @@ from typing import Dict, Optional, Any, Tuple
 from fake_useragent import UserAgent
 import random
 from datetime import datetime, timezone
-
-# Import Supabase for logging
-try:
-    from app.core.database.supabase_client import get_supabase_client
-    supabase_client = get_supabase_client()
-except:
-    supabase_client = None
+from app.core.logging_helper import LoggingHelper
 
 logger = logging.getLogger(__name__)
+logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
 
 
 class PublicRedditAPI:
@@ -163,52 +158,31 @@ class PublicRedditAPI:
                     return {'error': 'not_found', 'status': 404}
 
                 if response.status_code == 403:
-                    logger.warning(f"Forbidden: {url}")
-                    # Log 403 error
-                    if supabase_client:
-                        try:
-                            supabase_client.table('system_logs').insert({
-                                'timestamp': datetime.now(timezone.utc).isoformat(),
-                                'source': 'reddit_scraper',
-                                'script_name': 'api_pool',
-                                'level': 'warning',
-                                'message': 'Forbidden - possible ban or private subreddit',
-                                'context': {
-                                    'url': url,
-                                    'status_code': 403,
-                                    'thread_id': self.thread_id,
-                                    'action': 'forbidden'
-                                }
-                            }).execute()
-                        except:
-                            pass
+                    logger_helper.warning(
+                        f"Forbidden: {url}",
+                        context={
+                            'url': url,
+                            'status_code': 403,
+                            'thread_id': self.thread_id
+                        },
+                        action='forbidden'
+                    )
                     return {'error': 'forbidden', 'status': 403}
 
                 if response.status_code == 429:
                     # Rate limited
                     delay = min(5 + (retries * 2), 30)
-                    logger.warning(f"Rate limited: {url} - retry {retries + 1}/{self.max_retries}, waiting {delay}s")
-
-                    # Log rate limit
-                    if supabase_client:
-                        try:
-                            supabase_client.table('system_logs').insert({
-                                'timestamp': datetime.now(timezone.utc).isoformat(),
-                                'source': 'reddit_scraper',
-                                'script_name': 'api_pool',
-                                'level': 'warning',
-                                'message': 'Rate limited by Reddit',
-                                'context': {
-                                    'url': url,
-                                    'status_code': 429,
-                                    'retry': retries + 1,
-                                    'delay': delay,
-                                    'thread_id': self.thread_id,
-                                    'action': 'rate_limit'
-                                }
-                            }).execute()
-                        except:
-                            pass
+                    logger_helper.warning(
+                        f"Rate limited by Reddit - retry {retries + 1}/{self.max_retries}",
+                        context={
+                            'url': url,
+                            'status_code': 429,
+                            'retry': retries + 1,
+                            'delay': delay,
+                            'thread_id': self.thread_id
+                        },
+                        action='rate_limit'
+                    )
 
                     if retries >= 5:
                         return {'error': 'rate_limited'}
@@ -223,24 +197,17 @@ class PublicRedditAPI:
                 logger.debug(f"Request successful: {url} - {response.status_code} in {response_time_ms}ms")
 
                 # Log slow requests
-                if response_time_ms > 5000 and supabase_client:
-                    try:
-                        supabase_client.table('system_logs').insert({
-                            'timestamp': datetime.now(timezone.utc).isoformat(),
-                            'source': 'reddit_scraper',
-                            'script_name': 'api_pool',
-                            'level': 'warning',
-                            'message': f'Slow API request: {response_time_ms}ms',
-                            'context': {
-                                'url': url,
-                                'thread_id': self.thread_id,
-                                'response_time_ms': response_time_ms,
-                                'action': 'slow_request'
-                            },
-                            'duration_ms': response_time_ms
-                        }).execute()
-                    except:
-                        pass
+                if response_time_ms > 5000:
+                    logger_helper.warning(
+                        f'Slow API request: {response_time_ms}ms',
+                        context={
+                            'url': url,
+                            'thread_id': self.thread_id,
+                            'response_time_ms': response_time_ms
+                        },
+                        action='slow_request',
+                        duration_ms=response_time_ms
+                    )
 
                 return response.json()
 
@@ -250,26 +217,16 @@ class PublicRedditAPI:
                     logger.warning(f"Request failed (attempt {retries}/{self.max_retries}): {url} - {str(e)[:100]}")
                     time.sleep(self.base_delay * retries)  # Sync sleep in retry loop is acceptable
                 else:
-                    logger.error(f"Request failed after {self.max_retries} retries: {url}")
-                    # Log complete failure
-                    if supabase_client:
-                        try:
-                            supabase_client.table('system_logs').insert({
-                                'timestamp': datetime.now(timezone.utc).isoformat(),
-                                'source': 'reddit_scraper',
-                                'script_name': 'api_pool',
-                                'level': 'error',
-                                'message': f'Request failed after {self.max_retries} retries',
-                                'context': {
-                                    'url': url,
-                                    'max_retries': self.max_retries,
-                                    'thread_id': self.thread_id,
-                                    'error': str(e)[:200],
-                                    'action': 'api_failed'
-                                }
-                            }).execute()
-                        except:
-                            pass
+                    logger_helper.error(
+                        f'Request failed after {self.max_retries} retries',
+                        context={
+                            'url': url,
+                            'max_retries': self.max_retries,
+                            'thread_id': self.thread_id,
+                            'error': str(e)[:200]
+                        },
+                        action='api_failed'
+                    )
                     break
 
         return None
