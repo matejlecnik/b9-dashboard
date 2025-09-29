@@ -31,7 +31,7 @@ else:
     from core.database.supabase_client import get_supabase_client
 
 # Version tracking
-SCRAPER_VERSION = "3.0.0 - Simplified Architecture"
+SCRAPER_VERSION = "3.1.1 - Cache Pagination Fix"
 
 # Load environment variables
 env_path = Path(__file__).parent.parent.parent / '.env'

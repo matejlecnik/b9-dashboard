@@ -63,7 +63,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.1.0 - Protected Field UPSERT"
+SCRAPER_VERSION = "3.1.1 - Cache Pagination Fix"
 
 # Constants (replacing complex config)
 BATCH_SIZE = 50  # Posts per batch insert
@@ -305,9 +305,14 @@ class SimplifiedRedditScraper:
                 # Move offset forward by the number we got
                 offset += batch_count
 
-                # Break if we got less than batch_size (last page)
+                # Break only if we got zero results (no more data)
+                if batch_count == 0:
+                    logger.info(f"✅ Reached end - no more records to load")
+                    break
+
+                # Also break if we got less than batch_size (last page)
                 if batch_count < batch_size:
-                    logger.info(f"✅ Reached last page - loaded {batch_count} < {batch_size}")
+                    logger.info(f"✅ Loaded final batch - {batch_count} records (last page)")
                     break
 
             # Also populate skip lists from cache (faster than separate queries)
