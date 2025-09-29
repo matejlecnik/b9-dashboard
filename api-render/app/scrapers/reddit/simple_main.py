@@ -1959,7 +1959,7 @@ class SimplifiedRedditScraper:
         if post.get('is_video'):
             return 'video'
         elif post.get('is_gallery'):
-            return 'gallery'
+            return 'image'  # Gallery posts are treated as images (multiple images)
         elif post.get('url', '').endswith(('.jpg', '.png', '.gif', '.jpeg')):
             return 'image'
         elif post.get('is_self'):
