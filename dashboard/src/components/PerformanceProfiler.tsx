@@ -89,13 +89,11 @@ export function PerformanceProfiler({
 
       // In development, log detailed info for very slow renders
       if (process.env.NODE_ENV === 'development' && actualDuration > threshold * 2) {
-        console.group(`🔍 Detailed render analysis: ${id}`)
         logger.log(`Phase: ${phase}`)
         logger.log(`Actual duration: ${actualDuration.toFixed(2)}ms`)
         logger.log(`Base duration: ${baseDuration.toFixed(2)}ms`)
         logger.log(`Start time: ${startTime.toFixed(2)}ms`)
         logger.log(`Commit time: ${commitTime.toFixed(2)}ms`)
-        console.groupEnd()
       }
     },
     [threshold, onRender]

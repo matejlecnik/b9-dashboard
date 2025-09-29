@@ -166,7 +166,6 @@ export async function GET() {
     return NextResponse.json(response)
     
   } catch (error) {
-    console.error('Error fetching scraper status:', error)
     return NextResponse.json({
       discovery: { subreddits_found_24h: 0, new_subreddits: [], processing_speed: 0 },
       data_quality: { total_records: 0, complete_records: 0, missing_fields: 0, quality_score: 0, error_rate: 0 },

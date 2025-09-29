@@ -66,13 +66,10 @@ async function fetchViralPosts(filters: ViralPostsFilters): Promise<ViralPost[]>
     apiUrl.searchParams.set('postsPerSubreddit', postsPerSubreddit.toString())
     apiUrl.searchParams.set('totalLimit', totalLimit.toString())
 
-    console.log('[ViralPosts] Fetching from:', apiUrl.toString())
     const response = await fetch(apiUrl.toString())
-    console.log('[ViralPosts] Response status:', response.status, response.statusText)
 
     if (response.ok) {
       const result = await response.json()
-      console.log('[ViralPosts] API result:', result)
       logger.log('[ViralPosts] API response:', {
         cached: result.cached,
         count: result.data?.length,
@@ -96,12 +93,10 @@ async function fetchViralPosts(filters: ViralPostsFilters): Promise<ViralPost[]>
       return applySpacingAlgorithm(posts, 35)
     }
   } catch (error) {
-    console.log('[ViralPosts] API route failed, falling back to RPC:', error)
     logger.warn('[ViralPosts] API route failed, falling back to RPC:', error)
   }
 
   // Fallback to direct RPC call if API fails
-  console.log('[ViralPosts] Using RPC fallback')
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
@@ -113,12 +108,10 @@ async function fetchViralPosts(filters: ViralPostsFilters): Promise<ViralPost[]>
   })
 
   if (error) {
-    console.error('[ViralPosts] RPC error:', error)
     logger.error('[ViralPosts] RPC error:', error)
     throw error
   }
 
-  console.log('[ViralPosts] RPC returned', data?.length, 'posts')
   let posts = data || []
 
   // Only apply search filter (database function handles "Ok" subreddit filtering)

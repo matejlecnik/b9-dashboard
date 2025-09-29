@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     
     if (!supabase) {
-      console.error('Failed to create Supabase client')
       return NextResponse.json({ 
         success: false, 
         error: 'Database connection not available' 
@@ -77,7 +76,6 @@ export async function POST(req: NextRequest) {
       .in('id', userIds)
 
     if (checkError) {
-      console.error('User lookup error:', checkError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to verify users exist' 
@@ -106,19 +104,11 @@ export async function POST(req: NextRequest) {
       .select('id, username, our_creator')
 
     if (updateError) {
-      console.error('Bulk update error:', updateError)
       return NextResponse.json({ 
         success: false, 
         error: `Failed to update users: ${updateError.message}` 
       }, { status: 500 })
     }
-
-    // Log the action for audit purposes
-    console.log(`Bulk updated ${userIds.length} users:`, {
-      userIds,
-      updates,
-      updatedCount: updatedUsers?.length || 0
-    })
 
     // Return success response with updated user data
     return NextResponse.json({ 
@@ -129,7 +119,6 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Unexpected error in bulk-update API:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -156,7 +145,6 @@ export async function GET() {
       .select('our_creator', { count: 'exact' })
 
     if (error) {
-      console.error('Stats query error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to fetch user statistics' 
@@ -176,7 +164,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Unexpected error in bulk-update GET:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

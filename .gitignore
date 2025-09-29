@@ -1,34 +1,122 @@
-# Environments & secrets
+# Environment Variables & Secrets
 .env
 .env.*
 !.env.example
-api/.env
-dashboard/.env.local
-dashboard/.env.production.local
-instagram_dashboard/.env
-instagram_dashboard/.env.*
-!instagram_dashboard/.env.example
+*.env.local
+*.env.production
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# API/Backend
+api-render/.env
+api-render/__pycache__/
+api-render/**/__pycache__/
+api-render/**/*.pyc
+api-render/**/*.pyo
+api-render/**/*.pyd
+api-render/.pytest_cache/
+api-render/.coverage
+api-render/htmlcov/
 
-# Virtual envs
+# Python Virtual Environments
 .venv/
 venv/
+env/
+ENV/
 
-# OS
-.DS_Store
-
-# Node/Next.js
+# Frontend/Dashboard
 dashboard/node_modules/
 dashboard/.next/
-dashboard/.vercel/
-dashboard/src/app/(dashboard)/
-dashboard_development/b9-dashboard/node_modules/
-dashboard_development/b9-dashboard/.next/
-dashboard_development/b9-dashboard/.vercel/
+dashboard/out/
+dashboard/build/
+dashboard/.env.local
+dashboard/.env.production.local
+dashboard/npm-debug.log*
+dashboard/yarn-debug.log*
+dashboard/yarn-error.log*
 
-.vercel
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Vercel
+.vercel/
+*.vercel.json
+
+# Testing
+coverage/
+.coverage
+*.cover
+.hypothesis/
+.pytest_cache/
+jest-coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build Outputs
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Temporary Files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation Build
+docs/_build/
+docs/.docusaurus/
+
+# Monitoring & Analytics
+.lighthouse/
+.clinic/
+
+# Security - Never commit these
+*.pem
+*.key
+*.cert
+*.crt
+private/
+secrets/
+
+# Backup Files
+*.bak
+*.backup
+*~
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Old/Legacy Directories (cleanup reference)
+# config/  # Removed - archived to docs/database/
+# dashboard_development/  # If exists, should be removed.mcp.json

@@ -240,27 +240,21 @@ export class PerformanceMonitor {
   // Log performance summary
   logSummary() {
     const metrics = this.getMetrics()
-    console.group('🚀 Performance Summary')
     
     // Core Web Vitals
-    console.group('Core Web Vitals')
     logger.log(`FCP: ${metrics.FCP?.toFixed(2)}ms`)
     logger.log(`LCP: ${metrics.LCP?.toFixed(2)}ms`)
     logger.log(`FID: ${metrics.FID?.toFixed(2)}ms`)
     logger.log(`CLS: ${metrics.CLS?.toFixed(4)}`)
     logger.log(`TTFB: ${metrics.TTFB?.toFixed(2)}ms`)
-    console.groupEnd()
 
     // Custom Measures
     if (metrics.measures.length > 0) {
-      console.group('Custom Measures')
       metrics.measures.forEach(({ name, average, min, max, measures }) => {
         logger.log(`${name}: avg=${average.toFixed(2)}ms, min=${min.toFixed(2)}ms, max=${max.toFixed(2)}ms, samples=${measures.length}`)
       })
-      console.groupEnd()
     }
 
-    console.groupEnd()
   }
 }
 

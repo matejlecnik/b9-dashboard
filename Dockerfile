@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create app directory and copy requirements
 WORKDIR /app
-COPY api/requirements.txt .
+COPY api-render/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -54,7 +54,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 ARG CACHEBUST=2
 RUN echo "Cache busted at $(date)" > /tmp/cachebust.txt
 # Copy application code - FRESH COPY v2.2.0
-COPY --chown=app:app api/ ./api/
+COPY --chown=app:app api-render/ ./api-render/
 
 # Create necessary directories
 RUN mkdir -p logs && \
@@ -71,4 +71,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE $PORT
 
 # Run Python startup script to manage both API and scraper
-CMD ["python", "api/start.py"]
+CMD ["python", "api-render/start.py"]

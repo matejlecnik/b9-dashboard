@@ -31,11 +31,9 @@ interface SubredditRow {
 
 export async function PATCH(request: NextRequest) {
   try {
-    console.log('🔄 [API] /api/subreddits/bulk-review - Starting bulk review update')
     
     const supabase = await createClient()
     if (!supabase) {
-      console.error('❌ [API] Supabase server client not available')
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
@@ -47,7 +45,6 @@ export async function PATCH(request: NextRequest) {
     const parseResult = BulkReviewUpdateSchema.safeParse(body)
     
     if (!parseResult.success) {
-      console.error('❌ [API] Invalid request body:', parseResult.error.issues)
       return NextResponse.json(
         { 
           error: 'Invalid request body',
@@ -69,7 +66,6 @@ export async function PATCH(request: NextRequest) {
       .in('id', subredditIds)
 
     if (fetchError) {
-      console.error('❌ [API] Error fetching subreddits:', fetchError)
       return NextResponse.json(
         { error: `Failed to fetch subreddits: ${fetchError.message}` },
         { status: 500 }
@@ -79,7 +75,6 @@ export async function PATCH(request: NextRequest) {
     if (!existingSubreddits || existingSubreddits.length !== subredditIds.length) {
       const foundIds = (existingSubreddits as SubredditRow[] | null)?.map(s => s.id) || []
       const missingIds = subredditIds.filter(id => !foundIds.includes(id))
-      console.error('❌ [API] Some subreddits not found:', missingIds)
       return NextResponse.json(
         { 
           error: 'Some subreddits not found',
@@ -99,12 +94,6 @@ export async function PATCH(request: NextRequest) {
       success: false // Will be updated after DB operation
     }))
 
-    console.log('🔄 [API] Updating subreddit reviews:', { 
-      count: subredditIds.length,
-      review,
-      sampleNames: (existingSubreddits as SubredditRow[]).slice(0, 3).map(s => s.name)
-    })
-
     // Perform bulk update with transaction-like behavior
     const updateData = {
       review,
@@ -118,7 +107,6 @@ export async function PATCH(request: NextRequest) {
       .select('id, name, display_name_prefixed, review')
 
     if (updateError) {
-      console.error('❌ [API] Bulk review update failed:', updateError)
       return NextResponse.json(
         { 
           error: `Bulk review update failed: ${updateError.message}`,
@@ -146,13 +134,6 @@ export async function PATCH(request: NextRequest) {
       reviewCounts.byReview[review] = updatedSubreddits?.length || 0
     }
 
-    console.log('✅ [API] Bulk review update successful:', {
-      totalRequested: subredditIds.length,
-      actuallyUpdated: updatedSubreddits?.length || 0,
-      review,
-      reviewCounts
-    })
-
     return NextResponse.json({
       success: true,
       message: `Successfully updated ${updatedSubreddits?.length || 0} subreddit reviews to "${review || 'cleared'}"`,
@@ -167,7 +148,6 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [API] Unexpected error in bulk review update:', error)
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -181,7 +161,6 @@ export async function PATCH(request: NextRequest) {
 // POST endpoint for bulk review preview (dry run)
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 [API] /api/subreddits/bulk-review - Preview mode (dry run)')
     
     const supabase = await createClient()
     if (!supabase) {
@@ -244,7 +223,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [API] Error in bulk review preview:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

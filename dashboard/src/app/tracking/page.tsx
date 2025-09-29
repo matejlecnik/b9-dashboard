@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowLeft, Target } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button, Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
 
 export default function TrackingDashboard() {
   return (

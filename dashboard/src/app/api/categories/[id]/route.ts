@@ -95,7 +95,6 @@ export async function PATCH(
       .maybeSingle()
 
     if (existingError) {
-      console.error('Database error:', existingError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to fetch category' 
@@ -134,7 +133,6 @@ export async function PATCH(
           .maybeSingle()
 
         if (duplicateError && duplicateError.code !== 'PGRST116') {
-          console.error('Error checking for duplicates:', duplicateError)
           return NextResponse.json({ 
             success: false, 
             error: 'Failed to validate category name' 
@@ -238,7 +236,6 @@ export async function PATCH(
       .single()
     
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to update category' 
@@ -251,7 +248,6 @@ export async function PATCH(
     } as CategoryResponse)
 
   } catch (error) {
-    console.error('Error updating category:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -288,7 +284,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .maybeSingle()
 
     if (fetchError) {
-      console.error('Error fetching category before delete:', fetchError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to fetch category' 
@@ -310,7 +305,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .limit(5)
 
     if (subredditError) {
-      console.error('Error checking subreddit usage:', subredditError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to check category usage' 
@@ -327,7 +321,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .limit(1)
 
     if (childError) {
-      console.error('Error checking child categories:', childError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to check for child categories' 
@@ -358,7 +351,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .eq('id', id)
 
     if (deleteError) {
-      console.error('Database error:', deleteError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to delete category' 
@@ -371,7 +363,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error deleting category:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -410,7 +401,6 @@ export async function GET(
       .maybeSingle()
     
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to fetch category' 
@@ -430,7 +420,6 @@ export async function GET(
     } as CategoryResponse)
 
   } catch (error) {
-    console.error('Error fetching category:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

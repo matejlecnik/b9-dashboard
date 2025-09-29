@@ -11,8 +11,7 @@ import {
   Calendar,
   Zap
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui'
 import { DashboardLayout, MetricsCards } from '@/components/shared'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
 

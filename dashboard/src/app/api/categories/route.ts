@@ -126,7 +126,6 @@ export async function GET(request: Request) {
       .limit(5000) // Limit to prevent overwhelming queries
     
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to fetch categories' 
@@ -181,7 +180,6 @@ export async function GET(request: Request) {
     })
 
   } catch (error) {
-    console.error('Error fetching categories:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -234,7 +232,6 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (existingError && existingError.code !== 'PGRST116') {
-      console.error('Error checking for duplicates:', existingError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to validate category' 
@@ -290,7 +287,6 @@ export async function POST(request: Request) {
         }, { status: 409 })
       }
       
-      console.error('Database error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to create category' 
@@ -303,7 +299,6 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('Error creating category:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

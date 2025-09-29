@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useEffect, useCallback } from 'react'
-import { cn } from '@/lib/utils'
-import { designSystem } from '@/lib/design-system'
-import { Button } from '@/components/ui/button'
+import { cn, designSystem } from '@/lib'
+import { Button } from '@/components/ui'
 import { X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 

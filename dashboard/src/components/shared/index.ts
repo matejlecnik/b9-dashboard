@@ -6,8 +6,6 @@ export { UniversalTable, createSubredditReviewTable, createCategorizationTable, 
 export { UniversalCreatorTable } from './tables/UniversalCreatorTable'
 export { VirtualizedCreatorTable } from './tables/VirtualizedCreatorTable'
 export type { InstagramCreator as Creator } from './tables/UniversalCreatorTable'
-// VirtualizedUniversalTable not available yet
-// export { VirtualizedUniversalTable } from './tables/VirtualizedUniversalTable'
 
 // Cards
 export { MetricsCards } from './cards/MetricsCards'

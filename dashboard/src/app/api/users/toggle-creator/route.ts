@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     
     if (!supabase) {
-      console.error('Failed to create Supabase client')
       return NextResponse.json({ 
         success: false, 
         error: 'Database connection not available' 
@@ -79,7 +78,6 @@ export async function POST(req: NextRequest) {
     const { data: existingUser, error: checkError } = await query.single()
 
     if (checkError || !existingUser) {
-      console.error('User lookup error:', checkError)
 
       // Log failed user lookup
       await loggingService.logUserTracking(
@@ -117,7 +115,6 @@ export async function POST(req: NextRequest) {
       .eq('id', existingUser.id)
 
     if (updateError) {
-      console.error('Toggle creator error:', updateError)
 
       // Log update failure
       await loggingService.logUserTracking(
@@ -139,7 +136,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the action for audit purposes
-    console.log(`User ${existingUser.username} (ID: ${existingUser.id}) creator status changed to: ${our_creator}`)
 
     // Log successful toggle
     await loggingService.logUserTracking(
@@ -160,7 +156,6 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Unexpected error in toggle-creator API:', error)
 
     // Log unexpected error
     await loggingService.logUserTracking(

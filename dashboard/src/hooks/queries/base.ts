@@ -138,7 +138,7 @@ export function useInfiniteSupabaseQuery<TData = unknown, TError = Error>(
       } catch (error) {
         measureQueryPerformance([...queryKey, 'page', pageParam], startTime)
 
-        console.error('Infinite query failed:', JSON.stringify({
+        logger.error('Query error', {
           queryKey,
           pageParam,
           error: error instanceof Error ? {
@@ -148,7 +148,7 @@ export function useInfiniteSupabaseQuery<TData = unknown, TError = Error>(
           // Better error serialization
           errorSerialized: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : 'null',
           errorType: error ? (error as Record<string, unknown>).constructor?.name : 'unknown'
-        }, null, 2))
+        })
 
         throw error
       }

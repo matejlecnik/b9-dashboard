@@ -282,7 +282,6 @@ export const showToast = (toast: Omit<Toast, 'id'>) => {
 const renderStandaloneToasts = () => {
   // This is a simplified version - in production you'd use React.createRoot
   // For now, we'll just log that this needs a proper implementation
-  console.log('Standalone toast rendering needs React 18 createRoot implementation')
 }
 
 // ============================================================================

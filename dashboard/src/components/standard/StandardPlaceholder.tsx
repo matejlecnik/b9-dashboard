@@ -1,11 +1,10 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
-import { designSystem } from '@/lib/design-system'
+import { cn, designSystem } from '@/lib'
 import { Card, CardContent, CardTitle } from './Card'
 import { StatCard } from './DataCard'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'

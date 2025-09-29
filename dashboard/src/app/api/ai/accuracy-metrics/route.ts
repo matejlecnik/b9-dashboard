@@ -233,7 +233,6 @@ export async function GET(request: Request) {
     })
 
   } catch (error) {
-    console.error('Error fetching accuracy metrics:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

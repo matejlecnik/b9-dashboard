@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useViralPosts } from './queries/useViralPosts'
 import { Post, PostMetrics } from '@/types/post'
-// import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 
 // Define types locally since PostAnalysisToolbar was removed
@@ -143,7 +142,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   })
 
   // Debug what we're receiving
-  console.log('[PostAnalysis] Hook data:', {
     viralPostsData,
     dataType: typeof viralPostsData,
     isArray: Array.isArray(viralPostsData),
@@ -158,7 +156,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
   // Process viral posts when data changes
   useEffect(() => {
-    console.log('[PostAnalysis] useEffect triggered with:', {
       dataReceived: viralPostsData,
       dataLength: viralPostsData?.length,
       loading: viralPostsLoading,
@@ -172,7 +169,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         ? (viralPostsData as Array<Post & { viral_score?: number }>)
         : []
 
-      console.log('[PostAnalysis] Processing posts array:', {
         arrayLength: postsArray.length,
         firstPost: postsArray[0]
       })
@@ -194,17 +190,14 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         setHasMore(processedPosts.length > initialPostsPerPage)
         setError(null)
 
-        console.log('[PostAnalysis] Successfully set', initialPosts.length, 'posts to display out of', processedPosts.length, 'total')
         logger.log('[PostAnalysis] Processed', processedPosts.length, 'viral posts from React Query, displaying', initialPosts.length)
       } else {
-        console.log('[PostAnalysis] Empty posts array, clearing state')
         setAllPosts([])
         setPosts([])
         setDisplayedPostsCount(0)
         setHasMore(false)
       }
     } else if (viralPostsLoading) {
-      console.log('[PostAnalysis] Still loading, not updating posts')
     }
   }, [viralPostsData, viralPostsLoading, initialPostsPerPage])
 
@@ -234,7 +227,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   // Load more posts from the stored array
   const loadMorePosts = useCallback(() => {
     if (loadingMore || !hasMore) {
-      console.log('[PostAnalysis] Cannot load more:', { loadingMore, hasMore })
       return
     }
 
@@ -250,7 +242,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       setHasMore(nextCount < allPosts.length)
       setLoadingMore(false)
 
-      console.log('[PostAnalysis] Loaded more posts:', {
         showing: nextCount,
         total: allPosts.length,
         hasMore: nextCount < allPosts.length

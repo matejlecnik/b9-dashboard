@@ -1,0 +1,131 @@
+services:
+  # Main API Service
+  - type: web
+    name: b9-dashboard-api
+    runtime: python3
+    buildCommand: "./build.sh"
+    startCommand: "python start.py"
+    plan: starter
+    region: oregon
+    branch: main
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 10000
+      - key: ENVIRONMENT
+        value: production
+      - key: API_WORKERS
+        value: 1
+      - key: ENABLE_CORS
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: CACHE_TTL
+        value: 300
+    autoDeploy: true
+    rootDir: api
+    healthCheckPath: "/health"
+    
+  # Redis Cache Service
+  - type: redis
+    name: b9-dashboard-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    region: oregon
+    
+  # Reddit Scraper Service (Dedicated 24/7 Scraper)
+  - type: worker
+    name: reddit-scraper
+    runtime: python3
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python reddit_scraper.py"
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: scraper
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: AUTO_START
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: MAX_DAILY_REQUESTS
+        value: 50000
+      - key: BATCH_SIZE
+        value: 10
+      - key: MIN_DELAY_SECONDS
+        value: 2.5
+      - key: MAX_DELAY_SECONDS
+        value: 6.0
+      - key: ENABLE_METRICS
+        value: true
+      - key: HEALTH_CHECK_ENABLED
+        value: true
+      - key: HEALTH_CHECK_PORT
+        value: 8080
+
+  # Background Worker Service (General Purpose Tasks)
+  - type: worker
+    name: b9-dashboard-worker
+    runtime: python3
+    buildCommand: "./build.sh"
+    startCommand: "python worker.py"
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: api
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: LOG_LEVEL
+        value: info
+
+  # Cron Job Service for Scheduled Tasks
+  - type: cron
+    name: b9-dashboard-cron
+    runtime: python3
+    buildCommand: "./build.sh"
+    schedule: "0 */6 * * *"  # Every 6 hours
+    startCommand: "python cron_jobs.py"
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: api
+    autoDeploy: true
+
+databases:
+  # PostgreSQL for queue management (optional - using Supabase primarily)
+  - name: b9-dashboard-queue
+    databaseName: b9_queue
+    user: b9_user
+    plan: free
+    region: oregon
+
+# Environment Groups (shared across services)
+envVarGroups:
+  - name: shared-config
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: b9-dashboard-redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: b9-dashboard-queue
+          property: connectionString
+
+# Blueprints for easy deployment
+blueprints:
+  - name: b9-complete-stack
+    services:
+      - b9-dashboard-api
+      - b9-dashboard-redis
+      - reddit-scraper
+      - b9-dashboard-worker
+    databases:
+      - b9-dashboard-queue

@@ -45,8 +45,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
   return useInfiniteSupabaseQuery<Subreddit[]>(
     queryKeys.reddit.reviews(filters),
     async ({ pageParam = 0 }) => {
-      // Use console.log directly for better debugging
-      console.log('📋 Fetching subreddits with filters:', JSON.stringify({
         filters,
         pageParam,
         searchValue: filters.search || 'none',
@@ -54,7 +52,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
       }, null, 2))
 
       // Check if Supabase client exists
-      console.log('🔍 Supabase client check:', JSON.stringify({
         clientExists: !!supabase,
         clientType: supabase ? typeof supabase : 'null',
         envUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
@@ -80,7 +77,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
 
       // Apply review filter first (always uses AND logic with other filters)
       if (filters.review !== undefined) {
-        console.log('📌 Applying review filter:', filters.review === null ? 'unreviewed (null)' : filters.review)
         if (filters.review === null) {
           query = query.is('review', null)
         } else {
@@ -90,14 +86,12 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
 
       // Apply search filter - only search in display_name (subreddit name)
       if (filters.search) {
-        console.log('🔍 Applying search filter:', filters.search)
         const searchTerm = filters.search.toLowerCase().replace(/'/g, "''") // Escape single quotes for SQL safety
 
         // Search only in name field (the subreddit name)
         // This works properly with AND logic when combined with other filters
         query = query.ilike('name', `%${searchTerm}%`)
 
-        console.log('🏁 Query after search filter applied - searching in name column only')
       }
 
       // Apply other filters (these always use AND logic)
@@ -130,7 +124,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
       query = query.range(pageParam, pageParam + PAGE_SIZE - 1)
 
       // Log the query being executed
-      console.log('🚀 Executing Supabase query...')
 
       const { data, error } = await query
 
@@ -139,13 +132,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
         const errorMessage = error?.message || 'Failed to fetch subreddits'
         const errorCode = error?.code || 'UNKNOWN'
 
-        console.error('❌ Supabase query failed:')
-        console.error('  Message:', errorMessage)
-        console.error('  Code:', errorCode)
-        console.error('  Details:', error?.details || 'No details')
-        console.error('  Hint:', error?.hint || 'No hint')
-        console.error('  Filters:', JSON.stringify(filters))
-        console.error('  Full error:', error)
 
         // Log the error in a way that will definitely show in the console
         logger.error('Failed to fetch subreddits for review:', {
@@ -158,7 +144,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
         throw new Error(errorMessage)
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} subreddits`, JSON.stringify({
         search: filters.search || 'none',
         totalFetched: data?.length || 0,
         pageParam,

@@ -1,0 +1,279 @@
+name: Documentation Check
+
+on:
+  push:
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/docs-check.yml'
+  pull_request:
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/docs-check.yml'
+  workflow_dispatch:
+
+jobs:
+  markdown-lint:
+    name: Markdown Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install markdownlint
+        run: |
+          npm install -g markdownlint-cli
+          npm install -g markdown-link-check
+
+      - name: 🔍 Lint markdown files
+        run: |
+          # Create markdownlint config
+          cat > .markdownlint.json << EOF
+          {
+            "default": true,
+            "MD013": false,
+            "MD024": false,
+            "MD026": false,
+            "MD033": false,
+            "MD034": false,
+            "MD041": false
+          }
+          EOF
+
+          # Run markdownlint
+          markdownlint '**/*.md' \
+            --ignore node_modules \
+            --ignore .git \
+            --ignore dashboard/node_modules \
+            --config .markdownlint.json || true
+
+      - name: 📊 Generate lint report
+        run: |
+          echo "### 📝 Markdown Lint Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count markdown files
+          MD_COUNT=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" | wc -l)
+          echo "Total markdown files: $MD_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # List all markdown files by directory
+          echo "#### Files by Directory" >> $GITHUB_STEP_SUMMARY
+          echo "| Directory | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| /docs | $(find docs -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api-render | $(find api-render -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| /dashboard | $(find dashboard -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Root | $(find . -maxdepth 1 -name "*.md" | wc -l) |" >> $GITHUB_STEP_SUMMARY
+
+  link-check:
+    name: Link Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install tools
+        run: npm install -g markdown-link-check
+
+      - name: 🔗 Check internal links
+        run: |
+          # Create link check config
+          cat > .markdown-link-check.json << EOF
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^http://localhost"
+              },
+              {
+                "pattern": "^https://example"
+              }
+            ],
+            "timeout": "10s",
+            "retryOn429": true,
+            "retryCount": 3,
+            "aliveStatusCodes": [200, 206, 301, 302, 303]
+          }
+          EOF
+
+          # Check links in all markdown files
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" \
+            | xargs -I {} markdown-link-check {} -c .markdown-link-check.json || true
+
+      - name: 📊 Link check summary
+        run: |
+          echo "### 🔗 Link Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Link validation completed. Check logs for broken links." >> $GITHUB_STEP_SUMMARY
+
+  documentation-coverage:
+    name: Documentation Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📊 Analyze documentation coverage
+        run: |
+          echo "### 📚 Documentation Coverage Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for required documentation files
+          echo "#### Required Documentation Files" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check main README
+          if [ -f "README.md" ]; then
+            echo "| /README.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| /README.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check CLAUDE.md
+          if [ -f "CLAUDE.md" ]; then
+            echo "| /CLAUDE.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| /CLAUDE.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check API documentation
+          if [ -f "api-render/README.md" ]; then
+            echo "| /api-render/README.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| /api-render/README.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Dashboard documentation
+          if [ -f "dashboard/README.md" ]; then
+            echo "| /dashboard/README.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| /dashboard/README.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Module Documentation" >> $GITHUB_STEP_SUMMARY
+
+          # Check for READMEs in important directories
+          for dir in "api-render/app" "api-render/scrapers" "dashboard/src" "docs"; do
+            if [ -d "$dir" ]; then
+              README_COUNT=$(find "$dir" -name "README.md" | wc -l)
+              echo "| $dir | $README_COUNT README files |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  terminal-style-check:
+    name: Terminal Style Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check terminal style format
+        run: |
+          echo "### 🖥️ Terminal Style Documentation Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checking for terminal + JSON documentation style..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for terminal headers in markdown files
+          TERMINAL_STYLE_COUNT=0
+          TOTAL_MD_COUNT=0
+
+          while IFS= read -r file; do
+            TOTAL_MD_COUNT=$((TOTAL_MD_COUNT + 1))
+            if grep -q "┌─.*─┐" "$file" || grep -q "└─.*─┘" "$file"; then
+              TERMINAL_STYLE_COUNT=$((TERMINAL_STYLE_COUNT + 1))
+            fi
+          done < <(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*")
+
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total .md files | $TOTAL_MD_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Terminal style | $TERMINAL_STYLE_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Compliance | $((TERMINAL_STYLE_COUNT * 100 / TOTAL_MD_COUNT))% |" >> $GITHUB_STEP_SUMMARY
+
+          # Check for JSON blocks
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### JSON Block Usage" >> $GITHUB_STEP_SUMMARY
+          JSON_BLOCK_COUNT=$(grep -r '```json' --include="*.md" | wc -l)
+          echo "Found $JSON_BLOCK_COUNT JSON code blocks in documentation" >> $GITHUB_STEP_SUMMARY
+
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔤 Run spell check
+        uses: streetsidesoftware/cspell-action@v6
+        with:
+          config: |
+            {
+              "version": "0.2",
+              "language": "en",
+              "ignorePaths": [
+                "node_modules/**",
+                ".git/**",
+                "package-lock.json",
+                "*.min.js",
+                "*.min.css"
+              ],
+              "words": [
+                "supabase",
+                "fastapi",
+                "uvicorn",
+                "asyncpraw",
+                "onrender",
+                "vercel",
+                "nextjs",
+                "tailwindcss",
+                "postgresql",
+                "reddit",
+                "instagram",
+                "scrapers",
+                "CLAUDE"
+              ]
+            }
+
+  generate-docs-report:
+    name: Documentation Report
+    runs-on: ubuntu-latest
+    needs: [markdown-lint, link-check, documentation-coverage, terminal-style-check]
+    if: always()
+
+    steps:
+      - name: 📊 Generate final report
+        run: |
+          echo "### 📚 Documentation Quality Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### ✅ Checks Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Markdown linting" >> $GITHUB_STEP_SUMMARY
+          echo "- Link validation" >> $GITHUB_STEP_SUMMARY
+          echo "- Coverage analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- Terminal style compliance" >> $GITHUB_STEP_SUMMARY
+          echo "- Spell checking" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### 📋 Action Items" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Fix any broken links" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Ensure all modules have README files" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Maintain terminal + JSON style" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Keep documentation up to date" >> $GITHUB_STEP_SUMMARY

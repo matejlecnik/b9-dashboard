@@ -23,7 +23,6 @@ export async function POST() {
       .neq('status', 'banned')
 
     if (updateError) {
-      console.error('Error updating scraper accounts:', updateError)
       return NextResponse.json({
         success: false,
         message: 'Failed to update account status'
@@ -45,7 +44,6 @@ export async function POST() {
       }])
 
     if (logError) {
-      console.error('Error logging start operation:', logError)
     }
 
     // In a real implementation, you would also:
@@ -61,7 +59,6 @@ export async function POST() {
     })
 
   } catch (error) {
-    console.error('Error starting scraper:', error)
     return NextResponse.json({
       success: false,
       message: 'Internal server error'

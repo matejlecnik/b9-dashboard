@@ -1,10 +1,8 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
-import { cn } from '@/lib/utils'
-import { designSystem } from '@/lib/design-system'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
+import { cn, designSystem } from '@/lib'
+import { Checkbox, Button } from '@/components/ui'
 import { ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react'
 import Image from 'next/image'
 

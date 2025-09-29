@@ -97,7 +97,6 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (findError) {
-      console.error('Error finding category:', findError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to find category' 
@@ -120,7 +119,6 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (conflictError && conflictError.code !== 'PGRST116') {
-      console.error('Error checking for conflicts:', conflictError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to validate new category name' 
@@ -153,7 +151,6 @@ export async function POST(request: Request) {
         .single()
 
       if (updateError) {
-        console.error('Error updating category:', updateError)
         return NextResponse.json({ 
           success: false, 
           error: 'Failed to update category' 
@@ -174,7 +171,6 @@ export async function POST(request: Request) {
           .select('id')
 
         if (subredditsByIdError) {
-          console.warn('Error updating subreddits by category_id:', subredditsByIdError)
         } else {
           subredditsUpdated += subredditsByIdUpdate?.length || 0
         }
@@ -190,7 +186,6 @@ export async function POST(request: Request) {
           .select('id')
 
         if (subredditsByPrimaryError) {
-          console.warn('Error updating subreddits by primary_category:', subredditsByPrimaryError)
         } else {
           subredditsUpdated += subredditsByPrimaryUpdate?.length || 0
         }
@@ -206,7 +201,6 @@ export async function POST(request: Request) {
       })
 
     } catch (transactionError) {
-      console.error('Error during rename transaction:', transactionError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to complete category rename operation' 
@@ -214,7 +208,6 @@ export async function POST(request: Request) {
     }
 
   } catch (error) {
-    console.error('Error renaming category:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

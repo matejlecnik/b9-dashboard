@@ -221,7 +221,6 @@ export async function GET(request: Request) {
     }
 
   } catch (error) {
-    console.error('Error exporting data:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -397,7 +396,6 @@ export async function POST(request: Request) {
     }, { status: 400 })
 
   } catch (error) {
-    console.error('Error in POST export:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

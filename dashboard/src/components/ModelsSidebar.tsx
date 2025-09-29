@@ -25,7 +25,6 @@ export const ModelsSidebar = React.memo<ModelsSidebarProps>(() => {
 
   const handleLogout = async () => {
     if (!supabase) {
-      console.error('Supabase client not available')
       router.push('/login')
       return
     }
@@ -34,7 +33,6 @@ export const ModelsSidebar = React.memo<ModelsSidebarProps>(() => {
       await supabase.auth.signOut()
       router.push('/login')
     } catch (error) {
-      console.error('Logout error:', error)
       router.push('/login')
     }
   }

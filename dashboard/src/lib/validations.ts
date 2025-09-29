@@ -296,7 +296,6 @@ export function createValidatedRoute<T extends z.ZodSchema>(
         )
       }
 
-      console.error('Route handler error:', error)
       return Response.json(
         { error: 'Internal server error' },
         { status: 500 }

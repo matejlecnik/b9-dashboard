@@ -65,7 +65,6 @@ export class StandardErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo)
     this.props.onError?.(error, errorInfo)
   }
 

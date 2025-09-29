@@ -1,5 +1,1 @@
-# Ignore files that might cause build issues
-*.log
-node_modules
-.env*
-!.env.example
+config/deploy/.vercelignore

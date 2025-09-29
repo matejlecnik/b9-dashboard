@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
       .limit(20)
 
     if (error) {
-      console.error('Database error:', error)
 
       // Log search error
       await loggingService.logUserTracking(
@@ -104,7 +103,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error searching users:', error)
 
     // Log unexpected error
     await loggingService.logUserTracking(

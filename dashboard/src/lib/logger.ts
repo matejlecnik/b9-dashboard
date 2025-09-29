@@ -73,9 +73,6 @@ export const prodLogger = {
     console.error(`[ERROR] ${title}`, data)
 
     // TODO: Send to error tracking service like Sentry
-    // if (typeof window !== 'undefined' && window.Sentry) {
-    //   window.Sentry.captureException(new Error(message), { extra: data })
-    // }
   },
 
   metric: (event: string, data?: unknown) => {

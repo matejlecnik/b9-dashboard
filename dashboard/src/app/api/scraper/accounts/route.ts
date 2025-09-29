@@ -46,7 +46,6 @@ export async function GET() {
       .order('account_name')
 
     if (error) {
-      console.error('Error fetching scraper accounts:', error)
       throw error
     }
 
@@ -92,7 +91,6 @@ export async function GET() {
     // Removed zod validation - return response directly
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Error fetching scraper accounts:', error)
     return NextResponse.json({ 
       accounts: { total: 0, active: 0, details: [] },
       proxies: { total: 0, active: 0, details: [] }

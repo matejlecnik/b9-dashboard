@@ -95,7 +95,6 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const proxy = proxyPool[(attempt - 1) % proxyPool.length]
     try {
-      console.log(`Attempt ${attempt}/${maxRetries} using proxy ${proxy.display_name}`)
       
       const response = await fetch(url, {
         headers: {
@@ -112,7 +111,6 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error')
-        console.log(`Proxy ${proxy.display_name} returned ${response.status}: ${errorText}`)
         
         // Specific error handling
         if (response.status === 404) {
@@ -122,12 +120,10 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
           throw new Error('Access forbidden - user may be suspended or private')
         }
         if (response.status === 429) {
-          console.log(`Rate limited by Reddit, waiting ${2000 * attempt}ms`)
           await new Promise(resolve => setTimeout(resolve, 2000 * attempt))
           continue
         }
         if ([500, 502, 503, 504].includes(response.status)) {
-          console.log(`Server error ${response.status}, retrying with different proxy`)
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
           continue
         }
@@ -135,12 +131,10 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
       }
 
       const data = await response.json()
-      console.log(`Successfully fetched data using proxy ${proxy.display_name}`)
       return data
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      console.error(`Proxy ${proxy.display_name} failed on attempt ${attempt}:`, lastError.message)
       
       if (attempt === maxRetries) {
         break
@@ -148,7 +142,6 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
       
       // Wait before next attempt, with exponential backoff
       const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
-      console.log(`Waiting ${waitTime}ms before retry...`)
       await new Promise(resolve => setTimeout(resolve, waitTime))
     }
   }
@@ -277,7 +270,6 @@ export async function POST(request: NextRequest) {
         userPosts = (postsResponse as any).data.children.map((child: { data: unknown }) => child.data)
       }
     } catch (error) {
-      console.warn('Failed to fetch user posts:', error)
     }
 
     // Analyze posts for patterns
@@ -386,7 +378,6 @@ export async function POST(request: NextRequest) {
       .upsert(userPayload, { onConflict: 'username' })
 
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to save user to database' 
@@ -399,7 +390,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching Reddit user:', error)
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

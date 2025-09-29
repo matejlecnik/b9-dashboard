@@ -143,7 +143,6 @@ export async function POST(request: Request) {
       .in('normalized_name', allKeys)
 
     if (findError) {
-      console.error('Error finding categories:', findError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to find categories' 
@@ -192,7 +191,6 @@ export async function POST(request: Request) {
       .limit(5)
 
     if (childError) {
-      console.error('Error checking child categories:', childError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to check for child categories' 
@@ -234,7 +232,6 @@ export async function POST(request: Request) {
           .select('id')
 
         if (subredditsByIdError) {
-          console.warn(`Error updating subreddits for category ${sourceCategory.name}:`, subredditsByIdError)
         } else {
           subredditsUpdated += subredditsByIdUpdate?.length || 0
         }
@@ -251,7 +248,7 @@ export async function POST(request: Request) {
           .select('id')
 
         if (subredditsByPrimaryError) {
-          console.warn(
+          logger.error(
             `Error updating subreddits by primary_category for ${sourceCategory.name}:`,
             subredditsByPrimaryError
           )
@@ -289,7 +286,6 @@ export async function POST(request: Request) {
           .maybeSingle()
 
         if (conflictError && conflictError.code !== 'PGRST116') {
-          console.warn('Error checking new name conflict:', conflictError)
         } else if (conflictCategory) {
           return NextResponse.json({
             success: false,
@@ -310,7 +306,6 @@ export async function POST(request: Request) {
         .single()
 
       if (updateTargetError) {
-        console.error('Error updating target category:', updateTargetError)
         return NextResponse.json({
           success: false,
           error: 'Failed to update target category'
@@ -326,7 +321,6 @@ export async function POST(request: Request) {
           .in('id', sourceIds)
 
         if (deleteError) {
-          console.warn('Error deleting source categories:', deleteError)
         } else {
           deletedCategories = (sourceCategories as Array<{ name: string }>).map(cat => cat.name)
         }
@@ -342,7 +336,6 @@ export async function POST(request: Request) {
       })
 
     } catch (transactionError) {
-      console.error('Error during merge transaction:', transactionError)
       return NextResponse.json({
         success: false,
         error: 'Failed to complete category merge operation'
@@ -350,7 +343,6 @@ export async function POST(request: Request) {
     }
 
   } catch (error) {
-    console.error('Error merging categories:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

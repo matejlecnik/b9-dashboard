@@ -34,11 +34,9 @@ export async function POST(request: Request) {
     const body: TagCategorizationRequest = await request.json()
     const { batch_size = 30, limit = 100 } = body
 
-    console.log('🎯 Starting tag categorization:', { batch_size, limit })
 
     // Call the Python backend API for tag categorization
     const apiUrl = `${RENDER_API_URL}/api/categorization/start`
-    console.log('📡 Calling Render API:', apiUrl)
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -54,7 +52,6 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ Render API error:', { status: response.status, error: errorText })
 
       // Try to parse as JSON for structured error
       try {
@@ -74,11 +71,6 @@ export async function POST(request: Request) {
     }
 
     const result = await response.json()
-    console.log('✅ Tag categorization response received:', {
-      status: result.status,
-      stats: result.stats,
-      resultsCount: result.results?.length || 0
-    })
 
     // Return the response from the backend
     // The backend should return the categorization results with stats
@@ -91,7 +83,6 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('❌ Tag categorization error:', error)
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {

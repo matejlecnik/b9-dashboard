@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
   
   try {
-    console.log(`🔄 [API:${requestId}] /api/subreddits - Starting request`)
     
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50', 10)
@@ -17,14 +16,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const includeStats = (searchParams.get('stats') || 'false') === 'true'
 
-    console.log(`🔄 [API:${requestId}] Query params:`, {
-      limit, offset, filter, tags: tags.length, search: search.length > 0 ? `"${search.substring(0, 20)}..."` : 'none',
-      timestamp: new Date().toISOString()
-    })
 
     const supabase = await createClient()
     if (!supabase) {
-      console.error('❌ [API] Supabase client not available')
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
@@ -77,20 +71,11 @@ export async function GET(request: NextRequest) {
       .order('avg_upvotes_per_post', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    console.log(`🔄 [API:${requestId}] Executing Supabase query...`)
     const queryStartTime = Date.now()
     const { data, error, count } = await query
     const queryDuration = Date.now() - queryStartTime
 
     if (error) {
-      console.error(`❌ [API:${requestId}] Supabase query failed:`, {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        queryDuration,
-        totalDuration: Date.now() - startTime
-      })
       return NextResponse.json(
         { error: `Database query failed: ${error.message}` },
         { status: 500 }
@@ -101,7 +86,6 @@ export async function GET(request: NextRequest) {
     let stats: { total: number; tagged: number; untagged: number } | undefined
     let statsDuration = 0
     if (includeStats) {
-      console.log(`🔄 [API:${requestId}] Computing stats...`)
       const statsStartTime = Date.now()
       const baseFilters = <T extends {
         not: (...args: unknown[]) => T
@@ -137,17 +121,6 @@ export async function GET(request: NextRequest) {
     }
 
     const totalDuration = Date.now() - startTime
-    console.log(`✅ [API:${requestId}] Query successful:`, { 
-      resultCount: data?.length || 0, 
-      totalCount: count,
-      stats,
-      performance: {
-        queryDuration: `${queryDuration}ms`,
-        statsDuration: `${statsDuration}ms`,
-        totalDuration: `${totalDuration}ms`
-      },
-      sampleNames: (data as Array<{ name?: string | null }> | null)?.slice(0, 3).map(s => s.name) 
-    })
 
     return NextResponse.json({
       success: true,
@@ -167,7 +140,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [API] Unexpected error in /api/subreddits:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -179,7 +151,6 @@ export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
 
   try {
-    console.log(`🔄 [API:${requestId}] /api/subreddits POST - Starting request`)
 
     const body = await request.json()
     const { name, fetchFromReddit = false, review = null } = body
@@ -210,11 +181,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`🔄 [API:${requestId}] Adding subreddit: ${cleanName}, fetchFromReddit: ${fetchFromReddit}`)
 
     const supabase = await createClient()
     if (!supabase) {
-      console.error('❌ [API] Supabase client not available')
       return NextResponse.json(
         { error: 'Database connection not available', success: false },
         { status: 500 }
@@ -255,7 +224,6 @@ export async function POST(request: NextRequest) {
     // If fetchFromReddit is true, call the Python backend to get subreddit details
     if (fetchFromReddit) {
       try {
-        console.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
 
         // Call Python backend to fetch subreddit details
         const backendUrl = process.env.PYTHON_BACKEND_URL || 'https://b9-dashboard.onrender.com'
@@ -269,7 +237,6 @@ export async function POST(request: NextRequest) {
 
         if (response.ok) {
           const redditData = await response.json()
-          console.log(`✅ [API:${requestId}] Fetched Reddit data:`, redditData)
 
           // Merge Reddit data with our base data
           subredditData = {
@@ -280,10 +247,8 @@ export async function POST(request: NextRequest) {
             review: review || null, // Preserve the review status
           }
         } else {
-          console.warn(`⚠️ [API:${requestId}] Failed to fetch from Reddit, adding basic entry`)
         }
       } catch (error) {
-        console.error(`❌ [API:${requestId}] Error fetching from Reddit:`, error)
       }
     }
 
@@ -295,14 +260,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error(`❌ [API:${requestId}] Failed to insert subreddit:`, insertError)
       return NextResponse.json(
         { error: 'Failed to add subreddit to database', success: false },
         { status: 500 }
       )
     }
 
-    console.log(`✅ [API:${requestId}] Successfully added subreddit:`, newSubreddit)
 
     return NextResponse.json({
       success: true,
@@ -311,7 +274,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error(`❌ [API:${requestId}] Unexpected error in POST /api/subreddits:`, error)
     return NextResponse.json(
       { error: 'Internal server error', success: false },
       { status: 500 }

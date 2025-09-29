@@ -9,19 +9,16 @@ import {
   Heart,
   Users
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Button, Card, CardContent } from '@/components/ui'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { ActiveAccountsSection } from '@/components/shared/ActiveAccountsSection'
 import { TagFilterDropdown } from '@/components/TagFilterDropdown'
-import { useToast } from '@/components/ui/toast'
-import { useErrorHandler } from '@/lib/errorUtils'
-import { useDebounce } from '@/hooks/useDebounce'
-import { useThrottledCallback, PERFORMANCE_SETTINGS } from '@/lib/performance-utils'
+import { useToast } from '@/components/ui'
+import { useErrorHandler, useThrottledCallback, PERFORMANCE_SETTINGS } from '@/lib'
+import { useDebounce } from '@/hooks'
 import { useAvailableTags } from '@/hooks/queries/useRedditCategorization'
-import { logger } from '@/lib/logger'
-import { supabase } from '@/lib/supabase'
+import { logger, supabase } from '@/lib'
 import type { SubredditWithPosts } from '@/components/DiscoveryTable'
 
 interface Creator {

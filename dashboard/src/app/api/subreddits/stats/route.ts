@@ -6,28 +6,20 @@ export async function GET(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
   
   try {
-    console.log(`🔄 [API:${requestId}] /api/subreddits/stats - Starting request`)
     
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'review' // 'review' or 'category'
     const search = searchParams.get('search') || ''
     
-    console.log(`🔄 [API:${requestId}] Query params:`, { 
-      type, 
-      search: search ? `"${search}"` : 'none',
-      timestamp: new Date().toISOString()
-    })
 
     const supabase = await createClient()
     if (!supabase) {
-      console.error(`❌ [API:${requestId}] Supabase server client not available`)
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
       )
     }
 
-    console.log(`🔄 [API:${requestId}] Computing stats...`)
     const statsStartTime = Date.now()
 
     if (type === 'review') {
@@ -90,13 +82,6 @@ export async function GET(request: NextRequest) {
         total: totalResult.count || 0
       }
 
-      console.log(`✅ [API:${requestId}] Review stats computed:`, {
-        stats,
-        performance: {
-          statsDuration: `${statsDuration}ms`,
-          totalDuration: `${totalDuration}ms`
-        }
-      })
 
       return NextResponse.json({
         success: true,
@@ -131,13 +116,6 @@ export async function GET(request: NextRequest) {
         uncategorized: uncategorizedResult.count || 0
       }
 
-      console.log(`✅ [API:${requestId}] Category stats computed:`, {
-        stats,
-        performance: {
-          statsDuration: `${statsDuration}ms`,
-          totalDuration: `${totalDuration}ms`
-        }
-      })
 
       return NextResponse.json({
         success: true,
@@ -158,7 +136,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const totalDuration = Date.now() - startTime
-    console.error(`❌ [API:${requestId}] Stats computation failed:`, error)
     
     return NextResponse.json(
       { 

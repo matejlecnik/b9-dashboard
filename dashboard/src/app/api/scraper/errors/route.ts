@@ -21,7 +21,6 @@ export async function GET() {
       .limit(50)
 
     if (error) {
-      console.error('Error fetching error logs:', error)
       return NextResponse.json({
         success: false,
         message: 'Failed to fetch error logs'
@@ -35,7 +34,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error in GET /api/scraper/errors:', error)
     return NextResponse.json({
       success: false,
       message: 'Internal server error'
@@ -64,7 +62,6 @@ export async function DELETE() {
       .lt('timestamp', cutoffTime)
 
     if (deleteError) {
-      console.error('Error clearing error logs:', deleteError)
       return NextResponse.json({
         success: false,
         message: 'Failed to clear error logs'
@@ -87,7 +84,6 @@ export async function DELETE() {
       }])
 
     if (logError) {
-      console.error('Error logging clear operation:', logError)
     }
 
     return NextResponse.json({
@@ -97,7 +93,6 @@ export async function DELETE() {
     })
 
   } catch (error) {
-    console.error('Error clearing scraper errors:', error)
     return NextResponse.json({
       success: false,
       message: 'Internal server error'

@@ -26,13 +26,11 @@ export async function GET(_request: NextRequest) {
       .order('created_at', { ascending: false })
     
     if (error) {
-      console.error('Error fetching whitelist:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
     return NextResponse.json({ whitelist })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -67,7 +65,6 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (subredditError && subredditError.code !== 'PGRST116') {
-      console.error('Error checking subreddit:', subredditError)
       return NextResponse.json({ error: subredditError.message }, { status: 500 })
     }
     
@@ -97,7 +94,6 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         )
       }
-      console.error('Error adding to whitelist:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
@@ -113,7 +109,6 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ whitelistEntry: data }, { status: 201 })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -147,7 +142,6 @@ export async function DELETE(request: NextRequest) {
       .eq('subreddit_name', subreddit_name)
     
     if (error) {
-      console.error('Error removing from whitelist:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
@@ -163,7 +157,6 @@ export async function DELETE(request: NextRequest) {
     
     return NextResponse.json({ message: 'Subreddit removed from whitelist successfully' })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

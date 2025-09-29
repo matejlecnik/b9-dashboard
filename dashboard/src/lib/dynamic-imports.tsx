@@ -101,20 +101,6 @@ export const DynamicIconPicker = createDynamicComponent(
 // These components are commented out due to TypeScript issues with dynamic imports
 // They are not currently used in the application
 
-// Performance Monitor Dashboard (Heavy)
-// export const DynamicPerformanceMonitor = createDynamicComponent(
-//   () => import('@/components/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor }))
-// )
-
-// Database Performance Panel (Heavy)
-// export const DynamicDatabasePerformancePanel = createDynamicComponent(
-//   () => import('@/components/DatabasePerformancePanel').then(mod => ({ default: mod.DatabasePerformancePanel }))
-// )
-
-// Job Queue Dashboard (Heavy)
-// export const DynamicJobQueueDashboard = createDynamicComponent(
-//   () => import('@/components/JobQueueDashboard').then(mod => ({ default: mod.JobQueueDashboard }))
-// )
 
 /**
  * Preload a dynamic component

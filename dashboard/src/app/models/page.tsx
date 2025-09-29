@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui'
 import { Plus } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared'
-import { useToast } from '@/components/ui/toast'
-import { logger } from '@/lib/logger'
+import { useToast } from '@/components/ui'
+import { logger } from '@/lib'
 
 // Lazy load heavy components
 const ModelFormModal = dynamic(

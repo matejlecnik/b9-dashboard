@@ -24,7 +24,6 @@ export async function GET(
   const params = await context.params
   
   try {
-    console.log(`🔄 [API:${requestId}] GET /api/subreddits/${params.id} - Starting request`)
     
     const subredditId = parseInt(params.id, 10)
     if (isNaN(subredditId)) {
@@ -36,7 +35,6 @@ export async function GET(
 
     const supabase = await createClient()
     if (!supabase) {
-      console.error(`❌ [API:${requestId}] Supabase server client not available`)
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
@@ -50,7 +48,6 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error(`❌ [API:${requestId}] Subreddit fetch failed:`, error)
       return NextResponse.json(
         { error: `Failed to fetch subreddit: ${error.message}` },
         { status: error.code === 'PGRST116' ? 404 : 500 }
@@ -58,11 +55,6 @@ export async function GET(
     }
 
     const totalDuration = Date.now() - startTime
-    console.log(`✅ [API:${requestId}] Subreddit fetched successfully:`, {
-      id: subreddit.id,
-      name: subreddit.name,
-      performance: { totalDuration: `${totalDuration}ms` }
-    })
 
     return NextResponse.json({
       success: true,
@@ -74,7 +66,6 @@ export async function GET(
 
   } catch (error) {
     const totalDuration = Date.now() - startTime
-    console.error(`❌ [API:${requestId}] Request failed:`, error)
     
     return NextResponse.json(
       { 
@@ -95,7 +86,6 @@ export async function PATCH(
   const params = await context.params
   
   try {
-    console.log(`🔄 [API:${requestId}] PATCH /api/subreddits/${params.id} - Starting request`)
     
     const subredditId = parseInt(params.id, 10)
     if (isNaN(subredditId)) {
@@ -106,12 +96,10 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    console.log(`🔄 [API:${requestId}] Request body:`, body)
 
     // Validate request body
     const validationResult = SubredditUpdateSchema.safeParse(body)
     if (!validationResult.success) {
-      console.error(`❌ [API:${requestId}] Validation failed:`, validationResult.error.issues)
       return NextResponse.json(
         { 
           error: 'Invalid request data',
@@ -125,7 +113,6 @@ export async function PATCH(
 
     const supabase = await createClient()
     if (!supabase) {
-      console.error(`❌ [API:${requestId}] Supabase server client not available`)
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
@@ -140,7 +127,6 @@ export async function PATCH(
       .single()
 
     if (fetchError) {
-      console.error(`❌ [API:${requestId}] Subreddit fetch failed:`, fetchError)
       return NextResponse.json(
         { error: fetchError.code === 'PGRST116' ? 'Subreddit not found' : `Database error: ${fetchError.message}` },
         { status: fetchError.code === 'PGRST116' ? 404 : 500 }
@@ -160,7 +146,6 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error(`❌ [API:${requestId}] Subreddit update failed:`, updateError)
       return NextResponse.json(
         { error: `Failed to update subreddit: ${updateError.message}` },
         { status: 500 }
@@ -170,15 +155,6 @@ export async function PATCH(
     const updateDuration = Date.now() - updateStartTime
     const totalDuration = Date.now() - startTime
 
-    console.log(`✅ [API:${requestId}] Subreddit updated successfully:`, {
-      id: updatedSubreddit.id,
-      name: updatedSubreddit.name,
-      changes: updateData,
-      performance: {
-        updateDuration: `${updateDuration}ms`,
-        totalDuration: `${totalDuration}ms`
-      }
-    })
 
     return NextResponse.json({
       success: true,
@@ -196,7 +172,6 @@ export async function PATCH(
 
   } catch (error) {
     const totalDuration = Date.now() - startTime
-    console.error(`❌ [API:${requestId}] Request failed:`, error)
     
     return NextResponse.json(
       { 

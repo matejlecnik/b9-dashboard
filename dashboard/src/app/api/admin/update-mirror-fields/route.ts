@@ -19,7 +19,6 @@ export async function POST() {
       .or('review.is.null,review.eq.Ok,review.eq.No Seller')
 
     if (subFetchError) {
-      console.error('Error fetching target subreddits:', subFetchError)
       return NextResponse.json({ error: subFetchError.message }, { status: 500 })
     }
 
@@ -32,7 +31,6 @@ export async function POST() {
     }
 
     const subredditNames = targetSubreddits.map(s => s.name)
-    console.log(`Found ${subredditNames.length} target subreddits to update posts for`)
 
     // Update posts from these subreddits that don't have mirror fields yet
     // Process 10,000 at a time for better performance
@@ -44,7 +42,6 @@ export async function POST() {
       .limit(10000)
 
     if (fetchError) {
-      console.error('Error fetching posts:', fetchError)
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
     }
 
@@ -57,7 +54,6 @@ export async function POST() {
       })
     }
 
-    console.log(`Processing ${postsToUpdate.length} posts from ${subredditNames.length} subreddits`)
 
     // Create a map for quick lookup
     const subredditMap = new Map(
@@ -92,7 +88,6 @@ export async function POST() {
           .upsert(updates, { onConflict: 'id' })
 
         if (updateError) {
-          console.error(`Batch update error:`, updateError)
           errorCount += updates.length
         } else {
           updatedCount += updates.length
@@ -101,7 +96,6 @@ export async function POST() {
 
       // Log progress
       if ((i + batchSize) % 2000 === 0 || i + batchSize >= postsToUpdate.length) {
-        console.log(`Progress: ${Math.min(i + batchSize, postsToUpdate.length)}/${postsToUpdate.length} posts processed`)
       }
     }
 
@@ -130,7 +124,6 @@ export async function POST() {
     })
 
   } catch (error) {
-    console.error('Error in update-mirror-fields:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -177,7 +170,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error checking status:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

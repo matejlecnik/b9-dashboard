@@ -105,7 +105,6 @@ export async function POST(request: Request) {
       Object.entries(requestPayload).filter(([, v]) => v !== undefined)
     )
     
-    console.log('Forwarding to Render API:', { url: RENDER_API_URL, payload: cleanPayload })
     
     // Forward the request to the Render API
     const renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/start`, {
@@ -120,18 +119,10 @@ export async function POST(request: Request) {
     const renderData = await renderResponse.json()
     
     // Comprehensive logging
-    console.log('=== RENDER API RESPONSE DEBUG ===')
-    console.log('Status:', renderResponse.status)
-    console.log('Full response:', JSON.stringify(renderData, null, 2))
-    console.log('Response keys:', Object.keys(renderData))
     if (renderData.results) {
-      console.log('Results keys:', Object.keys(renderData.results))
-      console.log('Results stats:', renderData.results.stats)
     }
-    console.log('=================================')
 
     if (!renderResponse.ok) {
-      console.error('Render API error:', renderData)
 
       // Log Render API error
       await loggingService.logAICategorization(
@@ -164,9 +155,6 @@ export async function POST(request: Request) {
       render_response: renderData  // This contains the full response including results
     }
     
-    console.log('=== SENDING TO FRONTEND ===')
-    console.log(JSON.stringify(response, null, 2))
-    console.log('===========================')
 
     // Log successful categorization start
     await loggingService.logAICategorization(
@@ -186,7 +174,6 @@ export async function POST(request: Request) {
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Error starting AI categorization:', error)
     
     if (error instanceof TypeError && error.message.includes('fetch')) {
       // Log connection error
@@ -253,7 +240,6 @@ export async function GET() {
     let renderResponse: Response
     
     try {
-      console.log(`🔄 [AI] Attempting to connect to Render API: ${RENDER_API_URL}`)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
       renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/stats`, {
@@ -267,7 +253,6 @@ export async function GET() {
       clearTimeout(timeoutId)
       renderData = await renderResponse.json()
     } catch (error) {
-      console.warn(`⚠️ [AI] Render API unavailable (development mode):`, error instanceof Error ? error.message : error)
       
       // Development fallback - return mock service status
       return NextResponse.json({
@@ -288,7 +273,6 @@ export async function GET() {
     }
 
     if (!renderResponse.ok) {
-      console.error('Render API stats error:', renderData)
 
       // Log stats fetch error
       await loggingService.logAICategorization(
@@ -336,7 +320,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error getting categorization stats:', error)
     
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return NextResponse.json({

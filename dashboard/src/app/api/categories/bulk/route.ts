@@ -11,11 +11,9 @@ const BulkCategoryUpdateSchema = z.object({
 
 export async function PATCH(request: NextRequest) {
   try {
-    console.log('🔄 [API] /api/categories/bulk - Starting bulk update')
     
     const supabase = await createClient()
     if (!supabase) {
-      console.error('❌ [API] Supabase server client not available')
       return NextResponse.json(
         { error: 'Database connection not available' },
         { status: 500 }
@@ -27,7 +25,6 @@ export async function PATCH(request: NextRequest) {
     const parseResult = BulkCategoryUpdateSchema.safeParse(body)
     
     if (!parseResult.success) {
-      console.error('❌ [API] Invalid request body:', parseResult.error.issues)
       return NextResponse.json(
         { 
           error: 'Invalid request body',
@@ -49,7 +46,6 @@ export async function PATCH(request: NextRequest) {
       .in('id', subredditIds)
 
     if (fetchError) {
-      console.error('❌ [API] Error fetching subreddits:', fetchError)
       return NextResponse.json(
         { error: `Failed to fetch subreddits: ${fetchError.message}` },
         { status: 500 }
@@ -59,7 +55,6 @@ export async function PATCH(request: NextRequest) {
     if (!existingSubreddits || existingSubreddits.length !== subredditIds.length) {
       const foundIds = (existingSubreddits as Array<{ id: number }> | null)?.map((s) => s.id) || []
       const missingIds = subredditIds.filter(id => !foundIds.includes(id))
-      console.error('❌ [API] Some subreddits not found:', missingIds)
       return NextResponse.json(
         { 
           error: 'Some subreddits not found',
@@ -81,12 +76,6 @@ export async function PATCH(request: NextRequest) {
       updateData.primary_category = primaryCategory
     }
 
-    console.log('🔄 [API] Updating subreddits:', {
-      count: subredditIds.length,
-      categoryId,
-      primaryCategory: primaryCategory?.substring(0, 20) + (primaryCategory && primaryCategory.length > 20 ? '...' : '')
-    })
-
     // Perform bulk update
     const { data: updatedSubreddits, error: updateError } = await supabase
       .from('reddit_subreddits')
@@ -95,7 +84,6 @@ export async function PATCH(request: NextRequest) {
       .select('id, name, display_name_prefixed, category_id, primary_category')
 
     if (updateError) {
-      console.error('❌ [API] Bulk update failed:', updateError)
       return NextResponse.json(
         { error: `Bulk update failed: ${updateError.message}` },
         { status: 500 }
@@ -110,16 +98,9 @@ export async function PATCH(request: NextRequest) {
       })
       
       if (usageError) {
-        console.warn('⚠️ [API] Failed to update category usage count:', usageError)
         // Don't fail the request for this
       }
     }
-
-    console.log('✅ [API] Bulk update successful:', {
-      updatedCount: updatedSubreddits?.length || 0,
-      categoryId,
-      primaryCategory
-    })
 
     return NextResponse.json({
       success: true,
@@ -135,7 +116,6 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [API] Unexpected error in bulk category update:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -146,7 +126,6 @@ export async function PATCH(request: NextRequest) {
 // GET endpoint to preview bulk update (dry run)
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 [API] /api/categories/bulk - Preview mode (dry run)')
     
     const supabase = await createClient()
     if (!supabase) {
@@ -205,7 +184,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [API] Error in bulk preview:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

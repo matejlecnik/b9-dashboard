@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     const { data: subreddits, error } = await query
     
     if (error) {
-      console.error('Error fetching subreddits for re-filtering:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
@@ -64,7 +63,6 @@ export async function POST(request: NextRequest) {
           .eq('id', subreddit.id)
         
         if (updateError) {
-          console.error(`Error updating subreddit ${subreddit.name}:`, updateError)
           stats.errors++
           continue
         }
@@ -83,7 +81,6 @@ export async function POST(request: NextRequest) {
         }
         
       } catch (error) {
-        console.error(`Error processing subreddit ${subreddit.name}:`, error)
         stats.errors++
       }
     }
@@ -95,7 +92,6 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

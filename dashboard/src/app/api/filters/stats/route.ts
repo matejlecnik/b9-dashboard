@@ -21,7 +21,6 @@ export async function GET(_request: NextRequest) {
       .rpc('get_filter_status_stats')
     
     if (statusError) {
-      console.error('Error fetching filter status stats:', statusError)
       return NextResponse.json({ error: statusError.message }, { status: 500 })
     }
     
@@ -31,7 +30,6 @@ export async function GET(_request: NextRequest) {
       .select('*', { count: 'exact', head: true })
     
     if (whitelistError) {
-      console.error('Error fetching whitelist count:', whitelistError)
       return NextResponse.json({ error: whitelistError.message }, { status: 500 })
     }
     
@@ -42,7 +40,6 @@ export async function GET(_request: NextRequest) {
       .eq('seller_ban_detected', true)
     
     if (sellerBansError) {
-      console.error('Error fetching seller bans count:', sellerBansError)
       return NextResponse.json({ error: sellerBansError.message }, { status: 500 })
     }
     
@@ -53,7 +50,6 @@ export async function GET(_request: NextRequest) {
       .eq('verification_required_detected', true)
     
     if (verificationError) {
-      console.error('Error fetching verification count:', verificationError)
       return NextResponse.json({ error: verificationError.message }, { status: 500 })
     }
     
@@ -92,7 +88,6 @@ export async function GET(_request: NextRequest) {
     
     return NextResponse.json({ stats })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

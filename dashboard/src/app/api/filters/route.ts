@@ -17,13 +17,11 @@ export async function GET(_request: NextRequest) {
       .order('category', { ascending: true })
     
     if (error) {
-      console.error('Error fetching filter settings:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
     return NextResponse.json({ filterSettings })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -64,13 +62,11 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (error) {
-      console.error('Error creating filter setting:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
     return NextResponse.json({ filterSetting: data }, { status: 201 })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -120,13 +116,11 @@ export async function PUT(request: NextRequest) {
       .single()
     
     if (error) {
-      console.error('Error updating filter setting:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
     return NextResponse.json({ filterSetting: data })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -160,13 +154,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
     
     if (error) {
-      console.error('Error deleting filter setting:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
     return NextResponse.json({ message: 'Filter setting deleted successfully' })
   } catch (error) {
-    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

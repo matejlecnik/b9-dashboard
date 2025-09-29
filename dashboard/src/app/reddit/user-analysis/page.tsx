@@ -3,9 +3,8 @@
 import React, { useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import type { User } from '@/lib/supabase/index'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { formatNumber as formatNumberUtil } from '@/lib/formatters'
+import { Badge, Button } from '@/components/ui'
+import { formatNumber as formatNumberUtil } from '@/lib'
 import {
   Users,
   Clock,
@@ -24,7 +23,7 @@ import {
 import NextImage from 'next/image'
 import { UserFilters } from '@/components/UserFilters'
 import { UserListSkeleton } from '@/components/UniversalLoading'
-import { useToast } from '@/components/ui/toast'
+import { useToast } from '@/components/ui'
 import {
   useUserStats,
   useInfiniteUsers,
@@ -67,7 +66,6 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
       new URL(cleanUrl)
       return cleanUrl
     } catch (error) {
-      console.warn('Invalid avatar URL:', src, error)
       return null
     }
   }, [src])
@@ -105,7 +103,6 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
         className={`rounded-full object-cover border-2 border-gray-200 shadow-sm transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         style={{ width: size, height: size }}
         onError={(e) => {
-          console.warn('Avatar failed to load:', cleanAvatarUrl, e)
           setImageError(true)
           setIsLoading(false)
         }}
@@ -281,7 +278,6 @@ export default function UserAnalysisPage() {
       // You might want to invalidate the query here to refresh the user list
       
     } catch (error) {
-      console.error('Bulk creator toggle failed:', error)
       showError(
         'Bulk Update Failed',
         error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -332,7 +328,6 @@ export default function UserAnalysisPage() {
       )
       
     } catch (error) {
-      console.error('Export failed:', error)
       showError('Export Failed', 'Unable to generate CSV file')
     }
   }, [selectedUserIds, allUsers, showWarning, showSuccess, showError])

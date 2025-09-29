@@ -1,10 +1,9 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
-import { designSystem } from '@/lib/design-system'
+import { cn, designSystem } from '@/lib'
 import { LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui'
 
 interface EmptyStateProps {
   icon?: LucideIcon
