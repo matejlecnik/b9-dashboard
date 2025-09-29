@@ -11,8 +11,8 @@ from .system_logger import (
     log_exception, log_api_call, log_scraper_activity,
     flush, shutdown
 )
-from .memory_monitor import MemoryMonitor
-from .supabase_logger import SupabaseLogger
+# Memory monitor removed - not needed in simplified architecture
+from .supabase_logger import SupabaseLogHandler, setup_supabase_logging
 
 __all__ = [
     # Monitoring utilities
@@ -38,9 +38,8 @@ __all__ = [
     'flush',
     'shutdown',
 
-    # Memory monitoring
-    'MemoryMonitor',
 
     # Supabase logging
-    'SupabaseLogger'
+    'SupabaseLogHandler',
+    'setup_supabase_logging'
 ]
