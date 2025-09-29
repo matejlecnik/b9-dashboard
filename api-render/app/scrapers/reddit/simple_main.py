@@ -64,7 +64,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.2.0 - Enhanced Supabase Logging"
+SCRAPER_VERSION = "3.2.1 - Cache Pagination Fix (limit/offset)"
 
 # Constants (replacing complex config)
 BATCH_SIZE = 50  # Posts per batch insert
@@ -384,11 +384,11 @@ class SimplifiedRedditScraper:
                 batch_num += 1
                 batch_start = datetime.now(timezone.utc)
 
-                # Paginated query using range() - Supabase range is inclusive on both ends
-                # So range(0, 999) returns 1000 records (0 through 999)
+                # Paginated query using limit/offset (more reliable than range())
+                # Fixes intermittent issue where .range(0, 999) returns 999 instead of 1000
                 result = self.supabase.table('reddit_subreddits').select(
                     'name, review, primary_category, tags, over18'
-                ).range(offset, offset + batch_size - 1).order('name').execute()
+                ).limit(batch_size).offset(offset).order('name').execute()
 
                 if not result.data:
                     break
