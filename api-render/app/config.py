@@ -154,8 +154,9 @@ class Config:
         errors = []
 
         # Required fields
-        if not self.database.url:
-            errors.append("DATABASE_URL is required")
+        # DATABASE_URL not required - using Supabase REST API instead
+        # if not self.database.url:
+        #     errors.append("DATABASE_URL is required")
         if not self.services.openai_api_key:
             errors.append("OPENAI_API_KEY is required")
         if not self.services.supabase_url:
