@@ -95,6 +95,9 @@ class SimplifiedRedditScraper:
         self.banned_subreddits: Set[str] = set()
         self.processed_subreddits: Set[str] = set()
 
+        # ALL subreddits cache (for fast lookups and accurate new/existing detection)
+        self.all_subreddits_cache: Dict[str, Dict] = {}
+
         # Simple batch storage
         self.posts_batch = []
         self.users_batch = []
@@ -144,8 +147,8 @@ class SimplifiedRedditScraper:
             # Initialize metrics calculator
             self.metrics_calculator = MetricsCalculator()
 
-            # Load skip lists from database
-            await self.load_skip_lists()
+            # Load ALL subreddits cache (replaces load_skip_lists - now done from cache)
+            await self.load_all_subreddits_cache()
 
             # Log successful initialization
             init_duration = (datetime.now(timezone.utc) - init_start).total_seconds()
@@ -157,7 +160,8 @@ class SimplifiedRedditScraper:
                 'message': '✅ Scraper initialization complete',
                 'context': {
                     'duration_seconds': init_duration,
-                    'proxy_count': len(self.proxy_manager.proxies) if self.proxy_manager else 0
+                    'proxy_count': len(self.proxy_manager.proxies) if self.proxy_manager else 0,
+                    'subreddits_cached': len(self.all_subreddits_cache)
                 },
                 'duration_ms': int(init_duration * 1000)
             }).execute()
@@ -238,6 +242,63 @@ class SimplifiedRedditScraper:
             except:
                 pass
             logger.error(f"Error loading skip lists: {e}")
+
+    async def load_all_subreddits_cache(self):
+        """Load ALL subreddits into memory for fast lookups and accurate new/existing detection"""
+        load_start = datetime.now(timezone.utc)
+        try:
+            # Load ALL subreddits with key fields
+            result = self.supabase.table('reddit_subreddits').select(
+                'name, review, primary_category, tags, over18'
+            ).execute()
+
+            # Build cache dictionary keyed by lowercase name
+            self.all_subreddits_cache = {}
+            for r in result.data:
+                if r.get('name'):
+                    self.all_subreddits_cache[r['name'].lower()] = {
+                        'review': r.get('review'),
+                        'primary_category': r.get('primary_category'),
+                        'tags': r.get('tags', []),
+                        'over18': r.get('over18', False)
+                    }
+
+            # Also populate skip lists from cache (faster than separate queries)
+            self.non_related_subreddits = {
+                name for name, data in self.all_subreddits_cache.items()
+                if data['review'] == 'Non Related'
+            }
+            self.user_feed_subreddits = {
+                name for name, data in self.all_subreddits_cache.items()
+                if data['review'] == 'User Feed'
+            }
+            self.banned_subreddits = {
+                name for name, data in self.all_subreddits_cache.items()
+                if data['review'] == 'Banned'
+            }
+
+            # Log cache loading
+            load_duration = (datetime.now(timezone.utc) - load_start).total_seconds()
+            self.supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'simple_main',
+                'level': 'info',
+                'message': f'📦 Loaded {len(self.all_subreddits_cache)} subreddits into cache',
+                'context': {
+                    'total_cached': len(self.all_subreddits_cache),
+                    'non_related': len(self.non_related_subreddits),
+                    'user_feed': len(self.user_feed_subreddits),
+                    'banned': len(self.banned_subreddits),
+                    'action': 'cache_loaded'
+                },
+                'duration_ms': int(load_duration * 1000)
+            }).execute()
+
+            logger.info(f"📦 Loaded {len(self.all_subreddits_cache)} subreddits into cache")
+
+        except Exception as e:
+            logger.error(f"Error loading subreddits cache: {e}")
 
     def reset_stats(self):
         """Reset statistics for new cycle - prevents accumulation bug"""
@@ -551,13 +612,13 @@ class SimplifiedRedditScraper:
             cycle_duration = (datetime.now(timezone.utc) - self.stats['start_time']).total_seconds() if self.stats['start_time'] else 0
             logger.info(f"✅ Scraping cycle complete - Stats: {self.stats}, Duration: {cycle_duration:.1f}s")
 
-    async def get_all_subreddits(self, limit: int = 50) -> List[Dict]:
-        """Get subreddits from database with limit - REDUCED from 1000 to 50"""
+    async def get_all_subreddits(self, limit: int = 10000) -> List[Dict]:
+        """Get subreddits from database - processes ALL No Seller and Ok subreddits"""
         try:
-            # Get subreddits ordered by priority (Ok first, then No Seller)
-            query = self.supabase.table('reddit_subreddits').select('*').order('review', desc=False).limit(limit)
+            # Get ALL No Seller and Ok subreddits (skip Non Related, Banned, User Feed)
+            query = self.supabase.table('reddit_subreddits').select('*').in_('review', ['No Seller', 'Ok']).order('review', desc=False).limit(limit)
             result = query.execute()
-            logger.info(f"📋 Fetched {len(result.data)} subreddits (limit: {limit})")
+            logger.info(f"📋 Fetched {len(result.data)} subreddits to process (No Seller + Ok only)")
             return result.data
         except Exception as e:
             logger.error(f"Error fetching subreddits: {e}")
@@ -1020,8 +1081,17 @@ class SimplifiedRedditScraper:
             # 8. Update subreddit in database FIRST (posts need this)
             await self.update_subreddit(sub_name, about_data, metrics, rules, verification_required)
 
-            # 9. Extract and ensure users exist BEFORE saving posts
-            all_posts = hot_posts + weekly_posts + yearly_posts
+            # 9. Deduplicate posts by reddit_id (fixes "ON CONFLICT DO UPDATE" error)
+            all_posts_raw = hot_posts + weekly_posts + yearly_posts
+            seen_post_ids = set()
+            all_posts = []
+            for post in all_posts_raw:
+                post_id = post.get('id')
+                if post_id and post_id not in seen_post_ids:
+                    seen_post_ids.add(post_id)
+                    all_posts.append(post)
+
+            # 10. Extract and ensure users exist BEFORE saving posts
             users = set()
             for post in all_posts:
                 if post.get('author') and post['author'] not in ['[deleted]', 'AutoModerator', None]:
@@ -1031,7 +1101,7 @@ class SimplifiedRedditScraper:
             if users:
                 await self.ensure_users_exist(list(users))
 
-            # 10. NOW save posts (users and subreddit exist)
+            # 11. NOW save posts (users and subreddit exist, posts deduplicated)
             await self.save_posts_batch(all_posts, sub_name)
 
             # Log successful processing
@@ -1056,7 +1126,7 @@ class SimplifiedRedditScraper:
                 }).execute()
             except:
                 pass
-            logger.info(f"✅ Completed No Seller processing for r/{sub_name}")
+            logger.info(f"✅ Completed No Seller r/{sub_name} - Engagement: {metrics.get('engagement', 0):.4f}, Avg Upvotes: {metrics.get('avg_upvotes_per_post', 0):.0f}, Score: {metrics.get('subreddit_score', 0):.2f}, Best Time: {metrics.get('best_posting_day', 'N/A')} {metrics.get('best_posting_hour', 'N/A')}h")
 
         except Exception as e:
             # Log processing error
@@ -1173,10 +1243,11 @@ class SimplifiedRedditScraper:
                     # Get user's recent submissions
                     user_posts = await self.get_user_submissions(username, limit=USER_SUBMISSIONS_LIMIT)
 
-                    # Discover new subreddits from user posts
+                    # Discover new subreddits from user posts (with null safety)
                     for post in user_posts:
-                        if post.get('subreddit'):
-                            discovered_subreddits.add(post['subreddit'].lower())
+                        sub_name_from_post = post.get('subreddit')
+                        if sub_name_from_post and isinstance(sub_name_from_post, str):
+                            discovered_subreddits.add(sub_name_from_post.lower())
 
                     self.stats['users_processed'] += 1
 
@@ -1202,6 +1273,7 @@ class SimplifiedRedditScraper:
             await self.save_posts_batch(all_posts, sub_name)
 
             # 11. Calculate requirements from users
+            requirements = None
             if user_data_list:
                 requirements = RequirementsCalculator.calculate_percentile_requirements(user_data_list)
                 await self.update_subreddit_requirements(sub_name, requirements)
@@ -1293,7 +1365,11 @@ class SimplifiedRedditScraper:
                 }).execute()
             except:
                 pass
-            logger.info(f"✅ Completed Ok processing for r/{sub_name}")
+            # Build detailed console log with metrics and requirements
+            req_str = ""
+            if requirements:
+                req_str = f", Reqs: Post={requirements.get('min_post_karma', 0)}, Comment={requirements.get('min_comment_karma', 0)}, Age={requirements.get('min_account_age_days', 0)}d"
+            logger.info(f"✅ Completed Ok r/{sub_name} - Engagement: {metrics.get('engagement', 0):.4f}, Avg Upvotes: {metrics.get('avg_upvotes_per_post', 0):.0f}, Score: {metrics.get('subreddit_score', 0):.2f}, Best Time: {metrics.get('best_posting_day', 'N/A')} {metrics.get('best_posting_hour', 'N/A')}h{req_str}")
 
         except Exception as e:
             # Log processing error
@@ -2095,14 +2171,14 @@ class SimplifiedRedditScraper:
             ).execute()
 
             # DIFFERENTIATE: New vs Updated Subreddit in logs
-            # Check if this was the first time the subreddit was fully scraped
-            was_previously_scraped = existing_data.get('last_scraped_at') is not None if existing_data else False
+            # Check if this subreddit existed in our cache before this cycle
+            was_previously_known = name.lower() in self.all_subreddits_cache
 
             # Log successful update with NEW vs UPDATED differentiation
             update_duration = (datetime.now(timezone.utc) - update_start).total_seconds()
 
-            if not was_previously_scraped:
-                # First time scraping this subreddit - treat as NEW
+            if not was_previously_known:
+                # First time seeing this subreddit - treat as NEW
                 self.supabase.table('system_logs').insert({
                     'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'reddit_scraper',
@@ -2114,9 +2190,13 @@ class SimplifiedRedditScraper:
                         'action': 'subreddit_first_scrape',
                         'is_new': True,
                         'metrics': {
-                            'engagement': metrics.get('engagement', 0),
-                            'subreddit_score': metrics.get('subreddit_score', 0),
-                            'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+                            'engagement': round(metrics.get('engagement', 0), 4),
+                            'subreddit_score': round(metrics.get('subreddit_score', 0), 2),
+                            'avg_upvotes': round(metrics.get('avg_upvotes_per_post', 0), 2),
+                            'avg_comments': round(metrics.get('avg_comments_per_post', 0), 2),
+                            'best_posting_day': metrics.get('best_posting_day', 'N/A'),
+                            'best_posting_hour': metrics.get('best_posting_hour', 'N/A'),
+                            'top_content_type': metrics.get('top_content_type', 'N/A')
                         },
                         'protected_fields': protected_fields,
                         'verification_required': verification_required,
@@ -2138,9 +2218,13 @@ class SimplifiedRedditScraper:
                         'action': 'subreddit_updated',
                         'is_new': False,
                         'metrics': {
-                            'engagement': metrics.get('engagement', 0),
-                            'subreddit_score': metrics.get('subreddit_score', 0),
-                            'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+                            'engagement': round(metrics.get('engagement', 0), 4),
+                            'subreddit_score': round(metrics.get('subreddit_score', 0), 2),
+                            'avg_upvotes': round(metrics.get('avg_upvotes_per_post', 0), 2),
+                            'avg_comments': round(metrics.get('avg_comments_per_post', 0), 2),
+                            'best_posting_day': metrics.get('best_posting_day', 'N/A'),
+                            'best_posting_hour': metrics.get('best_posting_hour', 'N/A'),
+                            'top_content_type': metrics.get('top_content_type', 'N/A')
                         },
                         'protected_fields': protected_fields,
                         'verification_required': verification_required,
@@ -2266,13 +2350,8 @@ class SimplifiedRedditScraper:
                 continue
 
             try:
-                # Check if subreddit already exists in database
-                check_result = self.supabase.table('reddit_subreddits').select(
-                    'name'
-                ).eq('name', name).execute()
-
-                # DIFFERENTIATE: New vs Existing Subreddit
-                is_new_subreddit = not check_result.data or len(check_result.data) == 0
+                # Use cache to check if subreddit exists (faster than database query)
+                is_new_subreddit = name.lower() not in self.all_subreddits_cache
 
                 if is_new_subreddit:
                     # Determine review status - User Feed for u_ prefixed subreddits
