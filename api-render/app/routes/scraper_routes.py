@@ -100,8 +100,8 @@ async def start_scraper(request: Request):
             log_file.flush()
 
             # Start Reddit scraper subprocess with proper logging
-            # The working directory is /app/api, so the script is at scrapers/reddit/main.py
-            script_path = os.path.join("scrapers", "reddit", "main.py")
+            # Using the simplified v3.0 scraper
+            script_path = os.path.join("scrapers", "reddit", "continuous_v3.py")
             api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             full_script_path = os.path.join(api_dir, script_path)
 
