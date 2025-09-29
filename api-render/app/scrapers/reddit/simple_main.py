@@ -258,10 +258,11 @@ class SimplifiedRedditScraper:
                 batch_num += 1
                 batch_start = datetime.now(timezone.utc)
 
-                # Paginated query using range()
+                # Paginated query using range() - Supabase range is inclusive on both ends
+                # So range(0, 999) returns 1000 records (0 through 999)
                 result = self.supabase.table('reddit_subreddits').select(
                     'name, review, primary_category, tags, over18'
-                ).range(offset, offset + batch_size - 1).execute()
+                ).range(offset, offset + batch_size - 1).order('name').execute()
 
                 if not result.data:
                     break
@@ -279,13 +280,14 @@ class SimplifiedRedditScraper:
                 batch_count = len(result.data)
                 total_loaded += batch_count
                 batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
-                logger.info(f"📦 Loaded batch {batch_num}: {batch_count} subreddits ({batch_duration:.2f}s)")
+                logger.info(f"📦 Batch {batch_num}: loaded {batch_count} subreddits (offset {offset}, {batch_duration:.2f}s)")
 
-                # Move offset forward
+                # Move offset forward by the number we got
                 offset += batch_count
 
                 # Break if we got less than batch_size (last page)
                 if batch_count < batch_size:
+                    logger.info(f"✅ Reached last page - loaded {batch_count} < {batch_size}")
                     break
 
             # Also populate skip lists from cache (faster than separate queries)
@@ -1494,10 +1496,16 @@ class SimplifiedRedditScraper:
                 pass
 
         # Best posting time from yearly posts
-        if yearly_posts:
+        # Only show best posting time if engagement is meaningful (> 0.01)
+        # This prevents showing "Best: Friday 12h" when engagement is 0.0000
+        if yearly_posts and metrics.get('engagement', 0) > 0.01:
             best_hour, best_day = MetricsCalculator.calculate_posting_timing(yearly_posts)
             metrics['best_posting_day'] = best_day
             metrics['best_posting_hour'] = best_hour
+        else:
+            # Set to None so logs show "N/A"
+            metrics['best_posting_day'] = None
+            metrics['best_posting_hour'] = None
 
         # Content type analysis from hot posts (for informational purposes)
         content_types = defaultdict(list)
