@@ -31,6 +31,7 @@ if "/app/app/scrapers" in current_dir:
     # Now we can import from app.*
     from app.core.clients.api_pool import ThreadSafeAPIPool
     from app.core.config.proxy_manager import ProxyManager
+    from app.core.config.config_manager import ConfigManager
     from app.core.database.supabase_client import get_supabase_client, refresh_supabase_client
     from app.core.exceptions import (
         SubredditBannedException,
@@ -47,6 +48,7 @@ else:
     # Local imports
     from core.clients.api_pool import ThreadSafeAPIPool
     from core.config.proxy_manager import ProxyManager
+    from core.config.config_manager import ConfigManager
     from core.database.supabase_client import get_supabase_client, refresh_supabase_client
     from core.exceptions import (
         SubredditBannedException,
@@ -67,16 +69,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.2.2 - Dynamic Threading (centralized proxy config)"
+SCRAPER_VERSION = "3.3.0 - Centralized Configuration"
 
-# Constants (replacing complex config)
-BATCH_SIZE = 50  # Posts per batch insert
-USER_BATCH_SIZE = 30  # Users per batch insert
-# MAX_THREADS removed - now dynamically calculated from proxy configuration
-POSTS_PER_SUBREDDIT = 30  # Hot posts to analyze
-USER_SUBMISSIONS_LIMIT = 30  # Recent user submissions to check
-RATE_LIMIT_DELAY = 1.0  # Seconds between requests
-MAX_RETRIES = 3  # Retry attempts for failed requests
+# Configuration will be loaded dynamically from database
+# Defaults are managed by ConfigManager class
 
 
 class LoggingHelper:
@@ -183,6 +179,7 @@ class SimplifiedRedditScraper:
         self.proxy_manager = None
         self.api_pool = None
         self.metrics_calculator = None
+        self.config_manager = None  # Will be initialized after Supabase
 
         # Skip lists (in-memory, no caching)
         self.non_related_subreddits: Set[str] = set()
@@ -197,9 +194,10 @@ class SimplifiedRedditScraper:
         self.posts_batch = []
         self.users_batch = []
 
+        # Configuration (will be loaded from database)
+        self.config = {}  # Populated from ConfigManager
+
         # Error recovery configuration
-        self.max_retries = 3
-        self.retry_delay = 5  # seconds
         self.consecutive_errors = 0
         self.error_threshold = 10  # Max consecutive errors before stopping
 
@@ -263,6 +261,11 @@ class SimplifiedRedditScraper:
                     },
                 }
             ).execute()
+
+            # Initialize configuration manager
+            self.config_manager = ConfigManager(self.supabase)
+            self.config = self.config_manager.get_config()
+            logger.info(f"✅ Configuration loaded from database")
 
             # Initialize proxy manager and API pool
             self.proxy_manager = ProxyManager(self.supabase)
@@ -384,7 +387,7 @@ class SimplifiedRedditScraper:
         try:
             # Load ALL subreddits with pagination (Supabase limit: 1000 per query)
             self.all_subreddits_cache = {}
-            batch_size = 1000
+            batch_size = self.config.get("cache_batch_size", 1000)
             offset = 0
             total_loaded = 0
             batch_num = 0
@@ -1351,7 +1354,7 @@ class SimplifiedRedditScraper:
                 return
 
             # 2. Get hot posts (for basic metrics)
-            hot_posts = await self.get_subreddit_posts(sub_name, sort="hot", limit=POSTS_PER_SUBREDDIT)
+            hot_posts = await self.get_subreddit_posts(sub_name, sort="hot", limit=self.config.get("posts_per_subreddit", 30))
 
             # 3. Get weekly posts (for engagement calculations)
             weekly_posts = await self.get_subreddit_posts(sub_name, sort="top", time_filter="week", limit=100)
@@ -1474,7 +1477,7 @@ class SimplifiedRedditScraper:
                 return
 
             # 2. Get posts (hot, weekly, yearly)
-            hot_posts = await self.get_subreddit_posts(sub_name, sort="hot", limit=POSTS_PER_SUBREDDIT)
+            hot_posts = await self.get_subreddit_posts(sub_name, sort="hot", limit=self.config.get("posts_per_subreddit", 30))
             weekly_posts = await self.get_subreddit_posts(sub_name, sort="top", time_filter="week", limit=100)
             yearly_posts = await self.get_subreddit_posts(sub_name, sort="top", time_filter="year", limit=100)
 
@@ -1536,7 +1539,7 @@ class SimplifiedRedditScraper:
                         )
 
                     # Get user's recent submissions
-                    user_posts = await self.get_user_submissions(username, limit=USER_SUBMISSIONS_LIMIT)
+                    user_posts = await self.get_user_submissions(username, limit=self.config.get("user_submissions_limit", 30))
 
                     # Discover new subreddits from user posts (with null safety)
                     for post in user_posts:
@@ -1950,10 +1953,11 @@ class SimplifiedRedditScraper:
             posts = unique_posts
 
         # Process in batches
-        for i in range(0, len(posts), BATCH_SIZE):
-            batch = posts[i : i + BATCH_SIZE]
-            batch_num = i // BATCH_SIZE + 1
-            total_batches = (len(posts) + BATCH_SIZE - 1) // BATCH_SIZE
+        batch_size = self.config.get("batch_size", 50)
+        for i in range(0, len(posts), batch_size):
+            batch = posts[i : i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (len(posts) + batch_size - 1) // batch_size
 
             logger.info(f"📦 Processing batch {batch_num}/{total_batches} ({len(batch)} posts) for r/{subreddit_name}")
 
@@ -2223,10 +2227,11 @@ class SimplifiedRedditScraper:
         failed_saves = 0
 
         # Process in batches
-        for i in range(0, len(users), USER_BATCH_SIZE):
-            batch = users[i : i + USER_BATCH_SIZE]
-            batch_num = i // USER_BATCH_SIZE + 1
-            total_batches = (len(users) + USER_BATCH_SIZE - 1) // USER_BATCH_SIZE
+        user_batch_size = self.config.get("user_batch_size", 30)
+        for i in range(0, len(users), user_batch_size):
+            batch = users[i : i + user_batch_size]
+            batch_num = i // user_batch_size + 1
+            total_batches = (len(users) + user_batch_size - 1) // user_batch_size
 
             logger.debug(f"Processing user batch {batch_num}/{total_batches} ({len(batch)} users)")
 
@@ -2407,10 +2412,11 @@ class SimplifiedRedditScraper:
         failed_ensures = 0
 
         # Process in batches
-        for i in range(0, len(unique_usernames), USER_BATCH_SIZE):
-            batch = unique_usernames[i : i + USER_BATCH_SIZE]
-            batch_num = i // USER_BATCH_SIZE + 1
-            total_batches = (len(unique_usernames) + USER_BATCH_SIZE - 1) // USER_BATCH_SIZE
+        user_batch_size = self.config.get("user_batch_size", 30)
+        for i in range(0, len(unique_usernames), user_batch_size):
+            batch = unique_usernames[i : i + user_batch_size]
+            batch_num = i // user_batch_size + 1
+            total_batches = (len(unique_usernames) + user_batch_size - 1) // user_batch_size
 
             logger.debug(f"Processing ensure batch {batch_num}/{total_batches} ({len(batch)} users)")
 
