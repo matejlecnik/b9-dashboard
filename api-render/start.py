@@ -53,19 +53,19 @@ def check_and_start_scrapers():
                 # Change to API directory first (crucial for imports)
                 original_cwd = os.getcwd()
                 try:
-                    os.chdir('/app/api')
+                    os.chdir('/app')
 
                     # Open log file for Reddit scraper output
                     reddit_log = open('/tmp/reddit_scraper.log', 'w')
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
-                        [sys.executable, "-u", "scrapers/reddit/continuous.py"],
+                        [sys.executable, "-u", "app/scrapers/reddit/continuous_v3.py"],
                         stdout=reddit_log,
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd='/app/api'  # Ensure correct working directory
+                        cwd='/app'  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -123,19 +123,19 @@ def check_and_start_scrapers():
                 # Change to API directory first (crucial for imports)
                 original_cwd = os.getcwd()
                 try:
-                    os.chdir('/app/api')
+                    os.chdir('/app')
 
                     # Open log file for Instagram scraper output
                     instagram_log = open('/tmp/instagram_scraper.log', 'w')
 
                     # Start with output to log file so we can see errors
                     instagram_process = subprocess.Popen(
-                        [sys.executable, "-u", "core/continuous_instagram_scraper.py"],
+                        [sys.executable, "-u", "app/core/continuous_instagram_scraper.py"],
                         stdout=instagram_log,
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd='/app/api'  # Ensure correct working directory
+                        cwd='/app'  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -206,10 +206,10 @@ def run_api():
         )
     port = os.environ.get('PORT', '8000')
     try:
-        # Change to api directory for API as well
-        os.chdir('/app/api')
+        # Change to app directory for API as well
+        os.chdir('/app')
         subprocess.run([
-            "uvicorn", "main:app",
+            "uvicorn", "app.main:app",
             "--host", "0.0.0.0",
             "--port", port
         ])
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     # Run cleanup of old files on startup
     try:
         logger.info("🧹 Running cleanup of old files...")
-        subprocess.run([sys.executable, "cleanup_old_files.py"], cwd='/app/api', timeout=10)
+        subprocess.run([sys.executable, "app/cleanup_old_files.py"], cwd='/app', timeout=10)
         logger.info("✅ Cleanup complete")
     except Exception as e:
         logger.warning(f"⚠️ Cleanup script failed (non-critical): {e}")
