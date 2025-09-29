@@ -1083,141 +1083,278 @@ class SimplifiedRedditScraper:
     async def save_posts_batch(self, posts: List[Dict], subreddit_name: str):
         """Save posts directly to database in batches"""
         if not posts:
-            logger.debug(f"No posts to save for r/{subreddit_name}")
+            logger.info(f"📭 No posts to save for r/{subreddit_name}")
             return
 
-        # Fetch subreddit data including ID for foreign key - CRITICAL FIX
-        subreddit_data = None
-        subreddit_id = None
+        logger.info(f"🔄 Starting to save {len(posts)} posts for r/{subreddit_name}")
+        total_saved = 0
+        failed_saves = 0
+
+        # CRITICAL: Ensure subreddit exists in database first (foreign key constraint!)
+        logger.info(f"🔍 Checking if r/{subreddit_name} exists in database...")
         try:
-            result = self.supabase.table('reddit_subreddits').select(
-                'id', 'primary_category', 'tags', 'over18'
-            ).eq('name', subreddit_name).single().execute()
-            subreddit_data = result.data
-            subreddit_id = subreddit_data['id'] if subreddit_data else None
+            # Check if subreddit exists
+            check_result = self.supabase.table('reddit_subreddits').select(
+                'name', 'primary_category', 'tags', 'over18'
+            ).eq('name', subreddit_name).execute()
 
-            if not subreddit_id:
-                logger.error(f"❌ Subreddit r/{subreddit_name} not found in database - cannot save posts")
-                return
+            if not check_result.data:
+                # Subreddit doesn't exist - create minimal record
+                logger.warning(f"⚠️ r/{subreddit_name} not in database - creating minimal record")
+                minimal_record = {
+                    'name': subreddit_name,
+                    'display_name_prefixed': f'r/{subreddit_name}',
+                    'url': f'/r/{subreddit_name}/',
+                    'review': 'Ok',  # Use valid review status (constraint: Ok, Non Related, User Feed, Banned, No Seller)
+                    'primary_category': 'Unknown',
+                    'last_scraped_at': datetime.now(timezone.utc).isoformat(),
+                    'subscribers': 0,  # Default values for required fields
+                    'accounts_active': 0
+                }
 
-            logger.info(f"📝 Preparing to save {len(posts)} posts for r/{subreddit_name} (id: {subreddit_id})")
+                try:
+                    insert_result = self.supabase.table('reddit_subreddits').insert(minimal_record).execute()
+                    logger.info(f"✅ Created minimal subreddit record for r/{subreddit_name}")
+                    subreddit_data = {'primary_category': 'Unknown', 'tags': [], 'over18': False}
+                except Exception as insert_error:
+                    logger.error(f"❌ CRITICAL: Cannot create subreddit record: {insert_error}")
+                    logger.error(f"❌ Cannot save posts without subreddit existing (foreign key constraint)")
+                    return  # Cannot proceed without subreddit record
+            else:
+                # Subreddit exists - use its data
+                subreddit_data = check_result.data[0]
+                logger.debug(f"✅ Subreddit r/{subreddit_name} exists with category={subreddit_data.get('primary_category')}")
+
         except Exception as e:
-            logger.error(f"Failed to fetch subreddit data for r/{subreddit_name}: {e}")
+            logger.error(f"❌ Error checking/creating subreddit: {e}")
+            logger.error(f"❌ Cannot save posts without subreddit record")
             return
+
+        # First, collect all unique authors and ensure they exist
+        unique_authors = set()
+        for post in posts:
+            author = post.get('author')
+            if author and author not in ['[deleted]', 'AutoModerator', None]:
+                unique_authors.add(author)
+
+        if unique_authors:
+            logger.info(f"📝 Ensuring {len(unique_authors)} unique authors exist for r/{subreddit_name}")
+            await self.ensure_users_exist(list(unique_authors))
 
         # Process in batches
         for i in range(0, len(posts), BATCH_SIZE):
             batch = posts[i:i + BATCH_SIZE]
+            batch_num = i // BATCH_SIZE + 1
+            total_batches = (len(posts) + BATCH_SIZE - 1) // BATCH_SIZE
+
+            logger.info(f"📦 Processing batch {batch_num}/{total_batches} ({len(batch)} posts) for r/{subreddit_name}")
 
             # Prepare posts for insertion
             post_records = []
-            for post in batch:
-                record = {
-                    'reddit_id': post.get('id'),
-                    'title': post.get('title', '')[:500],  # Limit title length
-                    'selftext': post.get('selftext', '')[:5000],  # Limit text length
-                    'url': post.get('url'),
-                    'author_username': post.get('author'),
-                    'subreddit_name': subreddit_name,
-                    'subreddit_id': subreddit_id,  # CRITICAL: Add missing foreign key
-                    'score': post.get('score', 0),
-                    'upvote_ratio': post.get('upvote_ratio', 0),
-                    'num_comments': post.get('num_comments', 0),
-                    'created_utc': datetime.fromtimestamp(post.get('created_utc', 0), tz=timezone.utc).isoformat(),
-                    'is_self': post.get('is_self', False),
-                    'is_video': post.get('is_video', False),
-                    'over_18': post.get('over_18', False),
-                    'spoiler': post.get('spoiler', False),
-                    'stickied': post.get('stickied', False),
-                    'locked': post.get('locked', False),
-                    'gilded': post.get('gilded', 0),
-                    'distinguished': post.get('distinguished'),
-                    'content_type': self.determine_content_type(post),
-                    'link_flair_text': post.get('link_flair_text'),
-                    'author_flair_text': post.get('author_flair_text'),
-                    'scraped_at': datetime.now(timezone.utc).isoformat()
-                }
+            for post_idx, post in enumerate(batch):
+                try:
+                    # Log first post in detail for debugging
+                    if post_idx == 0 and batch_num == 1:
+                        logger.debug(f"🔍 Sample post data: id={post.get('id')}, author={post.get('author')}, title={post.get('title', '')[:50]}")
 
-                # Add subreddit denormalized fields
-                if subreddit_data:
-                    record['sub_primary_category'] = subreddit_data.get('primary_category')
-                    record['sub_tags'] = subreddit_data.get('tags', [])
-                    record['sub_over18'] = subreddit_data.get('over18', False)
+                    record = {
+                        'reddit_id': post.get('id'),
+                        'title': post.get('title', '')[:500],  # Limit title length
+                        'selftext': post.get('selftext', '')[:5000],  # Limit text length
+                        'url': post.get('url'),
+                        'author_username': post.get('author'),
+                        'subreddit_name': subreddit_name,
+                        # REMOVED: 'subreddit_id' - this field doesn't exist in the table!
+                        'score': post.get('score', 0),
+                        'upvote_ratio': post.get('upvote_ratio', 0),
+                        'num_comments': post.get('num_comments', 0),
+                        'created_utc': datetime.fromtimestamp(post.get('created_utc', 0), tz=timezone.utc).isoformat(),
+                        'is_self': post.get('is_self', False),
+                        'is_video': post.get('is_video', False),
+                        'over_18': post.get('over_18', False),
+                        'spoiler': post.get('spoiler', False),
+                        'stickied': post.get('stickied', False),
+                        'locked': post.get('locked', False),
+                        'gilded': post.get('gilded', 0),
+                        'distinguished': post.get('distinguished'),
+                        'content_type': self.determine_content_type(post),
+                        'link_flair_text': post.get('link_flair_text'),
+                        'author_flair_text': post.get('author_flair_text'),
+                        'scraped_at': datetime.now(timezone.utc).isoformat()
+                    }
 
-                post_records.append(record)
+                    # Add subreddit denormalized fields
+                    if subreddit_data:
+                        record['sub_primary_category'] = subreddit_data.get('primary_category')
+                        record['sub_tags'] = subreddit_data.get('tags', [])
+                        record['sub_over18'] = subreddit_data.get('over18', False)
+
+                    post_records.append(record)
+
+                except Exception as e:
+                    logger.error(f"⚠️ Error preparing post record: {e}, post_id={post.get('id')}")
+                    continue
 
             # Direct upsert to database
-            try:
-                logger.debug(f"Attempting to upsert {len(post_records)} posts...")
-                result = self.supabase.table('reddit_posts').upsert(
-                    post_records,
-                    on_conflict='reddit_id'
-                ).execute()
+            if post_records:
+                try:
+                    logger.info(f"💾 Attempting to upsert batch {batch_num}/{total_batches} with {len(post_records)} posts...")
 
-                self.stats['posts_processed'] += len(post_records)
-                logger.info(f"✅ Successfully saved {len(post_records)} posts from r/{subreddit_name}")
+                    # Log the first record structure for debugging
+                    if batch_num == 1:
+                        sample_keys = list(post_records[0].keys())
+                        logger.debug(f"📋 Post record structure: {sample_keys}")
 
-            except Exception as e:
-                logger.error(f"❌ Error saving posts batch for r/{subreddit_name}: {e}")
-                logger.error(f"Failed post record sample: {post_records[0] if post_records else 'No records'}")
+                    result = self.supabase.table('reddit_posts').upsert(
+                        post_records,
+                        on_conflict='reddit_id'
+                    ).execute()
+
+                    # Check if we actually got data back
+                    if result and result.data:
+                        actual_saved = len(result.data)
+                        total_saved += actual_saved
+                        logger.info(f"✅ Batch {batch_num} saved: {actual_saved} posts confirmed in database")
+                    else:
+                        logger.warning(f"⚠️ Batch {batch_num}: Upsert executed but no data returned")
+
+                    self.stats['posts_processed'] += len(post_records)
+
+                except Exception as e:
+                    failed_saves += len(post_records)
+                    logger.error(f"❌ CRITICAL: Failed to save batch {batch_num} for r/{subreddit_name}")
+                    logger.error(f"❌ Error details: {str(e)}")
+                    logger.error(f"❌ Error type: {type(e).__name__}")
+
+                    # Log sample record for debugging
+                    if post_records:
+                        sample = post_records[0].copy()
+                        # Truncate long fields for logging
+                        if 'selftext' in sample:
+                            sample['selftext'] = sample['selftext'][:100] + '...' if len(sample['selftext']) > 100 else sample['selftext']
+                        if 'title' in sample:
+                            sample['title'] = sample['title'][:100] + '...' if len(sample['title']) > 100 else sample['title']
+                        logger.error(f"❌ Failed record sample: {sample}")
+            else:
+                logger.warning(f"⚠️ No valid records to save in batch {batch_num}")
+
+        # Final summary
+        if total_saved > 0:
+            logger.info(f"✅ FINAL: Successfully saved {total_saved}/{len(posts)} posts from r/{subreddit_name}")
+        else:
+            logger.error(f"❌ FINAL: Failed to save any posts from r/{subreddit_name} (attempted {len(posts)} posts)")
+
+        if failed_saves > 0:
+            logger.error(f"❌ FINAL: {failed_saves} posts failed to save")
 
     async def save_users_batch(self, users: List[Dict]):
         """Save users directly to database in batches"""
         if not users:
+            logger.debug("No users to save")
             return
+
+        logger.info(f"👥 Saving {len(users)} users to database")
+        total_saved = 0
+        failed_saves = 0
 
         # Process in batches
         for i in range(0, len(users), USER_BATCH_SIZE):
             batch = users[i:i + USER_BATCH_SIZE]
+            batch_num = i // USER_BATCH_SIZE + 1
+            total_batches = (len(users) + USER_BATCH_SIZE - 1) // USER_BATCH_SIZE
+
+            logger.debug(f"Processing user batch {batch_num}/{total_batches} ({len(batch)} users)")
 
             # Prepare user records
             user_records = []
             for user in batch:
-                # Calculate account age in days
-                created_timestamp = user.get('created_utc', 0)
-                account_age_days = None
-                if created_timestamp:
-                    created_date = datetime.fromtimestamp(created_timestamp, tz=timezone.utc)
-                    account_age_days = (datetime.now(timezone.utc) - created_date).days
+                try:
+                    username = user.get('name')
+                    if not username or username in ['[deleted]', 'AutoModerator']:
+                        logger.debug(f"Skipping invalid username: {username}")
+                        continue
 
-                record = {
-                    'username': user.get('name'),
-                    'reddit_id': user.get('id'),
-                    'created_utc': datetime.fromtimestamp(user.get('created_utc', 0), tz=timezone.utc).isoformat(),
-                    'account_age_days': account_age_days,
-                    'comment_karma': user.get('comment_karma', 0),
-                    'link_karma': user.get('link_karma', 0),
-                    'total_karma': user.get('total_karma', 0),
-                    'is_gold': user.get('is_gold', False),
-                    'is_mod': user.get('is_mod', False),
-                    'is_employee': user.get('is_employee', False),
-                    'verified': user.get('verified', False),
-                    'has_verified_email': user.get('has_verified_email', False),
-                    'icon_img': user.get('icon_img'),
-                    'last_scraped_at': datetime.now(timezone.utc).isoformat()
-                }
-                user_records.append(record)
+                    # Calculate account age in days
+                    created_timestamp = user.get('created_utc', 0)
+                    account_age_days = None
+                    if created_timestamp:
+                        created_date = datetime.fromtimestamp(created_timestamp, tz=timezone.utc)
+                        account_age_days = (datetime.now(timezone.utc) - created_date).days
+
+                    record = {
+                        'username': username,
+                        'reddit_id': user.get('id'),
+                        'created_utc': datetime.fromtimestamp(user.get('created_utc', 0), tz=timezone.utc).isoformat(),
+                        'account_age_days': account_age_days,
+                        'comment_karma': user.get('comment_karma', 0),
+                        'link_karma': user.get('link_karma', 0),
+                        'total_karma': user.get('total_karma', 0),
+                        'is_gold': user.get('is_gold', False),
+                        'is_mod': user.get('is_mod', False),
+                        'is_employee': user.get('is_employee', False),
+                        'verified': user.get('verified', False),
+                        'has_verified_email': user.get('has_verified_email', False),
+                        'icon_img': user.get('icon_img'),
+                        'last_scraped_at': datetime.now(timezone.utc).isoformat()
+                    }
+                    user_records.append(record)
+
+                except Exception as e:
+                    logger.error(f"⚠️ Error preparing user record: {e}, username={user.get('name')}")
+                    continue
 
             # Direct upsert to database
-            try:
-                self.supabase.table('reddit_users').upsert(
-                    user_records,
-                    on_conflict='username'
-                ).execute()
+            if user_records:
+                try:
+                    logger.debug(f"💾 Upserting batch {batch_num} with {len(user_records)} users...")
 
-                logger.debug(f"💾 Saved {len(user_records)} users")
+                    result = self.supabase.table('reddit_users').upsert(
+                        user_records,
+                        on_conflict='username'
+                    ).execute()
 
-            except Exception as e:
-                logger.error(f"Error saving users batch: {e}")
+                    if result and result.data:
+                        actual_saved = len(result.data)
+                        total_saved += actual_saved
+                        logger.info(f"✅ User batch {batch_num}: {actual_saved} users saved")
+                    else:
+                        logger.warning(f"⚠️ User batch {batch_num}: Upsert executed but no data returned")
+
+                except Exception as e:
+                    failed_saves += len(user_records)
+                    logger.error(f"❌ Failed to save user batch {batch_num}: {e}")
+                    if user_records:
+                        logger.error(f"❌ Sample failed user: username={user_records[0].get('username')}, id={user_records[0].get('reddit_id')}")
+            else:
+                logger.debug(f"No valid users in batch {batch_num}")
+
+        # Final summary
+        if total_saved > 0:
+            logger.info(f"✅ USERS: Successfully saved {total_saved}/{len(users)} users")
+        else:
+            logger.warning(f"⚠️ USERS: No users were saved out of {len(users)} attempted")
+
+        if failed_saves > 0:
+            logger.error(f"❌ USERS: {failed_saves} users failed to save")
 
     async def ensure_users_exist(self, usernames: List[str]):
         """Ensure users exist in database with minimal records"""
         if not usernames:
+            logger.debug("No usernames to ensure")
             return
 
+        unique_usernames = list(set(usernames))  # Remove duplicates
+        logger.info(f"📝 Ensuring {len(unique_usernames)} unique users exist in database")
+        total_ensured = 0
+        failed_ensures = 0
+
         # Process in batches
-        for i in range(0, len(usernames), USER_BATCH_SIZE):
-            batch = usernames[i:i + USER_BATCH_SIZE]
+        for i in range(0, len(unique_usernames), USER_BATCH_SIZE):
+            batch = unique_usernames[i:i + USER_BATCH_SIZE]
+            batch_num = i // USER_BATCH_SIZE + 1
+            total_batches = (len(unique_usernames) + USER_BATCH_SIZE - 1) // USER_BATCH_SIZE
+
+            logger.debug(f"Processing ensure batch {batch_num}/{total_batches} ({len(batch)} users)")
 
             # Create minimal user records
             user_records = []
@@ -1228,19 +1365,41 @@ class SimplifiedRedditScraper:
                         'last_scraped_at': datetime.now(timezone.utc).isoformat()
                     }
                     user_records.append(record)
+                else:
+                    logger.debug(f"Skipping invalid/system username: {username}")
 
             # Direct upsert to database
             if user_records:
                 try:
-                    self.supabase.table('reddit_users').upsert(
+                    logger.debug(f"💾 Ensuring batch {batch_num} with {len(user_records)} users...")
+
+                    result = self.supabase.table('reddit_users').upsert(
                         user_records,
                         on_conflict='username'
                     ).execute()
 
-                    logger.debug(f"💾 Ensured {len(user_records)} users exist")
+                    if result and result.data:
+                        actual_ensured = len(result.data)
+                        total_ensured += actual_ensured
+                        logger.debug(f"✅ Ensure batch {batch_num}: {actual_ensured} users confirmed")
+                    else:
+                        logger.warning(f"⚠️ Ensure batch {batch_num}: Upsert executed but no confirmation")
 
                 except Exception as e:
-                    logger.error(f"Error ensuring users exist: {e}")
+                    failed_ensures += len(user_records)
+                    logger.error(f"❌ Failed to ensure users in batch {batch_num}: {e}")
+                    logger.error(f"❌ Error type: {type(e).__name__}")
+                    if user_records:
+                        logger.error(f"❌ Sample username that failed: {user_records[0].get('username')}")
+            else:
+                logger.debug(f"No valid usernames in batch {batch_num}")
+
+        # Final summary
+        if total_ensured > 0:
+            logger.info(f"✅ ENSURE: Successfully ensured {total_ensured}/{len(unique_usernames)} users exist")
+
+        if failed_ensures > 0:
+            logger.error(f"❌ ENSURE: {failed_ensures} users failed to ensure")
 
     async def update_subreddit(self, name: str, about_data: Dict, metrics: Dict,
                                 rules: List[Dict] = None, verification_required: bool = False):
