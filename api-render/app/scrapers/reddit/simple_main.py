@@ -129,7 +129,7 @@ class SimplifiedRedditScraper:
 
             # Initialize proxy manager and API pool
             self.proxy_manager = ProxyManager(self.supabase)
-            await self.proxy_manager.initialize()
+            await self.proxy_manager.load_proxies()  # Fixed: ProxyManager uses load_proxies() not initialize()
 
             self.api_pool = ThreadSafeAPIPool(self.proxy_manager)
             self.api_pool.initialize()
