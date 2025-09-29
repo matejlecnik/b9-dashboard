@@ -21,19 +21,34 @@ from dotenv import load_dotenv
 
 # Setup path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-api_root = os.path.join(current_dir, '..', '..')
-if api_root not in sys.path:
+# In Docker: /app/app/scrapers/reddit -> need to go up 3 levels to /app
+# In local: api-render/app/scrapers/reddit -> need to go up 2 levels to api-render/app
+if '/app/app/scrapers' in current_dir:
+    # Docker environment
+    api_root = os.path.join(current_dir, '..', '..', '..')  # Goes to /app
     sys.path.insert(0, api_root)
-
-# Core imports (keeping essential ones)
-from app.core.clients.api_pool import ThreadSafeAPIPool
-from app.core.config.proxy_manager import ProxyManager
-from app.core.database.supabase_client import get_supabase_client, refresh_supabase_client
-from app.core.exceptions import (
-    SubredditBannedException, SubredditPrivateException,
-    ValidationException, handle_api_error, validate_subreddit_name
-)
-from app.scrapers.reddit.processors.calculator import MetricsCalculator, RequirementsCalculator
+    # Now we can import from app.*
+    from app.core.clients.api_pool import ThreadSafeAPIPool
+    from app.core.config.proxy_manager import ProxyManager
+    from app.core.database.supabase_client import get_supabase_client, refresh_supabase_client
+    from app.core.exceptions import (
+        SubredditBannedException, SubredditPrivateException,
+        ValidationException, handle_api_error, validate_subreddit_name
+    )
+    from app.scrapers.reddit.processors.calculator import MetricsCalculator, RequirementsCalculator
+else:
+    # Local environment
+    api_root = os.path.join(current_dir, '..', '..')  # Goes to api-render/app
+    sys.path.insert(0, api_root)
+    # Local imports
+    from core.clients.api_pool import ThreadSafeAPIPool
+    from core.config.proxy_manager import ProxyManager
+    from core.database.supabase_client import get_supabase_client, refresh_supabase_client
+    from core.exceptions import (
+        SubredditBannedException, SubredditPrivateException,
+        ValidationException, handle_api_error, validate_subreddit_name
+    )
+    from scrapers.reddit.processors.calculator import MetricsCalculator, RequirementsCalculator
 # Direct API calls - no longer using complex scraper classes
 
 # Load environment variables

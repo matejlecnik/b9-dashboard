@@ -13,13 +13,22 @@ from pathlib import Path
 
 # Setup path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-api_root = os.path.join(current_dir, '..', '..')
-if api_root not in sys.path:
+# In Docker: /app/app/scrapers/reddit -> need to go up 3 levels to /app
+# In local: api-render/app/scrapers/reddit -> need to go up 2 levels to api-render/app
+if '/app/app/scrapers' in current_dir:
+    # Docker environment
+    api_root = os.path.join(current_dir, '..', '..', '..')  # Goes to /app
     sys.path.insert(0, api_root)
-
-# Local imports - using the new simplified scraper
-from app.scrapers.reddit.simple_main import SimplifiedRedditScraper
-from app.core.database.supabase_client import get_supabase_client
+    # Now we can import from app.*
+    from app.scrapers.reddit.simple_main import SimplifiedRedditScraper
+    from app.core.database.supabase_client import get_supabase_client
+else:
+    # Local environment
+    api_root = os.path.join(current_dir, '..', '..')  # Goes to api-render/app
+    sys.path.insert(0, api_root)
+    # Local imports
+    from scrapers.reddit.simple_main import SimplifiedRedditScraper
+    from core.database.supabase_client import get_supabase_client
 
 # Version tracking
 SCRAPER_VERSION = "3.0.0 - Simplified Architecture"
