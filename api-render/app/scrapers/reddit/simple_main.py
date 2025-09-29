@@ -341,6 +341,7 @@ class SimplifiedRedditScraper:
             # 2. Categorize subreddits with progress tracking
             ok_subs = []
             no_seller_subs = []
+            new_subs = []  # For NULL review subreddits (newly discovered)
 
             total_subs = len(subreddits)
             processed = 0
@@ -397,9 +398,13 @@ class SimplifiedRedditScraper:
                         # Continue processing if we can't parse the timestamp
 
                 # Categorize by review status
-                review_status = sub.get('review', '').strip()
+                review_status = sub.get('review', '').strip() if sub.get('review') else None
 
-                if review_status == 'Ok':
+                if review_status is None:
+                    # Newly discovered subreddits - process like Ok but without discovery
+                    new_subs.append(sub)
+                    logger.info(f"🆕 Found new subreddit to process: r/{sub_name}")
+                elif review_status == 'Ok':
                     ok_subs.append(sub)
                 elif review_status == 'No Seller':
                     no_seller_subs.append(sub)
@@ -422,7 +427,8 @@ class SimplifiedRedditScraper:
                         'cycle_id': cycle_id,
                         'ok_count': len(ok_subs),
                         'no_seller_count': len(no_seller_subs),
-                        'skipped_count': len(subreddits) - len(ok_subs) - len(no_seller_subs),
+                        'new_count': len(new_subs),
+                        'skipped_count': len(subreddits) - len(ok_subs) - len(no_seller_subs) - len(new_subs),
                         'action': 'categorization_complete'
                     }
                 }).execute()
@@ -440,6 +446,11 @@ class SimplifiedRedditScraper:
             if ok_subs:
                 logger.info(f"🔍 Processing {len(ok_subs)} Ok subreddits")
                 await self.process_subreddits_batch(ok_subs, full_processing=True)
+
+            # Process new discovered subreddits (full data but NO discovery to avoid infinite loop)
+            if new_subs:
+                logger.info(f"🆕 Processing {len(new_subs)} newly discovered subreddits")
+                await self.process_subreddits_batch(new_subs, full_processing=True, discover_new=False)
 
             # 4. Final batch inserts
             await self.flush_batches()
@@ -514,7 +525,7 @@ class SimplifiedRedditScraper:
             logger.error(f"Error fetching subreddits: {e}")
             return []
 
-    async def process_subreddits_batch(self, subreddits: List[Dict], full_processing: bool = True):
+    async def process_subreddits_batch(self, subreddits: List[Dict], full_processing: bool = True, discover_new: bool = True):
         """Process a batch of subreddits with threading"""
         # Process in chunks to avoid overwhelming the system
         chunk_size = MAX_THREADS
@@ -526,7 +537,7 @@ class SimplifiedRedditScraper:
             tasks = []
             for sub in chunk:
                 if full_processing:
-                    task = self.process_ok_subreddit(sub)
+                    task = self.process_ok_subreddit(sub, discover_new=discover_new)
                 else:
                     task = self.process_no_seller_subreddit(sub)
                 tasks.append(task)
@@ -782,7 +793,7 @@ class SimplifiedRedditScraper:
             logger.error(f"Error processing No Seller subreddit {sub_name}: {e}")
             raise
 
-    async def process_ok_subreddit(self, subreddit: Dict):
+    async def process_ok_subreddit(self, subreddit: Dict, discover_new: bool = True):
         """Process Ok subreddit with full data collection"""
         sub_name = subreddit['name']
         process_start = datetime.now(timezone.utc)
@@ -909,15 +920,29 @@ class SimplifiedRedditScraper:
                 requirements = RequirementsCalculator.calculate_percentile_requirements(user_data_list)
                 await self.update_subreddit_requirements(sub_name, requirements)
 
-            # 12. Process newly discovered subreddits
-            new_subreddits = discovered_subreddits - self.processed_subreddits
-            if new_subreddits:
-                logger.info(f"🆕 Discovered {len(new_subreddits)} new subreddits from r/{sub_name}")
-                await self.queue_new_subreddits(new_subreddits)
-                self.stats['new_subreddits_discovered'] += len(new_subreddits)
+            # 12. Process newly discovered subreddits (only if discovery is enabled)
+            if discover_new:
+                new_subreddits = discovered_subreddits - self.processed_subreddits
+                if new_subreddits:
+                    logger.info(f"🆕 Discovered {len(new_subreddits)} new subreddits from r/{sub_name}")
+                    await self.queue_new_subreddits(new_subreddits)
+                    self.stats['new_subreddits_discovered'] += len(new_subreddits)
+            else:
+                logger.debug(f"🚫 Discovery disabled for r/{sub_name} - skipping new subreddit processing")
 
             # Mark as processed
             self.processed_subreddits.add(sub_name.lower())
+
+            # If this was a newly discovered subreddit (NULL review), mark it as 'Ok' after successful processing
+            if subreddit.get('review') is None:
+                try:
+                    self.supabase.table('reddit_subreddits').update({
+                        'review': 'Ok',
+                        'updated_at': datetime.now(timezone.utc).isoformat()
+                    }).eq('name', sub_name).execute()
+                    logger.info(f"✅ Updated review status for r/{sub_name}: NULL → Ok")
+                except Exception as e:
+                    logger.error(f"Error updating review status for r/{sub_name}: {e}")
 
             # Log successful processing
             process_duration = (datetime.now(timezone.utc) - process_start).total_seconds()
