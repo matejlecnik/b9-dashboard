@@ -198,14 +198,15 @@ def run_api():
         )
     port = os.environ.get('PORT', '8000')
     try:
-        # Set PYTHONPATH to ensure modules can be found
+        # Add current directory to Python path
+        sys.path.insert(0, '/app')
         os.environ['PYTHONPATH'] = '/app'
-        # Use python -m uvicorn for better module resolution
-        subprocess.run([
-            sys.executable, "-m", "uvicorn", "main:app",
-            "--host", "0.0.0.0",
-            "--port", port
-        ])
+
+        # Import and run the app directly instead of using subprocess
+        from main import app
+        import uvicorn
+
+        uvicorn.run(app, host="0.0.0.0", port=int(port))
     except Exception as e:
         logger.error(f"❌ API server crashed: {e}")
 
