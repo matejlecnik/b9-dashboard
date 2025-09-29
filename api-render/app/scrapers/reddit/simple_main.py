@@ -184,17 +184,26 @@ class SimplifiedRedditScraper:
         """Load subreddits to skip from database"""
         load_start = datetime.now(timezone.utc)
         try:
-            # Load Non Related subreddits
+            # Load Non Related subreddits - FIX: Handle None names
             result = self.supabase.table('reddit_subreddits').select('name').eq('review', 'Non Related').execute()
-            self.non_related_subreddits = {r['name'].lower() for r in result.data}
+            self.non_related_subreddits = {
+                r['name'].lower() for r in result.data
+                if r.get('name') is not None
+            }
 
-            # Load User Feed subreddits
+            # Load User Feed subreddits - FIX: Handle None names
             result = self.supabase.table('reddit_subreddits').select('name').eq('review', 'User Feed').execute()
-            self.user_feed_subreddits = {r['name'].lower() for r in result.data}
+            self.user_feed_subreddits = {
+                r['name'].lower() for r in result.data
+                if r.get('name') is not None
+            }
 
-            # Load Banned subreddits
+            # Load Banned subreddits - FIX: Handle None names
             result = self.supabase.table('reddit_subreddits').select('name').eq('review', 'Banned').execute()
-            self.banned_subreddits = {r['name'].lower() for r in result.data}
+            self.banned_subreddits = {
+                r['name'].lower() for r in result.data
+                if r.get('name') is not None
+            }
 
             # Log skip list loading
             self.supabase.table('system_logs').insert({
@@ -329,22 +338,34 @@ class SimplifiedRedditScraper:
                 pass
             logger.info(f"📊 Found {len(subreddits)} subreddits to process")
 
-            # 2. Categorize subreddits
+            # 2. Categorize subreddits with progress tracking
             ok_subs = []
             no_seller_subs = []
 
+            total_subs = len(subreddits)
+            processed = 0
+            skipped = 0
+
             for sub in subreddits:
                 sub_name = sub['name'].lower()
+                processed += 1
+
+                # Log progress every 10 subreddits
+                if processed % 10 == 0:
+                    logger.info(f"📊 Progress: {processed}/{total_subs} subreddits (skipped: {skipped})")
 
                 # Skip if already in skip lists
                 if sub_name in self.non_related_subreddits:
                     logger.debug(f"⏭️ Skipping {sub_name} (Non Related)")
+                    skipped += 1
                     continue
                 elif sub_name in self.user_feed_subreddits:
                     logger.debug(f"⏭️ Skipping {sub_name} (User Feed)")
+                    skipped += 1
                     continue
                 elif sub_name in self.banned_subreddits:
                     logger.debug(f"⏭️ Skipping {sub_name} (Banned)")
+                    skipped += 1
                     continue
 
                 # Skip if recently processed (within 24 hours)
@@ -471,16 +492,23 @@ class SimplifiedRedditScraper:
             raise
 
         finally:
+            # CRITICAL: Always reset is_scraping and clean up
+            self.is_scraping = False  # Ensure this always gets reset
+
             # Clean up memory at the end of each cycle
             self.cleanup_memory()
-            logger.info("✅ Scraping cycle complete")
 
-    async def get_all_subreddits(self) -> List[Dict]:
-        """Get all subreddits from database"""
+            # Log final stats
+            cycle_duration = (datetime.now(timezone.utc) - self.stats['start_time']).total_seconds() if self.stats['start_time'] else 0
+            logger.info(f"✅ Scraping cycle complete - Stats: {self.stats}, Duration: {cycle_duration:.1f}s")
+
+    async def get_all_subreddits(self, limit: int = 50) -> List[Dict]:
+        """Get subreddits from database with limit - REDUCED from 1000 to 50"""
         try:
             # Get subreddits ordered by priority (Ok first, then No Seller)
-            query = self.supabase.table('reddit_subreddits').select('*').order('review', desc=False)
+            query = self.supabase.table('reddit_subreddits').select('*').order('review', desc=False).limit(limit)
             result = query.execute()
+            logger.info(f"📋 Fetched {len(result.data)} subreddits (limit: {limit})")
             return result.data
         except Exception as e:
             logger.error(f"Error fetching subreddits: {e}")
@@ -1055,17 +1083,27 @@ class SimplifiedRedditScraper:
     async def save_posts_batch(self, posts: List[Dict], subreddit_name: str):
         """Save posts directly to database in batches"""
         if not posts:
+            logger.debug(f"No posts to save for r/{subreddit_name}")
             return
 
-        # Fetch subreddit data for denormalized fields
+        # Fetch subreddit data including ID for foreign key - CRITICAL FIX
         subreddit_data = None
+        subreddit_id = None
         try:
             result = self.supabase.table('reddit_subreddits').select(
-                'primary_category', 'tags', 'over18'
+                'id', 'primary_category', 'tags', 'over18'
             ).eq('name', subreddit_name).single().execute()
             subreddit_data = result.data
+            subreddit_id = subreddit_data['id'] if subreddit_data else None
+
+            if not subreddit_id:
+                logger.error(f"❌ Subreddit r/{subreddit_name} not found in database - cannot save posts")
+                return
+
+            logger.info(f"📝 Preparing to save {len(posts)} posts for r/{subreddit_name} (id: {subreddit_id})")
         except Exception as e:
-            logger.debug(f"Could not fetch subreddit data for r/{subreddit_name}: {e}")
+            logger.error(f"Failed to fetch subreddit data for r/{subreddit_name}: {e}")
+            return
 
         # Process in batches
         for i in range(0, len(posts), BATCH_SIZE):
@@ -1081,6 +1119,7 @@ class SimplifiedRedditScraper:
                     'url': post.get('url'),
                     'author_username': post.get('author'),
                     'subreddit_name': subreddit_name,
+                    'subreddit_id': subreddit_id,  # CRITICAL: Add missing foreign key
                     'score': post.get('score', 0),
                     'upvote_ratio': post.get('upvote_ratio', 0),
                     'num_comments': post.get('num_comments', 0),
@@ -1109,16 +1148,18 @@ class SimplifiedRedditScraper:
 
             # Direct upsert to database
             try:
-                self.supabase.table('reddit_posts').upsert(
+                logger.debug(f"Attempting to upsert {len(post_records)} posts...")
+                result = self.supabase.table('reddit_posts').upsert(
                     post_records,
                     on_conflict='reddit_id'
                 ).execute()
 
                 self.stats['posts_processed'] += len(post_records)
-                logger.debug(f"💾 Saved {len(post_records)} posts from r/{subreddit_name}")
+                logger.info(f"✅ Successfully saved {len(post_records)} posts from r/{subreddit_name}")
 
             except Exception as e:
-                logger.error(f"Error saving posts batch: {e}")
+                logger.error(f"❌ Error saving posts batch for r/{subreddit_name}: {e}")
+                logger.error(f"Failed post record sample: {post_records[0] if post_records else 'No records'}")
 
     async def save_users_batch(self, users: List[Dict]):
         """Save users directly to database in batches"""

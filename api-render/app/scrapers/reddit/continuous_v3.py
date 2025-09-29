@@ -209,6 +209,16 @@ class ContinuousScraperV3:
         finally:
             self.is_scraping = False
 
+    async def heartbeat_task(self):
+        """Background task to update heartbeat every 30 seconds"""
+        while True:
+            try:
+                await self.update_heartbeat()
+                await asyncio.sleep(30)
+            except Exception as e:
+                logger.error(f"Error in heartbeat task: {e}")
+                await asyncio.sleep(30)
+
     async def run_continuous(self):
         """Main continuous loop - checks every 30 seconds"""
         logger.info(f"🚀 Starting continuous scraper v{SCRAPER_VERSION} with 30-second check interval")
@@ -238,22 +248,35 @@ class ContinuousScraperV3:
             'updated_at': datetime.now(timezone.utc).isoformat()
         }).eq('script_name', 'reddit_scraper').execute()
 
-        last_heartbeat = datetime.now(timezone.utc)
+        # Start heartbeat task in background
+        heartbeat_task = asyncio.create_task(self.heartbeat_task())
+        logger.info("💓 Started heartbeat background task")
 
         try:
             while True:
-                # Update heartbeat every 30 seconds
-                current_time = datetime.now(timezone.utc)
-                if (current_time - last_heartbeat).total_seconds() >= 30:
-                    await self.update_heartbeat()
-                    last_heartbeat = current_time
-
                 # Check if scraper should be running
                 enabled, config = await self.check_scraper_status()
 
                 if enabled and not self.is_scraping:
-                    # Run a scraping cycle
-                    await self.run_scraping_cycle(config)
+                    try:
+                        # Run a scraping cycle with timeout
+                        logger.info("⏱️ Starting scraping cycle with 5-minute timeout")
+                        await asyncio.wait_for(
+                            self.run_scraping_cycle(config),
+                            timeout=300  # 5 minutes timeout
+                        )
+                    except asyncio.TimeoutError:
+                        logger.error("❌ Scraping cycle timed out after 5 minutes")
+                        self.is_scraping = False
+                        # Log timeout to database
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'continuous_v3',
+                            'level': 'error',
+                            'message': '❌ Scraping cycle timed out',
+                            'context': {'cycle': self.cycle_count, 'timeout_seconds': 300}
+                        }).execute()
 
                     # Wait before checking again (avoid rapid cycling)
                     await asyncio.sleep(30)
