@@ -4,6 +4,20 @@
 │ ● OPERATIONAL  │ ███████████████████░ 98% COMPLETE      │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "current": "CLAUDE.md",
+  "children": [
+    {"path": "docs/INDEX.md", "desc": "Master documentation index", "status": "NEW"},
+    {"path": "README.md", "desc": "Project overview", "status": "ACTIVE"},
+    {"path": "api-render/", "desc": "Backend API", "status": "PRODUCTION"},
+    {"path": "dashboard/", "desc": "Frontend app", "status": "ACTIVE"}
+  ]
+}
+```
+
 ## 📝 SESSION LOG REMINDER
 
 
@@ -226,6 +240,7 @@ NETWORK [██████░░░░░░░░░░░░░░] 30%
 ```json
 {
   "critical": [
+    {"id": "CRON-001", "task": "Implement Render cron jobs for log cleanup", "location": "docs/database/TODO_CRON_SETUP.md", "eta": "URGENT - 30 days max", "risk": "DISK OVERFLOW"},
     {"id": "FIX-001", "task": "Scraper memory leak", "location": "api-render/scrapers/reddit/main.py", "eta": "2h"},
     {"id": "FIX-002", "task": "API timeout handling", "location": "api-render/main.py:457", "eta": "1h"}
   ],

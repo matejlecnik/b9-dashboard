@@ -11,6 +11,7 @@
   "parent": "../README.md",
   "current": "database/README.md",
   "files": [
+    {"path": "SUPABASE_SCHEMA.md", "desc": "Complete table schema documentation", "status": "CURRENT"},
     {"path": "initial-schema.sql", "desc": "Original database schema", "status": "ARCHIVED"},
     {"path": "migrations/", "desc": "Migration scripts", "status": "PLANNED"}
   ]
@@ -24,11 +25,13 @@
   "provider": "Supabase",
   "type": "PostgreSQL",
   "version": "15.x",
-  "size": "6.2GB",
-  "tables": 15,
+  "size": "6.5GB",
+  "tables": 26,
+  "total_rows": "2.07M+",
   "status": "PRODUCTION",
   "location": "US East",
-  "backup": "Daily automated"
+  "backup": "Daily automated",
+  "schema_doc": "SUPABASE_SCHEMA.md"
 }
 ```
 
@@ -38,22 +41,24 @@
 {
   "core_tables": {
     "reddit": {
-      "subreddits": "5,847 records",
-      "reddit_users": "298,456 records",
-      "reddit_posts": "2.3M records",
-      "reddit_comments": "890K records"
+      "reddit_subreddits": "10,619 records",
+      "reddit_users": "298,999 records",
+      "reddit_posts": "1.76M records",
+      "reddit_proxies": "Proxy management"
     },
     "instagram": {
-      "instagram_creators": "1,247 records",
-      "instagram_posts": "145K records",
-      "instagram_analytics": "Daily metrics"
+      "instagram_creators": "220 records",
+      "instagram_posts": "1,668 records",
+      "instagram_reels": "8,693 records",
+      "instagram_stories": "Story metrics"
     },
     "system": {
-      "scraper_accounts": "Multi-account config",
-      "system_logs": "Application logging",
-      "tag_categories": "Content categorization"
+      "system_logs": "51,218 records (1.8GB)",
+      "scraper_control": "Scraper state",
+      "system_control": "Feature flags"
     }
-  }
+  },
+  "detailed_schema": "See SUPABASE_SCHEMA.md for complete table documentation"
 }
 ```
 
@@ -158,10 +163,10 @@
     "cache_hit_rate": "92%"
   },
   "storage": {
-    "total_size": "6.2GB",
-    "reddit_data": "4.8GB",
-    "instagram_data": "1.2GB",
-    "system_data": "200MB",
+    "total_size": "6.5GB",
+    "reddit_data": "4.2GB",
+    "instagram_data": "500MB",
+    "system_logs": "1.8GB",
     "growth_rate": "50MB/day"
   },
   "connections": {

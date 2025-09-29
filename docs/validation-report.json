@@ -1,0 +1,152 @@
+{
+  "summary": {
+    "total_files": 60,
+    "compliant_files": 18,
+    "compliance_rate": "30.0%",
+    "files_needing_update": 42
+  },
+  "metrics": {
+    "terminal_format": "59/60",
+    "navigation_json": "46/60"
+  },
+  "issues_by_severity": {
+    "ERROR": 0,
+    "HIGH": 1,
+    "MEDIUM": 14,
+    "LOW": 36
+  },
+  "files_needing_update": [
+    ".github/workflows/README.md",
+    "CLAUDE.md",
+    "README.md",
+    "api-render/API_DOCUMENTATION.md",
+    "api-render/ARCHITECTURE.md",
+    "api-render/README.md",
+    "api-render/app/core/README.md",
+    "api-render/app/core/clients/README.md",
+    "api-render/app/middleware/README.md",
+    "api-render/app/routes/README.md"
+  ],
+  "issues": [
+    {
+      "file": ".github/workflows/README.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": ".github/workflows/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "CLAUDE.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "README.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": "README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/API_DOCUMENTATION.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": "api-render/API_DOCUMENTATION.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/ARCHITECTURE.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/core/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/core/clients/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/middleware/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/routes/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/scrapers/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/scrapers/reddit/ARCHITECTURE_V3.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": "api-render/app/scrapers/reddit/ARCHITECTURE_V3.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/scrapers/reddit/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/services/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/services/tags/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/app/utils/README.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    }
+  ]
+}

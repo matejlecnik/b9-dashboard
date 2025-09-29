@@ -4,6 +4,20 @@
 │ ● ACTIVE      │ ████████████████░░░░ 87% COVERAGE      │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../README.md",
+  "current": "tests/README.md",
+  "siblings": [
+    {"path": "../app/", "desc": "Application code", "status": "ACTIVE"},
+    {"path": "../docs/", "desc": "Documentation", "status": "COMPLETE"},
+    {"path": "../scripts/", "desc": "Utility scripts", "status": "OPERATIONAL"}
+  ]
+}
+```
+
 ## Test Metrics
 
 ```json

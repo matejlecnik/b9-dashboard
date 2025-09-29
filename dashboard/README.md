@@ -4,6 +4,24 @@
 │ ● PRODUCTION  │ ████████████████░░░░ 75% COMPLETE      │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../README.md",
+  "current": "dashboard/README.md",
+  "siblings": [
+    {"path": "../api-render/", "desc": "Backend API", "status": "LIVE"},
+    {"path": "../docs/", "desc": "Documentation", "status": "COMPLETE"}
+  ],
+  "children": [
+    {"path": "src/app/reddit/", "desc": "Reddit module", "status": "LOCKED"},
+    {"path": "src/app/instagram/", "desc": "Instagram module", "status": "ACTIVE"},
+    {"path": "docs/", "desc": "Dashboard docs", "status": "COMPLETE"}
+  ]
+}
+```
+
 ## Platform Status
 
 ```json

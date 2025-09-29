@@ -4,6 +4,23 @@
 │ ● READY       │ ████████████████████ 100% OPTIMIZED    │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../README.md",
+  "current": "migrations/README.md",
+  "siblings": [
+    {"path": "../app/", "desc": "Application code", "status": "ACTIVE"},
+    {"path": "../tests/", "desc": "Test suite", "status": "87% coverage"},
+    {"path": "../scripts/", "desc": "Utility scripts", "status": "OPERATIONAL"}
+  ],
+  "related": [
+    {"path": "../../docs/database/", "desc": "Database docs", "status": "COMPLETE"}
+  ]
+}
+```
+
 ## Latest Migration: 2025_01_reddit_fields_cleanup.sql
 
 ```json

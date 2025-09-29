@@ -99,6 +99,12 @@ class SimplifiedRedditScraper:
         self.posts_batch = []
         self.users_batch = []
 
+        # Error recovery configuration
+        self.max_retries = 3
+        self.retry_delay = 5  # seconds
+        self.consecutive_errors = 0
+        self.error_threshold = 10  # Max consecutive errors before stopping
+
         # Statistics
         self.stats = {
             'start_time': None,
@@ -224,8 +230,67 @@ class SimplifiedRedditScraper:
                 pass
             logger.error(f"Error loading skip lists: {e}")
 
+    def reset_stats(self):
+        """Reset statistics for new cycle - prevents accumulation bug"""
+        self.stats = {
+            'start_time': None,
+            'subreddits_processed': 0,
+            'users_processed': 0,
+            'posts_processed': 0,
+            'new_subreddits_discovered': 0,
+            'errors': []
+        }
+        logger.info("📊 Stats reset for new cycle")
+
+    def cleanup_memory(self):
+        """Clean up memory to prevent leaks in long-running process"""
+        # Clear processed sets if they get too large
+        if len(self.processed_subreddits) > 10000:
+            logger.info(f"🧹 Clearing processed_subreddits set ({len(self.processed_subreddits)} items)")
+            self.processed_subreddits.clear()
+
+        # Clear batch lists
+        self.subreddit_batch = []
+        self.users_batch = []
+
+        # Limit error list size
+        if len(self.stats.get('errors', [])) > 100:
+            self.stats['errors'] = self.stats['errors'][-50:]  # Keep last 50 errors
+
+        # Force garbage collection for large cleanups
+        import gc
+        collected = gc.collect()
+        if collected > 0:
+            logger.debug(f"♻️ Garbage collected {collected} objects")
+
+    async def api_call_with_retry(self, api_func, *args, **kwargs):
+        """Execute API call with retry logic and error recovery"""
+        for attempt in range(self.max_retries):
+            try:
+                result = await api_func(*args, **kwargs)
+                self.consecutive_errors = 0  # Reset on success
+                return result
+            except Exception as e:
+                self.consecutive_errors += 1
+                error_msg = f"API call failed (attempt {attempt + 1}/{self.max_retries}): {e}"
+                logger.warning(error_msg)
+                self.stats['errors'].append(error_msg)
+
+                # Check if we've hit the error threshold
+                if self.consecutive_errors >= self.error_threshold:
+                    logger.error(f"❌ Too many consecutive errors ({self.consecutive_errors}), stopping")
+                    raise Exception("Error threshold exceeded, stopping scraper")
+
+                if attempt < self.max_retries - 1:
+                    await asyncio.sleep(self.retry_delay * (attempt + 1))  # Exponential backoff
+                else:
+                    logger.error(f"❌ All retries exhausted for API call")
+                    raise
+
     async def run_scraping_cycle(self, control_checker=None):
         """Main scraping cycle with simplified workflow"""
+        # Reset stats at the start of each cycle to prevent accumulation
+        self.reset_stats()
         self.stats['start_time'] = datetime.now(timezone.utc)
         cycle_id = f"cycle_{int(time.time())}"
         logger.info("🔄 Starting scraping cycle")
@@ -284,10 +349,31 @@ class SimplifiedRedditScraper:
 
                 # Skip if recently processed (within 24 hours)
                 if sub.get('last_scraped_at'):
-                    last_scraped = datetime.fromisoformat(sub['last_scraped_at'].replace('Z', '+00:00'))
-                    if (datetime.now(timezone.utc) - last_scraped) < timedelta(hours=24):
-                        logger.debug(f"⏭️ Skipping {sub_name} (recently scraped)")
-                        continue
+                    try:
+                        # Handle both timezone-aware and naive timestamps safely
+                        timestamp_str = sub['last_scraped_at']
+                        if isinstance(timestamp_str, str):
+                            # Remove any timezone indicators
+                            timestamp_str = timestamp_str.replace('Z', '').replace('+00:00', '')
+                            if 'T' in timestamp_str:
+                                timestamp_str = timestamp_str.split('+')[0]  # Remove any timezone suffix
+                            # Parse as naive and make timezone-aware
+                            last_scraped = datetime.fromisoformat(timestamp_str)
+                            if last_scraped.tzinfo is None:
+                                last_scraped = last_scraped.replace(tzinfo=timezone.utc)
+                        else:
+                            # If it's already a datetime object
+                            last_scraped = timestamp_str
+                            if last_scraped.tzinfo is None:
+                                last_scraped = last_scraped.replace(tzinfo=timezone.utc)
+
+                        # Now safe to compare with timezone-aware datetime
+                        if (datetime.now(timezone.utc) - last_scraped) < timedelta(hours=24):
+                            logger.debug(f"⏭️ Skipping {sub_name} (recently scraped)")
+                            continue
+                    except Exception as e:
+                        logger.warning(f"Failed to parse last_scraped_at for {sub_name}: {e}, continuing anyway")
+                        # Continue processing if we can't parse the timestamp
 
                 # Categorize by review status
                 review_status = sub.get('review', '').strip()
@@ -385,6 +471,8 @@ class SimplifiedRedditScraper:
             raise
 
         finally:
+            # Clean up memory at the end of each cycle
+            self.cleanup_memory()
             logger.info("✅ Scraping cycle complete")
 
     async def get_all_subreddits(self) -> List[Dict]:
