@@ -12,10 +12,11 @@
   "impact": "58% of logs lost in Render console (30-day retention)",
   "current_coverage": "42% (60/143 logs to Supabase)",
   "target_coverage": "85% (critical + important events)",
-  "version_current": "3.1.0 - Protected Field UPSERT",
+  "version_current": "3.1.1 - Cache Pagination Fix",
   "version_target": "3.2.0 - Enhanced Supabase Logging",
   "estimated_time": "2-3 hours",
-  "priority": "MEDIUM"
+  "priority": "MEDIUM",
+  "status": "PLANNED (not yet implemented)"
 }
 ```
 
