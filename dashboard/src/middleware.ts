@@ -38,11 +38,7 @@ export async function middleware(request: NextRequest) {
   // Check if authentication bypass is enabled (for local development)
   const bypassAuth = process.env.BYPASS_AUTH === 'true'
 
-  // Debug logging for cookie inspection (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Middleware] Request to:', pathname)
-    console.log('[Middleware] Cookies:', Array.from(request.cookies.getAll()).map(c => c.name))
-  }
+  // Debug logging removed - use monitoring tools for production debugging
 
   if (bypassAuth) {
     // In development mode with auth bypass:
@@ -76,10 +72,7 @@ export async function middleware(request: NextRequest) {
     )
   )
 
-  // Debug log auth status
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Middleware] Has auth cookie:', hasAuthCookie)
-  }
+  // Auth status check complete
 
   // If visiting /login and already authenticated, redirect to /dashboards
   if (pathname === '/login') {

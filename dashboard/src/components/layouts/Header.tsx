@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '@/components/ui'
-import { supabase } from '@/lib'
+import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase/index'
 import { useRouter } from 'next/navigation'
 import { 
   User, 
@@ -27,6 +27,7 @@ export function Header({
 
   const handleLogout = async () => {
     if (!supabase) {
+      console.error('Supabase client not available')
       router.push('/login')
       return
     }
@@ -35,6 +36,7 @@ export function Header({
       await supabase.auth.signOut()
       router.push('/login')
     } catch (error) {
+      console.error('Logout error:', error)
       router.push('/login')
     }
   }

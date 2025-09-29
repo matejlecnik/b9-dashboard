@@ -104,6 +104,7 @@ export const Sidebar = React.memo<SidebarProps>(() => {
 
   const handleLogout = async () => {
     if (!supabase) {
+      console.error('Supabase client not available')
       router.push('/login')
       return
     }
@@ -112,6 +113,7 @@ export const Sidebar = React.memo<SidebarProps>(() => {
       await supabase.auth.signOut()
       router.push('/login')
     } catch (error) {
+      console.error('Logout error:', error)
       router.push('/login')
     }
   }

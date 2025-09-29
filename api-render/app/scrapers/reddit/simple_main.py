@@ -348,6 +348,22 @@ class SimplifiedRedditScraper:
             skipped = 0
 
             for sub in subreddits:
+                # FIX: Handle None names
+                if not sub.get('name'):
+                    logger.warning(f"⚠️ Skipping subreddit with null name: {sub.get('id', 'unknown')}")
+                    try:
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'warning',
+                            'message': '⚠️ Skipped subreddit with null name',
+                            'context': {'subreddit_id': sub.get('id'), 'action': 'null_name_skip'}
+                        }).execute()
+                    except:
+                        pass
+                    continue
+
                 sub_name = sub['name'].lower()
                 processed += 1
 
@@ -930,8 +946,9 @@ class SimplifiedRedditScraper:
             else:
                 logger.debug(f"🚫 Discovery disabled for r/{sub_name} - skipping new subreddit processing")
 
-            # Mark as processed
-            self.processed_subreddits.add(sub_name.lower())
+            # Mark as processed (with null safety)
+            if sub_name:
+                self.processed_subreddits.add(sub_name.lower())
 
             # If this was a newly discovered subreddit (NULL review), mark it as 'Ok' after successful processing
             if subreddit.get('review') is None:
@@ -1106,12 +1123,47 @@ class SimplifiedRedditScraper:
         return metrics
 
     async def save_posts_batch(self, posts: List[Dict], subreddit_name: str):
-        """Save posts directly to database in batches"""
+        """Save posts directly to database in batches - WITH COMPREHENSIVE LOGGING"""
+        save_start = datetime.now(timezone.utc)
+
         if not posts:
             logger.info(f"📭 No posts to save for r/{subreddit_name}")
+            # Log empty batch
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'info',
+                    'message': f'📭 No posts to save for r/{subreddit_name}',
+                    'context': {
+                        'subreddit': subreddit_name,
+                        'action': 'posts_save_empty'
+                    }
+                }).execute()
+            except:
+                pass
             return
 
         logger.info(f"🔄 Starting to save {len(posts)} posts for r/{subreddit_name}")
+
+        # Log batch save start
+        try:
+            self.supabase.table('system_logs').insert({
+                'timestamp': save_start.isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'simple_main',
+                'level': 'info',
+                'message': f'🔄 Starting to save {len(posts)} posts for r/{subreddit_name}',
+                'context': {
+                    'subreddit': subreddit_name,
+                    'total_posts': len(posts),
+                    'action': 'posts_save_start'
+                }
+            }).execute()
+        except:
+            pass
+
         total_saved = 0
         failed_saves = 0
 
@@ -1220,8 +1272,9 @@ class SimplifiedRedditScraper:
                     logger.error(f"⚠️ Error preparing post record: {e}, post_id={post.get('id')}")
                     continue
 
-            # Direct upsert to database
+            # Direct upsert to database WITH COMPREHENSIVE LOGGING
             if post_records:
+                batch_start = datetime.now(timezone.utc)
                 try:
                     logger.info(f"💾 Attempting to upsert batch {batch_num}/{total_batches} with {len(post_records)} posts...")
 
@@ -1235,23 +1288,95 @@ class SimplifiedRedditScraper:
                         on_conflict='reddit_id'
                     ).execute()
 
+                    batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
+
                     # Check if we actually got data back
                     if result and result.data:
                         actual_saved = len(result.data)
                         total_saved += actual_saved
                         logger.info(f"✅ Batch {batch_num} saved: {actual_saved} posts confirmed in database")
+
+                        # Log successful batch
+                        try:
+                            self.supabase.table('system_logs').insert({
+                                'timestamp': datetime.now(timezone.utc).isoformat(),
+                                'source': 'reddit_scraper',
+                                'script_name': 'simple_main',
+                                'level': 'success',
+                                'message': f'✅ Posts batch {batch_num}/{total_batches} saved for r/{subreddit_name}',
+                                'context': {
+                                    'subreddit': subreddit_name,
+                                    'action': 'posts_batch_saved',
+                                    'batch_number': batch_num,
+                                    'total_batches': total_batches,
+                                    'posts_in_batch': len(post_records),
+                                    'posts_confirmed': actual_saved
+                                },
+                                'duration_ms': int(batch_duration * 1000)
+                            }).execute()
+                        except:
+                            pass
                     else:
                         logger.warning(f"⚠️ Batch {batch_num}: Upsert executed but no data returned")
+                        # Log warning
+                        try:
+                            self.supabase.table('system_logs').insert({
+                                'timestamp': datetime.now(timezone.utc).isoformat(),
+                                'source': 'reddit_scraper',
+                                'script_name': 'simple_main',
+                                'level': 'warning',
+                                'message': f'⚠️ Posts batch {batch_num} executed but no confirmation',
+                                'context': {
+                                    'subreddit': subreddit_name,
+                                    'action': 'posts_batch_no_confirmation',
+                                    'batch_number': batch_num,
+                                    'posts_attempted': len(post_records)
+                                },
+                                'duration_ms': int(batch_duration * 1000)
+                            }).execute()
+                        except:
+                            pass
 
                     self.stats['posts_processed'] += len(post_records)
 
                 except Exception as e:
                     failed_saves += len(post_records)
+                    batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
                     logger.error(f"❌ CRITICAL: Failed to save batch {batch_num} for r/{subreddit_name}")
                     logger.error(f"❌ Error details: {str(e)}")
                     logger.error(f"❌ Error type: {type(e).__name__}")
 
-                    # Log sample record for debugging
+                    # Log batch failure to Supabase
+                    try:
+                        sample = post_records[0].copy() if post_records else {}
+                        # Truncate long fields
+                        if 'selftext' in sample:
+                            sample['selftext'] = sample['selftext'][:100] + '...' if len(sample.get('selftext', '')) > 100 else sample.get('selftext', '')
+                        if 'title' in sample:
+                            sample['title'] = sample['title'][:100] + '...' if len(sample.get('title', '')) > 100 else sample.get('title', '')
+
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'error',
+                            'message': f'❌ Posts batch {batch_num} failed for r/{subreddit_name}',
+                            'context': {
+                                'subreddit': subreddit_name,
+                                'action': 'posts_batch_failed',
+                                'batch_number': batch_num,
+                                'total_batches': total_batches,
+                                'posts_attempted': len(post_records),
+                                'error': str(e),
+                                'error_type': type(e).__name__,
+                                'sample_record': sample
+                            },
+                            'duration_ms': int(batch_duration * 1000)
+                        }).execute()
+                    except:
+                        pass
+
+                    # Console log sample record for debugging
                     if post_records:
                         sample = post_records[0].copy()
                         # Truncate long fields for logging
@@ -1263,22 +1388,82 @@ class SimplifiedRedditScraper:
             else:
                 logger.warning(f"⚠️ No valid records to save in batch {batch_num}")
 
-        # Final summary
+        # Final summary with comprehensive logging
+        save_duration = (datetime.now(timezone.utc) - save_start).total_seconds()
+
         if total_saved > 0:
             logger.info(f"✅ FINAL: Successfully saved {total_saved}/{len(posts)} posts from r/{subreddit_name}")
+            # Log successful save
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'success',
+                    'message': f'✅ Saved {total_saved}/{len(posts)} posts for r/{subreddit_name}',
+                    'context': {
+                        'subreddit': subreddit_name,
+                        'action': 'posts_save_complete',
+                        'total_posts': len(posts),
+                        'posts_saved': total_saved,
+                        'posts_failed': failed_saves,
+                        'success_rate': (total_saved / len(posts) * 100) if len(posts) > 0 else 0
+                    },
+                    'duration_ms': int(save_duration * 1000)
+                }).execute()
+            except:
+                pass
         else:
             logger.error(f"❌ FINAL: Failed to save any posts from r/{subreddit_name} (attempted {len(posts)} posts)")
+            # Log complete failure
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'error',
+                    'message': f'❌ Failed to save any posts for r/{subreddit_name}',
+                    'context': {
+                        'subreddit': subreddit_name,
+                        'action': 'posts_save_failed_all',
+                        'total_posts': len(posts),
+                        'posts_saved': 0,
+                        'posts_failed': len(posts)
+                    },
+                    'duration_ms': int(save_duration * 1000)
+                }).execute()
+            except:
+                pass
 
         if failed_saves > 0:
             logger.error(f"❌ FINAL: {failed_saves} posts failed to save")
 
     async def save_users_batch(self, users: List[Dict]):
-        """Save users directly to database in batches"""
+        """Save users directly to database in batches - WITH COMPREHENSIVE LOGGING"""
+        save_start = datetime.now(timezone.utc)
+
         if not users:
             logger.debug("No users to save")
             return
 
         logger.info(f"👥 Saving {len(users)} users to database")
+
+        # Log user save start
+        try:
+            self.supabase.table('system_logs').insert({
+                'timestamp': save_start.isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'simple_main',
+                'level': 'info',
+                'message': f'👥 Starting to save {len(users)} users',
+                'context': {
+                    'action': 'users_save_start',
+                    'total_users': len(users)
+                }
+            }).execute()
+        except:
+            pass
+
         total_saved = 0
         failed_saves = 0
 
@@ -1328,8 +1513,9 @@ class SimplifiedRedditScraper:
                     logger.error(f"⚠️ Error preparing user record: {e}, username={user.get('name')}")
                     continue
 
-            # Direct upsert to database
+            # Direct upsert to database WITH COMPREHENSIVE LOGGING
             if user_records:
+                batch_start = datetime.now(timezone.utc)
                 try:
                     logger.debug(f"💾 Upserting batch {batch_num} with {len(user_records)} users...")
 
@@ -1338,26 +1524,111 @@ class SimplifiedRedditScraper:
                         on_conflict='username'
                     ).execute()
 
+                    batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
+
                     if result and result.data:
                         actual_saved = len(result.data)
                         total_saved += actual_saved
                         logger.info(f"✅ User batch {batch_num}: {actual_saved} users saved")
+
+                        # Log successful batch
+                        try:
+                            self.supabase.table('system_logs').insert({
+                                'timestamp': datetime.now(timezone.utc).isoformat(),
+                                'source': 'reddit_scraper',
+                                'script_name': 'simple_main',
+                                'level': 'success',
+                                'message': f'✅ Users batch {batch_num} saved',
+                                'context': {
+                                    'action': 'users_batch_saved',
+                                    'batch_number': batch_num,
+                                    'total_batches': total_batches,
+                                    'users_in_batch': len(user_records),
+                                    'users_confirmed': actual_saved
+                                },
+                                'duration_ms': int(batch_duration * 1000)
+                            }).execute()
+                        except:
+                            pass
                     else:
                         logger.warning(f"⚠️ User batch {batch_num}: Upsert executed but no data returned")
 
                 except Exception as e:
                     failed_saves += len(user_records)
+                    batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
                     logger.error(f"❌ Failed to save user batch {batch_num}: {e}")
+
+                    # Log batch failure
+                    try:
+                        sample_user = user_records[0] if user_records else {}
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'error',
+                            'message': f'❌ Users batch {batch_num} failed',
+                            'context': {
+                                'action': 'users_batch_failed',
+                                'batch_number': batch_num,
+                                'users_attempted': len(user_records),
+                                'error': str(e),
+                                'error_type': type(e).__name__,
+                                'sample_username': sample_user.get('username')
+                            },
+                            'duration_ms': int(batch_duration * 1000)
+                        }).execute()
+                    except:
+                        pass
+
                     if user_records:
                         logger.error(f"❌ Sample failed user: username={user_records[0].get('username')}, id={user_records[0].get('reddit_id')}")
             else:
                 logger.debug(f"No valid users in batch {batch_num}")
 
-        # Final summary
+        # Final summary with comprehensive logging
+        save_duration = (datetime.now(timezone.utc) - save_start).total_seconds()
+
         if total_saved > 0:
             logger.info(f"✅ USERS: Successfully saved {total_saved}/{len(users)} users")
+            # Log successful save
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'success',
+                    'message': f'✅ Saved {total_saved}/{len(users)} users',
+                    'context': {
+                        'action': 'users_save_complete',
+                        'total_users': len(users),
+                        'users_saved': total_saved,
+                        'users_failed': failed_saves,
+                        'success_rate': (total_saved / len(users) * 100) if len(users) > 0 else 0
+                    },
+                    'duration_ms': int(save_duration * 1000)
+                }).execute()
+            except:
+                pass
         else:
             logger.warning(f"⚠️ USERS: No users were saved out of {len(users)} attempted")
+            # Log failure
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'warning',
+                    'message': f'⚠️ No users saved out of {len(users)} attempted',
+                    'context': {
+                        'action': 'users_save_failed_all',
+                        'total_users': len(users),
+                        'users_saved': 0,
+                        'users_failed': len(users)
+                    },
+                    'duration_ms': int(save_duration * 1000)
+                }).execute()
+            except:
+                pass
 
         if failed_saves > 0:
             logger.error(f"❌ USERS: {failed_saves} users failed to save")
@@ -1428,8 +1699,18 @@ class SimplifiedRedditScraper:
 
     async def update_subreddit(self, name: str, about_data: Dict, metrics: Dict,
                                 rules: List[Dict] = None, verification_required: bool = False):
-        """Update subreddit with about info and metrics"""
+        """Update subreddit with about info and metrics - WITH FIELD PROTECTION"""
+        update_start = datetime.now(timezone.utc)
+
         try:
+            # FIRST: Get existing subreddit data to check for manually-set fields
+            existing = self.supabase.table('reddit_subreddits').select(
+                'review', 'primary_category', 'tags'
+            ).eq('name', name).execute()
+
+            existing_data = existing.data[0] if existing.data else {}
+
+            # Build update data - API fields (always safe to update)
             update_data = {
                 'name': name,
                 'display_name_prefixed': about_data.get('display_name_prefixed'),
@@ -1441,8 +1722,8 @@ class SimplifiedRedditScraper:
                 'over18': about_data.get('over18', False),
                 'allow_images': about_data.get('allow_images', True),
                 'allow_videos': about_data.get('allow_videos', True),
-                'allow_polls': about_data.get('allow_polls', False),  # NEW field
-                'spoilers_enabled': about_data.get('spoilers_enabled', False),  # NEW field
+                'allow_polls': about_data.get('allow_polls', False),
+                'spoilers_enabled': about_data.get('spoilers_enabled', False),
                 'subreddit_type': about_data.get('subreddit_type'),
                 'icon_img': about_data.get('icon_img'),
                 'banner_img': about_data.get('banner_img'),
@@ -1455,12 +1736,37 @@ class SimplifiedRedditScraper:
                 'submission_type': about_data.get('submission_type'),
                 'url': about_data.get('url'),
                 'last_scraped_at': datetime.now(timezone.utc).isoformat(),
-                **metrics  # Add all calculated metrics (including engagement and subreddit_score)
+                **metrics  # Add all calculated metrics
             }
 
             # Add rules if available
             if rules:
                 update_data['rules_data'] = rules
+
+            # FIELD PROTECTION: Only update these if they're NULL/empty
+            # This prevents overwriting manually-set values
+            protected_fields = []
+
+            # Protect 'review' - never overwrite if already set
+            if existing_data.get('review') is None or existing_data.get('review') == '':
+                # Only set if NULL/empty - don't include in update if already set
+                pass
+            else:
+                protected_fields.append('review')
+
+            # Protect 'primary_category' - only update if 'Unknown' or NULL
+            if existing_data.get('primary_category') in [None, '', 'Unknown']:
+                # Can be updated - don't include in update_data, let it stay as is
+                pass
+            else:
+                protected_fields.append('primary_category')
+
+            # Protect 'tags' - only update if NULL or empty array
+            if not existing_data.get('tags') or existing_data.get('tags') == []:
+                # Can be updated
+                pass
+            else:
+                protected_fields.append('tags')
 
             # Only set verification_required to True, never overwrite existing True with False
             if verification_required:
@@ -1474,15 +1780,57 @@ class SimplifiedRedditScraper:
                 ).isoformat()
 
             # Upsert to database
-            self.supabase.table('reddit_subreddits').upsert(
+            result = self.supabase.table('reddit_subreddits').upsert(
                 update_data,
                 on_conflict='name'
             ).execute()
 
-            logger.debug(f"📊 Updated r/{name} with metrics")
+            # Log successful update with details
+            update_duration = (datetime.now(timezone.utc) - update_start).total_seconds()
+            self.supabase.table('system_logs').insert({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'source': 'reddit_scraper',
+                'script_name': 'simple_main',
+                'level': 'success',
+                'message': f'📊 Updated subreddit: r/{name}',
+                'context': {
+                    'subreddit': name,
+                    'action': 'subreddit_updated',
+                    'metrics': {
+                        'engagement': metrics.get('engagement', 0),
+                        'subreddit_score': metrics.get('subreddit_score', 0),
+                        'avg_upvotes': metrics.get('avg_upvotes_per_post', 0)
+                    },
+                    'protected_fields': protected_fields,
+                    'verification_required': verification_required,
+                    'subscribers': about_data.get('subscribers', 0),
+                    'records_affected': len(result.data) if result and result.data else 0
+                },
+                'duration_ms': int(update_duration * 1000)
+            }).execute()
+
+            logger.debug(f"📊 Updated r/{name} with metrics (protected: {protected_fields})")
 
         except Exception as e:
+            # Log update failure
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'error',
+                    'message': f'❌ Failed to update subreddit: r/{name}',
+                    'context': {
+                        'subreddit': name,
+                        'error': str(e),
+                        'error_type': type(e).__name__,
+                        'action': 'subreddit_update_failed'
+                    }
+                }).execute()
+            except:
+                pass
             logger.error(f"Error updating subreddit {name}: {e}")
+            raise
 
     async def update_subreddit_requirements(self, name: str, requirements: Dict):
         """Update subreddit minimum requirements"""
@@ -1547,21 +1895,58 @@ class SimplifiedRedditScraper:
                         review_status = None  # Empty review field for manual review
                         category = 'Unknown'
 
-                    # Insert as new subreddit with all required fields
-                    self.supabase.table('reddit_subreddits').insert({
-                        'name': name,
-                        'display_name_prefixed': f'r/{name}',
-                        'url': f'/r/{name}/',
-                        'review': review_status,  # User Feed for u_ subreddits, None for others
-                        'primary_category': category,
-                        'subscribers': 0,
-                        'accounts_active': 0,
-                        'created_at': datetime.now(timezone.utc).isoformat(),
-                        'last_scraped_at': None  # Not scraped yet
-                    }).execute()
+                    # FIXED: Use UPSERT instead of INSERT to handle existing subreddits
+                    queue_start = datetime.now(timezone.utc)
+                    try:
+                        result = self.supabase.table('reddit_subreddits').upsert({
+                            'name': name,
+                            'display_name_prefixed': f'r/{name}',
+                            'url': f'/r/{name}/',
+                            'review': review_status,  # User Feed for u_ subreddits, None for others
+                            'primary_category': category,
+                            'subscribers': 0,
+                            'accounts_active': 0,
+                            'created_at': datetime.now(timezone.utc).isoformat(),
+                            'last_scraped_at': None  # Not scraped yet
+                        }, on_conflict='name').execute()
 
-                    logger.info(f"🆕 Discovered and queued new subreddit: r/{name}")
-                    new_count += 1
+                        # Log successful queue
+                        queue_duration = (datetime.now(timezone.utc) - queue_start).total_seconds()
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'success',
+                            'message': f'🆕 Queued new subreddit: r/{name}',
+                            'context': {
+                                'subreddit': name,
+                                'review_status': review_status,
+                                'category': category,
+                                'action': 'subreddit_queued',
+                                'is_user_profile': name.startswith('u_')
+                            },
+                            'duration_ms': int(queue_duration * 1000)
+                        }).execute()
+
+                        logger.info(f"🆕 Discovered and queued new subreddit: r/{name}")
+                        new_count += 1
+
+                    except Exception as queue_error:
+                        # Log queue failure
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'error',
+                            'message': f'❌ Failed to queue subreddit: r/{name}',
+                            'context': {
+                                'subreddit': name,
+                                'error': str(queue_error),
+                                'error_type': type(queue_error).__name__,
+                                'action': 'subreddit_queue_failed'
+                            }
+                        }).execute()
+                        raise queue_error
 
             except Exception as e:
                 logger.error(f"❌ Error queueing subreddit {name}: {e}")

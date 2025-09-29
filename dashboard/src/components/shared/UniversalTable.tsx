@@ -230,8 +230,8 @@ export const UniversalTable = memo(function UniversalTable({
   }, [onUpdateReview, onUpdateCategory])
   
   const handleIconErrorInternal = useCallback((id: number | string) => {
-    console.log(`🖼️ [Image] Failed to load icon for subreddit ID: ${id}`)
-    
+    // Icon load failure handling - tracked in brokenIcons state
+
     if (handleIconError) {
       handleIconError(id)
     } else {
@@ -240,7 +240,7 @@ export const UniversalTable = memo(function UniversalTable({
       if (!isNaN(numericId)) {
         setInternalBrokenIcons(prev => {
           const updated = new Set([...prev, numericId])
-          console.log(`🖼️ [Image] Added ${numericId} to broken icons set. Total broken: ${updated.size}`)
+          // Track broken icons for fallback rendering
           return updated
         })
       }
