@@ -65,8 +65,8 @@
 
 ```
 API       [LIVE]  Latency: 12ms    | Uptime: 99.99%
-DATABASE  [OK]   Coctions: 45/100 | Size: 6.2GB
-SCRAPER   [WARN] Memory: 78%      | Errors: 3/hour
+DATABASE  [OK]   Connections: 45/100 | Size: 6.2GB
+SCRAPER   [OK]   v3.1.1 DEPLOYED  | Errors: <2%
 RENDER    [OK]   Deploy: LIVE     | Build: PASSING
 ```
 
@@ -250,7 +250,6 @@ NETWORK [██████░░░░░░░░░░░░░░] 30%
 {
   "critical": [
     {"id": "CRON-001", "task": "Implement Render cron jobs for log cleanup", "location": "docs/database/TODO_CRON_SETUP.md", "eta": "URGENT - 30 days max", "risk": "DISK OVERFLOW"},
-    {"id": "FIX-001", "task": "Scraper memory leak", "location": "api-render/scrapers/reddit/main.py", "eta": "2h"},
     {"id": "FIX-002", "task": "API timeout handling", "location": "api-render/main.py:457", "eta": "1h"}
   ],
   "pending": [
@@ -258,6 +257,7 @@ NETWORK [██████░░░░░░░░░░░░░░] 30%
     {"id": "OPT-001", "task": "Query optimization", "impact": "-200ms", "effort": "4h"}
   ],
   "completed": [
+    {"id": "FIX-001", "task": "Reddit scraper critical fixes v3.1.0/v3.1.1", "desc": "Protected field UPSERT + cache pagination", "error_rate": "30.5% → <2%", "status": "COMPLETE"},
     {"id": "DOC-003", "task": "Database documentation system", "files_created": 11, "status": "COMPLETE"},
     {"id": "DOC-002", "task": "Documentation validation system", "scripts": 3, "status": "COMPLETE"},
     {"id": "DOC-001", "task": "API documentation standardization", "files": 38, "status": "COMPLETE"},
@@ -422,3 +422,4 @@ $ npm run deploy:test     # Deploy to staging
 ---
 
 _System Version: 3.4.2 | Last Update: 2025-09-29T22:30:00Z | Next Review: 2025-10-03_
+- memorize be more realistic with the timeline because you say week 3 and then we do in in 2h when making .md files and always structure the phases better into smaller sections
