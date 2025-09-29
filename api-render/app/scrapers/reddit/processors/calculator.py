@@ -13,7 +13,7 @@ from collections import defaultdict
 from app.core.logging_helper import LoggingHelper
 
 logger = logging.getLogger(__name__)
-logger_helper = LoggingHelper(source='reddit_scraper', script_name='calculator')
+logger_helper = LoggingHelper(source="reddit_scraper", script_name="calculator")
 
 
 class MetricsCalculator:
@@ -47,7 +47,7 @@ class MetricsCalculator:
 
         # Use only top 10 posts
         posts_to_analyze = weekly_posts[:10]
-        total_score = sum(post.get('score', 0) for post in posts_to_analyze)
+        total_score = sum(post.get("score", 0) for post in posts_to_analyze)
         post_count = len(posts_to_analyze)
 
         if post_count == 0:
@@ -75,8 +75,8 @@ class MetricsCalculator:
 
         # Use only top 10 posts
         posts_to_analyze = weekly_posts[:10]
-        total_comments = sum(post.get('num_comments', 0) for post in posts_to_analyze)
-        total_upvotes = sum(post.get('score', 0) for post in posts_to_analyze)
+        total_comments = sum(post.get("num_comments", 0) for post in posts_to_analyze)
+        total_upvotes = sum(post.get("score", 0) for post in posts_to_analyze)
 
         if total_upvotes == 0:
             return 0.0
@@ -124,7 +124,7 @@ class MetricsCalculator:
         if not hot_posts:
             return 0.0
 
-        total_comments = sum(post.get('num_comments', 0) for post in hot_posts)
+        total_comments = sum(post.get("num_comments", 0) for post in hot_posts)
         post_count = len(hot_posts)
 
         if post_count == 0:
@@ -146,15 +146,10 @@ class MetricsCalculator:
         Returns:
             Dict with keys: image_avg, video_avg, text_avg, link_avg
         """
-        content_scores = {
-            'image': [],
-            'video': [],
-            'text': [],
-            'link': []
-        }
+        content_scores = {"image": [], "video": [], "text": [], "link": []}
 
         for post in posts:
-            score = post.get('score', 0)
+            score = post.get("score", 0)
             content_type = MetricsCalculator._determine_content_type(post)
             content_scores[content_type].append(score)
 
@@ -162,9 +157,9 @@ class MetricsCalculator:
         for content_type, scores in content_scores.items():
             if scores:
                 avg = sum(scores) / len(scores)
-                results[f'{content_type}_post_avg_score'] = round(avg, 2)
+                results[f"{content_type}_post_avg_score"] = round(avg, 2)
             else:
-                results[f'{content_type}_post_avg_score'] = 0.0
+                results[f"{content_type}_post_avg_score"] = 0.0
 
         return results
 
@@ -179,30 +174,30 @@ class MetricsCalculator:
         Returns:
             str: 'image', 'video', 'text', or 'link'
         """
-        is_self = post.get('is_self', False)
-        is_video = post.get('is_video', False)
-        domain = post.get('domain', '')
-        url = post.get('url', '')
+        is_self = post.get("is_self", False)
+        is_video = post.get("is_video", False)
+        domain = post.get("domain", "")
+        url = post.get("url", "")
 
         # Video detection
-        if is_video or domain in ['v.redd.it', 'youtube.com', 'youtu.be']:
-            return 'video'
+        if is_video or domain in ["v.redd.it", "youtube.com", "youtu.be"]:
+            return "video"
 
         # Image detection
-        image_domains = ['i.redd.it', 'imgur.com', 'i.imgur.com']
-        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        image_domains = ["i.redd.it", "imgur.com", "i.imgur.com"]
+        image_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
 
         if domain in image_domains:
-            return 'image'
+            return "image"
         if any(url.lower().endswith(ext) for ext in image_extensions):
-            return 'image'
+            return "image"
 
         # Text post (self post)
         if is_self:
-            return 'text'
+            return "text"
 
         # External link
-        return 'link'
+        return "link"
 
     @staticmethod
     def find_top_content_type(content_type_scores: Dict[str, float]) -> Optional[str]:
@@ -215,11 +210,7 @@ class MetricsCalculator:
         Returns:
             str: Best performing content type or None
         """
-        valid_scores = {
-            k.replace('_post_avg_score', ''): v
-            for k, v in content_type_scores.items()
-            if v > 0
-        }
+        valid_scores = {k.replace("_post_avg_score", ""): v for k, v in content_type_scores.items() if v > 0}
 
         if not valid_scores:
             return None
@@ -243,8 +234,8 @@ class MetricsCalculator:
         day_performance = defaultdict(list)
 
         for post in posts:
-            created_utc = post.get('created_utc')
-            score = post.get('score', 0)
+            created_utc = post.get("created_utc")
+            score = post.get("score", 0)
 
             if not created_utc or score <= 0:
                 continue
@@ -254,7 +245,7 @@ class MetricsCalculator:
                 if isinstance(created_utc, (int, float)):
                     dt = datetime.fromtimestamp(created_utc, tz=timezone.utc)
                 else:
-                    dt = datetime.fromisoformat(created_utc.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(created_utc.replace("Z", "+00:00"))
 
                 hour_performance[dt.hour].append(score)
                 day_performance[dt.weekday()].append(score)
@@ -265,16 +256,13 @@ class MetricsCalculator:
         # Find best hour by average score
         best_hour = None
         if hour_performance:
-            best_hour = max(hour_performance.keys(),
-                          key=lambda h: sum(hour_performance[h]) / len(hour_performance[h]))
+            best_hour = max(hour_performance.keys(), key=lambda h: sum(hour_performance[h]) / len(hour_performance[h]))
 
         # Find best day by average score
         best_day = None
         if day_performance:
-            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-                        'Friday', 'Saturday', 'Sunday']
-            best_day_idx = max(day_performance.keys(),
-                             key=lambda d: sum(day_performance[d]) / len(day_performance[d]))
+            day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            best_day_idx = max(day_performance.keys(), key=lambda d: sum(day_performance[d]) / len(day_performance[d]))
             best_day = day_names[best_day_idx]
 
         return best_hour, best_day
@@ -293,7 +281,7 @@ class MetricsCalculator:
         if not posts:
             return 0.0
 
-        nsfw_count = sum(1 for post in posts if post.get('over_18', False))
+        nsfw_count = sum(1 for post in posts if post.get("over_18", False))
         total_count = len(posts)
 
         if total_count == 0:
@@ -315,8 +303,8 @@ class MetricsCalculator:
         Returns:
             float: Upvotes per hour or None
         """
-        score = post.get('score', 0)
-        created_utc = post.get('created_utc')
+        score = post.get("score", 0)
+        created_utc = post.get("created_utc")
 
         if not created_utc or score <= 0:
             return None
@@ -325,7 +313,7 @@ class MetricsCalculator:
             if isinstance(created_utc, (int, float)):
                 created_dt = datetime.fromtimestamp(created_utc, tz=timezone.utc)
             else:
-                created_dt = datetime.fromisoformat(created_utc.replace('Z', '+00:00'))
+                created_dt = datetime.fromisoformat(created_utc.replace("Z", "+00:00"))
 
             age_hours = (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600
 
@@ -359,8 +347,8 @@ class MetricsCalculator:
         weights = []
 
         for post in hot_posts:
-            score = post.get('score', 0)
-            created_utc = post.get('created_utc')
+            score = post.get("score", 0)
+            created_utc = post.get("created_utc")
 
             if not created_utc or score <= 0:
                 continue
@@ -369,7 +357,7 @@ class MetricsCalculator:
                 if isinstance(created_utc, (int, float)):
                     created_dt = datetime.fromtimestamp(created_utc, tz=timezone.utc)
                 else:
-                    created_dt = datetime.fromisoformat(created_utc.replace('Z', '+00:00'))
+                    created_dt = datetime.fromisoformat(created_utc.replace("Z", "+00:00"))
 
                 age_hours = (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600
 
@@ -393,9 +381,9 @@ class MetricsCalculator:
         return weighted_scores, weights
 
     @staticmethod
-    def calculate_all_metrics(hot_posts: List[Dict],
-                             weekly_posts: List[Dict],
-                             yearly_posts: List[Dict]) -> Dict[str, float]:
+    def calculate_all_metrics(
+        hot_posts: List[Dict], weekly_posts: List[Dict], yearly_posts: List[Dict]
+    ) -> Dict[str, float]:
         """
         Calculate all metrics for a subreddit.
 
@@ -419,14 +407,10 @@ class MetricsCalculator:
 
         # Log core metrics
         logger_helper.metric(
-            'subreddit_score_calculated',
+            "subreddit_score_calculated",
             subreddit_score,
-            context={
-                'avg_upvotes': avg_upvotes,
-                'engagement': engagement,
-                'weekly_posts_count': len(weekly_posts)
-            },
-            action='metric_calculation'
+            context={"avg_upvotes": avg_upvotes, "engagement": engagement, "weekly_posts_count": len(weekly_posts)},
+            action="metric_calculation",
         )
 
         # Activity metrics (from hot posts)
@@ -441,7 +425,7 @@ class MetricsCalculator:
         nsfw_percentage = MetricsCalculator.calculate_nsfw_percentage(weekly_posts)
 
         # Aggregate totals
-        total_upvotes_hot = sum(post.get('score', 0) for post in hot_posts)
+        total_upvotes_hot = sum(post.get("score", 0) for post in hot_posts)
 
         # Calculate comment to upvote ratio
         comment_to_upvote_ratio = round(avg_comments / avg_upvotes, 6) if avg_upvotes > 0 else 0.0
@@ -449,26 +433,22 @@ class MetricsCalculator:
         # Compile all metrics
         metrics = {
             # Core quality metrics
-            'avg_upvotes_per_post': avg_upvotes,
-            'engagement': engagement,
-            'subreddit_score': subreddit_score,
-
+            "avg_upvotes_per_post": avg_upvotes,
+            "engagement": engagement,
+            "subreddit_score": subreddit_score,
             # Activity metrics
-            'avg_comments_per_post': avg_comments,
-            'comment_to_upvote_ratio': comment_to_upvote_ratio,
-            'total_upvotes_hot_30': total_upvotes_hot,
-            'total_posts_hot_30': len(hot_posts),
-
+            "avg_comments_per_post": avg_comments,
+            "comment_to_upvote_ratio": comment_to_upvote_ratio,
+            "total_upvotes_hot_30": total_upvotes_hot,
+            "total_posts_hot_30": len(hot_posts),
             # Content type metrics
-            'top_content_type': top_content_type,
+            "top_content_type": top_content_type,
             **content_scores,
-
             # Timing metrics
-            'best_posting_hour': best_hour,
-            'best_posting_day': best_day,
-
+            "best_posting_hour": best_hour,
+            "best_posting_day": best_day,
             # NSFW metrics
-            'nsfw_percentage': nsfw_percentage
+            "nsfw_percentage": nsfw_percentage,
         }
 
         # Calculate duration
@@ -476,26 +456,29 @@ class MetricsCalculator:
 
         # Log overall metrics summary
         logger_helper.success(
-            f'Calculated all metrics: score={subreddit_score:.1f}',
+            f"Calculated all metrics: score={subreddit_score:.1f}",
             context={
-                'engagement': engagement,
-                'subreddit_score': subreddit_score,
-                'avg_upvotes': avg_upvotes,
-                'avg_comments': avg_comments,
-                'hot_posts': len(hot_posts),
-                'weekly_posts': len(weekly_posts),
-                'yearly_posts': len(yearly_posts),
-                'nsfw_percentage': nsfw_percentage,
-                'top_content_type': top_content_type
+                "engagement": engagement,
+                "subreddit_score": subreddit_score,
+                "avg_upvotes": avg_upvotes,
+                "avg_comments": avg_comments,
+                "hot_posts": len(hot_posts),
+                "weekly_posts": len(weekly_posts),
+                "yearly_posts": len(yearly_posts),
+                "nsfw_percentage": nsfw_percentage,
+                "top_content_type": top_content_type,
             },
-            action='all_metrics_calculated',
-            duration_ms=calc_duration_ms
+            action="all_metrics_calculated",
+            duration_ms=calc_duration_ms,
         )
 
-        logger.info(f"📈 Calculated metrics: score={subreddit_score:.1f}, "
-                   f"engagement={engagement:.4f}, avg_upvotes={avg_upvotes:.1f}")
-        logger.debug(f"  Hot posts: {len(hot_posts)}, Weekly posts: {len(weekly_posts)}, "
-                    f"NSFW: {nsfw_percentage:.1f}%")
+        logger.info(
+            f"📈 Calculated metrics: score={subreddit_score:.1f}, "
+            f"engagement={engagement:.4f}, avg_upvotes={avg_upvotes:.1f}"
+        )
+        logger.debug(
+            f"  Hot posts: {len(hot_posts)}, Weekly posts: {len(weekly_posts)}, " f"NSFW: {nsfw_percentage:.1f}%"
+        )
 
         return metrics
 
@@ -506,8 +489,7 @@ class RequirementsCalculator:
     """
 
     @staticmethod
-    def calculate_percentile_requirements(user_data: List[Dict],
-                                         percentile: int = 10) -> Dict[str, int]:
+    def calculate_percentile_requirements(user_data: List[Dict], percentile: int = 10) -> Dict[str, int]:
         """
         Calculate minimum requirements using percentile method.
 
@@ -524,25 +506,25 @@ class RequirementsCalculator:
         if not user_data or len(user_data) < 5:
             logger.warning(f"Insufficient data for requirements: {len(user_data)} users")
             return {
-                'min_post_karma': 0,
-                'min_comment_karma': 0,
-                'min_account_age_days': 0,
-                'requirement_sample_size': len(user_data) if user_data else 0
+                "min_post_karma": 0,
+                "min_comment_karma": 0,
+                "min_account_age_days": 0,
+                "requirement_sample_size": len(user_data) if user_data else 0,
             }
 
         # Extract metrics
-        post_karmas = sorted([u.get('link_karma', 0) for u in user_data])
-        comment_karmas = sorted([u.get('comment_karma', 0) for u in user_data])
-        ages = sorted([u.get('account_age_days', 0) for u in user_data])
+        post_karmas = sorted([u.get("link_karma", 0) for u in user_data])
+        comment_karmas = sorted([u.get("comment_karma", 0) for u in user_data])
+        ages = sorted([u.get("account_age_days", 0) for u in user_data])
 
         # Calculate percentile index
         percentile_index = max(0, int(len(post_karmas) * (percentile / 100)))
 
         return {
-            'min_post_karma': post_karmas[percentile_index] if post_karmas else 0,
-            'min_comment_karma': comment_karmas[percentile_index] if comment_karmas else 0,
-            'min_account_age_days': ages[percentile_index] if ages else 0,
-            'requirement_sample_size': len(user_data)
+            "min_post_karma": post_karmas[percentile_index] if post_karmas else 0,
+            "min_comment_karma": comment_karmas[percentile_index] if comment_karmas else 0,
+            "min_account_age_days": ages[percentile_index] if ages else 0,
+            "requirement_sample_size": len(user_data),
         }
 
 
@@ -551,8 +533,7 @@ class UserQualityCalculator:
     Calculates user quality scores for ranking and filtering.
     """
 
-    def calculate(self, username: str, account_age_days: int,
-                  post_karma: int, comment_karma: int) -> Dict[str, float]:
+    def calculate(self, username: str, account_age_days: int, post_karma: int, comment_karma: int) -> Dict[str, float]:
         """
         Calculate all user quality scores.
 
@@ -571,10 +552,10 @@ class UserQualityCalculator:
         overall_score = self.calculate_overall_score(username_score, age_score, karma_score)
 
         return {
-            'username_score': username_score,
-            'age_score': age_score,
-            'karma_score': karma_score,
-            'overall_score': overall_score
+            "username_score": username_score,
+            "age_score": age_score,
+            "karma_score": karma_score,
+            "overall_score": overall_score,
         }
 
     @staticmethod
@@ -657,9 +638,7 @@ class UserQualityCalculator:
         return round(min(10, score), 2)
 
     @staticmethod
-    def calculate_overall_score(username_score: float,
-                               age_score: float,
-                               karma_score: float) -> float:
+    def calculate_overall_score(username_score: float, age_score: float, karma_score: float) -> float:
         """
         Calculate weighted overall user quality score.
 
@@ -676,8 +655,6 @@ class UserQualityCalculator:
         Returns:
             float: Overall score (0-10)
         """
-        overall = (username_score * 0.2 +
-                  age_score * 0.3 +
-                  karma_score * 0.5)
+        overall = username_score * 0.2 + age_score * 0.3 + karma_score * 0.5
 
         return round(overall, 2)
