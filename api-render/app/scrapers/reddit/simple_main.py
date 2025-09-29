@@ -276,15 +276,17 @@ class SimplifiedRedditScraper:
                             'over18': r.get('over18', False)
                         }
 
-                total_loaded += len(result.data)
+                batch_count = len(result.data)
+                total_loaded += batch_count
                 batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
-                logger.info(f"📦 Loaded batch {batch_num}: {len(result.data)} subreddits ({batch_duration:.2f}s)")
+                logger.info(f"📦 Loaded batch {batch_num}: {batch_count} subreddits ({batch_duration:.2f}s)")
+
+                # Move offset forward
+                offset += batch_count
 
                 # Break if we got less than batch_size (last page)
-                if len(result.data) < batch_size:
+                if batch_count < batch_size:
                     break
-
-                offset += batch_size
 
             # Also populate skip lists from cache (faster than separate queries)
             self.non_related_subreddits = {
