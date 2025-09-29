@@ -244,24 +244,47 @@ class SimplifiedRedditScraper:
             logger.error(f"Error loading skip lists: {e}")
 
     async def load_all_subreddits_cache(self):
-        """Load ALL subreddits into memory for fast lookups and accurate new/existing detection"""
+        """Load ALL subreddits into memory for fast lookups and accurate new/existing detection - WITH PAGINATION"""
         load_start = datetime.now(timezone.utc)
         try:
-            # Load ALL subreddits with key fields
-            result = self.supabase.table('reddit_subreddits').select(
-                'name, review, primary_category, tags, over18'
-            ).execute()
-
-            # Build cache dictionary keyed by lowercase name
+            # Load ALL subreddits with pagination (Supabase limit: 1000 per query)
             self.all_subreddits_cache = {}
-            for r in result.data:
-                if r.get('name'):
-                    self.all_subreddits_cache[r['name'].lower()] = {
-                        'review': r.get('review'),
-                        'primary_category': r.get('primary_category'),
-                        'tags': r.get('tags', []),
-                        'over18': r.get('over18', False)
-                    }
+            batch_size = 1000
+            offset = 0
+            total_loaded = 0
+            batch_num = 0
+
+            while True:
+                batch_num += 1
+                batch_start = datetime.now(timezone.utc)
+
+                # Paginated query using range()
+                result = self.supabase.table('reddit_subreddits').select(
+                    'name, review, primary_category, tags, over18'
+                ).range(offset, offset + batch_size - 1).execute()
+
+                if not result.data:
+                    break
+
+                # Build cache dictionary keyed by lowercase name
+                for r in result.data:
+                    if r.get('name'):
+                        self.all_subreddits_cache[r['name'].lower()] = {
+                            'review': r.get('review'),
+                            'primary_category': r.get('primary_category'),
+                            'tags': r.get('tags', []),
+                            'over18': r.get('over18', False)
+                        }
+
+                total_loaded += len(result.data)
+                batch_duration = (datetime.now(timezone.utc) - batch_start).total_seconds()
+                logger.info(f"📦 Loaded batch {batch_num}: {len(result.data)} subreddits ({batch_duration:.2f}s)")
+
+                # Break if we got less than batch_size (last page)
+                if len(result.data) < batch_size:
+                    break
+
+                offset += batch_size
 
             # Also populate skip lists from cache (faster than separate queries)
             self.non_related_subreddits = {
@@ -277,16 +300,17 @@ class SimplifiedRedditScraper:
                 if data['review'] == 'Banned'
             }
 
-            # Log cache loading
+            # Log cache loading with pagination details
             load_duration = (datetime.now(timezone.utc) - load_start).total_seconds()
             self.supabase.table('system_logs').insert({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'reddit_scraper',
                 'script_name': 'simple_main',
                 'level': 'info',
-                'message': f'📦 Loaded {len(self.all_subreddits_cache)} subreddits into cache',
+                'message': f'✅ Loaded {total_loaded} subreddits into cache in {batch_num} batches ({load_duration:.1f}s)',
                 'context': {
-                    'total_cached': len(self.all_subreddits_cache),
+                    'total_cached': total_loaded,
+                    'batches': batch_num,
                     'non_related': len(self.non_related_subreddits),
                     'user_feed': len(self.user_feed_subreddits),
                     'banned': len(self.banned_subreddits),
@@ -295,7 +319,7 @@ class SimplifiedRedditScraper:
                 'duration_ms': int(load_duration * 1000)
             }).execute()
 
-            logger.info(f"📦 Loaded {len(self.all_subreddits_cache)} subreddits into cache")
+            logger.info(f"✅ Loaded {total_loaded} subreddits into cache in {batch_num} batches ({load_duration:.1f}s)")
 
         except Exception as e:
             logger.error(f"Error loading subreddits cache: {e}")
@@ -1112,7 +1136,7 @@ class SimplifiedRedditScraper:
                     'source': 'reddit_scraper',
                     'script_name': 'simple_main',
                     'level': 'success',
-                    'message': f'✅ Completed No Seller processing for r/{sub_name}',
+                    'message': f'✅ Completed No Seller r/{sub_name} | Engagement: {metrics.get("engagement", 0):.4f} | Upvotes: {metrics.get("avg_upvotes_per_post", 0):.0f} | Score: {metrics.get("subreddit_score", 0):.2f} | Best: {metrics.get("best_posting_day", "N/A")} {metrics.get("best_posting_hour", "N/A")}h',
                     'context': {
                         'subreddit': sub_name,
                         'type': 'No Seller',
@@ -1344,13 +1368,19 @@ class SimplifiedRedditScraper:
 
             # Log successful processing
             process_duration = (datetime.now(timezone.utc) - process_start).total_seconds()
+
+            # Build requirements string for message
+            req_msg = ""
+            if requirements:
+                req_msg = f" | Reqs: Post={requirements.get('min_post_karma', 0)} Comment={requirements.get('min_comment_karma', 0)} Age={requirements.get('min_account_age_days', 0)}d"
+
             try:
                 self.supabase.table('system_logs').insert({
                     'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'reddit_scraper',
                     'script_name': 'simple_main',
                     'level': 'success',
-                    'message': f'✅ Completed Ok processing for r/{sub_name}',
+                    'message': f'✅ Completed Ok r/{sub_name} | Engagement: {metrics.get("engagement", 0):.4f} | Upvotes: {metrics.get("avg_upvotes_per_post", 0):.0f} | Score: {metrics.get("subreddit_score", 0):.2f} | Best: {metrics.get("best_posting_day", "N/A")} {metrics.get("best_posting_hour", "N/A")}h{req_msg}',
                     'context': {
                         'subreddit': sub_name,
                         'type': 'Ok',
