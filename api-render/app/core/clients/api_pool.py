@@ -431,6 +431,46 @@ class ThreadSafeAPIPool:
 
         return api, proxy_config
 
+    async def make_request(self, url: str) -> Optional[Dict]:
+        """
+        Make an async HTTP request using a thread-safe API instance.
+
+        Args:
+            url: URL path to request (e.g., '/r/subreddit/about.json')
+
+        Returns:
+            JSON response or None if failed
+        """
+        import asyncio
+        import random
+
+        # Select a random thread/API instance for load balancing
+        thread_id = random.choice(list(self.apis.keys())) if self.apis else 0
+
+        # Get API instance and proxy
+        api = self.get_api(thread_id)
+        if not api:
+            logger.error(f"No API instance available for thread {thread_id}")
+            return None
+
+        # Get proxy config
+        proxy_config = None
+        if self.proxy_manager:
+            proxy_config = self.proxy_manager.get_proxy_for_thread(thread_id)
+
+        # Build full URL if needed
+        if not url.startswith('http'):
+            url = f"https://www.reddit.com{url}"
+
+        # Run the synchronous request in a thread pool to avoid blocking
+        def sync_request():
+            with self.locks.get(thread_id, threading.Lock()):
+                return api.request_with_retry(url, proxy_config)
+
+        # Use asyncio's thread pool executor
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, sync_request)
+
     def execute_with_thread_api(self, thread_id: int, func_name: str, *args, **kwargs) -> Any:
         """
         Execute an API function using the thread's dedicated instance.
@@ -488,7 +528,7 @@ class ThreadSafeAPIPool:
         for thread_id, api in self.apis.items():
             instance_info = {
                 'thread_id': thread_id,
-                'has_session': hasattr(api._local, 'session') and api._local.session is not None,
+                'has_session': api.session is not None,
                 'max_retries': api.max_retries,
                 'base_delay': api.base_delay
             }

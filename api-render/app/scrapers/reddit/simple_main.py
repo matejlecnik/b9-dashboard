@@ -775,7 +775,7 @@ class SimplifiedRedditScraper:
 
             # 11. Calculate requirements from users
             if user_data_list:
-                requirements = RequirementsCalculator.calculate_minimum_requirements(user_data_list)
+                requirements = RequirementsCalculator.calculate_percentile_requirements(user_data_list)
                 await self.update_subreddit_requirements(sub_name, requirements)
 
             # 12. Process newly discovered subreddits
@@ -905,9 +905,9 @@ class SimplifiedRedditScraper:
 
         # Best posting time from yearly posts
         if yearly_posts:
-            best_time = self.metrics_calculator.calculate_best_posting_times(yearly_posts)
-            metrics['best_posting_day'] = best_time.get('best_day')
-            metrics['best_posting_hour'] = best_time.get('best_hour')
+            best_hour, best_day = MetricsCalculator.calculate_posting_timing(yearly_posts)
+            metrics['best_posting_day'] = best_day
+            metrics['best_posting_hour'] = best_hour
 
         # Content type analysis from hot posts (for informational purposes)
         content_types = defaultdict(list)
@@ -1065,6 +1065,38 @@ class SimplifiedRedditScraper:
 
             except Exception as e:
                 logger.error(f"Error saving users batch: {e}")
+
+    async def ensure_users_exist(self, usernames: List[str]):
+        """Ensure users exist in database with minimal records"""
+        if not usernames:
+            return
+
+        # Process in batches
+        for i in range(0, len(usernames), USER_BATCH_SIZE):
+            batch = usernames[i:i + USER_BATCH_SIZE]
+
+            # Create minimal user records
+            user_records = []
+            for username in batch:
+                if username and username not in ['[deleted]', 'AutoModerator', None]:
+                    record = {
+                        'username': username,
+                        'last_scraped_at': datetime.now(timezone.utc).isoformat()
+                    }
+                    user_records.append(record)
+
+            # Direct upsert to database
+            if user_records:
+                try:
+                    self.supabase.table('reddit_users').upsert(
+                        user_records,
+                        on_conflict='username'
+                    ).execute()
+
+                    logger.debug(f"💾 Ensured {len(user_records)} users exist")
+
+                except Exception as e:
+                    logger.error(f"Error ensuring users exist: {e}")
 
     async def update_subreddit(self, name: str, about_data: Dict, metrics: Dict,
                                 rules: List[Dict] = None, verification_required: bool = False):
