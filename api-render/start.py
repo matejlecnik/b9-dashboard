@@ -50,12 +50,8 @@ def check_and_start_scrapers():
             if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
                 logger.info("🔄 Reddit scraper is enabled in database, starting subprocess...")
 
-                # Change to API directory first (crucial for imports)
-                original_cwd = os.getcwd()
+                # Open log file for Reddit scraper output
                 try:
-                    os.chdir('/app')
-
-                    # Open log file for Reddit scraper output
                     reddit_log = open('/tmp/reddit_scraper.log', 'w')
 
                     # Start with output to log file so we can see errors
@@ -106,7 +102,7 @@ def check_and_start_scrapers():
                         }).eq('script_name', 'reddit_scraper').execute()
 
                 finally:
-                    os.chdir(original_cwd)
+                    pass  # Cleanup if needed
 
             else:
                 logger.info("💤 Reddit scraper is disabled in database, not starting")
@@ -120,12 +116,8 @@ def check_and_start_scrapers():
             if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
                 logger.info("🔄 Instagram scraper is enabled in database, starting subprocess...")
 
-                # Change to API directory first (crucial for imports)
-                original_cwd = os.getcwd()
+                # Open log file for Instagram scraper output
                 try:
-                    os.chdir('/app')
-
-                    # Open log file for Instagram scraper output
                     instagram_log = open('/tmp/instagram_scraper.log', 'w')
 
                     # Start with output to log file so we can see errors
@@ -176,7 +168,7 @@ def check_and_start_scrapers():
                         }).eq('script_name', 'instagram_scraper').execute()
 
                 finally:
-                    os.chdir(original_cwd)
+                    pass  # Cleanup if needed
 
             else:
                 logger.info("💤 Instagram scraper is disabled in database, not starting at startup")
@@ -206,10 +198,11 @@ def run_api():
         )
     port = os.environ.get('PORT', '8000')
     try:
-        # Change to app directory for API as well
-        os.chdir('/app')
+        # Set PYTHONPATH to ensure modules can be found
+        os.environ['PYTHONPATH'] = '/app'
+        # Use python -m uvicorn for better module resolution
         subprocess.run([
-            "uvicorn", "main:app",
+            sys.executable, "-m", "uvicorn", "main:app",
             "--host", "0.0.0.0",
             "--port", port
         ])
