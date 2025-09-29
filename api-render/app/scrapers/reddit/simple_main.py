@@ -64,12 +64,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.2.1 - Cache Pagination Fix (limit/offset)"
+SCRAPER_VERSION = "3.2.2 - Dynamic Threading (centralized proxy config)"
 
 # Constants (replacing complex config)
 BATCH_SIZE = 50  # Posts per batch insert
 USER_BATCH_SIZE = 30  # Users per batch insert
-MAX_THREADS = 5  # Parallel subreddit processing
+# MAX_THREADS removed - now dynamically calculated from proxy configuration
 POSTS_PER_SUBREDDIT = 30  # Hot posts to analyze
 USER_SUBMISSIONS_LIMIT = 30  # Recent user submissions to check
 RATE_LIMIT_DELAY = 1.0  # Seconds between requests
@@ -268,7 +268,11 @@ class SimplifiedRedditScraper:
 
             self.api_pool = ThreadSafeAPIPool(self.proxy_manager)
             self.api_pool.initialize()
+
+            # Calculate max threads dynamically from proxy configuration
+            self.max_threads = self.proxy_manager.get_total_threads()
             logger.info(f"✅ API pool initialized with {len(self.proxy_manager.proxies)} proxies")
+            logger.info(f"✅ Calculated MAX_THREADS: {self.max_threads} (from proxy configuration)")
 
             # Initialize metrics calculator
             self.metrics_calculator = MetricsCalculator()
@@ -850,7 +854,7 @@ class SimplifiedRedditScraper:
     async def process_subreddits_batch(self, subreddits: List[Dict], full_processing: bool = True, discover_new: bool = True):
         """Process a batch of subreddits with threading"""
         # Process in chunks to avoid overwhelming the system
-        chunk_size = MAX_THREADS
+        chunk_size = self.max_threads
 
         for i in range(0, len(subreddits), chunk_size):
             chunk = subreddits[i:i + chunk_size]
