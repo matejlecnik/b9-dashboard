@@ -371,18 +371,40 @@ class SimplifiedRedditScraper:
                 if processed % 10 == 0:
                     logger.info(f"📊 Progress: {processed}/{total_subs} subreddits (skipped: {skipped})")
 
-                # Skip if already in skip lists
+                # Skip if already in skip lists WITH COMPREHENSIVE LOGGING
+                skip_reason = None
                 if sub_name in self.non_related_subreddits:
+                    skip_reason = 'Non Related'
                     logger.debug(f"⏭️ Skipping {sub_name} (Non Related)")
                     skipped += 1
-                    continue
                 elif sub_name in self.user_feed_subreddits:
+                    skip_reason = 'User Feed'
                     logger.debug(f"⏭️ Skipping {sub_name} (User Feed)")
                     skipped += 1
-                    continue
                 elif sub_name in self.banned_subreddits:
+                    skip_reason = 'Banned'
                     logger.debug(f"⏭️ Skipping {sub_name} (Banned)")
                     skipped += 1
+
+                if skip_reason:
+                    # Log skip decision every 10 skips
+                    if skipped % 10 == 0:
+                        try:
+                            self.supabase.table('system_logs').insert({
+                                'timestamp': datetime.now(timezone.utc).isoformat(),
+                                'source': 'reddit_scraper',
+                                'script_name': 'simple_main',
+                                'level': 'debug',
+                                'message': f'⏭️ Skipped r/{sub_name} ({skip_reason})',
+                                'context': {
+                                    'subreddit': sub_name,
+                                    'action': 'subreddit_skipped',
+                                    'skip_reason': skip_reason,
+                                    'total_skipped_so_far': skipped
+                                }
+                            }).execute()
+                        except:
+                            pass
                     continue
 
                 # Skip if recently processed (within 24 hours)
@@ -617,48 +639,192 @@ class SimplifiedRedditScraper:
             return None
 
     async def get_subreddit_posts(self, sub_name: str, sort: str = 'hot', time_filter: str = None, limit: int = 30) -> List[Dict]:
-        """Get posts from a subreddit"""
+        """Get posts from a subreddit - WITH COMPREHENSIVE LOGGING"""
+        api_start = datetime.now(timezone.utc)
         try:
             url = f'/r/{sub_name}/{sort}.json?limit={limit}'
             if time_filter:
                 url += f'&t={time_filter}'
 
             response = await self.api_pool.make_request(url)
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
+
             if response and 'data' in response and 'children' in response['data']:
                 posts = []
                 for child in response['data']['children']:
                     if child['kind'] == 't3' and 'data' in child:
                         posts.append(child['data'])
+
+                # Log successful API call
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Retrieved {len(posts)} {sort} posts for r/{sub_name}',
+                        'context': {
+                            'subreddit': sub_name,
+                            'action': f'api_posts_{sort}',
+                            'sort': sort,
+                            'time_filter': time_filter,
+                            'posts_returned': len(posts),
+                            'limit_requested': limit
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
                 return posts
             return []
         except Exception as e:
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
             logger.error(f"Error getting {sort} posts for r/{sub_name}: {e}")
+
+            # Log API error
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'error',
+                    'message': f'Error getting {sort} posts for r/{sub_name}',
+                    'context': {
+                        'subreddit': sub_name,
+                        'action': f'api_posts_{sort}_failed',
+                        'sort': sort,
+                        'time_filter': time_filter,
+                        'error': str(e),
+                        'error_type': type(e).__name__
+                    },
+                    'duration_ms': int(api_duration * 1000)
+                }).execute()
+            except:
+                pass
+
             return []
 
     async def get_user_info(self, username: str) -> Optional[Dict]:
-        """Get user information"""
+        """Get user information - WITH COMPREHENSIVE LOGGING"""
+        api_start = datetime.now(timezone.utc)
         try:
             response = await self.api_pool.make_request(f'/user/{username}/about.json')
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
+
             if response and 'data' in response:
-                return response['data']
+                user_data = response['data']
+
+                # Log successful API call
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Retrieved user info for u/{username}',
+                        'context': {
+                            'username': username,
+                            'action': 'api_user_info',
+                            'comment_karma': user_data.get('comment_karma', 0),
+                            'link_karma': user_data.get('link_karma', 0),
+                            'total_karma': user_data.get('total_karma', 0)
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
+                return user_data
             return None
         except Exception as e:
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
             logger.debug(f"Error getting user info for {username}: {e}")
+
+            # Log API error (only if not a common failure like deleted user)
+            if 'deleted' not in str(e).lower() and 'not found' not in str(e).lower():
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Failed to get user info for u/{username}',
+                        'context': {
+                            'username': username,
+                            'action': 'api_user_info_failed',
+                            'error': str(e),
+                            'error_type': type(e).__name__
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
             return None
 
     async def get_user_submissions(self, username: str, limit: int = 30) -> List[Dict]:
-        """Get user's submitted posts"""
+        """Get user's submitted posts - WITH COMPREHENSIVE LOGGING"""
+        api_start = datetime.now(timezone.utc)
         try:
             response = await self.api_pool.make_request(f'/user/{username}/submitted.json?limit={limit}')
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
+
             if response and 'data' in response and 'children' in response['data']:
                 posts = []
+                subreddits_found = set()
                 for child in response['data']['children']:
                     if child['kind'] == 't3' and 'data' in child:
                         posts.append(child['data'])
+                        if child['data'].get('subreddit'):
+                            subreddits_found.add(child['data']['subreddit'])
+
+                # Log successful API call
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Retrieved {len(posts)} submissions for u/{username}',
+                        'context': {
+                            'username': username,
+                            'action': 'api_user_submissions',
+                            'posts_returned': len(posts),
+                            'unique_subreddits': len(subreddits_found),
+                            'limit_requested': limit
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
                 return posts
             return []
         except Exception as e:
+            api_duration = (datetime.now(timezone.utc) - api_start).total_seconds()
             logger.debug(f"Error getting submissions for {username}: {e}")
+
+            # Log API error (only if not a common failure)
+            if 'deleted' not in str(e).lower() and 'not found' not in str(e).lower():
+                try:
+                    self.supabase.table('system_logs').insert({
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'source': 'reddit_scraper',
+                        'script_name': 'simple_main',
+                        'level': 'debug',
+                        'message': f'Failed to get submissions for u/{username}',
+                        'context': {
+                            'username': username,
+                            'action': 'api_user_submissions_failed',
+                            'error': str(e),
+                            'error_type': type(e).__name__
+                        },
+                        'duration_ms': int(api_duration * 1000)
+                    }).execute()
+                except:
+                    pass
+
             return []
 
     async def get_subreddit_rules(self, sub_name: str) -> List[Dict]:
@@ -936,13 +1102,52 @@ class SimplifiedRedditScraper:
                 requirements = RequirementsCalculator.calculate_percentile_requirements(user_data_list)
                 await self.update_subreddit_requirements(sub_name, requirements)
 
-            # 12. Process newly discovered subreddits (only if discovery is enabled)
+            # 12. Process newly discovered subreddits (only if discovery is enabled) WITH COMPREHENSIVE LOGGING
             if discover_new:
                 new_subreddits = discovered_subreddits - self.processed_subreddits
                 if new_subreddits:
                     logger.info(f"🆕 Discovered {len(new_subreddits)} new subreddits from r/{sub_name}")
+
+                    # Log discovery
+                    try:
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'info',
+                            'message': f'🆕 Discovered {len(new_subreddits)} new subreddits from r/{sub_name}',
+                            'context': {
+                                'subreddit': sub_name,
+                                'action': 'subreddits_discovered',
+                                'discovered_count': len(new_subreddits),
+                                'new_subreddits': list(new_subreddits)[:20],  # First 20 for logging
+                                'total_checked': len(discovered_subreddits),
+                                'users_analyzed': len(users_to_process)
+                            }
+                        }).execute()
+                    except:
+                        pass
+
                     await self.queue_new_subreddits(new_subreddits)
                     self.stats['new_subreddits_discovered'] += len(new_subreddits)
+                elif discovered_subreddits:
+                    # Log when subreddits were found but all already known
+                    try:
+                        self.supabase.table('system_logs').insert({
+                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'source': 'reddit_scraper',
+                            'script_name': 'simple_main',
+                            'level': 'debug',
+                            'message': f'All {len(discovered_subreddits)} discovered subreddits from r/{sub_name} already known',
+                            'context': {
+                                'subreddit': sub_name,
+                                'action': 'subreddits_already_known',
+                                'discovered_count': len(discovered_subreddits),
+                                'already_processed': len(discovered_subreddits & self.processed_subreddits)
+                            }
+                        }).execute()
+                    except:
+                        pass
             else:
                 logger.debug(f"🚫 Discovery disabled for r/{sub_name} - skipping new subreddit processing")
 
@@ -1833,7 +2038,8 @@ class SimplifiedRedditScraper:
             raise
 
     async def update_subreddit_requirements(self, name: str, requirements: Dict):
-        """Update subreddit minimum requirements"""
+        """Update subreddit minimum requirements - WITH COMPREHENSIVE LOGGING"""
+        update_start = datetime.now(timezone.utc)
         try:
             update_data = {
                 'name': name,
@@ -1844,15 +2050,59 @@ class SimplifiedRedditScraper:
                 'requirements_last_updated': datetime.now(timezone.utc).isoformat()
             }
 
-            self.supabase.table('reddit_subreddits').upsert(
+            result = self.supabase.table('reddit_subreddits').upsert(
                 update_data,
                 on_conflict='name'
             ).execute()
 
+            update_duration = (datetime.now(timezone.utc) - update_start).total_seconds()
+
+            # Log requirements update
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'success',
+                    'message': f'📊 Updated requirements for r/{name}',
+                    'context': {
+                        'subreddit': name,
+                        'action': 'requirements_updated',
+                        'min_post_karma': requirements.get('min_post_karma'),
+                        'min_comment_karma': requirements.get('min_comment_karma'),
+                        'min_account_age_days': requirements.get('min_account_age_days'),
+                        'sample_size': requirements.get('sample_size', 0),
+                        'percentile_used': requirements.get('percentile', 10)
+                    },
+                    'duration_ms': int(update_duration * 1000)
+                }).execute()
+            except:
+                pass
+
             logger.debug(f"📊 Updated requirements for r/{name}")
 
         except Exception as e:
+            update_duration = (datetime.now(timezone.utc) - update_start).total_seconds()
             logger.error(f"Error updating requirements for {name}: {e}")
+
+            # Log requirements update failure
+            try:
+                self.supabase.table('system_logs').insert({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'reddit_scraper',
+                    'script_name': 'simple_main',
+                    'level': 'error',
+                    'message': f'❌ Failed to update requirements for r/{name}',
+                    'context': {
+                        'subreddit': name,
+                        'action': 'requirements_update_failed',
+                        'error': str(e),
+                        'error_type': type(e).__name__
+                    },
+                    'duration_ms': int(update_duration * 1000)
+                }).execute()
+            except:
+                pass
 
     async def save_review_status(self, name: str, status: str):
         """Save subreddit review status"""
