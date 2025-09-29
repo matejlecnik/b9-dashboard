@@ -127,6 +127,17 @@ Status Types:
     "pattern": "[TYPE]-[NUMBER]",
     "types": ["FEAT", "FIX", "DOC", "TEST", "PERF", "REFACTOR"],
     "example": "FEAT-001"
+  },
+  "timeline_estimation": {
+    "rules": [
+      "Be realistic - don't say 'week 3' for 2h tasks",
+      "Use ranges: '2-4h' not 'approximately 3h'",
+      "Break phases into 15-30min subtasks",
+      "Track actual time and update estimates"
+    ],
+    "bad_example": "Phase 1: Documentation (Week 1-3)",
+    "good_example": "Phase 1.1: Convert 5 READMEs (30m)",
+    "max_phase_size": "2-4h before splitting required"
   }
 }
 ```

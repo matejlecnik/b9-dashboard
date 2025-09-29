@@ -419,7 +419,38 @@ $ npm run deploy:test     # Deploy to staging
 }
 ```
 
+## 📋 Project Planning Guidelines
+
+```json
+{
+  "timeline_rules": {
+    "be_realistic": "Don't say 'week 3' for 2-hour tasks",
+    "use_ranges": "Provide min/max estimates (e.g., '2-4h')",
+    "track_actuals": "Update with actual time after completion",
+    "buffer": "Add 20-30% buffer for unknowns"
+  },
+  "phase_structure": {
+    "granularity": "Break phases into 15-30min subtasks",
+    "max_tasks_per_phase": 5,
+    "subtask_format": "Specific, actionable, measurable",
+    "dependencies": "Clearly mark task dependencies"
+  },
+  "examples": {
+    "bad": {
+      "timeline": "Phase 1: Documentation (Week 1-3)",
+      "task": "Update all documentation",
+      "issue": "Too vague, unrealistic timeline"
+    },
+    "good": {
+      "timeline": "Phase 1.1: Convert 5 README files (30m)",
+      "task": "Convert dashboard/src/app/*/README.md to terminal style",
+      "benefit": "Specific scope, realistic time, measurable outcome"
+    }
+  },
+  "reminder": "ALWAYS structure phases into smaller sections with realistic timelines based on actual work patterns"
+}
+```
+
 ---
 
-_System Version: 3.4.2 | Last Update: 2025-09-29T22:30:00Z | Next Review: 2025-10-03_
-- memorize be more realistic with the timeline because you say week 3 and then we do in in 2h when making .md files and always structure the phases better into smaller sections
+_System Version: 3.4.2 | Last Update: 2025-09-30T10:00:00Z | Next Review: 2025-10-03_

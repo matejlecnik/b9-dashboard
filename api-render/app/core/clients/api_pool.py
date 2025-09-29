@@ -10,10 +10,19 @@ from typing import Dict, Optional, Any, Tuple
 from fake_useragent import UserAgent
 import random
 from datetime import datetime, timezone
-from app.core.logging_helper import LoggingHelper
+# Import logging helper with fallback
+try:
+    from core.logging_helper import LoggingHelper
+    logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
+except ImportError:
+    try:
+        from app.core.logging_helper import LoggingHelper
+        logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
+    except ImportError:
+        # Fallback: create a dummy logger if LoggingHelper is not available
+        logger_helper = None
 
 logger = logging.getLogger(__name__)
-logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
 
 
 class PublicRedditAPI:
@@ -158,31 +167,33 @@ class PublicRedditAPI:
                     return {'error': 'not_found', 'status': 404}
 
                 if response.status_code == 403:
-                    logger_helper.warning(
-                        f"Forbidden: {url}",
-                        context={
-                            'url': url,
-                            'status_code': 403,
-                            'thread_id': self.thread_id
-                        },
-                        action='forbidden'
-                    )
+                    if logger_helper:
+                        logger_helper.warning(
+                            f"Forbidden: {url}",
+                            context={
+                                'url': url,
+                                'status_code': 403,
+                                'thread_id': self.thread_id
+                            },
+                            action='forbidden'
+                        )
                     return {'error': 'forbidden', 'status': 403}
 
                 if response.status_code == 429:
                     # Rate limited
                     delay = min(5 + (retries * 2), 30)
-                    logger_helper.warning(
-                        f"Rate limited by Reddit - retry {retries + 1}/{self.max_retries}",
-                        context={
-                            'url': url,
-                            'status_code': 429,
-                            'retry': retries + 1,
-                            'delay': delay,
-                            'thread_id': self.thread_id
-                        },
-                        action='rate_limit'
-                    )
+                    if logger_helper:
+                        logger_helper.warning(
+                            f"Rate limited by Reddit - retry {retries + 1}/{self.max_retries}",
+                            context={
+                                'url': url,
+                                'status_code': 429,
+                                'retry': retries + 1,
+                                'delay': delay,
+                                'thread_id': self.thread_id
+                            },
+                            action='rate_limit'
+                        )
 
                     if retries >= 5:
                         return {'error': 'rate_limited'}
@@ -198,16 +209,17 @@ class PublicRedditAPI:
 
                 # Log slow requests
                 if response_time_ms > 5000:
-                    logger_helper.warning(
-                        f'Slow API request: {response_time_ms}ms',
-                        context={
-                            'url': url,
-                            'thread_id': self.thread_id,
-                            'response_time_ms': response_time_ms
-                        },
-                        action='slow_request',
-                        duration_ms=response_time_ms
-                    )
+                    if logger_helper:
+                        logger_helper.warning(
+                            f'Slow API request: {response_time_ms}ms',
+                            context={
+                                'url': url,
+                                'thread_id': self.thread_id,
+                                'response_time_ms': response_time_ms
+                            },
+                            action='slow_request',
+                            duration_ms=response_time_ms
+                        )
 
                 return response.json()
 
@@ -217,16 +229,17 @@ class PublicRedditAPI:
                     logger.warning(f"Request failed (attempt {retries}/{self.max_retries}): {url} - {str(e)[:100]}")
                     time.sleep(self.base_delay * retries)  # Sync sleep in retry loop is acceptable
                 else:
-                    logger_helper.error(
-                        f'Request failed after {self.max_retries} retries',
-                        context={
-                            'url': url,
-                            'max_retries': self.max_retries,
-                            'thread_id': self.thread_id,
-                            'error': str(e)[:200]
-                        },
-                        action='api_failed'
-                    )
+                    if logger_helper:
+                        logger_helper.error(
+                            f'Request failed after {self.max_retries} retries',
+                            context={
+                                'url': url,
+                                'max_retries': self.max_retries,
+                                'thread_id': self.thread_id,
+                                'error': str(e)[:200]
+                            },
+                            action='api_failed'
+                        )
                     break
 
         return None
