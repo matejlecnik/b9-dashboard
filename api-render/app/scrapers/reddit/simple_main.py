@@ -1513,13 +1513,22 @@ class SimplifiedRedditScraper:
                 ).eq('name', name).execute()
 
                 if not check_result.data:
+                    # Determine review status - User Feed for u_ prefixed subreddits
+                    if name.startswith('u_'):
+                        review_status = 'User Feed'
+                        category = 'User Profile'
+                        logger.info(f"👤 Detected user profile subreddit: r/{name}")
+                    else:
+                        review_status = None  # Empty review field for manual review
+                        category = 'Unknown'
+
                     # Insert as new subreddit with all required fields
                     self.supabase.table('reddit_subreddits').insert({
                         'name': name,
                         'display_name_prefixed': f'r/{name}',
                         'url': f'/r/{name}/',
-                        'review': None,  # Empty review field for manual review
-                        'primary_category': 'Unknown',
+                        'review': review_status,  # User Feed for u_ subreddits, None for others
+                        'primary_category': category,
                         'subscribers': 0,
                         'accounts_active': 0,
                         'created_at': datetime.now(timezone.utc).isoformat(),
