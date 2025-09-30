@@ -269,12 +269,36 @@ class SimplifiedRedditScraper:
 
             # Initialize proxy manager and API pool
             self.proxy_manager = ProxyManager(self.supabase)
-            print("SimplifiedRedditScraper: Loading and validating proxies...")
             logger.info("Loading and validating proxies...")
+
+            # Log to Supabase that proxy loading is starting
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "reddit_scraper",
+                "script_name": "simple_main",
+                "level": "info",
+                "message": "SimplifiedRedditScraper: Loading and validating proxies...",
+                "context": {
+                    "action": "proxy_initialization",
+                    "version": self.version
+                }
+            }).execute()
 
             # Check if proxies loaded and validated successfully
             proxy_load_result = await self.proxy_manager.load_proxies()
-            print(f"SimplifiedRedditScraper: load_proxies returned {proxy_load_result}")
+
+            # Log proxy load result to Supabase
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "reddit_scraper",
+                "script_name": "simple_main",
+                "level": "info" if proxy_load_result else "error",
+                "message": f"SimplifiedRedditScraper: load_proxies returned {proxy_load_result}",
+                "context": {
+                    "proxy_load_result": proxy_load_result,
+                    "action": "proxy_load_complete"
+                }
+            }).execute()
             if not proxy_load_result:
                 error_msg = "❌ Failed to load/validate proxies. Cannot start scraper."
                 logger.error(error_msg)

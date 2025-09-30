@@ -108,23 +108,85 @@ class ProxyManager:
                            f"priority={proxy['priority']}")
 
             # Test proxies at startup - ALL must work or we fail
-            print(f"🔍 About to call test_proxies_at_startup()... ({len(self.proxies)} proxies to test)")
-            logger.info("🔍 About to call test_proxies_at_startup()...")
+            logger.info(f"🔍 About to call test_proxies_at_startup()... ({len(self.proxies)} proxies to test)")
+
+            # Log to Supabase that proxy validation is starting
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "proxy_manager",
+                "script_name": "proxy_validation",
+                "level": "info",
+                "message": f"🔍 Starting proxy validation for {len(self.proxies)} proxies",
+                "context": {
+                    "proxy_count": len(self.proxies),
+                    "proxies": [p['display_name'] for p in self.proxies]
+                }
+            }).execute()
 
             try:
                 validation_result = await self.test_proxies_at_startup()
-                print(f"🔍 test_proxies_at_startup returned: {validation_result}")
                 logger.info(f"🔍 test_proxies_at_startup returned: {validation_result}")
+
+                # Log validation result to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "success" if validation_result else "error",
+                    "message": f"✅ All proxies validated successfully" if validation_result else "❌ Proxy validation failed",
+                    "context": {
+                        "validation_result": validation_result,
+                        "proxy_count": len(self.proxies)
+                    }
+                }).execute()
 
                 if not validation_result:
                     logger.error("❌ Proxy validation failed! Cannot start scraper.")
-                    print("❌ Proxy validation failed! Cannot start scraper.")
+
+                    # Log failure to Supabase
+                    self.supabase.table("system_logs").insert({
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "source": "proxy_manager",
+                        "script_name": "proxy_validation",
+                        "level": "critical",
+                        "message": "❌ CRITICAL: Proxy validation failed - scraper cannot start",
+                        "context": {
+                            "action": "blocking_startup",
+                            "reason": "proxy_validation_failure"
+                        }
+                    }).execute()
                     return False
             except Exception as e:
                 logger.error(f"❌ Exception during proxy validation: {e}")
-                print(f"❌ Exception during proxy validation: {e}")
+
+                # Log exception to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "error",
+                    "message": f"❌ Exception during proxy validation: {str(e)}",
+                    "context": {
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    }
+                }).execute()
+
                 import traceback
-                traceback.print_exc()
+                error_traceback = traceback.format_exc()
+
+                # Log full traceback to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "error",
+                    "message": "Full exception traceback",
+                    "context": {
+                        "traceback": error_traceback
+                    }
+                }).execute()
+
                 return False
 
             logger.info("✅ ProxyManager.load_proxies() completed successfully")
@@ -435,15 +497,37 @@ class ProxyManager:
 
     async def test_proxies_at_startup(self):
         """Test proxies at startup with rate limiting - graceful degradation enabled"""
-        print(f"🔧 ENTERED test_proxies_at_startup() with {len(self.proxies)} proxies")
         logger.info(f"🔧 ENTERED test_proxies_at_startup() with {len(self.proxies)} proxies")
+
+        # Log entry to Supabase
+        self.supabase.table("system_logs").insert({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "proxy_manager",
+            "script_name": "proxy_validation",
+            "level": "info",
+            "message": f"🔧 Starting proxy validation tests for {len(self.proxies)} proxies",
+            "context": {
+                "method": "test_proxies_at_startup",
+                "proxy_count": len(self.proxies)
+            }
+        }).execute()
 
         if not self.proxies:
             logger.error("❌ No proxies to test!")
-            print("❌ No proxies to test!")
+
+            # Log error to Supabase
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "proxy_manager",
+                "script_name": "proxy_validation",
+                "level": "error",
+                "message": "❌ No proxies to test!",
+                "context": {
+                    "error": "no_proxies_loaded"
+                }
+            }).execute()
             return False
 
-        print(f"🔧 Testing {len(self.proxies)} proxies at startup...")
         logger.info("🔧 Testing proxies at startup (with rate limiting and graceful degradation)...")
 
         test_url = "https://www.reddit.com/r/python.json"
@@ -466,13 +550,53 @@ class ProxyManager:
             if isinstance(result, Exception):
                 proxy_results[proxy_name] = f"❌ Failed: {result}"
                 logger.error(f"❌ Proxy {proxy_name} test failed with exception: {result}")
+
+                # Log individual proxy failure to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "error",
+                    "message": f"❌ Proxy {proxy_name} validation failed",
+                    "context": {
+                        "proxy": proxy_name,
+                        "error": str(result),
+                        "status": "exception"
+                    }
+                }).execute()
             elif result:
                 proxy_results[proxy_name] = "✅ Working"
                 working_proxies += 1
                 logger.info(f"✅ Proxy {proxy_name} validated successfully")
+
+                # Log successful validation to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "success",
+                    "message": f"✅ Proxy {proxy_name} validated successfully",
+                    "context": {
+                        "proxy": proxy_name,
+                        "status": "working"
+                    }
+                }).execute()
             else:
                 proxy_results[proxy_name] = "❌ Failed"
                 logger.warning(f"⚠️ Proxy {proxy_name} failed validation")
+
+                # Log proxy failure to Supabase
+                self.supabase.table("system_logs").insert({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "proxy_manager",
+                    "script_name": "proxy_validation",
+                    "level": "warning",
+                    "message": f"⚠️ Proxy {proxy_name} failed validation",
+                    "context": {
+                        "proxy": proxy_name,
+                        "status": "failed"
+                    }
+                }).execute()
 
         # Log summary
         logger.info("=" * 60)
@@ -481,12 +605,59 @@ class ProxyManager:
             logger.info(f"  {status} {proxy_name}")
 
         total_proxies = len(self.proxies)
+
+        # Log summary to Supabase
+        self.supabase.table("system_logs").insert({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "proxy_manager",
+            "script_name": "proxy_validation",
+            "level": "info",
+            "message": "📊 Proxy Validation Summary",
+            "context": {
+                "total_proxies": total_proxies,
+                "working_proxies": working_proxies,
+                "failed_proxies": total_proxies - working_proxies,
+                "success_rate": f"{working_proxies/total_proxies*100:.1f}%",
+                "proxy_results": proxy_results
+            }
+        }).execute()
+
         if working_proxies == total_proxies:  # ALL proxies must work
             logger.info(f"✅ SUCCESS: All {total_proxies} proxies validated successfully")
+
+            # Log success to Supabase
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "proxy_manager",
+                "script_name": "proxy_validation",
+                "level": "success",
+                "message": f"✅ SUCCESS: All {total_proxies} proxies validated successfully",
+                "context": {
+                    "all_proxies_working": True,
+                    "proxy_count": total_proxies
+                }
+            }).execute()
             return True
         else:
             logger.error(f"❌ FAILURE: Only {working_proxies}/{total_proxies} proxies working ({working_proxies/total_proxies*100:.1f}%)")
             logger.error("❌ Cannot start scraper without all proxies functional")
+
+            # Log failure to Supabase
+            self.supabase.table("system_logs").insert({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "proxy_manager",
+                "script_name": "proxy_validation",
+                "level": "critical",
+                "message": f"❌ FAILURE: Only {working_proxies}/{total_proxies} proxies working",
+                "context": {
+                    "working_proxies": working_proxies,
+                    "total_proxies": total_proxies,
+                    "failed_proxies": total_proxies - working_proxies,
+                    "success_rate": f"{working_proxies/total_proxies*100:.1f}%",
+                    "blocking_startup": True,
+                    "reason": "not_all_proxies_working"
+                }
+            }).execute()
             return False  # Fail if ANY proxy is not working
             
     async def _test_proxy_with_rate_limit(self, proxy, test_url):
