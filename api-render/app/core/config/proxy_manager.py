@@ -81,7 +81,6 @@ class ProxyManager:
         """
         try:
             # Use print to ensure we see this
-            print("📋 Starting ProxyManager.load_proxies()...")
             logger.info("📋 Starting ProxyManager.load_proxies()...")
 
             response = self.supabase.table('reddit_proxies').select('*').eq(

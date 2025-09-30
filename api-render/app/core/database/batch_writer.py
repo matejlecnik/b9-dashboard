@@ -12,10 +12,8 @@ from ..config.scraper_config import get_scraper_config
 from ..utils.supabase_logger import SupabaseLogHandler
 from .supabase_client import get_supabase_client
 
-# DEBUG: Add module-level logging to see what's happening
-print(f"[BATCH_WRITER MODULE] Loading batch_writer.py module", flush=True)
-
 logger = logging.getLogger(__name__)
+# Module loaded - debug logging removed
 
 
 class BatchWriter:
@@ -355,18 +353,13 @@ class BatchWriter:
             logger.error(traceback.format_exc())
 
     async def add_posts(self, posts_data: List[Dict[str, Any]]):
-        """Direct implementation to bypass the mysterious bug"""
-        print(f"[ADD_POSTS] Method called! posts_data type: {type(posts_data)}, length: {len(posts_data) if posts_data else 0}", flush=True)
-
+        """Direct implementation for post insertion"""
         if not posts_data:
-            print(f"[ADD_POSTS] Empty data, returning False", flush=True)
             logger.warning("add_posts called with empty data")
             return False
 
-        print(f"[ADD_POSTS] Starting try block...", flush=True)
-        # Direct write to database, bypassing all the complex logic for now
+        # Direct write to database
         try:
-            print(f"[ADD_POSTS] Inside try block", flush=True)
             logger.info(f"📝 add_posts: Processing {len(posts_data)} posts")
 
             # Clean the data
@@ -393,13 +386,10 @@ class BatchWriter:
                 logger.warning("No posts to write after cleaning")
                 return False
         except Exception as e:
-            print(f"[ADD_POSTS ERROR] Exception caught: {e}", flush=True)
-            print(f"[ADD_POSTS ERROR] Exception type: {type(e).__name__}", flush=True)
             logger.error(f"❌ Error in add_posts direct write: {e}")
             logger.error(f"Exception type: {type(e).__name__}")
             logger.error(f"Exception details: {str(e)}")
             import traceback
-            print(f"[ADD_POSTS ERROR] Traceback: {traceback.format_exc()}", flush=True)
             logger.error(traceback.format_exc())
             return False
 
@@ -1125,5 +1115,4 @@ class BatchWriter:
     # Use only async versions: add_subreddit(), add_user(), add_posts(), flush_all()
     # ensure_users_exist(), ensure_subreddits_exist()
 
-# DEBUG: Log when class is fully loaded
-print(f"[BATCH_WRITER MODULE] BatchWriter class defined successfully", flush=True)
+# Module loaded successfully
