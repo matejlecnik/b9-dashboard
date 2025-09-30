@@ -80,6 +80,7 @@ class ProxyManager:
             bool: True if proxies loaded successfully
         """
         try:
+            logger.info("📋 Starting ProxyManager.load_proxies()...")
             response = self.supabase.table('reddit_proxies').select('*').eq(
                 'is_active', True
             ).order('priority', desc=True).execute()
@@ -104,10 +105,14 @@ class ProxyManager:
                            f"priority={proxy['priority']}")
 
             # Test proxies at startup - ALL must work or we fail
-            if not await self.test_proxies_at_startup():
+            logger.info("🔍 About to call test_proxies_at_startup()...")
+            validation_result = await self.test_proxies_at_startup()
+
+            if not validation_result:
                 logger.error("❌ Proxy validation failed! Cannot start scraper.")
                 return False
 
+            logger.info("✅ ProxyManager.load_proxies() completed successfully")
             return True
 
         except Exception as e:

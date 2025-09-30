@@ -69,7 +69,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.3.0 - Centralized Configuration"
+SCRAPER_VERSION = "3.3.1 - Fixed Proxy Validation"
 
 # Configuration will be loaded dynamically from database
 # Defaults are managed by ConfigManager class
@@ -269,7 +269,25 @@ class SimplifiedRedditScraper:
 
             # Initialize proxy manager and API pool
             self.proxy_manager = ProxyManager(self.supabase)
-            await self.proxy_manager.load_proxies()  # Fixed: ProxyManager uses load_proxies() not initialize()
+            logger.info("Loading and validating proxies...")
+
+            # Check if proxies loaded and validated successfully
+            if not await self.proxy_manager.load_proxies():
+                error_msg = "❌ Failed to load/validate proxies. Cannot start scraper."
+                logger.error(error_msg)
+                self.supabase.table("system_logs").insert(
+                    {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "source": "reddit_scraper",
+                        "script_name": "simple_main",
+                        "level": "error",
+                        "message": error_msg,
+                        "context": {"action": "proxy_validation_failed"},
+                    }
+                ).execute()
+                raise RuntimeError(error_msg)
+
+            logger.info(f"✅ Proxies loaded and validated successfully")
 
             self.api_pool = ThreadSafeAPIPool(self.proxy_manager)
             self.api_pool.initialize()
