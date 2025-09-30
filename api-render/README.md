@@ -10,7 +10,7 @@
 {
   "status": {
     "api": "LIVE",
-    "reddit_scraper": "V3.0_ACTIVE",
+    "reddit_scraper": "V3.4.5_ACTIVE",
     "instagram_scraper": "ACTIVE",
     "database": "SUPABASE_REST",
     "cache": "REMOVED",
@@ -23,14 +23,14 @@
     "cpu_usage": "35%",
     "uptime": "99.99%",
     "query_performance": "+30% after optimization",
-    "architecture": "v3.0 simplified",
-    "last_deployment": "2025-09-29T14:30:00Z"
+    "architecture": "v3.4.5 optimized",
+    "last_deployment": "2025-10-01T00:40:00Z"
   },
   "data": {
-    "reddit_users": 298456,
-    "subreddits": 5847,
+    "reddit_users": 303889,
+    "subreddits": 13843,
     "instagram_creators": 1247,
-    "database_size": "5.8GB",
+    "database_size": "8.4GB",
     "fields_optimized": 85,
     "indexes_added": 7
   }

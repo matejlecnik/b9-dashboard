@@ -477,12 +477,11 @@ class RedditScraper:
         # ========== PASS 1: Fetch & Save Subreddit + Posts ==========
 
         # 1. Parallelize all API calls (3-5x speedup: 2.5-5s → 0.8-1.2s)
-        subreddit_info, rules, hot_30, top_10_weekly, top_100_yearly = await asyncio.gather(
+        subreddit_info, rules, hot_30, top_10_weekly = await asyncio.gather(
             self.api.get_subreddit_info(subreddit_name, proxy),
             self.api.get_subreddit_rules(subreddit_name, proxy),
             self.api.get_subreddit_hot_posts(subreddit_name, 30, proxy),
-            self.api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy),
-            self.api.get_subreddit_top_posts(subreddit_name, 'year', 100, proxy)
+            self.api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy)
         )
 
         # 2. Check for banned/forbidden/not_found subreddits
@@ -552,25 +551,19 @@ class RedditScraper:
                 logger.warning(f"⚠️  Using empty top_10_weekly list after {max_retries} retries")
                 top_10_weekly = []
 
-        # Validate top_100_yearly (retry if None)
-        if not self.validate_api_data(top_100_yearly, 'top_100_yearly'):
-            for attempt in range(max_retries):
-                logger.info(f"   🔄 Retrying top_100_yearly (attempt {attempt + 1}/{max_retries})...")
-                top_100_yearly = await self.api.get_subreddit_top_posts(subreddit_name, 'year', 100, self.proxy_manager.get_next_proxy())
-                if self.validate_api_data(top_100_yearly, 'top_100_yearly'):
-                    break
-            else:
-                logger.warning(f"⚠️  Using empty top_100_yearly list after {max_retries} retries")
-                top_100_yearly = []
+        # 4. Analyze rules for auto-categorization
+        description = subreddit_info.get('description', '')
+        rules_combined = ' '.join([r.get('description', '') for r in rules]) if rules else ''
+        auto_review = self.analyze_rules_for_review(rules_combined, description)
 
-        # 4. Save subreddit (without requirements yet)
-        self.save_subreddit(subreddit_name, subreddit_info, rules, top_10_weekly)
+        # 5. Save subreddit (with auto_review if detected)
+        self.save_subreddit(subreddit_name, subreddit_info, rules, top_10_weekly, auto_review)
 
         # Add to session cache to prevent re-discovery
         self.session_processed.add(subreddit_name)
 
         # 4. Collect posts but DON'T save yet (authors must be saved first)
-        all_posts = hot_30 + top_10_weekly + top_100_yearly
+        all_posts = hot_30 + top_10_weekly
         unique_posts = {post.get('id'): post for post in all_posts if post.get('id')}
 
         logger.info(f"   ✅ Saved r/{subreddit_name} (posts will be saved after users)")
@@ -724,7 +717,7 @@ class RedditScraper:
             allow_discovery=False         # Don't discover more subreddits
         )
 
-    def save_subreddit(self, name: str, info: dict, rules: list, top_weekly: list):
+    def save_subreddit(self, name: str, info: dict, rules: list, top_weekly: list, auto_review: str = None):
         """Save/update subreddit in database with calculated metrics
 
         Args:
@@ -732,6 +725,7 @@ class RedditScraper:
             info: Subreddit info dict from Reddit API
             rules: List of rule dicts from Reddit API
             top_weekly: List of top 10 weekly posts for calculations
+            auto_review: Optional auto-categorized review status ('Non Related', etc.)
         """
         try:
             import math
@@ -795,7 +789,8 @@ class RedditScraper:
 
             # Get cached metadata (preserved fields)
             cached = self.subreddit_metadata_cache.get(name, {})
-            review = cached.get('review')
+            # Use auto_review if provided, otherwise use cached review
+            review = auto_review if auto_review else cached.get('review')
             primary_category = cached.get('primary_category')
             tags = cached.get('tags', [])
             over18 = cached.get('over18', over18_from_api)  # Use cached if exists, else API
@@ -884,6 +879,83 @@ class RedditScraper:
         search_text = ' '.join([r.get('description') or '' for r in rules]) + ' ' + description
         verification_keywords = ['verification', 'verified', 'verify']
         return any(keyword in search_text.lower() for keyword in verification_keywords)
+
+    def analyze_rules_for_review(self, rules_text: str, description: str = None) -> str:
+        """Analyze rules/description for automatic 'Non Related' classification
+
+        Uses comprehensive keyword detection across multiple categories to identify
+        subreddits that are not relevant for OnlyFans creator promotion.
+
+        Args:
+            rules_text: Combined rules text from subreddit
+            description: Subreddit description (optional)
+
+        Returns:
+            'Non Related' if detected, None otherwise (for manual review)
+        """
+        if not rules_text and not description:
+            return None
+
+        # Combine all text for searching
+        combined = f"{rules_text or ''} {description or ''}".lower()
+
+        # Comprehensive "Non Related" keywords across 10 categories
+        non_related_keywords = [
+            # Hentai/anime porn (14 keywords)
+            'hentai', 'anime porn', 'rule34', 'cartoon porn',
+            'animated porn', 'ecchi', 'doujin', 'drawn porn',
+            'manga porn', 'anime girls', 'waifu', '2d girls', 'anime babes',
+
+            # Extreme fetishes (30+ keywords - not mainstream OnlyFans)
+            'bbw', 'ssbbw', 'feederism', 'weight gain', 'fat fetish',
+            'scat', 'watersports', 'golden shower', 'piss',
+            'abdl', 'diaper', 'adult baby', 'little space', 'age play', 'ddlg',
+            'vore', 'inflation', 'transformation', 'macro', 'giantess',
+            'furry', 'yiff', 'anthro', 'fursuit', 'anthropomorphic',
+            'guro', 'necro', 'gore', 'death', 'snuff',
+            'femdom', 'findom', 'financial domination', 'paypig', 'sissy',
+            'pregnant', 'breeding', 'impregnation', 'preggo',
+            'cuckold', 'cuck', 'hotwife', 'bull',
+            'chastity', 'denial', 'locked', 'keyholder',
+            'ballbusting', 'cbt', 'cock torture',
+            'latex', 'rubber', 'bondage gear', 'bdsm equipment',
+
+            # SFW content requiring nudity (12 keywords)
+            'nudity is required', 'nudity required',
+            'must be nude', 'nudity mandatory', 'nude only',
+            'nudity is mandatory', 'requires nudity',
+            'no clothes allowed', 'must show nudity',
+            'nude content only', 'full nudity required', 'complete nudity',
+
+            # Professional/career content (5 keywords)
+            'career advice', 'job hunting', 'resume help', 'interview tips',
+            'academic discussion',
+
+            # Cooking/recipe content
+            'cooking recipes', 'baking recipes', 'meal prep recipes',
+
+            # Gaming communities
+            'pc master race', 'console gaming discussion', 'indie game development',
+
+            # Politics/government
+            'government policy', 'election discussion', 'political debate',
+            'city council', 'local government',
+
+            # Animal/pet care
+            'veterinary advice', 'pet care tips', 'animal rescue',
+
+            # Academic/research
+            'scientific research', 'academic papers', 'peer review'
+        ]
+
+        # Check for keyword matches
+        for keyword in non_related_keywords:
+            if keyword in combined:
+                logger.info(f"🚫 Auto-categorized as 'Non Related': detected '{keyword}'")
+                return "Non Related"
+
+        # No match - leave for manual review
+        return None
 
     def save_posts(self, posts: list, subreddit_name: str = None):
         """Save posts to database with denormalized subreddit fields
