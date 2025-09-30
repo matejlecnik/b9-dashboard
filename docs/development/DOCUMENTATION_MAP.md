@@ -44,7 +44,9 @@
     },
     "archive": {
       "REDDIT_SCRAPER_ISSUES_DASHBOARD.md": {"tokens": 800, "status": "ARCHIVED"},
-      "REDDIT_SCRAPER_COMPREHENSIVE_ISSUES.md": {"tokens": 600, "status": "ARCHIVED"}
+      "REDDIT_SCRAPER_COMPREHENSIVE_ISSUES.md": {"tokens": 600, "status": "ARCHIVED"},
+      "REDDIT_SCRAPER_ARCHITECTURE_v3.0.md": {"tokens": 500, "status": "ARCHIVED"},
+      "PHASE_1_ASYNC_OPTIMIZATION.md": {"tokens": 400, "status": "ARCHIVED"}
     }
   }
 }

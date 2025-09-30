@@ -13,7 +13,7 @@
   "current": "docs/INDEX.md",
   "total_files": 59,
   "compliance": "98%",
-  "last_updated": "2025-09-30"
+  "last_updated": "2025-10-01"
 }
 ```
 
@@ -74,9 +74,9 @@
     "version": "3.0"
   },
   "scrapers": {
-    "reddit": "api-render/app/scrapers/reddit/README.md (591 lines)",
+    "reddit": "api-render/app/scrapers/reddit/README.md (248 lines) - v3.4.4",
     "instagram": "api-render/app/scrapers/instagram/README.md (221 lines)",
-    "architecture": "api-render/app/scrapers/reddit/ARCHITECTURE_V3.md (427 lines)"
+    "architecture": "api-render/app/scrapers/reddit/ARCHITECTURE.md"
   },
   "logging": {
     "system": "api-render/docs/LOGGING_SYSTEM.md (478 lines)",
@@ -235,4 +235,4 @@ b9_dashboard/
 
 ---
 
-_Index Version: 1.1 | Files: 59 | Lines: 18,973 | Updated: 2025-09-29 | Phase 4: COMPLETE_
+_Index Version: 1.2 | Files: 59 | Lines: 18,973 | Updated: 2025-10-01 | Reddit v3.4.4_

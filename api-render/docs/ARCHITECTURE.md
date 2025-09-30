@@ -162,10 +162,12 @@ api-render/
   },
   "scrapers": {
     "reddit": {
-      "purpose": "Reddit data acquisition",
-      "rate_limit": "60 requests/minute",
-      "concurrency": 10,
-      "batch_size": 100
+      "version": "v3.4.4",
+      "purpose": "Reddit data acquisition via Public JSON API",
+      "architecture": "reddit_controller.py supervises reddit_scraper.py",
+      "features": ["Proxy rotation", "Immediate discovery", "AsyncIO"],
+      "performance": "8-10s per subreddit",
+      "error_rate": "<2%"
     },
     "instagram": {
       "purpose": "Instagram data acquisition",
@@ -233,10 +235,11 @@ api-render/
 {
   "scheduled_tasks": [
     {
-      "name": "reddit_continuous_scraper",
+      "name": "reddit_controller",
+      "version": "v3.4.4",
       "schedule": "CONTINUOUS",
-      "interval": "60s",
-      "purpose": "Monitor Reddit activity"
+      "interval": "30s health checks",
+      "purpose": "Supervises reddit_scraper.py, immediate discovery processing"
     },
     {
       "name": "instagram_scraper",

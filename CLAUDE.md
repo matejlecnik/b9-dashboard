@@ -333,6 +333,16 @@ $ npm run deploy:test     # Deploy to staging
 ## Recent Changes
 
 ```diff
++ 2025-10-01: Documentation cleanup and v3.4.4 standardization
++ docs: Archived outdated REDDIT_SCRAPER_ARCHITECTURE.md (v3.0) to docs/archive/
++ docs: Archived PHASE_1_ASYNC_OPTIMIZATION.md to api-render/docs/archive/
++ docs: Replaced api-render/docs/DEPLOYMENT.md with redirect to comprehensive guide
++ api-render/docs: Updated README.md with v3.4.4 reference and 8.4GB database size
++ api-render/docs: Updated ARCHITECTURE.md with reddit v3.4.4 details and features
++ api-render/docs: Updated MONITORING.md with v3.4.4 scraper architecture
++ docs: Updated INDEX.md with v3.4.4 references and fixed broken links
++ docs: Updated DOCUMENTATION_MAP.md archive section with newly archived files
++ documentation: All api-render docs now reference v3.4.4 consistently
 + 2025-09-30: Reddit Scraper v3.4.4 - Immediate Discovery Processing
 + api-render: Changed discovery from batch to immediate processing
 + api-render: Discoveries now processed after each Ok subreddit (not at end)

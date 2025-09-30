@@ -72,12 +72,13 @@
 ```json
 {
   "reddit_scraper": {
+    "version": "v3.4.4",
     "status": "RUNNING",
+    "architecture": "reddit_controller.py + reddit_scraper.py",
     "last_heartbeat": "10s ago",
-    "last_successful_run": "2024-01-29T12:00:00Z",
-    "items_processed_today": 45678,
-    "errors_today": 12,
-    "queue_depth": 234
+    "performance": "8-10s per subreddit",
+    "error_rate": "<2%",
+    "features": ["Immediate discovery", "Proxy rotation", "AsyncIO"]
   },
   "instagram_scraper": {
     "status": "IDLE",
@@ -106,10 +107,10 @@
     "rollbacks": 2
   },
   "storage": {
-    "used": "6.2GB",
+    "used": "8.4GB",
     "limit": "10GB",
     "growth_rate": "100MB/day",
-    "days_until_full": 38
+    "days_until_full": 16
   }
 }
 ```

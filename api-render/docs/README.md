@@ -144,10 +144,10 @@
   "database": {
     "provider": "Supabase",
     "tables": 15,
-    "size": "6.2GB"
+    "size": "8.4GB"
   },
   "scrapers": {
-    "reddit": "Continuous (24/7)",
+    "reddit": "v3.4.4 Continuous (24/7)",
     "instagram": "Every 4 hours"
   }
 }
