@@ -256,17 +256,17 @@
 
 ```bash
 # Priority 1: Fix critical issues
-./scripts/fix-doc-format.sh README.md
-./scripts/fix-doc-format.sh .github/workflows/README.md
+./docs/scripts/fix-doc-format.sh README.md
+./docs/scripts/fix-doc-format.sh .github/workflows/README.md
 
 # Priority 2: Add navigation
-./scripts/add-navigation.sh --batch 21
+./docs/scripts/add-navigation.sh --batch 21
 
 # Priority 3: Update stale docs
-./scripts/check-stale.sh --days 30
+./docs/scripts/check-stale.sh --days 30
 
 # Generate fresh metrics
-./scripts/doc-metrics.sh > docs/DOCUMENTATION_METRICS.md
+./docs/scripts/doc-metrics.sh > docs/DOCUMENTATION_METRICS.md
 ```
 
 ---

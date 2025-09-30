@@ -31,7 +31,7 @@ else:
     from core.database.supabase_client import get_supabase_client
 
 # Version tracking
-SCRAPER_VERSION = "3.3.1 - Fixed Proxy Validation"
+SCRAPER_VERSION = "3.4.0 - Critical Fixes (TypeError, Duplicates, Logging)"
 
 # Load environment variables
 env_path = Path(__file__).parent.parent.parent / ".env"

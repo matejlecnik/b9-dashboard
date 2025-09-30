@@ -1,19 +1,19 @@
 {
   "summary": {
-    "total_files": 60,
-    "compliant_files": 18,
-    "compliance_rate": "30.0%",
-    "files_needing_update": 42
+    "total_files": 102,
+    "compliant_files": 24,
+    "compliance_rate": "23.5%",
+    "files_needing_update": 78
   },
   "metrics": {
-    "terminal_format": "59/60",
-    "navigation_json": "46/60"
+    "terminal_format": "71/102",
+    "navigation_json": "54/102"
   },
   "issues_by_severity": {
     "ERROR": 0,
-    "HIGH": 1,
-    "MEDIUM": 14,
-    "LOW": 36
+    "HIGH": 31,
+    "MEDIUM": 48,
+    "LOW": 45
   },
   "files_needing_update": [
     ".github/workflows/README.md",
@@ -125,28 +125,28 @@
       "fix": "Ensure headers follow # > ## > ### pattern"
     },
     {
-      "file": "api-render/app/scrapers/reddit/README.md",
+      "file": "api-render/app/scrapers/reddit/BUG_ANALYSIS.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": "api-render/app/scrapers/reddit/BUG_ANALYSIS.md",
       "issue": "Improper header hierarchy",
       "severity": "LOW",
       "fix": "Ensure headers follow # > ## > ### pattern"
     },
     {
-      "file": "api-render/app/services/README.md",
+      "file": "api-render/app/scrapers/reddit/COMPREHENSIVE_AUDIT_PLAN.md",
       "issue": "Improper header hierarchy",
       "severity": "LOW",
       "fix": "Ensure headers follow # > ## > ### pattern"
     },
     {
-      "file": "api-render/app/services/tags/README.md",
-      "issue": "Improper header hierarchy",
-      "severity": "LOW",
-      "fix": "Ensure headers follow # > ## > ### pattern"
-    },
-    {
-      "file": "api-render/app/utils/README.md",
-      "issue": "Improper header hierarchy",
-      "severity": "LOW",
-      "fix": "Ensure headers follow # > ## > ### pattern"
+      "file": "api-render/app/scrapers/reddit/CRITICAL_FIX_PLAN.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
     }
   ]
 }

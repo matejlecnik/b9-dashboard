@@ -105,9 +105,9 @@ fi
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 
 # Optional: Run Python validator if it exists
-if [ -f "scripts/validate-docs.py" ]; then
+if [ -f "docs/scripts/validate-docs.py" ]; then
     echo "Running full documentation validator..."
-    python3 scripts/validate-docs.py --quiet --files "$MD_FILES" 2>/dev/null
+    python3 docs/scripts/validate-docs.py --quiet --files "$MD_FILES" 2>/dev/null
 fi
 
 # Block commit if there are errors

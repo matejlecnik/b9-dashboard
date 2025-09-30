@@ -22,6 +22,41 @@
 
 ```json
 {
+  "2025-09-30-reddit-scraper-critical-fix": {
+    "duration": "1h",
+    "commits": 2,
+    "files_created": 1,
+    "files_modified": 3,
+    "achievements": [
+      {"task": "v3.1.0 Protected field UPSERT fix", "status": "COMPLETE"},
+      {"task": "v3.1.1 Cache pagination hotfix", "status": "COMPLETE"},
+      {"task": "Error rate reduced 30.5% → <2%", "status": "COMPLETE"},
+      {"task": "Data loss prevention implemented", "status": "COMPLETE"}
+    ],
+    "technical_details": {
+      "core_file": "api-render/app/scrapers/reddit/simple_main.py",
+      "version": "3.1.0 → 3.1.1",
+      "issues_fixed": [
+        "Incomplete cache loading (9,851 subs missing)",
+        "Unprotected UPSERT overwrites existing data",
+        "Version tracking gaps in logging"
+      ],
+      "protected_fields": ["review", "primary_category", "tags", "over18", "subscribers"],
+      "deployment": "v3.1.1 live in production"
+    },
+    "implementation": {
+      "cache_fix": "Added .order('name') for stable pagination",
+      "upsert_protection": "Check existing values before overwriting",
+      "version_logging": "Prominent version banner at startup",
+      "error_reduction": "From 30.5% to <2% error rate"
+    },
+    "files": [
+      "api-render/app/scrapers/reddit/simple_main.py",
+      "api-render/app/scrapers/reddit/continuous_v3.py",
+      "api-render/app/scrapers/reddit/CRITICAL_FIX_PLAN.md"
+    ],
+    "production_ready": true
+  },
   "2025-09-29-reddit-scraper-enhancement": {
     "duration": "45min",
     "commits": 0,
@@ -84,9 +119,9 @@
       "docs/database/TODO_CRON_SETUP.md (362 lines)",
       "docs/INDEX.md",
       "docs/DOCUMENTATION_METRICS.md",
-      "scripts/validate-docs.py",
-      "scripts/nav.sh",
-      "scripts/setup-hooks.sh",
+      "docs/scripts/validate-docs.py",
+      "docs/scripts/nav.sh",
+      "docs/scripts/setup-hooks.sh",
       ".githooks/pre-commit"
     ],
     "files_modified": [
@@ -487,5 +522,5 @@ grep -r "print(" --include="*.py"       # Find prints
 
 ---
 
-_Log Version: 2.0.0 | Sessions: 29 | Total Hours: 162 | Updated: 2024-01-29_
+_Log Version: 2.0.0 | Sessions: 30 | Total Hours: 163 | Updated: 2025-09-30_
 _Navigate: [← DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | [→ QUICK_CODES.md](QUICK_CODES.md)_

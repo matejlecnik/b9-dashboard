@@ -69,7 +69,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Version
-SCRAPER_VERSION = "3.3.1 - Fixed Proxy Validation"
+SCRAPER_VERSION = "3.4.0 - Critical Fixes (TypeError, Duplicates, Logging)"
 
 # Configuration will be loaded dynamically from database
 # Defaults are managed by ConfigManager class
@@ -686,8 +686,8 @@ class SimplifiedRedditScraper:
                 sub_name = sub["name"].lower()
                 processed += 1
 
-                # Log progress every 10 subreddits
-                if processed % 10 == 0:
+                # Log progress every 100 subreddits (reduced from 10 for less noise)
+                if processed % 100 == 0:
                     self.log_helper.log_to_both(
                         "info",
                         f"📊 Progress: {processed}/{total_subs} subreddits (skipped: {skipped})",
@@ -716,8 +716,8 @@ class SimplifiedRedditScraper:
                     skipped += 1
 
                 if skip_reason:
-                    # Log skip decision every 10 skips
-                    if skipped % 10 == 0:
+                    # Log skip decision every 100 skips (reduced from 10 for less noise)
+                    if skipped % 100 == 0:
                         try:
                             self.supabase.table("system_logs").insert(
                                 {
@@ -2746,24 +2746,27 @@ class SimplifiedRedditScraper:
         """Queue newly discovered subreddits for processing"""
         new_count = 0
         for name in subreddit_names:
-            # Skip if already known
+            # Normalize name to lowercase to prevent duplicate key violations
+            name_normalized = name.lower()
+
+            # Skip if already known (check with normalized name)
             if (
-                name in self.non_related_subreddits
-                or name in self.user_feed_subreddits
-                or name in self.banned_subreddits
-                or name in self.processed_subreddits
+                name_normalized in self.non_related_subreddits
+                or name_normalized in self.user_feed_subreddits
+                or name_normalized in self.banned_subreddits
+                or name_normalized in self.processed_subreddits
             ):
                 continue
 
             try:
                 # Use cache to check if subreddit exists (faster than database query)
-                is_new_subreddit = name.lower() not in self.all_subreddits_cache
+                is_new_subreddit = name_normalized not in self.all_subreddits_cache
 
                 # Determine review status - User Feed for u_ prefixed subreddits
-                if name.startswith("u_"):
+                if name_normalized.startswith("u_"):
                     review_status = "User Feed"
                     category = "User Profile"
-                    logger.info(f"👤 Detected user profile subreddit: r/{name}")
+                    logger.info(f"👤 Detected user profile subreddit: r/{name_normalized}")
                 else:
                     review_status = None  # Empty review field for manual review
                     category = "Unknown"
@@ -2772,21 +2775,21 @@ class SimplifiedRedditScraper:
                 # This prevents overwriting protected fields when cache is incomplete
                 queue_start = datetime.now(timezone.utc)
                 try:
-                    # Fetch existing protected fields
+                    # Fetch existing protected fields (use normalized name)
                     existing = (
                         self.supabase.table("reddit_subreddits")
                         .select("review, primary_category, tags, over18, subscribers, accounts_active")
-                        .eq("name", name)
+                        .eq("name", name_normalized)
                         .execute()
                     )
 
                     existing_data = existing.data[0] if existing.data else {}
 
-                    # Build UPSERT data with field protection
+                    # Build UPSERT data with field protection (use normalized name)
                     upsert_data = {
-                        "name": name,
-                        "display_name_prefixed": f"r/{name}",
-                        "url": f"/r/{name}/",
+                        "name": name_normalized,
+                        "display_name_prefixed": f"r/{name_normalized}",
+                        "url": f"/r/{name_normalized}/",
                         "created_at": datetime.now(timezone.utc).isoformat(),
                         "last_scraped_at": None,  # Re-queue for scraping
                     }
@@ -2823,13 +2826,15 @@ class SimplifiedRedditScraper:
                     # Don't set over18 - will be fetched from API
 
                     # 5. SUBSCRIBERS/ACCOUNTS_ACTIVE: Preserve if non-zero
-                    if existing_data.get("subscribers", 0) > 0:
+                    subscribers = existing_data.get("subscribers")
+                    if subscribers is not None and subscribers > 0:
                         # Keep existing - don't include
                         protected_fields.append("subscribers")
                     else:
                         upsert_data["subscribers"] = 0  # Will be updated by API fetch
 
-                    if existing_data.get("accounts_active", 0) > 0:
+                    accounts_active = existing_data.get("accounts_active")
+                    if accounts_active is not None and accounts_active > 0:
                         # Keep existing - don't include
                         protected_fields.append("accounts_active")
                     else:
@@ -2852,20 +2857,20 @@ class SimplifiedRedditScraper:
                                 "source": "reddit_scraper",
                                 "script_name": "simple_main",
                                 "level": "success",
-                                "message": f"🆕 New subreddit discovered: r/{name}",
+                                "message": f"🆕 New subreddit discovered: r/{name_normalized}",
                                 "context": {
-                                    "subreddit": name,
+                                    "subreddit": name_normalized,
                                     "review_status": review_status,
                                     "category": category,
                                     "action": "subreddit_new_discovered",
                                     "is_new": True,
-                                    "is_user_profile": name.startswith("u_"),
+                                    "is_user_profile": name_normalized.startswith("u_"),
                                     "protected_fields": protected_fields,
                                 },
                                 "duration_ms": int(queue_duration * 1000),
                             }
                         ).execute()
-                        logger.info(f"🆕 Discovered new subreddit: r/{name}")
+                        logger.info(f"🆕 Discovered new subreddit: r/{name_normalized}")
                         new_count += 1
                     else:
                         # EXISTING subreddit re-queued with protection
@@ -2875,9 +2880,9 @@ class SimplifiedRedditScraper:
                                 "source": "reddit_scraper",
                                 "script_name": "simple_main",
                                 "level": "info",
-                                "message": f"🔄 Existing subreddit re-queued (protected): r/{name}",
+                                "message": f"🔄 Existing subreddit re-queued (protected): r/{name_normalized}",
                                 "context": {
-                                    "subreddit": name,
+                                    "subreddit": name_normalized,
                                     "action": "subreddit_existing_requeued_protected",
                                     "is_new": False,
                                     "existing_review": existing_data.get("review"),

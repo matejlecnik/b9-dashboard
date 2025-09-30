@@ -110,10 +110,21 @@ class ProxyManager:
             # Test proxies at startup - ALL must work or we fail
             print(f"🔍 About to call test_proxies_at_startup()... ({len(self.proxies)} proxies to test)")
             logger.info("🔍 About to call test_proxies_at_startup()...")
-            validation_result = await self.test_proxies_at_startup()
 
-            if not validation_result:
-                logger.error("❌ Proxy validation failed! Cannot start scraper.")
+            try:
+                validation_result = await self.test_proxies_at_startup()
+                print(f"🔍 test_proxies_at_startup returned: {validation_result}")
+                logger.info(f"🔍 test_proxies_at_startup returned: {validation_result}")
+
+                if not validation_result:
+                    logger.error("❌ Proxy validation failed! Cannot start scraper.")
+                    print("❌ Proxy validation failed! Cannot start scraper.")
+                    return False
+            except Exception as e:
+                logger.error(f"❌ Exception during proxy validation: {e}")
+                print(f"❌ Exception during proxy validation: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
 
             logger.info("✅ ProxyManager.load_proxies() completed successfully")
@@ -424,6 +435,14 @@ class ProxyManager:
 
     async def test_proxies_at_startup(self):
         """Test proxies at startup with rate limiting - graceful degradation enabled"""
+        print(f"🔧 ENTERED test_proxies_at_startup() with {len(self.proxies)} proxies")
+        logger.info(f"🔧 ENTERED test_proxies_at_startup() with {len(self.proxies)} proxies")
+
+        if not self.proxies:
+            logger.error("❌ No proxies to test!")
+            print("❌ No proxies to test!")
+            return False
+
         print(f"🔧 Testing {len(self.proxies)} proxies at startup...")
         logger.info("🔧 Testing proxies at startup (with rate limiting and graceful degradation)...")
 
