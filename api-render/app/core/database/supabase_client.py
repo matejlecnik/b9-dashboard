@@ -58,7 +58,7 @@ class SupabaseClientManager:
         self._client = create_client(supabase_url, supabase_key)
 
         self._initialized = True
-        logger.info("✅ Centralized Supabase client initialized with connection optimization")
+        logger.info("✅ Supabase client ready")
 
     def refresh_client(self):
         """Force refresh the Supabase client to clear schema cache"""

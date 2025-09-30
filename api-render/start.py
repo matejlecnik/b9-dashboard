@@ -56,7 +56,7 @@ def check_and_start_scrapers():
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
-                        [sys.executable, "-u", "app/scrapers/reddit/continuous_v3.py"],
+                        [sys.executable, "-u", "app/scrapers/reddit/reddit_controller.py"],
                         stdout=reddit_log,
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,

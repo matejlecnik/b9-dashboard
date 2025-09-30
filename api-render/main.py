@@ -37,7 +37,6 @@ from app.utils import (
 # Import services and routes using relative imports
 from app.services.categorization_service_tags import TagCategorizationService
 from app.services.single_subreddit_fetcher import fetch_subreddit
-from app.routes.scraper_routes import router as scraper_router
 from app.routes.user_routes import router as user_router
 
 # Optional Instagram route imports
@@ -229,7 +228,6 @@ app = FastAPI(
 # =============================================================================
 
 # Include routers
-app.include_router(scraper_router)
 app.include_router(user_router)
 
 # Include Instagram routes if available

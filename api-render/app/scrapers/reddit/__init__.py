@@ -1,5 +1,5 @@
 """
-Reddit Scraper Module v3.0
-Simplified architecture for Reddit data collection
+Reddit Scraper Controller Module
+Infrastructure for managing Reddit scraping operations
 """
-# Using the simplified v3.0 architecture with continuous_v3.py as entry point
+# Controller infrastructure with reddit_controller.py as entry point
