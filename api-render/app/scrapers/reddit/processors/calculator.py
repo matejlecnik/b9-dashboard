@@ -10,10 +10,19 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from collections import defaultdict
-from app.core.logging_helper import LoggingHelper
+# Import logging helper with fallback
+try:
+    from core.logging_helper import LoggingHelper
+    logger_helper = LoggingHelper(source="reddit_scraper", script_name="calculator")
+except ImportError:
+    try:
+        from app.core.logging_helper import LoggingHelper
+        logger_helper = LoggingHelper(source="reddit_scraper", script_name="calculator")
+    except ImportError:
+        # Fallback: create a dummy logger if LoggingHelper is not available
+        logger_helper = None
 
 logger = logging.getLogger(__name__)
-logger_helper = LoggingHelper(source="reddit_scraper", script_name="calculator")
 
 
 class MetricsCalculator:
@@ -406,7 +415,8 @@ class MetricsCalculator:
         subreddit_score = MetricsCalculator.calculate_subreddit_score(engagement, avg_upvotes)
 
         # Log core metrics
-        logger_helper.metric(
+        if logger_helper:
+            logger_helper.metric(
             "subreddit_score_calculated",
             subreddit_score,
             context={"avg_upvotes": avg_upvotes, "engagement": engagement, "weekly_posts_count": len(weekly_posts)},
@@ -455,7 +465,8 @@ class MetricsCalculator:
         calc_duration_ms = int((datetime.now(timezone.utc) - calc_start).total_seconds() * 1000)
 
         # Log overall metrics summary
-        logger_helper.success(
+        if logger_helper:
+            logger_helper.success(
             f"Calculated all metrics: score={subreddit_score:.1f}",
             context={
                 "engagement": engagement,
