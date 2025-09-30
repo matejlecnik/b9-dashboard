@@ -80,7 +80,10 @@ class ProxyManager:
             bool: True if proxies loaded successfully
         """
         try:
+            # Use print to ensure we see this
+            print("📋 Starting ProxyManager.load_proxies()...")
             logger.info("📋 Starting ProxyManager.load_proxies()...")
+
             response = self.supabase.table('reddit_proxies').select('*').eq(
                 'is_active', True
             ).order('priority', desc=True).execute()
@@ -105,6 +108,7 @@ class ProxyManager:
                            f"priority={proxy['priority']}")
 
             # Test proxies at startup - ALL must work or we fail
+            print(f"🔍 About to call test_proxies_at_startup()... ({len(self.proxies)} proxies to test)")
             logger.info("🔍 About to call test_proxies_at_startup()...")
             validation_result = await self.test_proxies_at_startup()
 
@@ -420,6 +424,7 @@ class ProxyManager:
 
     async def test_proxies_at_startup(self):
         """Test proxies at startup with rate limiting - graceful degradation enabled"""
+        print(f"🔧 Testing {len(self.proxies)} proxies at startup...")
         logger.info("🔧 Testing proxies at startup (with rate limiting and graceful degradation)...")
 
         test_url = "https://www.reddit.com/r/python.json"
