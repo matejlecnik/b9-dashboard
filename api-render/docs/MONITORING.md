@@ -72,7 +72,7 @@
 ```json
 {
   "reddit_scraper": {
-    "version": "v3.4.4",
+    "version": "v3.4.5",
     "status": "RUNNING",
     "architecture": "reddit_controller.py + reddit_scraper.py",
     "last_heartbeat": "10s ago",

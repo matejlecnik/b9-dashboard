@@ -162,7 +162,7 @@ api-render/
   },
   "scrapers": {
     "reddit": {
-      "version": "v3.4.4",
+      "version": "v3.4.5",
       "purpose": "Reddit data acquisition via Public JSON API",
       "architecture": "reddit_controller.py supervises reddit_scraper.py",
       "features": ["Proxy rotation", "Immediate discovery", "AsyncIO"],
@@ -236,7 +236,7 @@ api-render/
   "scheduled_tasks": [
     {
       "name": "reddit_controller",
-      "version": "v3.4.4",
+      "version": "v3.4.5",
       "schedule": "CONTINUOUS",
       "interval": "30s health checks",
       "purpose": "Supervises reddit_scraper.py, immediate discovery processing"
