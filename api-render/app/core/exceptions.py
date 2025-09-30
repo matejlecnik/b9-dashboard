@@ -4,10 +4,17 @@ Provides specific exception types for better error handling and debugging
 """
 import re
 from typing import Any
-from app.core.logging_helper import LoggingHelper
-
-# Initialize logging helper
-logger_helper = LoggingHelper(source='reddit_scraper', script_name='exceptions')
+# Import logging helper with fallback
+try:
+    from core.logging_helper import LoggingHelper
+    logger_helper = LoggingHelper(source='reddit_scraper', script_name='exceptions')
+except ImportError:
+    try:
+        from app.core.logging_helper import LoggingHelper
+        logger_helper = LoggingHelper(source='reddit_scraper', script_name='exceptions')
+    except ImportError:
+        # Fallback: create a dummy logger if LoggingHelper is not available
+        logger_helper = None
 
 
 class RedditScraperException(Exception):
@@ -114,7 +121,8 @@ def handle_api_error(response_data: dict, operation: str = "API request") -> Non
     error_type = response_data.get('error')
     if error_type == 'banned':
         subreddit = response_data.get('subreddit', 'unknown')
-        logger_helper.warning(
+        if logger_helper:
+            logger_helper.warning(
             f"Banned subreddit encountered: r/{subreddit}",
             context={'subreddit': subreddit, 'operation': operation},
             action='banned_subreddit'
@@ -122,21 +130,24 @@ def handle_api_error(response_data: dict, operation: str = "API request") -> Non
         raise SubredditBannedException(subreddit)
     elif error_type == 'private' or error_type == 'forbidden':
         subreddit = response_data.get('subreddit', 'unknown')
-        logger_helper.warning(
+        if logger_helper:
+            logger_helper.warning(
             f"Private/forbidden subreddit: r/{subreddit}",
             context={'subreddit': subreddit, 'operation': operation},
             action='private_subreddit'
         )
         raise SubredditPrivateException(subreddit)
     elif error_type == 'not_found':
-        logger_helper.warning(
+        if logger_helper:
+            logger_helper.warning(
             f"{operation}: Resource not found",
             context={'operation': operation},
             action='not_found'
         )
         raise ScrapingException(f"{operation}: Resource not found")
     elif error_type == 'rate_limited':
-        logger_helper.error(
+        if logger_helper:
+            logger_helper.error(
             f"{operation}: Rate limit exceeded",
             context={'operation': operation},
             action='rate_limit_error'
@@ -144,7 +155,8 @@ def handle_api_error(response_data: dict, operation: str = "API request") -> Non
         raise RateLimitException(f"{operation}: Rate limit exceeded")
     elif error_type == 'suspended':
         username = response_data.get('username', 'unknown')
-        logger_helper.warning(
+        if logger_helper:
+            logger_helper.warning(
             f"Suspended user encountered: u/{username}",
             context={'username': username, 'operation': operation},
             action='suspended_user'
@@ -166,28 +178,32 @@ def handle_database_error(error: Exception, operation: str = "Database operation
     error_str = str(error).lower()
 
     if 'connection' in error_str or 'timeout' in error_str:
-        logger_helper.error(
+        if logger_helper:
+            logger_helper.error(
             f"{operation}: Connection or timeout error",
             context={'operation': operation, 'error': str(error)[:200]},
             action='database_connection_error'
         )
         raise DatabaseException(f"{operation}: Connection or timeout error - {error}")
     elif 'permission' in error_str or 'auth' in error_str:
-        logger_helper.error(
+        if logger_helper:
+            logger_helper.error(
             f"{operation}: Permission or authentication error",
             context={'operation': operation, 'error': str(error)[:200]},
             action='database_auth_error'
         )
         raise DatabaseException(f"{operation}: Permission or authentication error - {error}")
     elif 'schema' in error_str or 'column' in error_str:
-        logger_helper.error(
+        if logger_helper:
+            logger_helper.error(
             f"{operation}: Schema or column error",
             context={'operation': operation, 'error': str(error)[:200]},
             action='database_schema_error'
         )
         raise DatabaseException(f"{operation}: Schema or column error - {error}")
     else:
-        logger_helper.error(
+        if logger_helper:
+            logger_helper.error(
             f"{operation}: Database error",
             context={'operation': operation, 'error': str(error)[:200]},
             action='database_error'
