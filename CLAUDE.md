@@ -47,10 +47,10 @@
     "documentation": {"status": "COMPLETE", "complete": 100, "health": "STANDARDIZED"}
   },
   "database": {
-    "reddit_users": 298456,
-    "subreddits": 5847,
+    "reddit_users": 303889,
+    "subreddits": 13843,
     "instagram_creators": 1247,
-    "total_size": "6.2GB"
+    "total_size": "8.4GB"
   },
   "performance": {
     "api_latency_p95": "89ms",
@@ -65,8 +65,8 @@
 
 ```
 API       [LIVE]  Latency: 12ms    | Uptime: 99.99%
-DATABASE  [OK]   Connections: 45/100 | Size: 6.2GB
-SCRAPER   [OK]   v3.1.1 DEPLOYED  | Errors: <2%
+DATABASE  [OK]   Connections: 45/100 | Size: 8.4GB
+SCRAPER   [OK]   v3.4.4 DEPLOYED  | Errors: <2%
 RENDER    [OK]   Deploy: LIVE     | Build: PASSING
 ```
 
@@ -333,6 +333,13 @@ $ npm run deploy:test     # Deploy to staging
 ## Recent Changes
 
 ```diff
++ 2025-09-30: Reddit Scraper v3.4.4 - Immediate Discovery Processing
++ api-render: Changed discovery from batch to immediate processing
++ api-render: Discoveries now processed after each Ok subreddit (not at end)
++ api-render: Modified reddit_scraper.py lines 127-181
++ api-render: Removed all_discovered accumulator, added immediate filter+process loop
++ testing: Verified 31 new subreddits, 4,322 posts, 1,614 users in 20min run
++ database: Updated counts - 13,843 subreddits (+7,996), 303,889 users (+5,433)
 + 2025-09-29: Reddit Scraper v3.2.0 - Enhanced Supabase Logging
 + api-render: Added LoggingHelper class for dual console + Supabase logging
 + api-render: Implemented skip aggregation (33+ debug logs → 1 summary/cycle)

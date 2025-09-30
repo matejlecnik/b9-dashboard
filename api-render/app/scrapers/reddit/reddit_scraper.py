@@ -104,8 +104,8 @@ class RedditScraper:
         ok_subreddits = subreddits_by_status.get('ok', [])
         no_seller_subreddits = subreddits_by_status.get('no_seller', [])
 
-        # TEST: Limit to 3 subreddits (2 Ok + 1 No Seller) - DELETE AFTER TESTING
-        ok_subreddits = ok_subreddits[:2]
+        # TEST: Limit to 10 subreddits (9 Ok + 1 No Seller) - DELETE AFTER TESTING
+        ok_subreddits = ok_subreddits[:9]
         no_seller_subreddits = no_seller_subreddits[:1]
 
         if not ok_subreddits and not no_seller_subreddits:
@@ -127,9 +127,6 @@ class RedditScraper:
             # Process OK subreddits sequentially (1 at a time with 5 threaded users)
             logger.info(f"\n🎯 Processing {len(ok_subreddits)} OK subreddits sequentially...")
 
-            # Collect all discovered subreddits from all Ok subreddits
-            all_discovered = set()
-
             for idx, subreddit_name in enumerate(ok_subreddits):
                 if not self.running:
                     break
@@ -138,8 +135,43 @@ class RedditScraper:
 
                 try:
                     discovered = await self.process_subreddit(subreddit_name, process_users=True, allow_discovery=True)
-                    if isinstance(discovered, set):
-                        all_discovered.update(discovered)
+
+                    # Process discovered subreddits IMMEDIATELY
+                    if isinstance(discovered, set) and len(discovered) > 0:
+                        # Filter to get only new subreddits
+                        filtered = await self.filter_existing_subreddits(discovered)
+                        if filtered:
+                            logger.info(f"\n   🔍 Processing {len(filtered)} discovered subreddits immediately...")
+
+                            for discovery_idx, new_sub in enumerate(filtered, 1):
+                                if not self.running:
+                                    break
+
+                                # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
+                                if new_sub not in self.subreddit_metadata_cache:
+                                    # u_ = user profile feeds (skip)
+                                    if new_sub.startswith('u_'):
+                                        self.subreddit_metadata_cache[new_sub] = {
+                                            'review': 'User Feed',
+                                            'primary_category': None,
+                                            'tags': [],
+                                            'over18': False
+                                        }
+                                    else:
+                                        # Regular subreddit = NULL for full analysis
+                                        self.subreddit_metadata_cache[new_sub] = {
+                                            'review': None,  # NULL = new discovery, needs full analysis
+                                            'primary_category': None,
+                                            'tags': [],
+                                            'over18': False
+                                        }
+
+                                logger.info(f"      [{discovery_idx}/{len(filtered)}] 🆕 r/{new_sub}")
+                                await self.process_discovered_subreddit(new_sub)
+                                await asyncio.sleep(random.uniform(0.5, 1.5))
+
+                            logger.info(f"   ✅ Completed processing {len(filtered)} discoveries from r/{subreddit_name}\n")
+
                 except Exception as e:
                     logger.error(f"❌ Error processing Ok subreddit {subreddit_name}: {e}")
 
@@ -147,35 +179,6 @@ class RedditScraper:
                 if idx < len(ok_subreddits) - 1:
                     delay = random.uniform(1.0, 2.0)
                     await asyncio.sleep(delay)
-
-            # Process all discovered subreddits after main loop
-            if all_discovered:
-                filtered = await self.filter_existing_subreddits(all_discovered)
-                if filtered:
-                    logger.info(f"   🔍 Processing {len(filtered)} discovered subreddits with full analysis")
-
-                    for new_sub in filtered:
-                        # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
-                        if new_sub not in self.subreddit_metadata_cache:
-                            # u_ = user profile feeds (skip)
-                            if new_sub.startswith('u_'):
-                                self.subreddit_metadata_cache[new_sub] = {
-                                    'review': 'User Feed',
-                                    'primary_category': None,
-                                    'tags': [],
-                                    'over18': False
-                                }
-                            else:
-                                # Regular subreddit = NULL for full analysis
-                                self.subreddit_metadata_cache[new_sub] = {
-                                    'review': None,  # NULL = new discovery, needs full analysis
-                                    'primary_category': None,
-                                    'tags': [],
-                                    'over18': False
-                                }
-
-                        await self.process_discovered_subreddit(new_sub)
-                        await asyncio.sleep(random.uniform(0.5, 1.5))
 
             # Process No Seller subreddits sequentially (data update only)
             if no_seller_subreddits:
@@ -590,22 +593,30 @@ class RedditScraper:
         if allow_discovery and hot_authors:
             logger.info(f"   🔍 Discovering subreddits from {len(hot_authors)} hot post authors...")
 
-            # Fetch posts in small batches to avoid rate limits
-            BATCH_SIZE = 5
+            # Fetch posts sequentially (one user at a time) - Reddit requires sequential requests
             user_posts_results = []
-
             hot_authors_list = list(hot_authors)
-            for i in range(0, len(hot_authors_list), BATCH_SIZE):
-                batch = hot_authors_list[i:i + BATCH_SIZE]
 
-                # Process batch in parallel (proxy rotates automatically per request)
-                tasks = [self.api.get_user_posts(username, limit=30) for username in batch]
-                batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-                user_posts_results.extend(batch_results)
+            logger.info(f"      📥 Fetching posts from {len(hot_authors_list)} users sequentially...")
 
-                # Small delay between batches (0.2-0.5s)
-                if i + BATCH_SIZE < len(hot_authors_list):
-                    delay = random.uniform(0.2, 0.5)
+            for idx, username in enumerate(hot_authors_list, 1):
+                try:
+                    posts = await self.api.get_user_posts(username, limit=30, proxy_config=self.proxy_manager.get_next_proxy())
+                    user_posts_results.append(posts)
+
+                    if isinstance(posts, list) and len(posts) > 0:
+                        logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ✅ {len(posts)} posts")
+                    elif isinstance(posts, list):
+                        logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ⚠️  no posts")
+                    else:
+                        logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ❌ failed")
+                except Exception as e:
+                    logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ❌ error: {str(e)[:50]}")
+                    user_posts_results.append(None)
+
+                # Minimal delay between each user (10-50ms)
+                if idx < len(hot_authors_list):
+                    delay = random.uniform(0.01, 0.05)
                     await asyncio.sleep(delay)
 
             # Extract subreddits from posts
@@ -616,12 +627,46 @@ class RedditScraper:
             # Remove current subreddit
             discovered_subreddits.discard(subreddit_name)
 
+            # Log raw extraction results
+            logger.info(f"      🔍 Extracted {len(discovered_subreddits)} subreddits from user posts (before filtering)")
+            if len(discovered_subreddits) > 0 and len(discovered_subreddits) <= 10:
+                logger.info(f"         Raw subreddits: {', '.join(sorted(discovered_subreddits))}")
+            elif len(discovered_subreddits) > 10:
+                logger.info(f"         First 10: {', '.join(sorted(list(discovered_subreddits))[:10])}...")
+
             # Filter using cache only (no database query)
+            # Calculate what would be filtered by each cache
+            if len(discovered_subreddits) > 0:
+                filtered_non_related = discovered_subreddits & self.non_related_cache
+                filtered_user_feed = discovered_subreddits & self.user_feed_cache
+                filtered_banned = discovered_subreddits & self.banned_cache
+                filtered_ok = discovered_subreddits & self.ok_cache
+                filtered_no_seller = discovered_subreddits & self.no_seller_cache
+                filtered_session = discovered_subreddits & self.session_processed
+
+                logger.info(f"      🚫 Filtering breakdown:")
+                if filtered_non_related:
+                    logger.info(f"         - {len(filtered_non_related)} Non Related")
+                if filtered_user_feed:
+                    logger.info(f"         - {len(filtered_user_feed)} User Feed")
+                if filtered_banned:
+                    logger.info(f"         - {len(filtered_banned)} Banned")
+                if filtered_ok:
+                    logger.info(f"         - {len(filtered_ok)} Ok (already tracked)")
+                if filtered_no_seller:
+                    logger.info(f"         - {len(filtered_no_seller)} No Seller (already tracked)")
+                if filtered_session:
+                    logger.info(f"         - {len(filtered_session)} Already processed this session")
+
             all_known_subreddits = (self.non_related_cache | self.user_feed_cache |
                                    self.banned_cache | self.ok_cache | self.no_seller_cache |
                                    self.session_processed)
             discovered_subreddits = discovered_subreddits - all_known_subreddits
-            logger.info(f"   ✅ Discovered {len(discovered_subreddits)} new subreddits")
+
+            if len(discovered_subreddits) > 0:
+                logger.info(f"   ✅ Discovered {len(discovered_subreddits)} NEW subreddits: {', '.join(sorted(discovered_subreddits))}")
+            else:
+                logger.info(f"   ✅ Discovered 0 new subreddits (all filtered)")
 
         # 7. Save usernames in batch (all authors)
         self.save_users_batch(all_authors)

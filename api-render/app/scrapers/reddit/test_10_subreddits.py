@@ -4,6 +4,7 @@ import asyncio
 import sys
 import os
 import time
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -17,16 +18,16 @@ sys.path.insert(0, api_root)
 from core.database.supabase_client import get_supabase_client
 
 async def test_10_subreddits():
-    """Test v3.4.4 with 10 subreddits - Enhanced with insert/update tracking"""
+    """Test v3.4.4 with 1 subreddit - Fast discovery test"""
     print("=" * 60)
-    print("Test - Reddit Scraper v3.4.4 with 10 Subreddits")
+    print("Test - Reddit Scraper v3.4.4 - Single Subreddit Discovery")
     print("=" * 60)
 
     # Initialize
     supabase = get_supabase_client()
 
-    # Get 10 small-medium 'Ok' subreddits
-    response = supabase.table('reddit_subreddits').select('name, subscribers').eq('review', 'Ok').order('subscribers', desc=False).limit(10).execute()
+    # Get 1 biggest 'Ok' subreddit for testing
+    response = supabase.table('reddit_subreddits').select('name, subscribers').eq('review', 'Ok').order('subscribers', desc=True).limit(1).execute()
 
     test_subreddits = [row['name'] for row in response.data]
 
@@ -67,12 +68,13 @@ async def test_10_subreddits():
     # Time the operation
     start_time = time.time()
 
-    # Track overall inserts/updates
+    # Track overall activity
     overall_stats = {
-        'posts_inserted': 0,
-        'posts_updated': 0,
-        'users_inserted': 0,
-        'users_updated': 0
+        'posts_new': 0,
+        'posts_processed': 0,
+        'users_new': 0,
+        'users_seen': set(),  # Track unique usernames across all subreddits
+        'subreddits_processed': 0
     }
 
     async with PublicRedditAPI(scraper.proxy_manager) as api_client:
@@ -91,67 +93,39 @@ async def test_10_subreddits():
             print(f"\n[{i}/{len(test_subreddits)}] Processing r/{subreddit}...")
 
             try:
-                # BEFORE: Get existing posts and users for this subreddit
+                # Capture timestamp before processing
+                scrape_start_time = datetime.now(timezone.utc)
+
+                # BEFORE: Get existing posts for this subreddit
                 existing_posts_resp = supabase.table('reddit_posts').select('reddit_id').eq('subreddit_name', subreddit).execute()
                 existing_post_ids = set(row['reddit_id'] for row in existing_posts_resp.data)
-
-                # Get all usernames (we don't know which users will be encountered yet)
-                existing_users_resp = supabase.table('reddit_users').select('username').execute()
-                existing_usernames = set(row['username'] for row in existing_users_resp.data)
 
                 # Process subreddit
                 discoveries = await scraper.process_subreddit(subreddit, process_users=True, allow_discovery=True)
                 all_discoveries.update(discoveries)
 
-                # AFTER: Get updated posts and users for this subreddit
-                updated_posts_resp = supabase.table('reddit_posts').select('reddit_id').eq('subreddit_name', subreddit).execute()
-                updated_post_ids = set(row['reddit_id'] for row in updated_posts_resp.data)
+                # AFTER: Get posts scraped in THIS run (scraped_at >= scrape_start_time)
+                scraped_posts_resp = supabase.table('reddit_posts').select('reddit_id, author_username').eq('subreddit_name', subreddit).gte('scraped_at', scrape_start_time.isoformat()).execute()
+                scraped_post_ids = set(row['reddit_id'] for row in scraped_posts_resp.data)
 
-                updated_users_resp = supabase.table('reddit_users').select('username').execute()
-                updated_usernames = set(row['username'] for row in updated_users_resp.data)
+                # Get users updated in THIS run (last_scraped_at >= scrape_start_time)
+                scraped_users_resp = supabase.table('reddit_users').select('username').gte('last_scraped_at', scrape_start_time.isoformat()).execute()
+                scraped_usernames = set(row['username'] for row in scraped_users_resp.data)
 
-                # Calculate inserts vs updates
-                new_post_ids = updated_post_ids - existing_post_ids
-                existing_post_ids_in_update = updated_post_ids & existing_post_ids
-
-                new_usernames = updated_usernames - existing_usernames
-                existing_usernames_in_update = updated_usernames & existing_usernames
-
-                posts_inserted = len(new_post_ids)
-                posts_updated = len(existing_post_ids_in_update) - len(existing_post_ids) + posts_inserted  # Approximate updates
-                # Actually, for posts, "updated" means they were already there. The new count is inserts.
-                # Let me recalculate:
-                # Total posts scraped = len(updated_post_ids filtered to this subreddit after) - len(existing_post_ids before)
-                # But wait, we need to see which posts were touched
-
-                # Actually, a simpler approach:
-                # - Posts inserted = new IDs not in baseline
-                # - Posts updated = existing IDs that were re-scraped (we'd need to check scraped_at timestamp)
-
-                # For simplicity in this test:
-                # - Inserted = new reddit_ids
-                # - Updated = all posts re-fetched from API (approximate)
-
-                # Better approach: Total posts returned by scraper - new inserts = updates
-                # But we don't have "total posts returned" easily.
-
-                # Let me use a simpler metric:
-                # - NEW = IDs not in baseline
-                # - TOUCHED = Total posts for subreddit after - baseline (includes both new and updated)
-                # Actually this is getting complex. Let me just show:
-                # - X new posts (inserted)
-                # - Y total posts for subreddit (after scrape)
-
-                users_inserted = len(new_usernames)
-                users_touched = len(updated_usernames) - len(existing_usernames)  # Net new users
+                # Calculate metrics
+                posts_scraped_this_run = len(scraped_post_ids)
+                posts_new = len(scraped_post_ids - existing_post_ids)
+                posts_updated = posts_scraped_this_run - posts_new
 
                 # Aggregate
-                overall_stats['posts_inserted'] += posts_inserted
-                overall_stats['users_inserted'] += users_inserted
+                overall_stats['posts_new'] += posts_new
+                overall_stats['posts_processed'] += posts_scraped_this_run
+                overall_stats['users_seen'].update(scraped_usernames)
+                overall_stats['subreddits_processed'] += 1
 
                 sub_elapsed = time.time() - sub_start
                 print(f"    ✅ r/{subreddit} complete in {sub_elapsed:.2f}s")
-                print(f"       Posts: +{posts_inserted} new | Users: +{users_inserted} new | Discoveries: +{len(discoveries)}")
+                print(f"       Posts: {posts_scraped_this_run} scraped ({posts_new} new, {posts_updated} updated) | Users: {len(scraped_usernames)} | Discoveries: {len(discoveries)}")
 
             except Exception as e:
                 print(f"    ❌ r/{subreddit} failed: {e}")
@@ -166,9 +140,12 @@ async def test_10_subreddits():
     subs_after = supabase.table('reddit_subreddits').select('name', count='exact').execute().count
 
     # Calculate changes
-    posts_total_change = posts_after - posts_before
-    users_total_change = users_after - users_before
-    subs_total_change = subs_after - subs_before
+    posts_new_in_db = posts_after - posts_before
+    users_new_in_db = users_after - users_before
+    subs_new_in_db = subs_after - subs_before
+
+    # Calculate totals
+    users_total_processed = len(overall_stats['users_seen'])
 
     # Results
     print("\n" + "=" * 60)
@@ -177,12 +154,19 @@ async def test_10_subreddits():
     print(f"📊 Avg per subreddit: {elapsed/len(test_subreddits):.2f}s")
     print(f"🎯 Expected: ~85s (8.5s × 10 subreddits = 1.4 min)")
 
-    print("\n📈 Database Changes:")
-    print(f"   Posts:      {posts_before:,} → {posts_after:,} (+{posts_total_change:,} total)")
-    print(f"               └─ {overall_stats['posts_inserted']:,} new inserts")
-    print(f"   Users:      {users_before:,} → {users_after:,} (+{users_total_change:,} total)")
-    print(f"               └─ {overall_stats['users_inserted']:,} new inserts")
-    print(f"   Subreddits: {subs_before:,} → {subs_after:,} (+{subs_total_change:,} total, {len(all_discoveries)} discovered)")
+    # Calculate totals from accumulated stats
+    posts_updated = overall_stats['posts_processed'] - overall_stats['posts_new']
+
+    print("\n📈 Scraper Activity:")
+    print(f"   Posts:      {overall_stats['posts_processed']:,} scraped → {overall_stats['posts_new']:,} new, {posts_updated:,} updated")
+    print(f"   Users:      {users_total_processed:,} processed")
+    print(f"   Subreddits: {overall_stats['subreddits_processed']:,} processed")
+    print(f"   Discoveries: {len(all_discoveries):,} new subreddits discovered")
+
+    print("\n📊 Database Impact:")
+    print(f"   Posts in DB:      {posts_before:,} → {posts_after:,} (+{posts_new_in_db:,})")
+    print(f"   Users in DB:      {users_before:,} → {users_after:,} (+{users_new_in_db:,})")
+    print(f"   Subreddits in DB: {subs_before:,} → {subs_after:,} (+{subs_new_in_db:,})")
 
     if elapsed < 100:
         print("\n✅ PASS - Good performance!")

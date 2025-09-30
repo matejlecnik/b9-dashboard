@@ -1,7 +1,7 @@
-# Reddit Scraper (Pending Rebuild)
+# Reddit Scraper v3.4.4
 
 ┌─ SCRAPER STATUS ────────────────────────────────────────┐
-│ ⚠️ REBUILDING │ ░░░░░░░░░░░░░░░░░░░░ 0% NOT STARTED   │
+│ ✅ PRODUCTION │ ████████████████████ 100% OPERATIONAL  │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -12,12 +12,11 @@
   "current": "app/scrapers/reddit/README.md",
   "files": [
     {"path": "reddit_controller.py", "desc": "Process supervisor", "status": "ACTIVE"},
-    {"path": "reddit_scraper.py", "desc": "Main scraper", "status": "PRODUCTION"},
+    {"path": "reddit_scraper.py", "desc": "Main scraper v3.4.4", "status": "PRODUCTION"},
+    {"path": "public_reddit_api.py", "desc": "HTTP client", "status": "PRODUCTION"},
+    {"path": "proxy_manager.py", "desc": "Proxy rotation", "status": "ACTIVE"},
     {"path": "ARCHITECTURE.md", "desc": "System architecture", "status": "REFERENCE"},
-    {"path": "PLAN_v3.1.0.md", "desc": "Implementation plan", "status": "REFERENCE"}
-  ],
-  "related": [
-    {"path": "../../../reddit_scraper_backup.py", "desc": "v2.4.0 reference", "status": "BACKUP"}
+    {"path": "archive/PLAN_v3.1.0.md", "desc": "Historical plan", "status": "ARCHIVED"}
   ]
 }
 ```
@@ -26,130 +25,224 @@
 
 ```json
 {
-  "status": "TRANSITIONING",
-  "old_scraper": {
-    "version": "v3.4.0",
-    "status": "REMOVED",
-    "reason": "Data loss issues",
-    "removed_files": [
-      "simple_main.py (142KB)",
-      "processors/calculator.py (22KB)"
-    ]
+  "status": "PRODUCTION",
+  "version": "v3.4.4",
+  "deployed": "2025-09-30",
+  "stability": "STABLE",
+  "architecture": "Public Reddit JSON API with proxy rotation",
+  "features": {
+    "immediate_discovery": "Processes discovered subreddits after each Ok subreddit",
+    "public_reddit_api": "No authentication, uses proxy rotation",
+    "async_processing": "AsyncIO with concurrent API requests",
+    "user_discovery": "Fetches 30 posts per user to discover crossposting patterns",
+    "metrics_tracking": "Scores, engagement, subscriber counts",
+    "null_review_discovery": "Auto-discovers new subreddits with NULL review status"
   },
-  "new_scraper": {
-    "file": "reddit_scraper.py",
-    "version": "v3.0.0",
-    "status": "IN_DEVELOPMENT",
-    "reference": "reddit_scraper_backup.py (v2.4.0)",
-    "planned_features": [
-      "AsyncPRAW with proxy support",
-      "Multi-account rotation",
-      "Self-contained logging and metrics",
-      "Proven data integrity"
-    ]
+  "performance": {
+    "avg_subreddit_time": "8-10 seconds",
+    "error_rate": "<2%",
+    "proxies": "3 working (BeyondProxy, RapidProxy, NyronProxy)",
+    "api_latency": "1-3 seconds per request"
   }
 }
 ```
 
-## Infrastructure Status
+## Architecture Components
 
 ```json
 {
-  "controller": {
-    "file": "reddit_controller.py",
+  "reddit_controller.py": {
     "version": "v2.0.0",
-    "status": "SIMPLIFIED",
-    "lines": 164,
-    "description": "Minimal process supervisor - starts/stops scraper based on database flag",
+    "role": "Process supervisor",
     "responsibilities": [
       "Check database enabled flag every 30s",
       "Start/stop scraper process",
       "Update heartbeat for monitoring"
     ],
-    "no_longer_does": [
-      "Logging (scraper handles this)",
-      "Metrics collection (scraper handles this)",
-      "Cycle tracking (scraper handles this)",
-      "Timeout management (scraper handles this)"
+    "lines": 164
+  },
+  "reddit_scraper.py": {
+    "version": "v3.4.4",
+    "role": "Main scraper logic",
+    "responsibilities": [
+      "Process Ok subreddits sequentially",
+      "Fetch subreddit metadata, posts, rules",
+      "Discover new subreddits from user post history",
+      "Calculate engagement metrics and scores",
+      "Immediate discovery processing (not batch)"
+    ],
+    "lines": 450
+  },
+  "public_reddit_api.py": {
+    "role": "HTTP client with retry logic",
+    "features": [
+      "Async HTTP requests via aiohttp",
+      "3-retry logic with exponential backoff",
+      "Proxy rotation support",
+      "User agent randomization",
+      "Error handling (404, 403, 429)"
+    ],
+    "lines": 283
+  },
+  "proxy_manager.py": {
+    "role": "Proxy rotation and health checks",
+    "features": [
+      "Load proxies from Supabase",
+      "Test proxy connectivity",
+      "Round-robin rotation",
+      "Generate random user agents"
     ]
-  },
-  "single_fetcher": {
-    "endpoint": "/api/subreddits/fetch-single",
-    "status": "OPERATIONAL",
-    "usage": "Manual subreddit fetching"
-  },
-  "database": {
-    "tables": ["reddit_subreddits", "reddit_posts", "reddit_users"],
-    "status": "INTACT",
-    "data": "PRESERVED"
-  },
-  "control": {
-    "table": "system_control",
-    "script_name": "reddit_scraper",
-    "status": "READY"
   }
 }
 ```
 
-## Migration Plan
+## Version History
+
+### v3.4.4 (2025-09-30) - Immediate Discovery Processing ✅
+- **Feature**: Changed discovery processing from batch to immediate
+- **Implementation**: Discoveries processed after each Ok subreddit completes (not at end)
+- **Code changes**: Modified reddit_scraper.py lines 127-181
+- **Removed**: `all_discovered` accumulator pattern
+- **Added**: Immediate filtering and processing loop within main subreddit loop
+- **Verification**: 31 subreddits, 4,322 posts, 1,614 users in 20min test
+- **Benefit**: Faster feedback, more incremental progress
+
+### v3.4.0-v3.4.3 (2025-09-29) - Public Reddit API
+- Public Reddit JSON API implementation (no authentication)
+- Proxy rotation with health checks (3 proxies)
+- User discovery from hot post authors (30 posts per user)
+- NULL review auto-discovery mechanism
+- Sequential user fetching with delays (10-50ms)
+
+### v3.3.0 (2025-09-28) - Simplification
+- Simplified username-only saving (removed threading)
+- Protected field UPSERT fix (review, category, tags)
+- Cache pagination improvements
+- Error rate reduction: 30.5% → <2%
+
+### v3.2.0 (2025-09-27) - Logging Enhancements
+- Dual console + Supabase logging
+- Skip aggregation (33+ logs → 1 summary)
+- Progress updates every 10 subreddits
+- 97% reduction in log spam
+
+## Database Schema
 
 ```json
 {
-  "phase_1": {
-    "task": "Implement reddit_scraper.py",
-    "source": "../../reddit_scraper_backup.py (reference)",
-    "target": "reddit_scraper.py",
-    "changes_needed": [
-      "Copy proven scraping logic from backup",
-      "Add self-contained logging to system_logs",
-      "Add metrics collection and cycle tracking",
-      "Implement async run() loop",
-      "Add graceful stop() method for controller"
-    ],
-    "scraper_responsibilities": [
-      "All logging to system_logs table",
-      "Cycle counting and timing",
-      "Stats collection (posts, subreddits, users)",
-      "Error handling and reporting",
-      "Timeout management",
-      "Checking enabled flag during operation"
-    ]
+  "reddit_subreddits": {
+    "key": "name (primary)",
+    "fields": ["review", "subscribers", "over18", "created_utc", "description", "primary_category", "tags", "subreddit_score", "engagement", "last_scraped_at"],
+    "protected": ["review", "primary_category", "tags"],
+    "notes": "Protected fields only updated if NULL"
   },
-  "phase_2": {
-    "task": "Test data integrity",
-    "validation": [
-      "No data loss",
-      "Proper foreign key handling",
-      "Correct write order"
-    ]
+  "reddit_posts": {
+    "key": "reddit_id (primary)",
+    "fields": ["subreddit_name", "author_username", "title", "selftext", "url", "ups", "num_comments", "created_utc", "scraped_at"],
+    "foreign_keys": ["subreddit_name → reddit_subreddits.name"]
   },
-  "phase_3": {
-    "task": "Deploy new scraper",
-    "steps": [
-      "Update reddit_controller.py imports",
-      "Test locally",
-      "Deploy to production"
-    ]
+  "reddit_users": {
+    "key": "username (primary)",
+    "fields": ["account_created_utc", "link_karma", "comment_karma", "has_verified_email", "is_gold", "is_mod", "account_age_days", "last_scraped_at"],
+    "notes": "Minimal user metadata (no post tracking)"
   }
 }
 ```
 
-## Quick Commands
+## Discovery Mechanism
+
+```
+Ok Subreddit → Fetch hot posts (limit=30)
+              ↓
+              Extract unique authors
+              ↓
+              Fetch 30 posts per author (sequential, 10-50ms delay)
+              ↓
+              Extract subreddits from user post history
+              ↓
+              Filter existing (Non Related, User Feed, Banned, Ok, No Seller)
+              ↓
+              NEW subreddits → Process immediately with full analysis
+              ↓
+              Mark as review=NULL or review='User Feed' (u_ prefix)
+              ↓
+              Continue to next Ok subreddit
+```
+
+**Key Change in v3.4.4**: Discoveries are processed **immediately** after each Ok subreddit completes, not batched at the end. This provides faster feedback and more incremental progress.
+
+## Control & Monitoring
+
+```json
+{
+  "control_table": "system_control",
+  "script_name": "reddit_scraper",
+  "enabled_flag": "Set false to stop scraper within 30s",
+  "heartbeat": "last_heartbeat updated every cycle",
+  "status": "running | stopped",
+  "pid": "Process ID for monitoring"
+}
+```
+
+### Start/Stop Commands
 
 ```bash
-# Check continuous runner status
-psql -c "SELECT enabled, status FROM system_control WHERE script_name='reddit_scraper'"
+# Stop scraper (sets enabled=false in database)
+python3 << 'EOF'
+import os, sys
+sys.path.insert(0, 'app')
+from core.database.supabase_client import get_supabase_client
+supabase = get_supabase_client()
+supabase.table('system_control').update({'enabled': False}).eq('script_name', 'reddit_scraper').execute()
+print("✅ Stop command sent")
+EOF
 
-# View scraper base file
-cat ../../reddit_scraper_backup.py | head -100
+# Start scraper (sets enabled=true in database)
+# Similar script with {'enabled': True}
 
-# Test single fetcher
+# View logs
+tail -f app/scrapers/reddit/reddit_controller.log
+
+# Check process
+ps aux | grep reddit_controller
+```
+
+## Quick Reference
+
+```bash
+# Test single subreddit
 curl -X POST "https://b9-dashboard.onrender.com/api/subreddits/fetch-single" \
   -H "Content-Type: application/json" \
   -d '{"subreddit_name": "test"}'
+
+# View recent logs
+tail -100 app/scrapers/reddit/reddit_controller.log
+
+# Check database counts
+psql -c "SELECT COUNT(*) FROM reddit_subreddits WHERE review='Ok'"
+psql -c "SELECT COUNT(*) FROM reddit_posts WHERE scraped_at > NOW() - INTERVAL '1 hour'"
+```
+
+## Statistics
+
+```json
+{
+  "database": {
+    "total_subreddits": 13843,
+    "total_posts": 1767640,
+    "total_users": 303889
+  },
+  "scraper_coverage": {
+    "Ok_subreddits": 2158,
+    "No_Seller": 70,
+    "Non_Related": 6780,
+    "User_Feed": 2361,
+    "Banned": 28
+  }
+}
 ```
 
 ---
 
-_Reddit Scraper Rebuild | Status: Pending | Base: v2.4.0_
-_Navigate: [← scrapers/](../README.md) | [→ reddit_controller.py](reddit_controller.py)_
+_Reddit Scraper v3.4.4 | Status: Production | Last Updated: 2025-09-30_
+_Navigate: [← scrapers/](../README.md) | [→ ARCHITECTURE.md](ARCHITECTURE.md)_
