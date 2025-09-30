@@ -13,12 +13,12 @@ from datetime import datetime, timezone
 
 # Import system logger using flexible import approach for both dev and production
 try:
-    # Production path (Docker) 
-    from utils.system_logger import system_logger
+    # Production path (Docker)
+    from app.core.utils.supabase_logger import SupabaseLogHandler as system_logger
 except ImportError:
     try:
         # Development path (absolute import)
-        from api_render.utils.system_logger import system_logger
+        from api_render.app.core.utils.supabase_logger import SupabaseLogHandler as system_logger
     except ImportError:
         system_logger = None
 
