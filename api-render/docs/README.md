@@ -11,12 +11,13 @@
   "parent": "../README.md",
   "current": "docs/README.md",
   "documents": [
-    {"path": "API_ENDPOINTS.md", "desc": "Complete endpoint reference", "status": "UPDATED"},
+    {"path": "ARCHITECTURE.md", "desc": "System design", "status": "STABLE"},
+    {"path": "API.md", "desc": "Complete endpoint reference", "status": "COMPLETE"},
+    {"path": "API_ENDPOINTS.md", "desc": "Endpoint details", "status": "UPDATED"},
     {"path": "DEPLOYMENT.md", "desc": "Render deployment guide", "status": "PRODUCTION"},
     {"path": "MONITORING.md", "desc": "Health & metrics", "status": "ACTIVE"},
     {"path": "PERFORMANCE.md", "desc": "Optimization guide", "status": "OPTIMIZED"},
-    {"path": "LOGGING_README.md", "desc": "Logging system", "status": "MANDATORY"},
-    {"path": "TAG_CATEGORIES.md", "desc": "Tag hierarchy", "status": "DEFINED"}
+    {"path": "logging.md", "desc": "Logging system", "status": "ENFORCED"}
   ]
 }
 ```

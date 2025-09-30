@@ -41,12 +41,14 @@
 
 ```json
 {
-  "current": "README.md",
+  "parent": "../CLAUDE.md",
+  "current": "api-render/README.md",
   "documentation": {
-    "ARCHITECTURE.md": {"desc": "System design", "tokens": 500},
-    "docs/API.md": {"desc": "Endpoint reference", "tokens": 400},
-    "docs/DEPLOYMENT.md": {"desc": "Deploy guide", "tokens": 300},
-    "docs/MONITORING.md": {"desc": "Health monitoring", "tokens": 350}
+    "docs/ARCHITECTURE.md": {"desc": "System design", "status": "STABLE"},
+    "docs/API.md": {"desc": "Endpoint reference", "status": "COMPLETE"},
+    "docs/DEPLOYMENT.md": {"desc": "Deploy guide", "status": "ACTIVE"},
+    "docs/MONITORING.md": {"desc": "Health monitoring", "status": "OPERATIONAL"},
+    "docs/logging.md": {"desc": "Logging system", "status": "ENFORCED"}
   },
   "modules": {
     "app/core/": {"desc": "Infrastructure", "status": "STABLE"},
