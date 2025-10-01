@@ -6,9 +6,9 @@ import {
   Square
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { LogViewerSupabase } from '@/components/features/LogViewerSupabase'
+import { LogViewerSupabase } from '@/components/features/monitoring/LogViewerSupabase'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
-import { ApiActivityLog } from '@/components/features/ApiActivityLog'
+import { ApiActivityLog } from '@/components/features/monitoring/ApiActivityLog'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'

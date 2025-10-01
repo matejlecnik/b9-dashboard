@@ -3,7 +3,7 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
-import { Sidebar } from '@/components/Sidebar'
+import { Sidebar } from '@/components/layouts/Sidebar'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'

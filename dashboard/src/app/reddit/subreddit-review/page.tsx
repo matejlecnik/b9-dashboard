@@ -36,7 +36,7 @@ const UniversalTable = dynamic(
 )
 
 const AddSubredditModal = dynamic(
-  () => import('@/components/features/AddSubredditModal').then(mod => mod.AddSubredditModal),
+  () => import('@/components/common/modals/AddSubredditModal').then(mod => mod.AddSubredditModal),
   { ssr: false }
 )
 

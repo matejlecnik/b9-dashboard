@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 import { Post } from '@/types/post'
-import { PostGalleryCard } from '@/components/PostGalleryCard'
+import { PostGalleryCard } from '@/components/shared/PostGalleryCard'
 
 // Simple skeleton card component
 function SkeletonCard({ variant = 'default' }: { variant?: 'default' | 'compact' | 'wide' }) {

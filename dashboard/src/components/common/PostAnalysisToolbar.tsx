@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Search, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PostingCategoryFilter } from '@/components/PostingCategoryFilter'
+import { PostingCategoryFilter } from '@/components/shared/PostingCategoryFilter'
 import { formatNumber } from '@/lib/formatters'
 import React from 'react'
 

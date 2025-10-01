@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { ModelsSidebar } from '@/components/ModelsSidebar'
+import { ModelsSidebar } from '@/components/layouts/ModelsSidebar'
 
 interface ModelsDashboardLayoutProps {
   children: React.ReactNode

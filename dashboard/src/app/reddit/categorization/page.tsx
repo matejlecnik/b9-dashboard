@@ -58,7 +58,7 @@ const UniversalTable = dynamic(
 )
 
 const AICategorizationModal = dynamic(
-  () => import('@/components/features/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
+  () => import('@/components/features/ai/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
   { ssr: false }
 )
 

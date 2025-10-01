@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Star, Crown, AlertCircle } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
-import { UniversalToolbar } from '@/components/UniversalToolbar'
+import { UniversalToolbar } from '@/components/shared/UniversalToolbar'
 
 // B9 Agency brand gradients
 const B9_GRADIENTS = {
