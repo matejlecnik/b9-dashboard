@@ -287,23 +287,33 @@ class RedditScraper:
         all_data = []
         offset = 0
         batch_size = 999  # Supabase enforces max 999 rows per query
+        iteration = 0
 
         while True:
+            iteration += 1
+            logger.info(f"📄 Pagination [{review_status}] iteration {iteration}: offset={offset}, batch_size={batch_size}")
+
             response = self.supabase.table('reddit_subreddits').select(
                 fields
             ).eq('review', review_status).range(offset, offset + batch_size - 1).limit(batch_size).execute()
 
+            rows_returned = len(response.data) if response.data else 0
+            logger.info(f"📄 [{review_status}] Got {rows_returned} rows, total so far: {len(all_data) + rows_returned}")
+
             if not response.data:
+                logger.info(f"📄 [{review_status}] BREAK: No data (empty response)")
                 break
 
             all_data.extend(response.data)
 
             # If we got less than batch_size, we've reached the end
             if len(response.data) < batch_size:
+                logger.info(f"📄 [{review_status}] BREAK: Got {len(response.data)} < {batch_size} (last page)")
                 break
 
             offset += batch_size
 
+        logger.info(f"📄 Pagination complete for review={review_status}: {len(all_data)} total rows in {iteration} iterations")
         return all_data
 
     async def get_target_subreddits(self) -> Dict[str, List[str]]:
