@@ -11,17 +11,6 @@ import signal
 import logging
 from datetime import datetime, timezone
 
-# Import system logger using flexible import approach for both dev and production
-try:
-    # Production path (Docker)
-    from app.core.utils.supabase_logger import SupabaseLogHandler as system_logger
-except ImportError:
-    try:
-        # Development path (absolute import)
-        from api_render.app.core.utils.supabase_logger import SupabaseLogHandler as system_logger
-    except ImportError:
-        system_logger = None
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -79,13 +68,6 @@ def check_and_start_scrapers():
                             'updated_by': 'auto_start'
                         }).eq('script_name', 'reddit_scraper').execute()
 
-                        if system_logger:
-                            system_logger.info(
-                                "Reddit scraper auto-started",
-                                source="api",
-                                script_name="start",
-                                context={"pid": reddit_process.pid, "auto_start": True}
-                            )
                     else:
                         # Process died immediately, read error from log
                         reddit_log.close()
@@ -145,13 +127,6 @@ def check_and_start_scrapers():
                             'updated_by': 'auto_start'
                         }).eq('script_name', 'instagram_scraper').execute()
 
-                        if system_logger:
-                            system_logger.info(
-                                f"Instagram scraper auto-started",
-                                source="api",
-                                script_name="start",
-                                context={"pid": instagram_process.pid, "auto_start": True}
-                            )
                     else:
                         # Process died immediately, read error from log
                         instagram_log.close()
@@ -177,25 +152,10 @@ def check_and_start_scrapers():
 
     except Exception as e:
         logger.error(f"❌ Error checking scraper auto-start: {e}")
-        if system_logger:
-            system_logger.error(
-                f"Error checking scraper auto-start: {e}",
-                source="api",
-                script_name="start",
-                context={"error": str(e)},
-                sync=True
-            )
 
 def run_api():
     """Run the FastAPI server"""
     logger.info("🚀 Starting FastAPI server...")
-    if system_logger:
-        system_logger.info(
-            "Starting FastAPI server",
-            source="api",
-            script_name="start",
-            context={"port": os.environ.get('PORT', '8000')}
-        )
     port = os.environ.get('PORT', '8000')
     try:
         # Add current directory to Python path
