@@ -22,6 +22,89 @@
 
 ```json
 {
+  "2025-10-01-ai-categorization-pagination-fix-v3.4.9": {
+    "duration": "2.5h",
+    "commits": 6,
+    "files_modified": 4,
+    "status": "COMPLETE",
+    "achievements": [
+      {"task": "Create AI categorization API endpoints", "status": "COMPLETE"},
+      {"task": "Fix critical pagination bug", "status": "COMPLETE"},
+      {"task": "Implement adaptive pagination algorithm", "status": "COMPLETE"},
+      {"task": "Debug through 5 deployment cycles", "status": "COMPLETE"},
+      {"task": "Production verification", "status": "COMPLETE"}
+    ],
+    "feature_details": {
+      "name": "AI Categorization API + Pagination Bug Fix",
+      "problems": [
+        "No API endpoints to trigger AI categorization service",
+        "Pagination only loading 998-999 rows instead of ALL data",
+        "Missing 8,367 subreddits from cache (74% of database!)",
+        "Scraper re-processing thousands of already-cached subreddits"
+      ],
+      "solutions": [
+        "Created 4 REST API endpoints for categorization",
+        "Tried hardcoded limits: 1000 (got 998), 999 (got 998), 998 (got 998)",
+        "Final solution: Adaptive algorithm detects Supabase max dynamically",
+        "Algorithm: Large range request, detect max from first page, paginate until fewer rows"
+      ],
+      "benefits": [
+        "AI categorization now accessible via dashboard",
+        "All 11,463 subreddits now correctly cached",
+        "Eliminated wasteful re-processing of 8,367 subreddits",
+        "Future-proof: Works regardless of Supabase limit changes"
+      ]
+    },
+    "technical_details": {
+      "files_created": ["app/routes/categorization_routes.py (247 lines)"],
+      "files_modified": [
+        "app/scrapers/reddit/reddit_scraper.py (lines 277-323)",
+        "main.py (lines 65-71, 269-274)",
+        "test_categorization.py (NEW 152 lines)"
+      ],
+      "api_endpoints": [
+        "POST /api/categorization/tag-subreddits - Tag Ok subreddits",
+        "GET /api/categorization/stats - View progress",
+        "GET /api/categorization/tags - List 82 tags",
+        "GET /api/categorization/health - Service health"
+      ],
+      "pagination_iterations": {
+        "before": "1 iteration, 998 rows (WRONG)",
+        "after": "7 iterations, 6,719 rows (CORRECT)"
+      },
+      "debugging_journey": [
+        "Commit 1: Added .limit(1000) - Still got 998",
+        "Commit 2: Changed to batch_size=999 - Still got 998",
+        "Commit 3: Changed to batch_size=998 - Still got 998",
+        "Commit 4: Added debug logging - Discovered Supabase returns 1000 max",
+        "Commit 5: Force restart (empty commit) - Python cache issue",
+        "Commit 6: Adaptive pagination - WORKS!"
+      ]
+    },
+    "metrics": {
+      "cache_before": {
+        "non_related": 999,
+        "user_feed": 999,
+        "ok": 999,
+        "total": 3096
+      },
+      "cache_after": {
+        "non_related": 6719,
+        "user_feed": 2462,
+        "ok": 2183,
+        "total": 11463
+      },
+      "missing_data": 8367,
+      "ai_categorization": {
+        "total_ok_subreddits": 2185,
+        "already_tagged": 2089,
+        "remaining": 97,
+        "progress": "95.6%",
+        "cost_per_subreddit": "$0.01",
+        "model": "gpt-5-mini-2025-08-07"
+      }
+    }
+  },
   "2025-10-01-reddit-scraper-v3.4.5-performance-optimization": {
     "duration": "1.5h",
     "commits": 1,

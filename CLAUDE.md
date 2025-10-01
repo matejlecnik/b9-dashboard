@@ -25,7 +25,7 @@
 {
   "IMPORTANT": "Always update SESSION_LOG.md after each work session",
   "location": "/docs/development/SESSION_LOG.md",
-  "last_update": "2025-09-29 (Reddit Scraper v3.2.0 Logging)",
+  "last_update": "2025-10-01 (AI Categorization + Pagination Fix v3.4.9)",
   "update_checklist": [
     "Document tasks completed",
     "Record files modified",
@@ -48,7 +48,7 @@
   },
   "database": {
     "reddit_users": 303889,
-    "subreddits": 13843,
+    "subreddits": 11463,
     "instagram_creators": 1247,
     "total_size": "8.4GB"
   },
@@ -66,7 +66,7 @@
 ```
 API       [LIVE]  Latency: 12ms    | Uptime: 99.99%
 DATABASE  [OK]   Connections: 45/100 | Size: 8.4GB
-SCRAPER   [OK]   v3.4.5 DEPLOYED  | Errors: <2%
+SCRAPER   [OK]   v3.4.9 DEPLOYED  | Errors: <2%
 RENDER    [OK]   Deploy: LIVE     | Build: PASSING
 ```
 
@@ -333,6 +333,21 @@ $ npm run deploy:test     # Deploy to staging
 ## Recent Changes
 
 ```diff
++ 2025-10-01: Reddit Scraper v3.4.9 - AI Categorization API + CRITICAL Pagination Fix
++ api-render: Created AI categorization API with 4 endpoints (POST /tag-subreddits, GET /stats, /tags, /health)
++ api-render: Fixed CRITICAL pagination bug - was only loading 998-999 rows instead of ALL data
++ api-render: Implemented adaptive pagination - detects Supabase limit dynamically (1000 rows)
++ api-render: Categorization service uses OpenAI GPT-5-mini, 82 tags across 11 categories (~$0.01/subreddit)
++ database: Now correctly caching 11,463 subreddits (was 3,096 - missing 8,367 subreddits!)
++ impact: Scraper was re-processing thousands of already-cached subreddits (massive waste)
++ routes: POST /api/categorization/tag-subreddits - Tag Ok subreddits with AI
++ routes: GET /api/categorization/stats - View tagging progress (2,089/2,185 = 95.6%)
++ routes: GET /api/categorization/tags - View all 82 available tags
++ routes: GET /api/categorization/health - OpenAI + Supabase health check
++ deployment: 6 commits, 5 deploy cycles to identify root cause (tried 1000, 999, 998, adaptive)
++ algorithm: Requests large range, detects max from first page, continues until fewer rows
++ files: app/routes/categorization_routes.py (NEW 247 lines)
++ files: app/scrapers/reddit/reddit_scraper.py (pagination fix lines 277-323)
 + 2025-10-01: Reddit Scraper v3.4.5 - Performance & Auto-categorization
 + api-render: Removed yearly posts fetch (100 fewer API calls per subreddit)
 + api-render: Now fetches only 4 API endpoints instead of 5 (hot, top weekly, about, rules)

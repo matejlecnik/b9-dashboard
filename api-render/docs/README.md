@@ -147,7 +147,7 @@
     "size": "8.4GB"
   },
   "scrapers": {
-    "reddit": "v3.4.5 Continuous (24/7)",
+    "reddit": "v3.4.9 Continuous (24/7)",
     "instagram": "Every 4 hours"
   }
 }
@@ -155,5 +155,5 @@
 
 ---
 
-_Documentation Version: 3.4.5 | Status: Complete | Updated: 2025-10-01_
+_Documentation Version: 3.4.9 | Status: Complete | Updated: 2025-10-01_
 _Navigate: [← api-render/](../README.md) | [→ API.md](API.md) | [→ DEPLOYMENT.md](DEPLOYMENT.md)_
