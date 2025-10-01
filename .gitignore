@@ -91,6 +91,10 @@ temp/
 docs/_build/
 docs/.docusaurus/
 
+# Agent-Generated Documentation (temporary processing)
+docs/agent-output/
+docs/agent-output-backup-*/
+
 # Monitoring & Analytics
 .lighthouse/
 .clinic/
