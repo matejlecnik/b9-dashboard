@@ -2,9 +2,9 @@
 
 ```
 ┌─ SYSTEM ARCHITECTURE ───────────────────────────────────┐
-│ Version: 3.1.0                                          │
+│ Version: 3.4.5                                          │
 │ Status: PRODUCTION                                      │
-│ Last Updated: 2025-09-30                                │
+│ Last Updated: 2025-10-01                                │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -15,7 +15,7 @@
   "parent": "../README.md",
   "current": "app/scrapers/reddit/ARCHITECTURE.md",
   "related": [
-    {"path": "PLAN_v3.1.0.md", "desc": "Development plan", "status": "REFERENCE"},
+    {"path": "README.md", "desc": "Reddit scraper overview", "status": "ACTIVE"},
     {"path": "reddit_scraper.py", "desc": "Main implementation", "status": "PRODUCTION"},
     {"path": "reddit_controller.py", "desc": "Process control", "status": "PRODUCTION"}
   ]
@@ -97,7 +97,7 @@ The Reddit Scraper is a high-performance data collection system that:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     REDDIT SCRAPER v3.1.0                       │
+│                     REDDIT SCRAPER v3.4.5                       │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐

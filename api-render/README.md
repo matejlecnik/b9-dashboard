@@ -54,7 +54,7 @@
     "app/core/": {"desc": "Infrastructure", "status": "STABLE"},
     "app/routes/": {"desc": "API endpoints", "status": "ACTIVE"},
     "app/services/": {"desc": "Business logic", "status": "STABLE"},
-    "app/scrapers/": {"desc": "Data acquisition v3.0", "status": "LIVE"}
+    "app/scrapers/": {"desc": "Data acquisition v3.4.5", "status": "LIVE"}
   }
 }
 ```
@@ -340,5 +340,5 @@ pytest --cov=app --cov-report=html
 
 ---
 
-_API Version: 2.0.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2024-01-28_
-_Navigate: [→ ARCHITECTURE.md](ARCHITECTURE.md) | [→ API.md](docs/API.md)_
+_API Version: 3.4.5 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-01_
+_Navigate: [→ ARCHITECTURE.md](docs/ARCHITECTURE.md) | [→ API.md](docs/API.md) | [→ DEPLOYMENT.md](docs/DEPLOYMENT.md)_

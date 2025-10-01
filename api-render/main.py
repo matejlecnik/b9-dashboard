@@ -54,6 +54,14 @@ except ImportError:
     INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
     instagram_related_router = None
 
+# Reddit scraper route imports
+try:
+    from app.routes.reddit_scraper_routes import router as reddit_scraper_router
+    REDDIT_SCRAPER_ROUTES_AVAILABLE = True
+except ImportError:
+    REDDIT_SCRAPER_ROUTES_AVAILABLE = False
+    reddit_scraper_router = None
+
 # Instagram scraper now uses subprocess architecture via instagram_scraper_routes.py
 # Control is done via Supabase system_control table only
 INSTAGRAM_SCRAPER_AVAILABLE = False  # Thread-based scraper disabled
@@ -242,6 +250,13 @@ if INSTAGRAM_RELATED_ROUTES_AVAILABLE:
     logger.info("✅ Instagram related creators routes registered")
 else:
     logger.warning("⚠️ Instagram related creators routes not available")
+
+# Include Reddit scraper routes if available
+if REDDIT_SCRAPER_ROUTES_AVAILABLE:
+    app.include_router(reddit_scraper_router)
+    logger.info("✅ Reddit scraper routes registered")
+else:
+    logger.warning("⚠️ Reddit scraper routes not available")
 
 # Security middleware
 app.add_middleware(
