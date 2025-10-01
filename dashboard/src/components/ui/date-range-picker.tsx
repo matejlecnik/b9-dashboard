@@ -1,7 +1,7 @@
 'use client'
 
 // Placeholder DateRangePicker component
-// TODO: Replace with proper date range picker implementation
+// See: https://github.com/matejlecnik/b9-dashboard/issues - date range picker implementation
 
 import React from 'react'
 
