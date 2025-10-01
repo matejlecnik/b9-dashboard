@@ -291,7 +291,7 @@ class RedditScraper:
         while True:
             response = self.supabase.table('reddit_subreddits').select(
                 fields
-            ).eq('review', review_status).range(offset, offset + batch_size - 1).execute()
+            ).eq('review', review_status).range(offset, offset + batch_size - 1).limit(batch_size).execute()
 
             if not response.data:
                 break
