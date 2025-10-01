@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { LogViewerSupabase } from '@/components/features/LogViewerSupabase'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 
@@ -25,6 +25,9 @@ interface ProcessingStatus {
 }
 
 export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalProps) {
+  // API URL configuration
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+
   const [isProcessing, setIsProcessing] = useState(false)
   const [status, setStatus] = useState<ProcessingStatus>({
     is_running: false,
@@ -43,7 +46,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
   const fetchUnprocessedCount = useCallback(async () => {
     setLoadingCount(true)
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/unprocessed-count')
+      const response = await fetch(`${API_URL}/api/instagram/related-creators/unprocessed-count`)
       if (response.ok) {
         const data = await response.json()
         setUnprocessedCount(data.count)
@@ -59,7 +62,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
   const checkStatus = useCallback(async () => {
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/status')
+      const response = await fetch(`${API_URL}/api/instagram/related-creators/status`)
       if (response.ok) {
         const data = await response.json()
         setStatus(data)
@@ -106,7 +109,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
   const startProcessing = async () => {
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/start', {
+      const response = await fetch(`${API_URL}/api/instagram/related-creators/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_size: batchSize, delay_seconds: 2 })
@@ -129,7 +132,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
   const stopProcessing = async () => {
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/instagram/related-creators/stop', {
+      const response = await fetch(`${API_URL}/api/instagram/related-creators/stop`, {
         method: 'POST'
       })
 

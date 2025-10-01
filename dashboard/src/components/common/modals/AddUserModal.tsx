@@ -56,6 +56,9 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps) {
+  // API URL configuration
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -224,7 +227,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setIsFetching(true)
 
     try {
-      const response = await fetch('https://b9-dashboard.onrender.com/api/reddit/users/discover', {
+      const response = await fetch(`${API_URL}/api/reddit/users/discover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })

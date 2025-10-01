@@ -6,9 +6,9 @@ import {
   Square
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { LogViewerSupabase } from '@/components/features/LogViewerSupabase'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
-import { ApiActivityLog } from '@/components/ApiActivityLog'
+import { ApiActivityLog } from '@/components/features/ApiActivityLog'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
@@ -25,7 +25,7 @@ export default function RedditMonitor() {
   // Fetch cycle data from API
   const fetchCycleData = useCallback(async () => {
     try {
-      const API_URL = 'https://b9-dashboard.onrender.com'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
@@ -80,12 +80,12 @@ export default function RedditMonitor() {
   const calculateSuccessRate = useCallback(async () => {
     try {
       // Fetch from production API on Render
-      const API_URL = 'https://b9-dashboard.onrender.com'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/scraper/reddit-api-stats`, {
+        const response = await fetch(`${API_URL}/api/scraper/success-rate`, {
           mode: 'cors',
           signal: controller.signal,
           headers: {
