@@ -226,16 +226,16 @@
 ## Testing Commands
 
 ```bash
-# Performance testing
+## Performance testing
 npm run analyze                # Bundle analysis
 npm run lighthouse             # Lighthouse audit
 npm run profile                # React profiling
 
-# Monitoring
+## Monitoring
 npm run perf:monitor           # Start monitoring
 npm run perf:report            # Generate report
 
-# Optimization validation
+## Optimization validation
 npm run test:performance       # Performance tests
 npm run test:memory            # Memory leak detection
 ```

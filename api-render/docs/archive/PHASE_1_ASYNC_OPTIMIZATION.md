@@ -72,22 +72,22 @@ Phase 4     [░░ PENDING]  Caching & Fine-tuning
 ### Current Bottleneck
 
 ```python
-# reddit_scraper.py:408-419 - Sequential API calls (~2-5 seconds)
+## reddit_scraper.py:408-419 - Sequential API calls (~2-5 seconds)
 subreddit_info = self.api.get_subreddit_info(subreddit_name, proxy)  # ~500ms
 rules = self.api.get_subreddit_rules(subreddit_name, proxy)          # ~400ms
 hot_30 = self.api.get_subreddit_hot_posts(subreddit_name, 30, proxy) # ~600ms
 top_10_weekly = self.api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy)  # ~500ms
 top_100_yearly = self.api.get_subreddit_top_posts(subreddit_name, 'year', 100, proxy) # ~800ms
 
-# Total: ~2.8s minimum (sequential)
-# + TCP handshake overhead: +100-200ms per request = +0.5-1s
-# Actual total: 3.3-5s per subreddit for API calls alone
+## Total: ~2.8s minimum (sequential)
+## + TCP handshake overhead: +100-200ms per request = +0.5-1s
+## Actual total: 3.3-5s per subreddit for API calls alone
 ```
 
 ### Target Implementation
 
 ```python
-# Parallel execution with connection pooling (~800ms)
+## Parallel execution with connection pooling (~800ms)
 results = await asyncio.gather(
     self.api.get_subreddit_info(subreddit_name, proxy),
     self.api.get_subreddit_rules(subreddit_name, proxy),
@@ -96,8 +96,8 @@ results = await asyncio.gather(
     self.api.get_subreddit_top_posts(subreddit_name, 'year', 100, proxy)
 )
 
-# Total: ~800ms (limited by slowest request)
-# Speedup: 3.3-5s → 0.8-1.2s = 3-5x faster
+## Total: ~800ms (limited by slowest request)
+## Speedup: 3.3-5s → 0.8-1.2s = 3-5x faster
 ```
 
 ---
@@ -228,7 +228,7 @@ pip install aiohttp>=3.9.0
 #### A. Imports (Line 6-9)
 
 ```python
-# ADD:
+## ADD:
 import aiohttp
 import asyncio
 ```
@@ -330,7 +330,7 @@ async def _request_with_retry(self, url: str, proxy_config: Dict) -> Optional[Di
 #### D. Convert All Public Methods to Async
 
 ```python
-# ALL 6 methods get 'async' keyword and 'await' for _request_with_retry
+## ALL 6 methods get 'async' keyword and 'await' for _request_with_retry
 
 async def get_subreddit_info(self, subreddit_name: str, proxy_config: Dict) -> Optional[Dict]:
     url = f"https://www.reddit.com/r/{subreddit_name}/about.json"
@@ -370,10 +370,10 @@ async def get_user_posts(self, username: str, limit: int = 30, proxy_config: Dic
 #### A. Initialize Async Session (Line 115)
 
 ```python
-# OLD:
+## OLD:
 self.api = PublicRedditAPI(self.proxy_manager)
 
-# NEW:
+## NEW:
 self.api = PublicRedditAPI(self.proxy_manager)
 await self.api.ensure_session()
 ```
@@ -381,7 +381,7 @@ await self.api.ensure_session()
 #### B. Parallelize API Calls (Line 408-419)
 
 ```python
-# OLD - Sequential:
+## OLD - Sequential:
 subreddit_info = self.api.get_subreddit_info(subreddit_name, proxy)
 if not subreddit_info or 'error' in subreddit_info:
     logger.error(f"❌ Failed to fetch r/{subreddit_name}")
@@ -392,7 +392,7 @@ hot_30 = self.api.get_subreddit_hot_posts(subreddit_name, 30, proxy)
 top_10_weekly = self.api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy)
 top_100_yearly = self.api.get_subreddit_top_posts(subreddit_name, 'year', 100, proxy)
 
-# NEW - Parallel:
+## NEW - Parallel:
 results = await asyncio.gather(
     self.api.get_subreddit_info(subreddit_name, proxy),
     self.api.get_subreddit_rules(subreddit_name, proxy),
@@ -404,7 +404,7 @@ results = await asyncio.gather(
 
 subreddit_info, rules, hot_30, top_10_weekly, top_100_yearly = results
 
-# Error handling for parallel results
+## Error handling for parallel results
 if not subreddit_info or isinstance(subreddit_info, Exception) or 'error' in subreddit_info:
     logger.error(f"❌ Failed to fetch r/{subreddit_name}")
     return set()
@@ -451,7 +451,7 @@ async def process_single_user(self, username: str, proxy: dict) -> dict:
 #### D. Replace ThreadPoolExecutor with Asyncio (Line 454-472)
 
 ```python
-# OLD - ThreadPoolExecutor:
+## OLD - ThreadPoolExecutor:
 with ThreadPoolExecutor(max_workers=5) as executor:
     futures = {executor.submit(self.process_single_user, username, proxy): username
               for username in batch}
@@ -466,7 +466,7 @@ with ThreadPoolExecutor(max_workers=5) as executor:
         except Exception as e:
             logger.debug(f"      ⚠️ Failed to process u/{username}: {e}")
 
-# NEW - Asyncio tasks:
+## NEW - Asyncio tasks:
 tasks = [self.process_single_user(username, proxy) for username in batch]
 results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -483,7 +483,7 @@ for result in results:
 #### E. Session Cleanup (After Line 167)
 
 ```python
-# Before exiting run() method
+## Before exiting run() method
 if self.api and self.api.session:
     await self.api.session.close()
 ```
@@ -555,15 +555,15 @@ SCRAPER_VERSION = "3.2.0"
 ### Measurement Points
 
 ```python
-# Add timing to process_subreddit
+## Add timing to process_subreddit
 start_time = time.time()
 
-# ... API calls ...
+## ... API calls ...
 
 api_time = time.time() - start_time
 logger.info(f"   ⏱️  API calls: {api_time:.2f}s")
 
-# ... user processing ...
+## ... user processing ...
 
 total_time = time.time() - start_time
 logger.info(f"   ⏱️  Total: {total_time:.2f}s")
@@ -616,18 +616,18 @@ logger.info(f"   ⏱️  Total: {total_time:.2f}s")
 ### Test Commands
 
 ```bash
-# Install dependencies
+## Install dependencies
 pip install aiohttp>=3.9.0
 
-# Test single subreddit
+## Test single subreddit
 python3 test_v3_1_0.py
 
-# Monitor performance
-# Check timing logs in output
-# Compare database counts before/after
+## Monitor performance
+## Check timing logs in output
+## Compare database counts before/after
 
-# Verify proxy stats
-# Query reddit_proxies table for success/error counts
+## Verify proxy stats
+## Query reddit_proxies table for success/error counts
 ```
 
 ---
@@ -651,14 +651,14 @@ python3 test_v3_1_0.py
 ### Backup Commands
 
 ```bash
-# Before Phase 1
+## Before Phase 1
 cp app/scrapers/reddit/public_reddit_api.py app/scrapers/reddit/public_reddit_api_sync.py
 git add -A
 git commit -m "Backup before Phase 1 async optimization"
 
-# If rollback needed
+## If rollback needed
 git revert HEAD
-# Or manually restore from public_reddit_api_sync.py
+## Or manually restore from public_reddit_api_sync.py
 ```
 
 ---

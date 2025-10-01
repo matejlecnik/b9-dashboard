@@ -108,15 +108,15 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 ## Quick Commands
 
 ```bash
-# Development
+## Development
 $ npm run dev / build / lint / typecheck
 
-# Documentation (NEW)
+## Documentation (NEW)
 $ python3 docs/scripts/validate-docs.py    # Check compliance
 $ python3 docs/scripts/generate-docs.py    # Auto-generate docs
 $ python3 docs/scripts/generate-navigation.py  # Update nav links
 
-# Roadmap
+## Roadmap
 $ cat ROADMAP.md           # Strategic plan
 $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ```

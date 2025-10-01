@@ -123,7 +123,7 @@
 ## Service Patterns
 
 ```python
-# Standard service pattern
+## Standard service pattern
 class ServiceName:
     def __init__(self):
         self.config = load_config()
@@ -260,16 +260,16 @@ class ServiceName:
 ## Testing
 
 ```bash
-# Test all services
+## Test all services
 pytest app/services/
 
-# Test with mock data
+## Test with mock data
 pytest app/services/ --mock-external
 
-# Performance test
+## Performance test
 pytest app/services/ --benchmark
 
-# Integration test
+## Integration test
 pytest app/services/ --integration
 ```
 

@@ -120,15 +120,15 @@ export const GET = publicApi(async (request: NextRequest) => {
 Add these to your `.env.local`:
 
 ```env
-# Upstash Redis (for rate limiting)
+## Upstash Redis (for rate limiting)
 UPSTASH_REDIS_REST_URL=your-upstash-url
 UPSTASH_REDIS_REST_TOKEN=your-upstash-token
 
-# Rate Limiting (optional, defaults shown)
+## Rate Limiting (optional, defaults shown)
 RATE_LIMIT_PER_MINUTE=100
 AI_RATE_LIMIT_PER_MINUTE=10
 
-# CORS (optional)
+## CORS (optional)
 ALLOWED_ORIGINS=http://localhost:3000,https://b9-dashboard.vercel.app
 ```
 
@@ -137,20 +137,20 @@ ALLOWED_ORIGINS=http://localhost:3000,https://b9-dashboard.vercel.app
 After migration, test each endpoint:
 
 ```bash
-# Test public endpoint (should work without auth)
+## Test public endpoint (should work without auth)
 curl http://localhost:3000/api/health
 
-# Test protected endpoint (should fail without auth)
+## Test protected endpoint (should fail without auth)
 curl http://localhost:3000/api/categories
-# Expected: 401 Unauthorized
+## Expected: 401 Unauthorized
 
-# Test with auth token (should work)
+## Test with auth token (should work)
 curl http://localhost:3000/api/categories \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
-# Test rate limiting (make many requests quickly)
+## Test rate limiting (make many requests quickly)
 for i in {1..150}; do curl http://localhost:3000/api/health; done
-# Should see 429 Too Many Requests after 100 requests
+## Should see 429 Too Many Requests after 100 requests
 ```
 
 ## Rollback Plan

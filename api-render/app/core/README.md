@@ -188,7 +188,7 @@ core/
 ## Exception Hierarchy
 
 ```python
-# Custom exceptions
+## Custom exceptions
 ScraperException
 ├── RateLimitException
 ├── AuthenticationException
@@ -245,27 +245,27 @@ CacheException
 ## Usage Examples
 
 ```python
-# Cache usage
+## Cache usage
 from app.core.cache import cache_manager
 
 cache = cache_manager.CacheManager()
 cache.set("key", "value", ttl=300)
 value = cache.get("key")
 
-# Database usage
+## Database usage
 from app.core.database import supabase_client
 
 client = supabase_client.get_client()
 data = client.table("users").select("*").execute()
 
-# Batch writer
+## Batch writer
 from app.core.database import batch_writer
 
 writer = batch_writer.BatchWriter()
 writer.add("users", {"name": "John"})
 writer.flush()
 
-# Rate limiter
+## Rate limiter
 from app.core.database import rate_limiter
 
 limiter = rate_limiter.RateLimiter()

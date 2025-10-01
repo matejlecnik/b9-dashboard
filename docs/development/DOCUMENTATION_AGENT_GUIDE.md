@@ -143,17 +143,17 @@
 ### Step 3: Invoke the Agent
 
 ```bash
-# Via Claude Code interface
+## Via Claude Code interface
 User: "Spawn a documentation agent to convert the 72 non-compliant files"
 
-# Agent receives:
-# - Task description
-# - File list
-# - Standards document
-# - Directory context
-# - Output requirements
+## Agent receives:
+## - Task description
+## - File list
+## - Standards document
+## - Directory context
+## - Output requirements
 
-# Agent executes autonomously for 2-3h
+## Agent executes autonomously for 2-3h
 ```
 
 ### Step 4: Monitor Progress (Optional)
@@ -213,7 +213,7 @@ User: "Spawn a documentation agent to convert the 72 non-compliant files"
 ### Step 6: Merge Approved Changes
 
 ```bash
-# After validation passes
+## After validation passes
 $ rsync -av docs/agent-output/ ./
 $ git add docs/
 $ git commit -m "docs: Agent-generated compliance updates (72 files)
@@ -381,20 +381,20 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Quick Reference
 
 ```bash
-# Validate current docs
+## Validate current docs
 $ python3 docs/scripts/validate-docs.py
 
-# List non-compliant files
+## List non-compliant files
 $ python3 docs/scripts/validate-docs.py --list-non-compliant
 
-# Spawn agent (via Claude Code)
+## Spawn agent (via Claude Code)
 User: "Spawn documentation agent to convert 72 non-compliant files to terminal/JSON style per DOCUMENTATION_STANDARDS.md v2.0.0"
 
-# Review agent output
+## Review agent output
 $ ls docs/agent-output/
 $ python3 docs/scripts/validate-docs.py docs/agent-output/
 
-# Merge approved changes
+## Merge approved changes
 $ rsync -av docs/agent-output/ ./
 $ git add docs/ && git commit -m "docs: Agent-generated compliance updates"
 ```

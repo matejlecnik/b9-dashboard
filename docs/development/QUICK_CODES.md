@@ -248,19 +248,19 @@
 ## Quick Scripts
 
 ```bash
-# Start everything
+## Start everything
 $ npm run dev & cd api-render && python3 main.py
 
-# Check status
+## Check status
 $ curl localhost:3000/api/health && curl localhost:8000/health
 
-# Find issues
+## Find issues
 $ npm run lint && npx tsc --noEmit
 
-# Clean build
+## Clean build
 $ rm -rf .next node_modules && npm i --legacy-peer-deps && npm run build
 
-# Full test
+## Full test
 $ npm test && npm run test:e2e && cd api-render && pytest
 ```
 

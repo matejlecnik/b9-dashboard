@@ -185,20 +185,20 @@ scrapers/
 ## Usage Examples
 
 ```python
-# Reddit scraper initialization
+## Reddit scraper initialization
 from app.scrapers.reddit import RedditScraperV2
 
 scraper = RedditScraperV2()
 await scraper.initialize()
 await scraper.run_scraping_cycle()
 
-# Instagram continuous operation
+## Instagram continuous operation
 from app.scrapers.instagram import continuous
 
-# Runs indefinitely, checking control table
+## Runs indefinitely, checking control table
 await continuous.run_continuous_scraper()
 
-# Manual control
+## Manual control
 from app.core.database import supabase_client
 
 client = supabase_client.get_client()
@@ -224,16 +224,16 @@ client.table('scraper_control').update(
 ## Testing
 
 ```bash
-# Test Reddit scraper
+## Test Reddit scraper
 pytest app/scrapers/reddit/tests/
 
-# Test Instagram scraper
+## Test Instagram scraper
 pytest app/scrapers/instagram/tests/
 
-# Integration tests
+## Integration tests
 pytest app/scrapers/ --integration
 
-# Performance benchmarks
+## Performance benchmarks
 pytest app/scrapers/ --benchmark
 ```
 

@@ -33,13 +33,13 @@
 ## Manual Setup
 
 ```bash
-# Create .vscode directory in project root
+## Create .vscode directory in project root
 mkdir -p .vscode
 
-# Copy the extensions configuration
+## Copy the extensions configuration
 cp docs/development/vscode/extensions.json .vscode/
 
-# Or create a symlink (recommended)
+## Or create a symlink (recommended)
 ln -s docs/development/vscode/extensions.json .vscode/extensions.json
 ```
 
@@ -175,7 +175,7 @@ ln -s docs/development/vscode/extensions.json .vscode/extensions.json
 To use recommended workspace settings:
 
 ```bash
-# Create settings.json in .vscode directory
+## Create settings.json in .vscode directory
 cat > .vscode/settings.json << 'EOF'
 {
   "editor.formatOnSave": true,

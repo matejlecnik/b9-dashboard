@@ -409,10 +409,10 @@
 ## Authentication
 
 ```bash
-# Header authentication
+## Header authentication
 curl -H "X-API-Key: your-api-key" https://b9-dashboard.onrender.com/api/endpoint
 
-# Example request
+## Example request
 curl -X POST \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
@@ -529,7 +529,7 @@ class B9Dashboard:
             headers=self.headers
         ).json()
 
-# Usage
+## Usage
 client = B9Dashboard("your-api-key")
 status = client.get_scraper_status()
 ```

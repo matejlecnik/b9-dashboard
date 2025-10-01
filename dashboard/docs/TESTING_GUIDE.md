@@ -588,20 +588,20 @@ module.exports = {
 ## Testing Commands
 
 ```bash
-# Unit tests
+## Unit tests
 $ npm test                    # Run all tests
 $ npm test:watch             # Watch mode
 $ npm test:coverage          # Generate coverage report
 
-# Integration tests
+## Integration tests
 $ npm test:integration       # Run integration tests
 
-# E2E tests
+## E2E tests
 $ npm run cypress:open       # Open Cypress GUI
 $ npm run cypress:run        # Run headless
 $ npm run cypress:ci         # CI mode
 
-# Coverage
+## Coverage
 $ npm run test:coverage      # Generate report
 $ open coverage/index.html   # View report
 ```

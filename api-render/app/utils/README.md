@@ -93,30 +93,30 @@
 ## Usage Patterns
 
 ```python
-# System Logger
+## System Logger
 from utils.system_logger import system_logger
 
-# Log with context
+## Log with context
 system_logger.info(
     "Scraper started",
     source="reddit_scraper",
     context={"batch_size": 100}
 )
 
-# Memory Monitor
+## Memory Monitor
 from utils.memory_monitor import monitor
 
-# Check memory usage
+## Check memory usage
 usage = monitor.get_memory_usage()
 if usage.percent > 80:
     monitor.force_garbage_collection()
 
-# Monitoring
+## Monitoring
 from utils.monitoring import health_check
 
-# Get system health
+## Get system health
 health = health_check()
-# Returns: {"status": "healthy", "memory": 65, "cpu": 40}
+## Returns: {"status": "healthy", "memory": 65, "cpu": 40}
 ```
 
 ## Performance Metrics

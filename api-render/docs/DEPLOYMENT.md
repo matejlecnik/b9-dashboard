@@ -38,13 +38,13 @@
 ## Prerequisites
 
 ```bash
-# Required
+## Required
 ✓ Render.com account
 ✓ GitHub repository connected
 ✓ Supabase database configured
 ✓ OpenAI API key
 
-# Optional
+## Optional
 □ Custom domain
 □ Render Dashboard access
 □ Environment variable backup
@@ -99,15 +99,15 @@
 ### 1. Initial Setup
 
 ```bash
-# 1. Push code to GitHub
+## 1. Push code to GitHub
 git add .
 git commit -m "Prepare for deployment"
 git push origin main
 
-# 2. Create Render Web Service
-# - Go to dashboard.render.com
-# - Click "New +" → "Web Service"
-# - Connect GitHub repository
+## 2. Create Render Web Service
+## - Go to dashboard.render.com
+## - Click "New +" → "Web Service"
+## - Connect GitHub repository
 ```
 
 ### 2. Configure Service
@@ -128,7 +128,7 @@ git push origin main
 ### 3. Add Environment Variables
 
 ```bash
-# In Render Dashboard → Environment
+## In Render Dashboard → Environment
 DATABASE_URL=postgresql://...
 SUPABASE_URL=https://...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
@@ -140,30 +140,30 @@ ENVIRONMENT=production
 ### 4. Deploy
 
 ```bash
-# Render auto-deploys on push to main
-# Or manual deploy:
-# 1. Go to Render Dashboard
-# 2. Click "Manual Deploy" → "Deploy latest commit"
-# 3. Monitor build logs
+## Render auto-deploys on push to main
+## Or manual deploy:
+## 1. Go to Render Dashboard
+## 2. Click "Manual Deploy" → "Deploy latest commit"
+## 3. Monitor build logs
 ```
 
 ### 5. Verify Deployment
 
 ```bash
-# Check health endpoint
+## Check health endpoint
 curl https://b9-dashboard.onrender.com/health
 
-# Expected response:
+## Expected response:
 {
   "status": "healthy",
   "version": "3.4.5",
   "timestamp": "2025-10-01T..."
 }
 
-# Check scrapers
+## Check scrapers
 curl https://b9-dashboard.onrender.com/api/scraper/status
 
-# Check detailed health
+## Check detailed health
 curl -H "X-API-Key: your-key" \
   https://b9-dashboard.onrender.com/health/detailed
 ```
@@ -199,20 +199,20 @@ curl -H "X-API-Key: your-key" \
 ## Monitoring
 
 ```bash
-# View live logs
-# Render Dashboard → Service → Logs
+## View live logs
+## Render Dashboard → Service → Logs
 
-# Check memory usage
-# Render Dashboard → Metrics → Memory
+## Check memory usage
+## Render Dashboard → Metrics → Memory
 
-# Monitor requests
-# Render Dashboard → Metrics → Bandwidth
+## Monitor requests
+## Render Dashboard → Metrics → Bandwidth
 
-# Set up alerts
-# Render Dashboard → Notifications
-# - Deploy failures
-# - High memory usage (> 1.5GB)
-# - Service errors
+## Set up alerts
+## Render Dashboard → Notifications
+## - Deploy failures
+## - High memory usage (> 1.5GB)
+## - Service errors
 ```
 
 ## Rollback Procedure

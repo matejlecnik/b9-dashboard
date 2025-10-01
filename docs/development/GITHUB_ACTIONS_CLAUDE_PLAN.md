@@ -255,7 +255,7 @@
 ### Template 1: Auto-Documentation
 
 ```yaml
-# .github/workflows/auto-docs.yml
+## .github/workflows/auto-docs.yml
 name: Auto-Documentation
 
 on:
@@ -320,7 +320,7 @@ jobs:
 ### Template 2: Weekly Audit
 
 ```yaml
-# .github/workflows/weekly-audit.yml
+## .github/workflows/weekly-audit.yml
 name: Weekly Documentation Audit
 
 on:

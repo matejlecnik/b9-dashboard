@@ -461,19 +461,19 @@ it('has no accessibility violations', async () => {
 ## Running Tests
 
 ```bash
-# Run all tests
+## Run all tests
 npm test
 
-# Watch mode
+## Watch mode
 npm run test:watch
 
-# Coverage report
+## Coverage report
 npm run test:coverage
 
-# Specific test file
+## Specific test file
 npm test SubredditTable.test.tsx
 
-# Update snapshots
+## Update snapshots
 npm test -- -u
 ```
 
@@ -498,7 +498,7 @@ npm test -- -u
 ## CI/CD Integration
 
 ```yaml
-# .github/workflows/test.yml
+## .github/workflows/test.yml
 name: Tests
 
 on: [push, pull_request]

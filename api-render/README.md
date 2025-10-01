@@ -62,21 +62,21 @@
 ## Quick Start
 
 ```bash
-# Setup
+## Setup
 make install        # Install dependencies
 make venv          # Create virtual environment
 
-# Development
+## Development
 make dev           # Start development server
 make test          # Run test suite
 make lint          # Check code quality
 
-# Operations
+## Operations
 make health        # Check system health
 make metrics       # View performance metrics
 make logs          # View application logs
 
-# Deployment
+## Deployment
 make deploy        # Deploy to production
 ```
 
@@ -229,16 +229,16 @@ make deploy        # Deploy to production
 ## Monitoring
 
 ```bash
-# Health checks
+## Health checks
 curl http://localhost:8000/health      # Basic health
 curl http://localhost:8000/ready       # Readiness
 curl http://localhost:8000/metrics     # Metrics
 
-# Logs
+## Logs
 make logs                              # Application logs
 make logs-error                        # Error logs only
 
-# Performance
+## Performance
 make profile                           # Run profiler
 make analyze-profile                   # Analyze results
 ```
@@ -286,14 +286,14 @@ api-render/
 ## Testing
 
 ```bash
-# Run all tests
+## Run all tests
 make test
 
-# Specific tests
+## Specific tests
 make test-unit          # Unit tests only
 make test-integration   # Integration tests
 
-# Coverage
+## Coverage
 pytest --cov=app --cov-report=html
 ```
 

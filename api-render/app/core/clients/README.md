@@ -89,12 +89,12 @@
 ```python
 from app.core.clients import api_pool
 
-# Get client from pool
+## Get client from pool
 async with api_pool.get_client() as client:
     response = await client.get("/api/data")
     # Client automatically returns to pool
 
-# Manual management
+## Manual management
 client = api_pool.acquire()
 try:
     response = client.get("/api/data")

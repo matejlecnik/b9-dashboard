@@ -20,7 +20,7 @@
 ## Template Structure
 
 ```markdown
-# [Module Name]
+## [Module Name]
 
 ┌─ [STATUS TYPE] ─────────────────────────────────────────┐
 │ ● [STATUS]  │ ████████████░░░░░░░░ XX% COMPLETE       │
@@ -136,7 +136,7 @@ _Navigate: [← Parent](../) | [→ Next](./next/) | [↑ Hub](../../CLAUDE.md)_
 ## Copy-Paste Template
 
 ```markdown
-# Module Name
+## Module Name
 
 ┌─ MODULE STATUS ─────────────────────────────────────────┐
 │ ● ACTIVE DEV  │ ████████████░░░░░░░░ 60% COMPLETE      │

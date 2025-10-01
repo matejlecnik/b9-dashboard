@@ -161,7 +161,7 @@
 ## Route Implementation
 
 ```python
-# Standard route pattern
+## Standard route pattern
 from fastapi import APIRouter, HTTPException, Depends
 from app.config import config
 
@@ -257,20 +257,20 @@ async def endpoint_name(
 ## Testing Routes
 
 ```bash
-# Health check
+## Health check
 curl http://localhost:8000/health
 
-# Get scraper status
+## Get scraper status
 curl http://localhost:8000/api/scraper/status
 
-# Start scraper (with auth)
+## Start scraper (with auth)
 curl -X POST http://localhost:8000/api/scraper/start \
   -H "X-API-Key: your-api-key"
 
-# Get stats
+## Get stats
 curl http://localhost:8000/api/stats
 
-# Test specific endpoint
+## Test specific endpoint
 curl -X GET http://localhost:8000/api/reddit/subreddits?limit=10
 ```
 

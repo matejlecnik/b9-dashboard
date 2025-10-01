@@ -4,6 +4,17 @@
 │ ● PRODUCTION  │ ████████████████████ 100% DEPLOYED     │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../INDEX.md",
+  "current": "archive/REDDIT_SCRAPER_ARCHITECTURE_v3.0.md",
+  "status": "ARCHIVED",
+  "replaced_by": "../../api-render/app/scrapers/reddit/ARCHITECTURE.md"
+}
+```
+
 ```
                     REDDIT SCRAPER v3.0 - SIMPLIFIED ARCHITECTURE
                     ================================================

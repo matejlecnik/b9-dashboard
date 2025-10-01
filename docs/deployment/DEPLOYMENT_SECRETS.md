@@ -168,17 +168,17 @@
 ## Commands
 
 ```bash
-# Check for exposed secrets
+## Check for exposed secrets
 $ git secrets --scan
 
-# Verify environment variables
+## Verify environment variables
 $ vercel env ls
 $ render env
 
-# Rotate keys (Supabase)
+## Rotate keys (Supabase)
 $ supabase projects api-keys regenerate --project-ref cetrhongdrjztsrsffuh
 
-# Test without secrets
+## Test without secrets
 $ npm run build
 ```
 

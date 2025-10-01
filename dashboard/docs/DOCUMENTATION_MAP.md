@@ -23,18 +23,18 @@
 ## Quick Jump
 
 ```bash
-# Module Navigation
+## Module Navigation
 $ open ../src/app/reddit/          # Reddit module [LOCKED]
 $ open ../src/app/instagram/       # Instagram module [ACTIVE]
 $ open ../src/app/models/          # Models management [PLANNED]
 
-# Component Libraries
+## Component Libraries
 $ open ../src/components/features/ # Feature components
 $ open ../src/components/common/   # Common utilities
 $ open ../src/components/layouts/  # Layout components
 $ open ../src/components/ui/       # UI primitives
 
-# API & Services
+## API & Services
 $ open ../src/app/api/             # API routes
 $ open ../src/lib/                 # Utilities
 $ open ../src/hooks/               # React hooks
@@ -387,15 +387,15 @@ $ open ../src/hooks/               # React hooks
 ## Development Workflow
 
 ```bash
-# Start development
+## Start development
 $ npm run dev              # http://localhost:3000
 
-# Code quality
+## Code quality
 $ npm run lint            # ESLint check
 $ npm run typecheck       # TypeScript validation
 $ npm run format          # Prettier formatting
 
-# Build & deploy
+## Build & deploy
 $ npm run build          # Production build
 $ npm run analyze        # Bundle analysis
 $ vercel deploy          # Manual deployment
@@ -441,19 +441,19 @@ $ vercel deploy          # Manual deployment
 ## Quick Reference
 
 ```bash
-# Find any component
+## Find any component
 $ grep -r "ComponentName" src/components/
 
-# Find API route
+## Find API route
 $ grep -r "route-name" src/app/api/
 
-# Find hook usage
+## Find hook usage
 $ grep -r "useHookName" src/
 
-# Check bundle size
+## Check bundle size
 $ npm run analyze
 
-# Generate types from API
+## Generate types from API
 $ npm run generate:types
 ```
 

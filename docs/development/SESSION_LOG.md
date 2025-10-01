@@ -1171,13 +1171,13 @@ Week 4  [██████████░░░░░░░░░░] 1.8MB
 ## Commands Used
 
 ```bash
-# Most frequent
+## Most frequent
 git add . && git commit -m "message"     # 234 times
 npm run dev                               # 189 times
 npm run build                            # 67 times
 npm run lint                             # 45 times
 
-# Recent discoveries
+## Recent discoveries
 npm run analyze                          # Performance metrics
 npm run instagram:dev                    # Module-specific dev
 grep -r "print(" --include="*.py"       # Find prints

@@ -4,6 +4,18 @@
 │ ● ACTIVE      │ ████████████████████ 100% CONFIGURED   │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../../README.md",
+  "current": ".github/workflows/README.md",
+  "related": [
+    {"path": "../../docs/development/GITHUB_ACTIONS_CLAUDE_PLAN.md", "desc": "Claude integration plan", "status": "PLANNED"}
+  ]
+}
+```
+
 ## Workflow Overview
 
 ```json
@@ -155,40 +167,40 @@
 ### Manual Triggers
 
 ```bash
-# Trigger dependency updates
+## Trigger dependency updates
 gh workflow run dependency-update.yml \
   -f update_type=security
 
-# Trigger production deployment
+## Trigger production deployment
 gh workflow run vercel-production.yml
 
-# Trigger documentation check
+## Trigger documentation check
 gh workflow run docs-check.yml
 ```
 
 ### View Workflow Runs
 
 ```bash
-# List recent workflow runs
+## List recent workflow runs
 gh run list --limit 10
 
-# View specific workflow
+## View specific workflow
 gh run view <run-id>
 
-# Watch a running workflow
+## Watch a running workflow
 gh run watch <run-id>
 ```
 
 ### Debugging Failed Workflows
 
 ```bash
-# Re-run failed jobs
+## Re-run failed jobs
 gh run rerun <run-id> --failed
 
-# Download artifacts
+## Download artifacts
 gh run download <run-id>
 
-# View logs
+## View logs
 gh run view <run-id> --log
 ```
 

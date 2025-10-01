@@ -8,10 +8,15 @@
 
 ```json
 {
-  "hub": "CLAUDE.md",
-  "modules": [
+  "current": "README.md",
+  "parent": null,
+  "children": [
+    {"path": "CLAUDE.md", "desc": "Mission control dashboard", "status": "ACTIVE"},
     {"path": "dashboard/README.md", "desc": "Frontend application", "status": "ACTIVE"},
     {"path": "api-render/README.md", "desc": "Backend API", "status": "LIVE"},
+    {"path": "ROADMAP.md", "desc": "Strategic roadmap", "status": "ACTIVE"}
+  ],
+  "related": [
     {"path": "docs/development/DOCUMENTATION_MAP.md", "desc": "Full doc map", "status": "GUIDE"}
   ]
 }
@@ -46,17 +51,17 @@
 ## Quick Start
 
 ```bash
-# Clone & Navigate
+## Clone & Navigate
 $ git clone <repo-url>
 $ cd b9_dashboard
 
-# Frontend Setup
+## Frontend Setup
 $ cd dashboard
 $ npm install --legacy-peer-deps
 $ cp .env.example .env.local
 $ npm run dev                    # → http://localhost:3000
 
-# Backend Setup (if needed)
+## Backend Setup (if needed)
 $ cd ../api-render
 $ pip3 install -r requirements.txt
 $ cp .env.example .env
@@ -128,20 +133,20 @@ Status Legend:
 ## Development Workflow
 
 ```bash
-# Daily Start
+## Daily Start
 $ open CLAUDE.md              # Start here every session
 
-# Common Tasks
+## Common Tasks
 $ npm run dev                 # Start frontend
 $ npm run build              # Production build
 $ npm run lint               # Code quality
 $ npm run typecheck          # Type validation
 
-# API Tasks
+## API Tasks
 $ cd api-render && python3 main.py    # Start API
 $ cd api-render && pytest              # Run tests
 
-# Documentation
+## Documentation
 $ open docs/development/DOCUMENTATION_MAP.md  # Find any doc
 $ open docs/development/SESSION_LOG.md        # See history
 ```

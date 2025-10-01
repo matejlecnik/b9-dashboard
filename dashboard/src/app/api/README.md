@@ -369,18 +369,18 @@ Key Features:
 
 ### **Manual API Testing**
 ```bash
-# System health check
+## System health check
 curl http://localhost:3000/api/health
 
-# List categories with search
+## List categories with search
 curl "http://localhost:3000/api/categories?search=booty&limit=10"
 
-# Create new category
+## Create new category
 curl -X POST http://localhost:3000/api/categories \
   -H "Content-Type: application/json" \
   -d '{"name":"Test Category","color":"#FF8395","description":"Testing API"}'
 
-# AI categorization
+## AI categorization
 curl -X POST http://localhost:3000/api/ai/categorize \
   -H "Content-Type: application/json" \
   -d '{"subreddit_name":"r/OnlyFansPromotions"}'
@@ -414,16 +414,16 @@ curl -X POST http://localhost:3000/api/ai/categorize \
 ## 🚀 Quick Start for Developers
 
 ```bash
-# 1. Start the development server
+## 1. Start the development server
 cd dashboard && npm run dev
 
-# 2. Test API endpoints
+## 2. Test API endpoints
 curl http://localhost:3000/api/health
 
-# 3. Check database connection
+## 3. Check database connection
 curl http://localhost:3000/api/categories
 
-# 4. Monitor logs for errors
+## 4. Monitor logs for errors
 tail -f .next/trace
 ```
 

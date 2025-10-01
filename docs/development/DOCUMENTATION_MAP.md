@@ -187,13 +187,13 @@
 ## Quick Navigation
 
 ```bash
-# Jump to sections
+## Jump to sections
 $ open ../../CLAUDE.md           # Hub
 $ open ../deployment/            # Deploy docs
 $ open ../../dashboard/          # Frontend
 $ open ../../api-render/         # Backend
 
-# Check status
+## Check status
 $ grep -c "PENDING" DOCUMENTATION_MAP.md
 $ grep -c "UPDATED" DOCUMENTATION_MAP.md
 ```

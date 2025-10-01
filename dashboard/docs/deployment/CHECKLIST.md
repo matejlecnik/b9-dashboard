@@ -95,7 +95,7 @@ FUNCTIONALITY    [OK]   Critical flows: TESTED       | Status: WORKING
 ## Optional Code Cleanup
 
 ```bash
-# Run automated fix script (optional)
+## Run automated fix script (optional)
 ./fix-deployment-issues.sh
 ```
 

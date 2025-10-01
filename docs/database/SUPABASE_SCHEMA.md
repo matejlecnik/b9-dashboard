@@ -4,6 +4,20 @@
 │ ● PRODUCTION  │ ████████████████████ 100% DOCUMENTED   │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "../INDEX.md",
+  "current": "database/SUPABASE_SCHEMA.md",
+  "siblings": [
+    {"path": "SUPABASE_QUERIES.md", "desc": "Query patterns", "status": "ACTIVE"},
+    {"path": "SUPABASE_FUNCTIONS.md", "desc": "Database functions", "status": "ACTIVE"},
+    {"path": "BACKGROUND_JOBS.md", "desc": "Scheduled tasks", "status": "ACTIVE"}
+  ]
+}
+```
+
 ## System Overview
 
 ```json

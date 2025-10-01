@@ -308,14 +308,14 @@ Subreddit Processing Decision:
 **Critical Requirement:** Never overwrite existing review status
 
 ```python
-# Line 596 in reddit_scraper.py
+## Line 596 in reddit_scraper.py
 cached = self.subreddit_metadata_cache.get(name, {})
 review = cached.get('review')  # ← Reads from cache (populated from DB)
 primary_category = cached.get('primary_category')
 tags = cached.get('tags', [])
 over18 = cached.get('over18', over18_from_api)
 
-# Line 640
+## Line 640
 payload = {
     'review': review,  # ← Preserves existing status (or NULL)
     'primary_category': primary_category,
@@ -801,7 +801,7 @@ GET /user/{username}/submitted.json?limit={limit}
 
 **1. Network Errors**
 ```python
-# Handled by: public_reddit_api.py _request_with_retry()
+## Handled by: public_reddit_api.py _request_with_retry()
 try:
     response = requests.get(url, proxies=proxies, timeout=15)
 except requests.RequestException as e:
@@ -811,15 +811,15 @@ except requests.RequestException as e:
 
 **2. HTTP Status Errors**
 ```python
-# 404 Not Found (deleted/banned subreddit)
+## 404 Not Found (deleted/banned subreddit)
 if response.status_code == 404:
     return {'error': 'not_found', 'status': 404}
 
-# 403 Forbidden (suspended user)
+## 403 Forbidden (suspended user)
 if response.status_code == 403:
     return {'error': 'forbidden', 'status': 403}
 
-# 429 Rate Limited
+## 429 Rate Limited
 if response.status_code == 429:
     time.sleep(5 + retries * 2)  # Progressive delay
     continue
@@ -827,23 +827,23 @@ if response.status_code == 429:
 
 **3. Database Errors**
 ```python
-# Foreign key violations
-# Error: Key (author_username)=(user) is not present in table "reddit_users"
-# Solution: Graceful skip with warning log
+## Foreign key violations
+## Error: Key (author_username)=(user) is not present in table "reddit_users"
+## Solution: Graceful skip with warning log
 
-# Connection pool exhaustion
-# Error: [Errno 35] Resource temporarily unavailable
-# Solution: Retry with backoff or reduce parallelism
+## Connection pool exhaustion
+## Error: [Errno 35] Resource temporarily unavailable
+## Solution: Retry with backoff or reduce parallelism
 ```
 
 **4. Data Validation Errors**
 ```python
-# Boolean type mismatch
-# Error: invalid input syntax for type boolean: "1756830548.0"
-# Fix: edited = bool(post.get('edited', False))
+## Boolean type mismatch
+## Error: invalid input syntax for type boolean: "1756830548.0"
+## Fix: edited = bool(post.get('edited', False))
 
-# Null values
-# Fix: Default values in UPSERT payload
+## Null values
+## Fix: Default values in UPSERT payload
 ```
 
 ### Error Recovery Strategies
@@ -889,10 +889,10 @@ Same test case target:
 
 #### 1. Immediate Retries
 ```python
-# Before: Exponential backoff (2s, 4s, 8s, 16s, 32s)
+## Before: Exponential backoff (2s, 4s, 8s, 16s, 32s)
 delay = self.base_delay * (2 ** retries)
 
-# After: Immediate retry (0.1s)
+## After: Immediate retry (0.1s)
 delay = self.base_delay  # 0.1s constant
 ```
 
@@ -904,10 +904,10 @@ delay = self.base_delay  # 0.1s constant
 
 #### 2. Reduced Timeout
 ```python
-# Before: 30 seconds
+## Before: 30 seconds
 timeout=30
 
-# After: 15 seconds
+## After: 15 seconds
 timeout=15
 ```
 
@@ -918,10 +918,10 @@ timeout=15
 
 #### 3. Fewer Retries
 ```python
-# Before: 5 max retries
+## Before: 5 max retries
 max_retries=5
 
-# After: 3 max retries
+## After: 3 max retries
 max_retries=3
 ```
 
@@ -932,7 +932,7 @@ max_retries=3
 
 #### 4. Parallel User Processing
 ```python
-# 5 concurrent threads via ThreadPoolExecutor
+## 5 concurrent threads via ThreadPoolExecutor
 with ThreadPoolExecutor(max_workers=5) as executor:
     futures = {executor.submit(self.process_single_user, username, proxy): username
               for username in batch}
@@ -945,7 +945,7 @@ with ThreadPoolExecutor(max_workers=5) as executor:
 
 #### 5. Batch Processing
 ```python
-# Process users in batches of 5
+## Process users in batches of 5
 for i in range(0, len(authors_list), 5):
     batch = authors_list[i:i+5]
     # Process batch in parallel
@@ -964,7 +964,7 @@ for i in range(0, len(authors_list), 5):
 
 **1. Proxy Health**
 ```bash
-# Check proxy success rate
+## Check proxy success rate
 SELECT
   display_name,
   success_count,
@@ -976,7 +976,7 @@ WHERE is_active = true;
 
 **2. Scraping Progress**
 ```bash
-# Check when subreddits were last scraped
+## Check when subreddits were last scraped
 SELECT
   review,
   COUNT(*) as total,
@@ -988,7 +988,7 @@ GROUP BY review;
 
 **3. Error Rate**
 ```bash
-# Monitor for common errors in logs
+## Monitor for common errors in logs
 grep "ERROR" logs/reddit_scraper.log | tail -50
 grep "invalid input syntax" logs/reddit_scraper.log | wc -l
 grep "\[Errno 35\]" logs/reddit_scraper.log | wc -l
@@ -998,13 +998,13 @@ grep "\[Errno 35\]" logs/reddit_scraper.log | wc -l
 
 **Log Patterns:**
 ```bash
-# Check processing time per subreddit
+## Check processing time per subreddit
 grep "✅.*complete" logs | awk '{print $1}' | uniq -c
 
-# Monitor NULL review processing
+## Monitor NULL review processing
 grep "🆕 Processing r/" logs | wc -l
 
-# Track database saves
+## Track database saves
 grep "💾 DB SAVE" logs | wc -l
 ```
 
@@ -1029,39 +1029,39 @@ grep "💾 DB SAVE" logs | wc -l
 
 **Issue: Scraper not processing NULL review subreddits**
 ```bash
-# Check stub creation
+## Check stub creation
 SELECT name, review, last_scraped_at
 FROM reddit_subreddits
 WHERE review IS NULL
 AND last_scraped_at IS NULL
 LIMIT 10;
 
-# Expected: Decreasing count over time
+## Expected: Decreasing count over time
 ```
 
 **Issue: Boolean type errors**
 ```bash
-# Check logs for specific error
+## Check logs for specific error
 grep "invalid input syntax for type boolean" logs
 
-# Fix: Ensure bool() conversion in reddit_scraper.py:740
+## Fix: Ensure bool() conversion in reddit_scraper.py:740
 ```
 
 **Issue: Requirements not saving**
 ```bash
-# Check for column name errors
+## Check for column name errors
 grep "min_account_age" logs
 
-# Fix: Ensure using 'min_account_age_days' not 'min_account_age'
+## Fix: Ensure using 'min_account_age_days' not 'min_account_age'
 ```
 
 **Issue: Connection pool exhaustion**
 ```bash
-# Count Errno 35 errors
+## Count Errno 35 errors
 grep "\[Errno 35\]" logs | wc -l
 
-# Solution: Reduce parallel threads from 5 to 3
-# Edit reddit_scraper.py line 444: max_workers=3
+## Solution: Reduce parallel threads from 5 to 3
+## Edit reddit_scraper.py line 444: max_workers=3
 ```
 
 ---

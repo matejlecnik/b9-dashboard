@@ -318,7 +318,7 @@ Status Types:
 ## Quick Template
 
 ```markdown
-# [Module Name]
+## [Module Name]
 
 ┌─ [STATUS TYPE] ─────────────────────────────────────────┐
 │ ● [STATUS]  │ ████████████░░░░░░░░ XX% COMPLETE       │

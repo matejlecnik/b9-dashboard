@@ -131,10 +131,10 @@ async def maintenance_status(authorized: bool = Depends(verify_maintenance_key))
 
 ### Update `api-render/main.py`
 ```python
-# Add to imports
+## Add to imports
 from app.routes.maintenance_routes import router as maintenance_router
 
-# Add to routers (around line 200)
+## Add to routers (around line 200)
 app.include_router(maintenance_router)
 ```
 
@@ -310,19 +310,19 @@ async def job_status():
 
 ### Manual Test Commands
 ```bash
-# Test log cleanup
+## Test log cleanup
 curl -X POST https://b9-dashboard.onrender.com/api/maintenance/cleanup-logs \
   -H "X-Maintenance-Key: YOUR_KEY"
 
-# Test rate limit reset
+## Test rate limit reset
 curl -X POST https://b9-dashboard.onrender.com/api/maintenance/reset-rate-limits \
   -H "X-Maintenance-Key: YOUR_KEY"
 
-# Test Instagram stats
+## Test Instagram stats
 curl -X POST https://b9-dashboard.onrender.com/api/maintenance/update-instagram-stats \
   -H "X-Maintenance-Key: YOUR_KEY"
 
-# Check status
+## Check status
 curl https://b9-dashboard.onrender.com/api/maintenance/status \
   -H "X-Maintenance-Key: YOUR_KEY"
 ```

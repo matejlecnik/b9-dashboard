@@ -79,18 +79,18 @@ from api_render.services.tags.tag_definitions import (
     match_subreddit_to_model
 )
 
-# Get all tags
+## Get all tags
 all_tags = get_all_tags()  # Returns 82 tags
 
-# Validate subreddit tags
+## Validate subreddit tags
 result = validate_tags(["ethnicity:asian", "body:petite"])
-# {"valid": True, "errors": [], "tag_count": 2}
+## {"valid": True, "errors": [], "tag_count": 2}
 
-# Match subreddit to model
+## Match subreddit to model
 subreddit_tags = ["ethnicity:asian", "focus:full_body"]
 model_tags = ["ethnicity:asian", "body:petite"]
 matches = match_subreddit_to_model(subreddit_tags, model_tags)
-# True (shared tag: ethnicity:asian)
+## True (shared tag: ethnicity:asian)
 ```
 
 ### Database Queries
@@ -154,7 +154,7 @@ ORDER BY COUNT(*) DESC
 ## Common Operations
 
 ```python
-# Import everything needed
+## Import everything needed
 from tag_definitions import (
     TAG_REGISTRY,
     get_all_tags,
@@ -163,32 +163,32 @@ from tag_definitions import (
     match_subreddit_to_model
 )
 
-# Get specific category tags
+## Get specific category tags
 niche_tags = get_tags_by_category("niche")  # 14 tags
 body_tags = get_tags_by_category("body")    # 9 tags
 
-# Validate before saving
+## Validate before saving
 tags_to_save = ["niche:gaming", "style:egirl"]
 validation = validate_tags(tags_to_save)
 if validation["valid"]:
     # Save to database
     pass
 
-# Find matching subreddits for model
+## Find matching subreddits for model
 model_tags = ["ethnicity:latina", "body:curvy"]
-# Use in SQL query with tags && operator
+## Use in SQL query with tags && operator
 ```
 
 ## Testing
 
 ```bash
-# Test Python implementation
+## Test Python implementation
 python -m pytest api-render/services/tags/test_tags.py
 
-# Verify sync
+## Verify sync
 python api-render/services/tags/verify_sync.py
 
-# Count tags
+## Count tags
 python -c "from tag_definitions import TOTAL_TAGS; print(f'Total tags: {TOTAL_TAGS}')"
 ```
 

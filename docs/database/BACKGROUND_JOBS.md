@@ -72,12 +72,12 @@ VALUES ('info', 'Automated cleanup completed',
 
 ### How to Schedule Log Cleanup
 ```bash
-# Option 1: External cron (recommended)
-# Add to system crontab or scheduler:
+## Option 1: External cron (recommended)
+## Add to system crontab or scheduler:
 0 3 * * * curl -X POST https://api.b9agency.com/admin/cleanup-logs \
   -H "Authorization: Bearer $API_KEY"
 
-# Option 2: Python scheduler
+## Option 2: Python scheduler
 import schedule
 from supabase import create_client
 
@@ -86,8 +86,8 @@ def cleanup_logs():
 
 schedule.every().day.at("03:00").do(cleanup_logs)
 
-# Option 3: GitHub Actions
-# .github/workflows/cleanup.yml
+## Option 3: GitHub Actions
+## .github/workflows/cleanup.yml
 on:
   schedule:
     - cron: '0 3 * * *'
@@ -289,18 +289,18 @@ supabase = create_client(
 
 scheduler = BackgroundScheduler()
 
-# Critical: Log cleanup
+## Critical: Log cleanup
 @scheduler.scheduled_job('cron', hour=3, minute=0)
 def cleanup_logs():
     result = supabase.rpc('cleanup_old_logs').execute()
     print(f"Cleaned up logs: {result}")
 
-# Daily: Reset counters
+## Daily: Reset counters
 @scheduler.scheduled_job('cron', hour=0, minute=0)
 def reset_counters():
     supabase.rpc('reset_daily_request_counts').execute()
 
-# Hourly: Instagram stats
+## Hourly: Instagram stats
 @scheduler.scheduled_job('interval', hours=1)
 def update_instagram():
     supabase.rpc('update_all_instagram_creator_stats').execute()

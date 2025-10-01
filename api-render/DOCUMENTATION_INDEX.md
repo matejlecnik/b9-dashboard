@@ -4,6 +4,19 @@
 │ ● COMPLETE    │ ████████████████████ 100% DOCUMENTED   │
 └─────────────────────────────────────────────────────────┘
 
+## Navigation
+
+```json
+{
+  "parent": "README.md",
+  "current": "DOCUMENTATION_INDEX.md",
+  "siblings": [
+    {"path": "docs/API.md", "desc": "API endpoints", "status": "COMPLETE"},
+    {"path": "docs/ARCHITECTURE.md", "desc": "System design", "status": "COMPLETE"}
+  ]
+}
+```
+
 ## Quick Navigation
 
 ```json

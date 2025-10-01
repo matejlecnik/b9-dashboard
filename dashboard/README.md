@@ -154,18 +154,18 @@ QUERY PERF   [████████████████░░░░] 85% 
 ## Commands
 
 ```bash
-# Development
+## Development
 npm run dev              # Start development server
 npm run build           # Production build
 npm run lint            # Code quality check
 npm run typecheck       # Type validation
 
-# Testing
+## Testing
 npm run test            # Run test suite
 npm run test:coverage   # Coverage report
 npm run test:e2e       # End-to-end tests
 
-# Deployment
+## Deployment
 npm run deploy:prod     # Deploy to production
 npm run deploy:preview  # Deploy preview build
 ```

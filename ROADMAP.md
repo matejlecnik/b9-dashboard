@@ -317,12 +317,12 @@
 ## Quick Commands
 
 ```bash
-# Version Management
+## Version Management
 $ npm run version:bump -- [major|minor|patch]  # Bump version
 $ npm run version:changelog                    # Generate changelog
 $ npm run version:tag                          # Create git tag
 
-# Roadmap Management
+## Roadmap Management
 $ npm run roadmap:status     # Current phase progress
 $ npm run roadmap:metrics    # Success criteria tracking
 $ npm run roadmap:next       # What's next to work on

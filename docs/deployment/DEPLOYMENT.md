@@ -76,18 +76,18 @@
 ## Deployment Process
 
 ```bash
-# Development Testing
+## Development Testing
 $ git checkout preview
 $ git add .
 $ git commit -m "feat: description"
 $ git push origin preview
-# Auto-deploys to preview URL
+## Auto-deploys to preview URL
 
-# Production Deployment
+## Production Deployment
 $ git checkout main
 $ git merge preview
 $ git push origin main
-# Auto-deploys to production
+## Auto-deploys to production
 ```
 
 ## Environment Variables
@@ -204,13 +204,13 @@ Database     [████████████████████] 100.
 ## Rollback Procedures
 
 ```bash
-# Frontend Rollback
+## Frontend Rollback
 $ vercel rollback <deployment-id>
 
-# Backend Rollback
+## Backend Rollback
 $ render deploy --service api-render --commit <commit-sha>
 
-# Database Rollback
+## Database Rollback
 $ supabase db reset --version <migration-version>
 ```
 
@@ -290,20 +290,20 @@ $ supabase db reset --version <migration-version>
 ## Commands
 
 ```bash
-# Deployment
+## Deployment
 $ npm run deploy:preview    # Deploy to staging
 $ npm run deploy:prod       # Deploy to production
 
-# Monitoring
+## Monitoring
 $ vercel logs              # Frontend logs
 $ render logs              # Backend logs
 $ supabase logs            # Database logs
 
-# Rollback
+## Rollback
 $ vercel rollback          # Rollback frontend
 $ render rollback          # Rollback backend
 
-# Health Check
+## Health Check
 $ curl https://b9-dashboard.com/api/health
 $ curl https://api-render.onrender.com/health
 ```

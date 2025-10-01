@@ -116,7 +116,7 @@
 ## Usage Example
 
 ```python
-# Error handler automatically catches and formats errors
+## Error handler automatically catches and formats errors
 from fastapi import HTTPException
 
 @app.get("/api/example")
@@ -124,13 +124,13 @@ async def example():
     # This will return a properly formatted 404 error
     raise HTTPException(status_code=404, detail="Resource not found")
 
-# Response:
-# {
-#   "error": "Resource not found",
-#   "status_code": 404,
-#   "request_id": "abc123-def456",
-#   "timestamp": "2024-01-29T12:00:00Z"
-# }
+## Response:
+## {
+##   "error": "Resource not found",
+##   "status_code": 404,
+##   "request_id": "abc123-def456",
+##   "timestamp": "2024-01-29T12:00:00Z"
+## }
 ```
 
 ---

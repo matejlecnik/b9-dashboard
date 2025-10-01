@@ -239,15 +239,15 @@ WHERE p.subreddit_name = s.name
 ## How to Apply
 
 ```bash
-# Check current state
+## Check current state
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name IN ('reddit_posts', 'reddit_subreddits', 'reddit_users');"
 
-# Apply migration
+## Apply migration
 psql $DATABASE_URL -f migrations/2025_01_reddit_fields_cleanup.sql
 
-# Verify
+## Verify
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name IN ('reddit_posts', 'reddit_subreddits', 'reddit_users');"
-# Should show 85 fewer columns
+## Should show 85 fewer columns
 ```
 
 ## Rollback Strategy

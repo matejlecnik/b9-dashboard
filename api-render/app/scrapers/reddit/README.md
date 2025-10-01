@@ -213,7 +213,7 @@ Ok Subreddit → Fetch hot posts (limit=30)
 ### Start/Stop Commands
 
 ```bash
-# Stop scraper (sets enabled=false in database)
+## Stop scraper (sets enabled=false in database)
 python3 << 'EOF'
 import os, sys
 sys.path.insert(0, 'app')
@@ -223,28 +223,28 @@ supabase.table('system_control').update({'enabled': False}).eq('script_name', 'r
 print("✅ Stop command sent")
 EOF
 
-# Start scraper (sets enabled=true in database)
-# Similar script with {'enabled': True}
+## Start scraper (sets enabled=true in database)
+## Similar script with {'enabled': True}
 
-# View logs
+## View logs
 tail -f app/scrapers/reddit/reddit_controller.log
 
-# Check process
+## Check process
 ps aux | grep reddit_controller
 ```
 
 ## Quick Reference
 
 ```bash
-# Test single subreddit
+## Test single subreddit
 curl -X POST "https://b9-dashboard.onrender.com/api/subreddits/fetch-single" \
   -H "Content-Type: application/json" \
   -d '{"subreddit_name": "test"}'
 
-# View recent logs
+## View recent logs
 tail -100 app/scrapers/reddit/reddit_controller.log
 
-# Check database counts
+## Check database counts
 psql -c "SELECT COUNT(*) FROM reddit_subreddits WHERE review='Ok'"
 psql -c "SELECT COUNT(*) FROM reddit_posts WHERE scraped_at > NOW() - INTERVAL '1 hour'"
 ```

@@ -256,17 +256,17 @@
 ## Next Actions
 
 ```bash
-# Priority 1: Fix critical issues
+## Priority 1: Fix critical issues
 ./docs/scripts/fix-doc-format.sh README.md
 ./docs/scripts/fix-doc-format.sh .github/workflows/README.md
 
-# Priority 2: Add navigation
+## Priority 2: Add navigation
 ./docs/scripts/add-navigation.sh --batch 21
 
-# Priority 3: Update stale docs
+## Priority 3: Update stale docs
 ./docs/scripts/check-stale.sh --days 30
 
-# Generate fresh metrics
+## Generate fresh metrics
 ./docs/scripts/doc-metrics.sh > docs/DOCUMENTATION_METRICS.md
 ```
 

@@ -372,15 +372,15 @@ api-render/
 ## Development Workflow
 
 ```bash
-# Local development
+## Local development
 make dev                 # Start local server
 make test               # Run tests
 make lint               # Code quality
 
-# Deployment
+## Deployment
 git push origin main    # Auto-deploy to Render
 
-# Monitoring
+## Monitoring
 make logs               # View live logs
 make metrics           # Performance metrics
 make health            # Health status

@@ -61,7 +61,7 @@
 from app.core.utils.supabase_logger import log_to_supabase
 from app.core.database.supabase_client import get_supabase_client
 
-# Standard logging
+## Standard logging
 supabase = get_supabase_client()
 supabase.table("system_logs").insert({
     "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -72,9 +72,9 @@ supabase.table("system_logs").insert({
     "context": {"batch_size": 50, "items": ["item1", "item2"]}
 }).execute()
 
-# With duration tracking
+## With duration tracking
 start_time = time.time()
-# ... operation ...
+## ... operation ...
 duration_ms = int((time.time() - start_time) * 1000)
 
 supabase.table("system_logs").insert({
@@ -140,10 +140,10 @@ ORDER BY error_rate DESC;
 ## Compliance Check
 
 ```bash
-# Find non-compliant print statements
+## Find non-compliant print statements
 grep -r "print(" app/ --include="*.py" | grep -v "__pycache__"
 
-# Verify Supabase logging
+## Verify Supabase logging
 psql $DATABASE_URL -c "
 SELECT source, COUNT(*) as log_count
 FROM system_logs
