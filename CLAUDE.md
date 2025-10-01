@@ -25,7 +25,7 @@
 {
   "IMPORTANT": "Always update SESSION_LOG.md after each work session",
   "location": "/docs/development/SESSION_LOG.md",
-  "last_update": "2025-10-01 (AI Categorization + Pagination Fix v3.4.9)",
+  "last_update": "2025-10-01 (API Endpoint Enhancements - User Discovery & Subreddit Fetcher)",
   "update_checklist": [
     "Document tasks completed",
     "Record files modified",
@@ -257,6 +257,8 @@ NETWORK [██████░░░░░░░░░░░░░░] 30%
     {"id": "OPT-001", "task": "Query optimization", "impact": "-200ms", "effort": "4h"}
   ],
   "completed": [
+    {"id": "API-002", "task": "User discovery quality scoring removal", "locations": 6, "impact": "Cleaner data model", "status": "COMPLETE"},
+    {"id": "API-001", "task": "Subreddit fetcher rewrite", "lines": 572, "desc": "Full reddit_scraper feature parity", "status": "COMPLETE"},
     {"id": "FIX-001", "task": "Reddit scraper critical fixes v3.1.0/v3.1.1", "desc": "Protected field UPSERT + cache pagination", "error_rate": "30.5% → <2%", "status": "COMPLETE"},
     {"id": "DOC-003", "task": "Database documentation system", "files_created": 11, "status": "COMPLETE"},
     {"id": "DOC-002", "task": "Documentation validation system", "scripts": 3, "status": "COMPLETE"},
@@ -333,6 +335,32 @@ $ npm run deploy:test     # Deploy to staging
 ## Recent Changes
 
 ```diff
++ 2025-10-01: API Endpoint Enhancements - User Discovery & Subreddit Fetcher
++ api-render: Removed quality scoring system from user discovery (6 locations)
++ api-render: User discovery no longer calculates username/age/karma/overall quality scores
++ api-render: Simplified user_routes.py by removing UserQualityCalculator dependency
++ api-render: Fixed user_payload to exclude quality score fields (cleaner data model)
++ api-render: Complete rewrite of single_subreddit_fetcher.py (378 lines)
++ api-render: Added ProxyManager integration with database-backed proxies
++ api-render: Added auto-categorization with 69 keywords (detect_verification, analyze_rules_for_review)
++ api-render: Fetcher now uses top_10_weekly for accurate metrics (not hot_30)
++ api-render: Complete database save with 40+ fields matching reddit_scraper exactly
++ api-render: Added cached metadata preservation (review, primary_category, tags, over18)
++ api-render: Implemented 3-retry UPSERT logic with exponential backoff
++ testing: /api/users/discover verified - u/GallowBoob saved successfully (2085ms)
++ testing: /api/subreddits/fetch-single verified - r/memes saved (3914ms, auto-detected "gore")
++ files: app/routes/user_routes.py (6 removals)
++ files: app/services/single_subreddit_fetcher.py (complete rewrite, 572 lines)
++ impact: Both endpoints production-ready with complete reddit_scraper feature parity
++ 2025-10-01: Reddit Scraper v3.5.0 - NULL Review Cache Implementation
++ api-render: Added null_review_cache to prevent re-processing NULL review subreddits
++ api-render: NULL review subreddits now cached at startup (lines 91, 417-455)
++ api-render: Cache included in all skip filters and logging (lines 460, 470, 507, 772, 793)
++ api-render: Custom pagination for NULL filtering using .is_('review', 'null')
++ impact: Prevents duplicate processing of 2,100+ NULL review subreddits
++ impact: Reduces unnecessary API calls and database operations during discovery
++ files: app/scrapers/reddit/reddit_scraper.py (8 locations modified)
++ efficiency: Cleaner logs with proper NULL filtering breakdown
 + 2025-10-01: Reddit Scraper v3.4.9 - AI Categorization API + CRITICAL Pagination Fix
 + api-render: Created AI categorization API with 4 endpoints (POST /tag-subreddits, GET /stats, /tags, /health)
 + api-render: Fixed CRITICAL pagination bug - was only loading 998-999 rows instead of ALL data

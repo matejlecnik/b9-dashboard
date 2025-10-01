@@ -19,10 +19,8 @@ from supabase import create_client
 # Flexible import that works both locally and in production
 try:
     from api_render.core.clients.api_pool import PublicRedditAPI
-    from api_render.scrapers.reddit.processors.calculator import UserQualityCalculator
 except ImportError:
     from app.core.clients.api_pool import PublicRedditAPI
-    from app.scrapers.reddit.processors.calculator import UserQualityCalculator
 
 # Initialize router
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -229,12 +227,6 @@ async def fetch_reddit_posts(username: str, limit: int = 30) -> Dict[str, Any]:
     url = f"https://www.reddit.com/user/{username}/submitted.json?limit={limit}"
     return await fetch_reddit_data(url)
 
-def calculate_user_quality_scores(username: str, account_age_days: int,
-                                 post_karma: int, comment_karma: int) -> Dict[str, float]:
-    """Calculate user quality scores using UserQualityCalculator"""
-    calculator = UserQualityCalculator()
-    return calculator.calculate(username, account_age_days, post_karma, comment_karma)
-
 @router.post("/discover", response_model=UserDiscoverResponse)
 async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: BackgroundTasks):
     """
@@ -273,18 +265,6 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
         # Calculate account age
         created_date = datetime.fromtimestamp(user_data['created_utc'], tz=timezone.utc)
         account_age_days = (datetime.now(timezone.utc) - created_date).days
-
-        # Calculate quality scores
-        quality_scores = calculate_user_quality_scores(
-            user_data['name'],
-            account_age_days,
-            user_data.get('link_karma', 0),
-            user_data.get('comment_karma', 0)
-        )
-
-        # Log quality calculation
-        await log_user_discovery(username, 'quality_calculated', True,
-                               {'scores': quality_scores})
 
         # Fetch user posts for analysis
         user_posts = []
@@ -375,10 +355,6 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
             'subreddit_banner_img': banner_img,
             'bio': bio,
             'bio_url': bio_url,
-            'username_quality_score': quality_scores['username_score'],
-            'age_quality_score': quality_scores['age_score'],
-            'karma_quality_score': quality_scores['karma_score'],
-            'overall_user_score': quality_scores['overall_score'],
             'avg_post_score': round(total_score / len(user_posts), 2) if user_posts else 0,
             'avg_post_comments': round(total_comments / len(user_posts), 2) if user_posts else 0,
             'total_posts_analyzed': len(user_posts),
@@ -396,8 +372,7 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
         if result.data:
             # Log successful save
             await log_user_discovery(username, 'saved_to_database', True,
-                                   {'user_id': user_payload['reddit_id'],
-                                    'overall_score': user_payload['overall_user_score']})
+                                   {'user_id': user_payload['reddit_id']})
 
             logger.info(f"Successfully discovered and saved Reddit user: {username}")
 

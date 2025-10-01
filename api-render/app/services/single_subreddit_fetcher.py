@@ -1,18 +1,43 @@
 #!/usr/bin/env python3
 """
 Single Subreddit Fetcher - Standalone script for fetching individual subreddit data
-Extracted from reddit_scraper.py with same proxy/user-agent rotation
-Limited to 3 retries per subreddit as requested
+Enhanced to match reddit_scraper.py processing:
+- Uses ProxyManager (database-backed proxies)
+- Auto-categorization ("Non Related" detection)
+- Verification detection
+- Complete database save with all fields
+- Uses top_10_weekly for metrics (not hot_30)
 """
 
 import json
 import random
 import time
 import logging
+import math
+import os
+import sys
 import requests
 from datetime import datetime, timezone
 from typing import Dict, Optional, List
 from fake_useragent import UserAgent
+from supabase import create_client
+
+# Add parent directories to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+api_root = os.path.join(current_dir, "..", "..")
+sys.path.insert(0, api_root)
+
+# Import ProxyManager from scraper
+try:
+    from app.scrapers.reddit.proxy_manager import ProxyManager
+except ImportError:
+    # Fallback for standalone execution
+    import importlib.util
+    proxy_path = os.path.join(api_root, "app", "scrapers", "reddit", "proxy_manager.py")
+    spec = importlib.util.spec_from_file_location("proxy_manager", proxy_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    ProxyManager = module.ProxyManager
 
 # Configure logging
 logging.basicConfig(
@@ -20,6 +45,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize Supabase client
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    raise Exception("Supabase credentials not configured")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 class PublicRedditAPI:
     """Public Reddit JSON API client with retry logic and proxy support"""
@@ -187,52 +221,137 @@ class PublicRedditAPI:
             return response['rules']
         return []
 
+    def get_subreddit_top_posts(self, subreddit_name: str, limit: int = 10, timeframe: str = 'week', proxy_config: Optional[Dict] = None) -> List[Dict]:
+        """Get top posts from subreddit for a given timeframe
 
-class ProxyRotator:
-    """Handles proxy rotation between 3 services"""
+        Args:
+            subreddit_name: Name of the subreddit
+            limit: Number of posts to fetch (default 10)
+            timeframe: 'hour', 'day', 'week', 'month', 'year', 'all' (default 'week')
+            proxy_config: Optional proxy configuration
 
-    def __init__(self):
-        self._proxy_index = 0
+        Returns:
+            List of post dicts
+        """
+        url = f"https://www.reddit.com/r/{subreddit_name}/top.json?t={timeframe}&limit={limit}"
+        response = self.request_with_retry(url, proxy_config)
 
-    def get_next_proxy(self) -> Dict:
-        """Get next proxy configuration with 3-proxy rotation"""
-
-        # 3-proxy configurations with unified format (auth embedded in proxy string)
-        proxy_configs = [
-            {
-                'service': 'beyondproxy',
-                'proxy': '9b1a4c15700a:654fa0b97850@proxy.beyondproxy.io:12321',
-                'display_name': 'BeyondProxy'
-            },
-            {
-                'service': 'nyronproxy',
-                'proxy': 'uxJNWsLXw3XnJE-zone-resi:cjB3tG2ij@residential-ww.nyronproxies.com:16666',
-                'display_name': 'NyronProxy'
-            },
-            {
-                'service': 'rapidproxy',
-                'proxy': 'admin123-residential-GLOBAL:admin123@us.rapidproxy.io:5001',
-                'display_name': 'RapidProxy'
-            }
-        ]
-
-        # Round-robin rotation
-        config = proxy_configs[self._proxy_index]
-        self._proxy_index = (self._proxy_index + 1) % len(proxy_configs)
-
-        logger.info(f"🌐 Using proxy: {config['display_name']}")
-        return config
+        if response and 'data' in response and 'children' in response['data']:
+            return [child['data'] for child in response['data']['children']]
+        return []
 
 
 class SubredditFetcher:
-    """Main class for fetching single subreddit data"""
+    """Main class for fetching single subreddit data with full reddit_scraper processing"""
 
     def __init__(self):
         self.api = PublicRedditAPI(max_retries=3)
-        self.proxy_rotator = ProxyRotator()
+        self.proxy_manager = ProxyManager(supabase)
+        self.supabase = supabase
+
+        # Load proxies from database
+        logger.info("🔄 Loading proxies from database...")
+        self.proxy_manager.load_proxies()
+        logger.info(f"✅ Loaded {len(self.proxy_manager.proxies)} proxies")
+
+    def detect_verification(self, rules: list, description: str) -> bool:
+        """Detect if subreddit requires verification from rules/description
+
+        Args:
+            rules: List of rule dicts (can be None)
+            description: Subreddit description text (can be None)
+
+        Returns:
+            True if verification keywords found
+        """
+        # Handle None inputs
+        rules = rules or []
+        description = description or ''
+
+        # Combine all text from rules and description
+        search_text = ' '.join([r.get('description') or '' for r in rules]) + ' ' + description
+        verification_keywords = ['verification', 'verified', 'verify']
+        return any(keyword in search_text.lower() for keyword in verification_keywords)
+
+    def analyze_rules_for_review(self, rules_text: str, description: str = None) -> str:
+        """Analyze rules/description for automatic 'Non Related' classification
+
+        Uses comprehensive keyword detection across multiple categories to identify
+        subreddits that are not relevant for OnlyFans creator promotion.
+
+        Args:
+            rules_text: Combined rules text from subreddit
+            description: Subreddit description (optional)
+
+        Returns:
+            'Non Related' if detected, None otherwise (for manual review)
+        """
+        if not rules_text and not description:
+            return None
+
+        # Combine all text for searching
+        combined = f"{rules_text or ''} {description or ''}".lower()
+
+        # Comprehensive "Non Related" keywords across 10 categories
+        non_related_keywords = [
+            # Hentai/anime porn (14 keywords)
+            'hentai', 'anime porn', 'rule34', 'cartoon porn',
+            'animated porn', 'ecchi', 'doujin', 'drawn porn',
+            'manga porn', 'anime girls', 'waifu', '2d girls', 'anime babes',
+
+            # Extreme fetishes (30+ keywords - not mainstream OnlyFans)
+            'bbw', 'ssbbw', 'feederism', 'weight gain', 'fat fetish',
+            'scat', 'watersports', 'golden shower', 'piss',
+            'abdl', 'diaper', 'adult baby', 'little space', 'age play', 'ddlg',
+            'vore', 'inflation', 'transformation', 'macro', 'giantess',
+            'furry', 'yiff', 'anthro', 'fursuit', 'anthropomorphic',
+            'guro', 'necro', 'gore', 'death', 'snuff',
+            'femdom', 'findom', 'financial domination', 'paypig', 'sissy',
+            'pregnant', 'breeding', 'impregnation', 'preggo',
+            'cuckold', 'cuck', 'hotwife', 'bull',
+            'chastity', 'denial', 'locked', 'keyholder',
+            'ballbusting', 'cbt', 'cock torture',
+            'latex', 'rubber', 'bondage gear', 'bdsm equipment',
+
+            # SFW content requiring nudity (12 keywords)
+            'nudity is required', 'nudity required',
+            'must be nude', 'nudity mandatory', 'nude only',
+            'nudity is mandatory', 'requires nudity',
+            'no clothes allowed', 'must show nudity',
+            'nude content only', 'full nudity required', 'complete nudity',
+
+            # Professional/career content (5 keywords)
+            'career advice', 'job hunting', 'resume help', 'interview tips',
+            'academic discussion',
+
+            # Cooking/recipe content
+            'cooking recipes', 'baking recipes', 'meal prep recipes',
+
+            # Gaming communities
+            'pc master race', 'console gaming discussion', 'indie game development',
+
+            # Politics/government
+            'government policy', 'election discussion', 'political debate',
+            'city council', 'local government',
+
+            # Animal/pet care
+            'veterinary advice', 'pet care tips', 'animal rescue',
+
+            # Academic/research
+            'scientific research', 'academic papers', 'peer review'
+        ]
+
+        # Check for keyword matches
+        for keyword in non_related_keywords:
+            if keyword in combined:
+                logger.info(f"🚫 Auto-categorized as 'Non Related': detected '{keyword}'")
+                return "Non Related"
+
+        # No match - leave for manual review
+        return None
 
     def calculate_metrics(self, posts: List[Dict]) -> Dict:
-        """Calculate engagement metrics from posts"""
+        """Calculate engagement metrics from top weekly posts"""
         if not posts:
             return {
                 'avg_upvotes_per_post': 0,
@@ -254,83 +373,165 @@ class SubredditFetcher:
         }
 
     def fetch_single_subreddit(self, subreddit_name: str) -> Dict:
-        """Fetch all data for a single subreddit"""
+        """Fetch and save subreddit with complete reddit_scraper processing"""
 
         logger.info(f"📊 Fetching data for r/{subreddit_name}")
 
-        # Get proxy configuration
-        proxy_config = self.proxy_rotator.get_next_proxy()
+        try:
+            # Get proxy configuration from ProxyManager
+            proxy_config = self.proxy_manager.get_next_proxy()
 
-        # Fetch subreddit info
-        subreddit_info = self.api.get_subreddit_info(subreddit_name, proxy_config)
+            # 1. Fetch subreddit info
+            subreddit_info = self.api.get_subreddit_info(subreddit_name, proxy_config)
 
-        if not subreddit_info:
-            return {
-                'success': False,
-                'error': 'Failed to fetch subreddit info',
-                'data': None
+            if not subreddit_info:
+                return {
+                    'success': False,
+                    'error': 'Failed to fetch subreddit info',
+                    'data': None
+                }
+
+            # Handle errors
+            if isinstance(subreddit_info, dict) and 'error' in subreddit_info:
+                return {
+                    'success': False,
+                    'error': subreddit_info.get('error'),
+                    'status': subreddit_info.get('status'),
+                    'data': None
+                }
+
+            # 2. Fetch rules
+            rules = self.api.get_subreddit_rules(subreddit_name, proxy_config)
+
+            # 3. Fetch top 10 weekly posts for accurate metrics
+            top_10_weekly = self.api.get_subreddit_top_posts(subreddit_name, limit=10, timeframe='week', proxy_config=proxy_config)
+
+            # 4. Auto-categorize using rules and description
+            description = subreddit_info.get('description', '')
+            rules_combined = ' '.join([r.get('description') or '' for r in rules]) if rules else ''
+            auto_review = self.analyze_rules_for_review(rules_combined, description)
+
+            # 5. Detect verification requirement
+            verification_required = self.detect_verification(rules, description)
+
+            # 6. Calculate metrics from top_10_weekly
+            # Filter out stickied/announcement posts
+            actual_posts = [p for p in top_10_weekly if not p.get('stickied', False)]
+            actual_count = len(actual_posts)
+
+            total_score = sum(p.get('score', 0) for p in actual_posts)
+            total_comments = sum(p.get('num_comments', 0) for p in actual_posts)
+
+            avg_upvotes = total_score / actual_count if actual_count > 0 else 0
+            engagement = total_comments / total_score if total_score > 0 else 0
+            subreddit_score = math.sqrt(engagement * avg_upvotes * 1000) if (engagement > 0 and avg_upvotes > 0) else 0
+
+            # 7. Load cached metadata from database (preserve manual review/categorization)
+            cached = self.supabase.table('reddit_subreddits').select('review, primary_category, tags, over18').eq('name', subreddit_name).execute()
+            cached_data = cached.data[0] if cached.data else {}
+
+            review = cached_data.get('review') or auto_review  # Use cached review, fallback to auto_review
+            primary_category = cached_data.get('primary_category')
+            tags = cached_data.get('tags')
+            over18 = cached_data.get('over18', subreddit_info.get('over18', False))
+
+            # 8. Extract all fields from Reddit API
+            name = subreddit_info.get('display_name', subreddit_name)
+            subscribers = subreddit_info.get('subscribers', 0)
+            created_utc = datetime.fromtimestamp(subreddit_info.get('created_utc', 0), tz=timezone.utc).isoformat() if subreddit_info.get('created_utc') else None
+
+            # Format rules data
+            rules_data = None
+            if rules:
+                rules_data = []
+                for rule in rules:
+                    rules_data.append({
+                        'short_name': rule.get('short_name', ''),
+                        'title': rule.get('kind', ''),
+                        'description': rule.get('description', ''),
+                        'violation_reason': rule.get('violation_reason', '')
+                    })
+
+            # 9. Build comprehensive payload (exact match with reddit_scraper)
+            payload = {
+                'name': name,
+                'title': subreddit_info.get('title'),
+                'description': description,
+                'public_description': subreddit_info.get('public_description'),
+                'subscribers': subscribers,
+                'over18': over18,
+                'created_utc': created_utc,
+                'allow_images': subreddit_info.get('allow_images', False),
+                'allow_videos': subreddit_info.get('allow_videos', False),
+                'allow_polls': subreddit_info.get('allow_polls', False),
+                'spoilers_enabled': subreddit_info.get('spoilers_enabled', False),
+                'verification_required': verification_required,
+                'rules_data': json.dumps(rules_data) if rules_data else None,
+                'engagement': round(engagement, 6),
+                'subreddit_score': round(subreddit_score, 2),
+                'avg_upvotes_per_post': round(avg_upvotes, 2),
+                'icon_img': subreddit_info.get('icon_img'),
+                'banner_img': subreddit_info.get('banner_img'),
+                'community_icon': subreddit_info.get('community_icon'),
+                'header_img': subreddit_info.get('header_img'),
+                'banner_background_color': subreddit_info.get('banner_background_color'),
+                'primary_color': subreddit_info.get('primary_color'),
+                'key_color': subreddit_info.get('key_color'),
+                'display_name_prefixed': subreddit_info.get('display_name_prefixed', f'r/{name}'),
+                'is_quarantined': subreddit_info.get('quarantine', False),
+                'lang': subreddit_info.get('lang', 'en'),
+                'link_flair_enabled': subreddit_info.get('link_flair_enabled', False),
+                'link_flair_position': subreddit_info.get('link_flair_position'),
+                'mobile_banner_image': subreddit_info.get('mobile_banner_image'),
+                'submission_type': subreddit_info.get('submission_type'),
+                'submit_text': subreddit_info.get('submit_text'),
+                'submit_text_html': subreddit_info.get('submit_text_html'),
+                'subreddit_type': subreddit_info.get('subreddit_type'),
+                'url': subreddit_info.get('url'),
+                'user_flair_enabled_in_sr': subreddit_info.get('user_flair_enabled_in_sr', False),
+                'user_flair_position': subreddit_info.get('user_flair_position'),
+                'wiki_enabled': subreddit_info.get('wiki_enabled', False),
+                'review': review,  # Preserved from cache or auto-detected
+                'primary_category': primary_category,  # Preserved from cache
+                'tags': tags,  # Preserved from cache
+                'last_scraped_at': datetime.now(timezone.utc).isoformat()
             }
 
-        # Handle errors
-        if isinstance(subreddit_info, dict) and 'error' in subreddit_info:
+            # 10. UPSERT to database with retry logic
+            max_retries = 3
+            retry_delay = 0.5
+
+            for attempt in range(max_retries):
+                try:
+                    result = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
+                    logger.info(f"   💾 SUPABASE SAVE: r/{name} | subs={subscribers:,} | avg_upvotes={avg_upvotes:.1f} | score={subreddit_score:.1f} | review={review}")
+                    break  # Success - exit retry loop
+                except Exception as db_error:
+                    if attempt < max_retries - 1:
+                        logger.warning(f"⚠️  DB save failed (attempt {attempt+1}/{max_retries}) - retrying in {retry_delay}s: {db_error}")
+                        time.sleep(retry_delay)
+                    else:
+                        logger.error(f"❌ Failed to save subreddit r/{name} after {max_retries} attempts: {db_error}")
+                        return {
+                            'success': False,
+                            'error': f'Database save failed: {db_error}',
+                            'data': None
+                        }
+
+            logger.info(f"✅ Successfully fetched and saved r/{subreddit_name}")
+
             return {
-                'success': False,
-                'error': subreddit_info.get('error'),
-                'status': subreddit_info.get('status'),
-                'data': None
+                'success': True,
+                'data': payload
             }
 
-        # Fetch hot posts for metrics
-        hot_posts = self.api.get_subreddit_hot_posts(subreddit_name, 30, proxy_config)
-
-        # Fetch rules
-        rules = self.api.get_subreddit_rules(subreddit_name, proxy_config)
-
-        # Calculate metrics
-        metrics = self.calculate_metrics(hot_posts)
-
-        # Format rules data
-        rules_data = None
-        if rules:
-            rules_data = []
-            for rule in rules:
-                rules_data.append({
-                    'short_name': rule.get('short_name', ''),
-                    'title': rule.get('kind', ''),
-                    'description': rule.get('description', ''),
-                    'violation_reason': rule.get('violation_reason', '')
-                })
-
-        # Prepare response data
-        data = {
-            'name': subreddit_info.get('display_name', subreddit_name),
-            'display_name_prefixed': subreddit_info.get('display_name_prefixed', f'r/{subreddit_name}'),
-            'title': subreddit_info.get('title'),
-            'public_description': subreddit_info.get('public_description'),
-            'description': subreddit_info.get('description'),
-            'subscribers': subreddit_info.get('subscribers', 0),
-            'accounts_active': subreddit_info.get('accounts_active'),
-            'over18': subreddit_info.get('over18', False),
-            'icon_img': subreddit_info.get('icon_img'),
-            'community_icon': subreddit_info.get('community_icon'),
-            'created_utc': datetime.fromtimestamp(
-                subreddit_info.get('created_utc', 0),
-                tz=timezone.utc
-            ).isoformat() if subreddit_info.get('created_utc') else None,
-            'rules_data': rules_data,
-            'avg_upvotes_per_post': metrics['avg_upvotes_per_post'],
-            'comment_to_upvote_ratio': metrics['comment_to_upvote_ratio'],
-            'total_upvotes_hot_30': metrics['total_upvotes_hot_30'],
-            'total_posts_hot_30': metrics['total_posts_hot_30'],
-            'last_scraped_at': datetime.now(timezone.utc).isoformat()
-        }
-
-        logger.info(f"✅ Successfully fetched data for r/{subreddit_name}")
-
-        return {
-            'success': True,
-            'data': data
-        }
+        except Exception as e:
+            logger.error(f"❌ Failed to fetch subreddit r/{subreddit_name}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'data': None
+            }
 
 
 def fetch_subreddit(subreddit_name: str) -> Dict:

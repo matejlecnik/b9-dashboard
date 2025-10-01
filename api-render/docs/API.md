@@ -279,6 +279,84 @@
       "total": 298000,
       "page": 1
     }
+  },
+  "POST /api/users/discover": {
+    "auth": false,
+    "description": "Discover and analyze a Reddit user, mark as our_creator",
+    "body": {
+      "username": "string (e.g., 'GallowBoob' or 'u/GallowBoob')"
+    },
+    "response": {
+      "success": true,
+      "user": {
+        "username": "string",
+        "reddit_id": "string",
+        "created_utc": "ISO-8601",
+        "account_age_days": 0,
+        "total_karma": 0,
+        "link_karma": 0,
+        "comment_karma": 0,
+        "verified": false,
+        "has_verified_email": false,
+        "bio": "string|null",
+        "bio_url": "string|null",
+        "avg_post_score": 0.0,
+        "avg_post_comments": 0.0,
+        "total_posts_analyzed": 30,
+        "karma_per_day": 0.0,
+        "preferred_content_type": "string",
+        "most_active_posting_hour": 0,
+        "most_active_posting_day": "string",
+        "our_creator": true,
+        "last_scraped_at": "ISO-8601"
+      },
+      "error": null
+    },
+    "notes": [
+      "Uses database-backed proxy rotation for reliability",
+      "Fetches user data and 30 recent posts for analysis",
+      "Calculates posting patterns and engagement metrics",
+      "Automatically marks as our_creator=true",
+      "Response time: ~2s"
+    ]
+  },
+  "POST /api/subreddits/fetch-single": {
+    "auth": false,
+    "description": "Fetch and save individual subreddit with full reddit_scraper processing",
+    "body": {
+      "subreddit_name": "string (e.g., 'memes' or 'r/memes')"
+    },
+    "response": {
+      "name": "string",
+      "title": "string",
+      "description": "string",
+      "public_description": "string",
+      "subscribers": 0,
+      "over18": false,
+      "created_utc": "ISO-8601",
+      "verification_required": false,
+      "rules_data": "string (JSON array)",
+      "avg_upvotes_per_post": 0.0,
+      "engagement": 0.0,
+      "subreddit_score": 0.0,
+      "review": "string|null (auto-detected: 'Non Related' or null)",
+      "primary_category": "string|null",
+      "tags": ["array"],
+      "icon_img": "string|null",
+      "banner_img": "string|null",
+      "community_icon": "string|null",
+      "last_scraped_at": "ISO-8601"
+    },
+    "notes": [
+      "Complete feature parity with reddit_scraper",
+      "Uses ProxyManager with database-backed proxies",
+      "Auto-categorizes using 69 keywords across 10 categories",
+      "Detects verification requirements in rules/description",
+      "Calculates metrics from top 10 weekly posts",
+      "Preserves cached metadata (review, category, tags)",
+      "UPSERT with 3-retry logic and exponential backoff",
+      "Response time: ~4s"
+    ]
   }
 }
 ```
