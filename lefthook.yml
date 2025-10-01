@@ -52,11 +52,12 @@ pre-push:
     # Full documentation compliance check
     docs-compliance:
       run: |
-        python3 docs/scripts/validate-docs.py --threshold 80
-        if [ $? -ne 0 ]; then
-          echo "❌ Documentation compliance below 80%. Run: python3 docs/scripts/validate-docs.py"
+        COMPLIANCE=$(python3 docs/scripts/validate-docs.py | grep -o '[0-9]*\.[0-9]*%' | head -1 | tr -d '%')
+        if (( $(echo "$COMPLIANCE < 80" | bc -l) )); then
+          echo "❌ Documentation compliance $COMPLIANCE% below 80%. Run: python3 docs/scripts/validate-docs.py"
           exit 1
         fi
+        echo "✅ Documentation compliance: $COMPLIANCE%"
 
     # Build check (ensure code compiles)
     build-check:
