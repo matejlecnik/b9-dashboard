@@ -62,6 +62,14 @@ except ImportError:
     REDDIT_SCRAPER_ROUTES_AVAILABLE = False
     reddit_scraper_router = None
 
+# AI Categorization route imports
+try:
+    from app.routes.categorization_routes import router as categorization_router
+    CATEGORIZATION_ROUTES_AVAILABLE = True
+except ImportError:
+    CATEGORIZATION_ROUTES_AVAILABLE = False
+    categorization_router = None
+
 # Instagram scraper now uses subprocess architecture via instagram_scraper_routes.py
 # Control is done via Supabase system_control table only
 INSTAGRAM_SCRAPER_AVAILABLE = False  # Thread-based scraper disabled
@@ -257,6 +265,13 @@ if REDDIT_SCRAPER_ROUTES_AVAILABLE:
     logger.info("✅ Reddit scraper routes registered")
 else:
     logger.warning("⚠️ Reddit scraper routes not available")
+
+# Include AI categorization routes if available
+if CATEGORIZATION_ROUTES_AVAILABLE:
+    app.include_router(categorization_router)
+    logger.info("✅ AI categorization routes registered")
+else:
+    logger.warning("⚠️ AI categorization routes not available")
 
 # Security middleware
 app.add_middleware(
