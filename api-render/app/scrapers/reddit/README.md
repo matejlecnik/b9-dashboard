@@ -1,4 +1,4 @@
-# Reddit Scraper v3.4.5
+# Reddit Scraper v3.5.0
 
 ┌─ SCRAPER STATUS ────────────────────────────────────────┐
 │ ✅ PRODUCTION │ ████████████████████ 100% OPERATIONAL  │
@@ -12,7 +12,7 @@
   "current": "app/scrapers/reddit/README.md",
   "files": [
     {"path": "reddit_controller.py", "desc": "Process supervisor", "status": "ACTIVE"},
-    {"path": "reddit_scraper.py", "desc": "Main scraper v3.4.5", "status": "PRODUCTION"},
+    {"path": "reddit_scraper.py", "desc": "Main scraper v3.5.0", "status": "PRODUCTION"},
     {"path": "public_reddit_api.py", "desc": "HTTP client", "status": "PRODUCTION"},
     {"path": "proxy_manager.py", "desc": "Proxy rotation", "status": "ACTIVE"},
     {"path": "ARCHITECTURE.md", "desc": "System architecture", "status": "REFERENCE"},
@@ -26,7 +26,7 @@
 ```json
 {
   "status": "PRODUCTION",
-  "version": "v3.4.5",
+  "version": "v3.5.0",
   "deployed": "2025-10-01",
   "stability": "STABLE",
   "architecture": "Public Reddit JSON API with proxy rotation",
@@ -36,7 +36,8 @@
     "async_processing": "AsyncIO with concurrent API requests",
     "user_discovery": "Fetches 30 posts per user to discover crossposting patterns",
     "metrics_tracking": "Scores, engagement, subscriber counts",
-    "null_review_discovery": "Auto-discovers new subreddits with NULL review status"
+    "null_review_discovery": "Auto-discovers new subreddits with NULL review status",
+    "null_review_cache": "Prevents re-processing of NULL review subreddits during discovery"
   },
   "performance": {
     "avg_subreddit_time": "8-10 seconds",
@@ -62,7 +63,7 @@
     "lines": 164
   },
   "reddit_scraper.py": {
-    "version": "v3.4.5",
+    "version": "v3.5.0",
     "role": "Main scraper logic",
     "responsibilities": [
       "Process Ok subreddits sequentially",

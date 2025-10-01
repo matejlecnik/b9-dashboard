@@ -53,15 +53,10 @@
 ```
 scrapers/
 ├── /reddit/                # Reddit automation
-│   ├── main.py            # RedditScraperV2 orchestrator
-│   ├── continuous.py      # 24/7 controller
-│   ├── /scrapers/         # Data collectors
-│   │   ├── base.py       # Base class
-│   │   ├── subreddit.py  # Subreddit scraper
-│   │   └── user.py       # User scraper
-│   ├── /processors/       # Data processing
-│   │   └── calculator.py # Metrics engine
-│   └── /tests/           # Test suite
+│   ├── reddit_scraper.py  # Main scraper v3.5.0
+│   ├── reddit_controller.py # Process supervisor
+│   ├── public_reddit_api.py # Async HTTP client
+│   └── proxy_manager.py   # Proxy rotation
 │
 └── /instagram/           # Instagram automation
     ├── continuous.py     # 24/7 controller

@@ -260,8 +260,8 @@ class ServiceName:
 ## Testing
 
 ```bash
-# Test individual service
-pytest app/services/test_categorization.py
+# Test all services
+pytest app/services/
 
 # Test with mock data
 pytest app/services/ --mock-external

@@ -55,7 +55,7 @@ except ImportError:
     else:
         SupabaseLogHandler = None  # Graceful degradation if not available
 
-SCRAPER_VERSION = "3.4.9"
+SCRAPER_VERSION = "3.5.0"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -88,6 +88,7 @@ class RedditScraper:
         self.banned_cache: Set[str] = set()
         self.ok_cache: Set[str] = set()  # Ok subreddits (Loop 1 targets)
         self.no_seller_cache: Set[str] = set()  # No Seller subreddits (Loop 2 targets)
+        self.null_review_cache: Set[str] = set()  # NULL review subreddits (awaiting manual review)
         self.session_processed: Set[str] = set()  # Subreddits processed in this session (prevents re-discovery)
         self.session_fetched_users: Set[str] = set()  # Users whose posts we've already fetched (prevents duplicate fetches)
         self.skip_cache_time = None
@@ -413,11 +414,51 @@ class RedditScraper:
             no_seller_data = await self._fetch_subreddits_paginated('No Seller', 'name')
             self.no_seller_cache = {item['name'] for item in no_seller_data} if no_seller_data else set()
 
+            # Load NULL review subreddits (already discovered, awaiting manual review - skip during discovery)
+            # Note: Cannot use _fetch_subreddits_paginated() as it uses .eq() which doesn't work for NULL
+            # Must use .is_('review', 'null') for NULL filtering
+            null_review_data = []
+            offset = 0
+            max_page_size = None
+            iteration = 0
+
+            while True:
+                iteration += 1
+                logger.info(f"📄 Pagination [NULL] iteration {iteration}: offset={offset}")
+
+                response = self.supabase.table('reddit_subreddits').select(
+                    'name'
+                ).is_('review', 'null').range(offset, offset + 9999).execute()
+
+                rows_returned = len(response.data) if response.data else 0
+                logger.info(f"📄 [NULL] Got {rows_returned} rows, total so far: {len(null_review_data) + rows_returned}")
+
+                if not response.data:
+                    logger.info(f"📄 [NULL] BREAK: No data (empty response)")
+                    break
+
+                # First page: detect Supabase's actual max page size
+                if max_page_size is None:
+                    max_page_size = len(response.data)
+                    logger.info(f"📄 [NULL] Detected Supabase max page size: {max_page_size}")
+
+                null_review_data.extend(response.data)
+
+                # If we got less than first page size, we've reached the end
+                if len(response.data) < max_page_size:
+                    logger.info(f"📄 [NULL] BREAK: Got {len(response.data)} < {max_page_size} (last page)")
+                    break
+
+                offset += len(response.data)
+
+            logger.info(f"📄 Pagination complete for review=NULL: {len(null_review_data)} total rows in {iteration} iterations")
+            self.null_review_cache = {item['name'] for item in null_review_data} if null_review_data else set()
+
             # Update cache timestamp
             self.skip_cache_time = datetime.now(timezone.utc)
 
-            total_skip = len(self.non_related_cache) + len(self.user_feed_cache) + len(self.banned_cache) + len(self.ok_cache) + len(self.no_seller_cache)
-            logger.info(f"   🚫 Skip: {len(self.non_related_cache)} Non Related + {len(self.user_feed_cache)} User Feed + {len(self.banned_cache)} Banned + {len(self.ok_cache)} Ok + {len(self.no_seller_cache)} No Seller = {total_skip} total")
+            total_skip = len(self.non_related_cache) + len(self.user_feed_cache) + len(self.banned_cache) + len(self.ok_cache) + len(self.no_seller_cache) + len(self.null_review_cache)
+            logger.info(f"   🚫 Skip: {len(self.non_related_cache)} Non Related + {len(self.user_feed_cache)} User Feed + {len(self.banned_cache)} Banned + {len(self.ok_cache)} Ok + {len(self.no_seller_cache)} No Seller + {len(self.null_review_cache)} NULL = {total_skip} total")
 
         except Exception as e:
             logger.error(f"❌ Failed to load skip caches: {e}")
@@ -426,6 +467,7 @@ class RedditScraper:
             self.banned_cache = set()
             self.ok_cache = set()
             self.no_seller_cache = set()
+            self.null_review_cache = set()
 
     def validate_api_data(self, data, data_name: str) -> bool:
         """Check if API response data is valid
@@ -460,14 +502,14 @@ class RedditScraper:
         # Load skip caches if needed
         await self.load_skip_caches()
 
-        # Remove Non Related, User Feed, Banned, Ok, and No Seller subreddits immediately
+        # Remove Non Related, User Feed, Banned, Ok, No Seller, and NULL review subreddits immediately
         original_count = len(subreddit_names)
-        all_skip_subreddits = self.non_related_cache | self.user_feed_cache | self.banned_cache | self.ok_cache | self.no_seller_cache
+        all_skip_subreddits = self.non_related_cache | self.user_feed_cache | self.banned_cache | self.ok_cache | self.no_seller_cache | self.null_review_cache
         subreddit_names = subreddit_names - all_skip_subreddits
         filtered_count = original_count - len(subreddit_names)
 
         if filtered_count > 0:
-            logger.info(f"🚫 Filtered out {filtered_count} subreddits (Non Related/User Feed/Banned/Ok/No Seller) from discovery")
+            logger.info(f"🚫 Filtered out {filtered_count} subreddits (Non Related/User Feed/Banned/Ok/No Seller/NULL) from discovery")
 
         try:
             # Convert set to list for database query
@@ -727,6 +769,7 @@ class RedditScraper:
                 filtered_banned = discovered_subreddits & self.banned_cache
                 filtered_ok = discovered_subreddits & self.ok_cache
                 filtered_no_seller = discovered_subreddits & self.no_seller_cache
+                filtered_null_review = discovered_subreddits & self.null_review_cache
                 filtered_session = discovered_subreddits & self.session_processed
 
                 logger.info(f"      🚫 Filtering breakdown:")
@@ -740,11 +783,14 @@ class RedditScraper:
                     logger.info(f"         - {len(filtered_ok)} Ok (already tracked)")
                 if filtered_no_seller:
                     logger.info(f"         - {len(filtered_no_seller)} No Seller (already tracked)")
+                if filtered_null_review:
+                    logger.info(f"         - {len(filtered_null_review)} NULL (already processed)")
                 if filtered_session:
                     logger.info(f"         - {len(filtered_session)} Already processed this session")
 
             all_known_subreddits = (self.non_related_cache | self.user_feed_cache |
                                    self.banned_cache | self.ok_cache | self.no_seller_cache |
+                                   self.null_review_cache |
                                    self.session_processed)
             discovered_subreddits = discovered_subreddits - all_known_subreddits
 

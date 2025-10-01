@@ -2,7 +2,7 @@
 
 ```
 ┌─ SYSTEM ARCHITECTURE ───────────────────────────────────┐
-│ Version: 3.4.5                                          │
+│ Version: 3.5.0                                          │
 │ Status: PRODUCTION                                      │
 │ Last Updated: 2025-10-01                                │
 └─────────────────────────────────────────────────────────┘
@@ -97,7 +97,7 @@ The Reddit Scraper is a high-performance data collection system that:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     REDDIT SCRAPER v3.4.5                       │
+│                     REDDIT SCRAPER v3.5.0                       │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐
@@ -107,30 +107,31 @@ The Reddit Scraper is a high-performance data collection system that:
        │
        v
 ┌──────────────────────────────────────────────────────────────┐
-│                   Reddit Scraper Main Loop                    │
-│                                                               │
+│                   Reddit Scraper Main Loop                   │
+│                                                              │
 │  Phase 1: Proxy Setup                                        │
-│  ├─ Load proxies from Supabase                              │
-│  ├─ Test all proxies (parallel)                             │
-│  └─ Initialize ThreadPool (5 workers)                       │
-│                                                               │
+│  ├─ Load proxies from Supabase                               │
+│  ├─ Test all proxies (parallel)                              │
+│  └─ Initialize ThreadPool (5 workers)                        │
+│                                                              │
+│                                                              │
 │  Phase 2: Target Subreddits                                  │
-│  ├─ Load skip caches (Non Related, User Feed, Banned)       │
-│  ├─ Query Ok subreddits (2,206)                             │
-│  ├─ Query No Seller subreddits (70)                         │
-│  └─ Cache metadata (review, category, tags, over18)         │
-│                                                               │
+│  ├─ Load skip caches (Non Related, User Feed, Banned, NULL)  │
+│  ├─ Query Ok subreddits (2,206)                              │
+│  ├─ Query No Seller subreddits (70)                          │
+│  └─ Cache metadata (review, category, tags, over18)          │
+│                                                              │
 │  Phase 3: Process Subreddits                                 │
-│  ├─ Loop 1: Ok Subreddits (full processing)                 │
-│  │   ├─ Fetch subreddit + posts                             │
-│  │   ├─ Process users (parallel)                            │
-│  │   ├─ Calculate requirements                              │
-│  │   └─ Discover new subreddits                             │
-│  │                                                            │
+│  ├─ Loop 1: Ok Subreddits (full processing)                  │
+│  │   ├─ Fetch subreddit + posts                              │
+│  │   ├─ Process users (parallel)                             │
+│  │   ├─ Calculate requirements                               │
+│  │   └─ Discover new subreddits                              │
+│  │                                                           │
 │  └─ Loop 2: Discovered Subreddits (immediate processing)     │
-│      ├─ Filter NULL review → No Seller logic                │
-│      ├─ Process posts only (if NULL/No Seller)              │
-│      └─ No further discovery (prevent loops)                │
+│      ├─ Filter NULL review → No Seller logic                 │
+│      ├─ Process posts only (if NULL/No Seller)               │
+│      └─ No further discovery (prevent loops)                 │
 └──────────────────────────────────────────────────────────────┘
        │                │                    │
        v                v                    v
@@ -175,7 +176,10 @@ The Reddit Scraper is a high-performance data collection system that:
 1. Load Skip Caches
    ├─ Non Related: 6,778 subreddits
    ├─ User Feed: 2,082 subreddits
-   └─ Banned: 28 subreddits
+   ├─ Banned: 28 subreddits
+   ├─ Ok: 2,206 subreddits (processed in Loop 1)
+   ├─ No Seller: 70 subreddits (processed in Loop 2)
+   └─ NULL review: ~2,100 subreddits (awaiting manual review)
 
 2. Query Target Subreddits
    ├─ Ok: SELECT * WHERE review='Ok' (2,206 subreddits)
@@ -284,8 +288,8 @@ For each discovered subreddit:
 ```
 Subreddit Processing Decision:
 │
-├─ Is review in skip_cache (Non Related, User Feed, Banned)?
-│  ├─ YES → Skip completely
+├─ Is review in skip_cache (Non Related, User Feed, Banned, Ok, No Seller, NULL)?
+│  ├─ YES → Skip during discovery (already tracked/processed)
 │  └─ NO → Continue
 │
 ├─ Is review = 'Ok'?
