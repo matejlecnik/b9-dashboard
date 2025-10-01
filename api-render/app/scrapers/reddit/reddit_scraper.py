@@ -61,7 +61,7 @@ except ImportError:
     else:
         SupabaseLogHandler = None  # Graceful degradation if not available
 
-SCRAPER_VERSION = "3.5.0"
+SCRAPER_VERSION = "3.6.1"
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
