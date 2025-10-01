@@ -220,16 +220,14 @@ class RedditScraper:
                                             self.subreddit_metadata_cache[new_sub] = {
                                                 'review': 'User Feed',
                                                 'primary_category': None,
-                                                'tags': [],
-                                                'over18': False
+                                                'tags': []
                                             }
                                         else:
                                             # Regular subreddit = NULL for full analysis
                                             self.subreddit_metadata_cache[new_sub] = {
                                                 'review': None,  # NULL = new discovery, needs full analysis
                                                 'primary_category': None,
-                                                'tags': [],
-                                                'over18': False
+                                                'tags': []
                                             }
 
                                     logger.info(f"      [{discovery_idx}/{len(filtered)}] 🆕 r/{new_sub}")
@@ -1055,8 +1053,7 @@ class RedditScraper:
                         self.subreddit_metadata_cache[post_subreddit] = {
                             'review': review_status,
                             'primary_category': None,
-                            'tags': [],
-                            'over18': False
+                            'tags': []
                         }
                     except Exception as e:
                         logger.debug(f"   ⚠️  Failed to create stub for r/{post_subreddit}: {e}")

@@ -1,18 +1,42 @@
 # API Documentation
 
 ┌─ API STATUS ────────────────────────────────────────────┐
-│ ● LIVE        │ ████████████████████ 100% UPTIME       │
+│ ● LIVE        │ ████████████████████ 100% OPERATIONAL  │
 └─────────────────────────────────────────────────────────┘
+
+## Navigation
+
+```json
+{
+  "parent": "../README.md",
+  "current": "docs/API.md",
+  "siblings": [
+    {"path": "ARCHITECTURE.md", "desc": "System design", "status": "STABLE"},
+    {"path": "DEPLOYMENT.md", "desc": "Deploy guide", "status": "PRODUCTION"},
+    {"path": "MONITORING.md", "desc": "Health monitoring", "status": "ACTIVE"},
+    {"path": "PERFORMANCE.md", "desc": "Optimization", "status": "OPTIMIZED"}
+  ]
+}
+```
 
 ## Base Configuration
 
 ```json
 {
-  "base_url": "https://b9-dashboard.onrender.com",
-  "version": "2.0.0",
-  "authentication": "API Key (Header: X-API-Key)",
-  "content_type": "application/json",
-  "rate_limit": "100 requests/minute"
+  "production": "https://b9-dashboard.onrender.com",
+  "development": "http://localhost:8000",
+  "version": "3.4.5",
+  "authentication": {
+    "type": "Bearer Token / API Key",
+    "header": "Authorization",
+    "admin_key": "X-API-Key"
+  },
+  "rate_limits": {
+    "anonymous": "60/minute",
+    "authenticated": "100/minute",
+    "admin": "500/minute"
+  },
+  "content_type": "application/json"
 }
 ```
 
@@ -24,14 +48,31 @@
 {
   "GET /health": {
     "auth": false,
+    "description": "Basic system health check",
     "response": {
       "status": "healthy",
       "timestamp": "ISO-8601",
-      "version": "2.0.0"
+      "version": "3.4.5",
+      "uptime": 123456
+    }
+  },
+  "GET /health/detailed": {
+    "auth": true,
+    "description": "Detailed health metrics with database and scraper status",
+    "response": {
+      "status": "healthy",
+      "database": "OK",
+      "scrapers": {
+        "reddit": "RUNNING",
+        "instagram": "RUNNING"
+      },
+      "memory_usage": "480MB",
+      "cpu_usage": "35%"
     }
   },
   "GET /ready": {
     "auth": false,
+    "description": "Readiness check for load balancers",
     "response": {
       "ready": true,
       "database": "connected",
@@ -448,4 +489,7 @@ const status = await client.getScraperStatus();
 
 ---
 
-_API Version: 2.0.0 | Status: Production | Updated: 2024-01-28_
+_API Version: 3.4.5 | Reddit Scraper: v3.4.5 | Status: Production | Updated: 2025-10-01_
+_Navigate: [← docs/](README.md) | [→ ARCHITECTURE.md](ARCHITECTURE.md) | [→ DEPLOYMENT.md](DEPLOYMENT.md)_
+
+**Note:** This document consolidates all API endpoint documentation. Previous API_ENDPOINTS.md has been merged here.
