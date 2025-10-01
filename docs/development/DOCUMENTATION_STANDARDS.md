@@ -10,9 +10,45 @@
 {
   "parent": "DOCUMENTATION_MAP.md",
   "current": "DOCUMENTATION_STANDARDS.md",
+  "siblings": [
+    {"path": "DOCUMENTATION_AGENT_GUIDE.md", "desc": "Agent usage", "status": "NEW"},
+    {"path": "SYSTEM_IMPROVEMENT_PLAN.md", "desc": "Technical plan", "status": "NEW"}
+  ],
   "related": [
     {"path": "DOCUMENTATION_TEMPLATE.md", "desc": "Template file", "use": "COPY"},
-    {"path": "../../CLAUDE.md", "desc": "Central hub", "use": "START_HERE"}
+    {"path": "../../ROADMAP.md", "desc": "Strategic vision", "use": "CONTEXT"},
+    {"path": "../../CLAUDE.md", "desc": "Mission control", "use": "START_HERE"}
+  ]
+}
+```
+
+## Critical Rules (NEW)
+
+```json
+{
+  "MANDATORY": [
+    {
+      "rule": "Plans must be saved in .md files",
+      "rationale": "Comprehensive plans belong in documentation, not TodoWrite tool",
+      "format": "Use ROADMAP.md or create specific plan files",
+      "violation": "Using TodoWrite for multi-phase plans"
+    },
+    {
+      "rule": "Minimal code comments - reference .md files",
+      "rationale": "Reduce token waste, centralize documentation",
+      "format": "// See: docs/path/to/file.md#section",
+      "example": "/**\n * Calculate subreddit score.\n * @see docs/database/REDDIT_SCHEMA.md#scoring-algorithm\n */",
+      "violation": "50+ char inline explanations"
+    },
+    {
+      "rule": "All .md files must have semantic version",
+      "format": "_Version: MAJOR.MINOR.PATCH | Updated: YYYY-MM-DD_",
+      "bump_rules": {
+        "MAJOR": "Breaking structure changes",
+        "MINOR": "New sections added",
+        "PATCH": "Content updates, fixes"
+      }
+    }
   ]
 }
 ```
@@ -189,6 +225,73 @@ Status Types:
 }
 ```
 
+### 9. SEMANTIC VERSIONING (NEW)
+```json
+{
+  "format": "MAJOR.MINOR.PATCH",
+  "rules": {
+    "MAJOR": {
+      "when": "Breaking changes to structure or API",
+      "examples": [
+        "Removing required sections",
+        "Changing navigation format",
+        "Complete doc restructure"
+      ]
+    },
+    "MINOR": {
+      "when": "Adding new sections or features",
+      "examples": [
+        "New rule sections",
+        "Additional examples",
+        "New validation checks"
+      ]
+    },
+    "PATCH": {
+      "when": "Updates, fixes, clarifications",
+      "examples": [
+        "Typo fixes",
+        "Clarifying existing rules",
+        "Updating metrics"
+      ]
+    }
+  },
+  "footer_format": "_Version: 2.1.0 | Updated: 2025-10-01_",
+  "required": "ALL .md files must have version in footer"
+}
+```
+
+### 10. CODE COMMENT POLICY (NEW)
+```json
+{
+  "principle": "Minimal inline comments, reference .md documentation",
+  "rules": [
+    "Complex logic: 1-line comment + .md link",
+    "Public APIs: JSDoc with @see link",
+    "No verbose explanations (>50 chars)",
+    "Prefer descriptive names over comments"
+  ],
+  "examples": {
+    "BAD": {
+      "comment": "// This function calculates the subreddit score by taking the square root of average upvotes, multiplying by engagement factor, and scaling by 1000 to get final score",
+      "issues": ["Too verbose", "Duplicates code", "High token cost"]
+    },
+    "GOOD": {
+      "comment": "// See: docs/database/REDDIT_SCHEMA.md#subreddit-score",
+      "benefits": ["Concise", "Centralized docs", "Low token cost"]
+    },
+    "JSDOC_GOOD": {
+      "format": "/**\n * Calculate subreddit quality score.\n * @see docs/database/REDDIT_SCHEMA.md#scoring-algorithm\n * @param {number} avgUpvotes\n * @param {number} engagement\n * @returns {number} Quality score 0-1000\n */",
+      "usage": "Public APIs, exported functions"
+    }
+  },
+  "migration": {
+    "scan_for": "Comments >50 characters",
+    "action": "Replace with .md reference",
+    "tool": "docs/scripts/cleanup.py --comments"
+  }
+}
+```
+
 ## Validation Checklist
 
 ```json
@@ -196,16 +299,18 @@ Status Types:
   "must_have": [
     {"item": "Status box with progress", "check": "□"},
     {"item": "Navigation JSON", "check": "□"},
-    {"item": "Execution plan", "check": "□"},
+    {"item": "Execution plan (if actionable doc)", "check": "□"},
     {"item": "Professional tone", "check": "□"},
     {"item": "JSON-heavy content", "check": "□"},
-    {"item": "Footer with version/date", "check": "□"}
+    {"item": "Footer with semantic version", "check": "□"},
+    {"item": "Semantic version (MAJOR.MINOR.PATCH)", "check": "□", "new": true}
   ],
   "must_not_have": [
     {"item": "Emojis (except status)", "check": "□"},
     {"item": "Friendly language", "check": "□"},
     {"item": "Verbose explanations", "check": "□"},
-    {"item": "Questions to reader", "check": "□"}
+    {"item": "Questions to reader", "check": "□"},
+    {"item": "Plans in TodoWrite (use .md files)", "check": "□", "new": true}
   ]
 }
 ```
@@ -281,5 +386,6 @@ _Version: X.X.X | Updated: YYYY-MM-DD_
 
 ---
 
-_Standards Version: 1.0.0 | Effective: 2024-01-28 | Mandatory: YES_
-_Navigate: [← DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | [→ DOCUMENTATION_TEMPLATE.md](DOCUMENTATION_TEMPLATE.md)_
+_Standards Version: 2.0.0 | Updated: 2025-10-01 | Mandatory: YES_
+_Changes: Added semantic versioning, code comment policy, plans-in-md rule_
+_Navigate: [← DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | [→ DOCUMENTATION_AGENT_GUIDE.md](DOCUMENTATION_AGENT_GUIDE.md) | [→ ROADMAP.md](../../ROADMAP.md)_
