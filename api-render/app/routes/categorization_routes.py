@@ -231,8 +231,7 @@ async def health_check(request: Request):
         openai_configured = bool(openai_api_key)
 
         # Check Supabase
-        supabase = get_supabase_client()
-        supabase_configured = bool(supabase)
+        supabase_configured = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
 
         return {
             "status": "healthy" if (openai_configured and supabase_configured) else "unhealthy",
