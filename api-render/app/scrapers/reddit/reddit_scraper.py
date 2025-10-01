@@ -275,7 +275,7 @@ class RedditScraper:
                 await asyncio.sleep(60)
 
     async def _fetch_subreddits_paginated(self, review_status: str, fields: str = 'name') -> List[dict]:
-        """Fetch all subreddits with pagination (1000 rows per page)
+        """Fetch all subreddits with pagination (999 rows per page - Supabase limit)
 
         Args:
             review_status: Review status to filter by
@@ -286,7 +286,7 @@ class RedditScraper:
         """
         all_data = []
         offset = 0
-        batch_size = 1000
+        batch_size = 999  # Supabase enforces max 999 rows per query
 
         while True:
             response = self.supabase.table('reddit_subreddits').select(

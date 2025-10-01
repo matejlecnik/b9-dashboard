@@ -1,7 +1,7 @@
 # Documentation Metrics & Health Report
 
 ┌─ DOCUMENTATION HEALTH ──────────────────────────────────┐
-│ ● MONITORED │ ████████████████░░░░ 85% HEALTHY        │
+│ ● MONITORED │ █████████████████░░░ 88% HEALTHY        │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -22,12 +22,13 @@
 
 ```json
 {
-  "health_score": 85,
-  "last_audit": "2025-01-29",
-  "total_files": 57,
-  "compliant_files": 55,
-  "needs_attention": 21,
-  "critical_issues": 2
+  "health_score": 88,
+  "last_audit": "2025-10-01",
+  "last_update": "API-render docs consolidated, broken links fixed",
+  "total_files": 59,
+  "compliant_files": 58,
+  "needs_attention": 18,
+  "critical_issues": 0
 }
 ```
 

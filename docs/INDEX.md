@@ -23,7 +23,7 @@
 |---------|------|-------------|
 | **Control Center** | [`CLAUDE.md`](../CLAUDE.md) | Main hub, metrics, TODO queue |
 | **Project Overview** | [`README.md`](../README.md) | Architecture, setup, deployment |
-| **API Reference** | [`api-render/API_DOCUMENTATION.md`](../api-render/API_DOCUMENTATION.md) | Endpoints, auth, examples |
+| **API Reference** | [`api-render/docs/API.md`](../api-render/docs/API.md) | Endpoints, auth, examples |
 | **Database Schema** | [`docs/database/SUPABASE_SCHEMA.md`](database/SUPABASE_SCHEMA.md) | Tables, functions, queries |
 | **Component Guide** | [`dashboard/docs/COMPONENT_GUIDE.md`](../dashboard/docs/COMPONENT_GUIDE.md) | UI components, patterns |
 
@@ -64,14 +64,14 @@
 ```json
 {
   "main": {
-    "file": "api-render/API_DOCUMENTATION.md",
-    "lines": 450,
+    "file": "api-render/docs/API.md",
+    "lines": 495,
     "endpoints": 25
   },
   "architecture": {
-    "file": "api-render/ARCHITECTURE.md",
-    "lines": 388,
-    "version": "3.0"
+    "file": "api-render/docs/ARCHITECTURE.md",
+    "lines": 391,
+    "version": "3.4.5"
   },
   "scrapers": {
     "reddit": "api-render/app/scrapers/reddit/README.md (248 lines) - v3.4.5",
@@ -79,8 +79,9 @@
     "architecture": "api-render/app/scrapers/reddit/ARCHITECTURE.md"
   },
   "logging": {
-    "system": "api-render/docs/LOGGING_SYSTEM.md (478 lines)",
-    "readme": "api-render/docs/LOGGING_README.md (213 lines)"
+    "file": "api-render/docs/logging.md",
+    "lines": 156,
+    "topics": ["Log levels", "Supabase logging", "Best practices"]
   }
 }
 ```
@@ -186,16 +187,16 @@
 
 ### By Technology
 - **React/Next.js**: `dashboard/docs/`, `COMPONENT_GUIDE.md`, `REACT_QUERY_*.md`
-- **Python/FastAPI**: `api-render/`, `API_DOCUMENTATION.md`, `scrapers/`
+- **Python/FastAPI**: `api-render/`, `docs/API.md`, `scrapers/`
 - **PostgreSQL/Supabase**: `database/`, `SUPABASE_*.md`, `migrations/`
 - **Docker/Render**: `deployment/`, `Dockerfile`, `render.yaml`
 
 ### By Task
 - **Setup Project**: `README.md` → `dashboard/README.md` → `.env.example`
-- **Add API Endpoint**: `api-render/main.py` → `routes/` → `API_DOCUMENTATION.md`
+- **Add API Endpoint**: `api-render/main.py` → `routes/` → `docs/API.md`
 - **Database Query**: `SUPABASE_QUERIES.md` → `SUPABASE_FUNCTIONS.md`
 - **Deploy Changes**: `DEPLOYMENT.md` → `CHECKLIST.md` → GitHub Actions
-- **Fix Bugs**: `TROUBLESHOOTING.md` → `SESSION_LOG.md` → `system_logs`
+- **Fix Bugs**: `SESSION_LOG.md` → `system_logs` → `docs/MONITORING.md`
 
 ### By Priority
 1. **🔴 CRITICAL**: `TODO_CRON_SETUP.md` - Log cleanup (30 days)
@@ -215,11 +216,11 @@ b9_dashboard/
 │   ├── 📁 deployment/ (2 files, 364 lines)
 │   ├── 📁 development/ (6 files, 1,316 lines)
 │   └── 📁 performance/ (1 file, 243 lines)
-├── 📁 api-render/ (22 files, 5,831 lines)
-│   ├── 📄 API_DOCUMENTATION.md
-│   ├── 📄 ARCHITECTURE.md
+├── 📁 api-render/ (26 files, 7,847 lines)
 │   ├── 📄 README.md
-│   └── 📁 [subdirectories...]
+│   ├── 📄 DOCUMENTATION_INDEX.md
+│   ├── 📁 docs/ (API.md, ARCHITECTURE.md, DEPLOYMENT.md, etc.)
+│   └── 📁 app/ [scrapers, routes, services...]
 ├── 📁 dashboard/ (8 files, 3,499 lines)
 │   ├── 📄 README.md
 │   └── 📁 docs/
