@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+
 class DocValidator:
     def __init__(self, root_path: str = "."):
         self.root = Path(root_path)
@@ -20,7 +21,7 @@ class DocValidator:
             "files_with_terminal_format": 0,
             "files_with_navigation": 0,
             "files_with_status_box": 0,
-            "files_needing_update": []
+            "files_needing_update": [],
         }
 
     def validate_all(self) -> Dict:
@@ -32,7 +33,8 @@ class DocValidator:
 
         self.stats["compliance_rate"] = (
             self.stats["compliant_files"] / self.stats["total_files"] * 100
-            if self.stats["total_files"] > 0 else 0
+            if self.stats["total_files"] > 0
+            else 0
         )
 
         return self.generate_report()
@@ -50,14 +52,16 @@ class DocValidator:
         self.stats["total_files"] += 1
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
-            self.issues.append({
-                "file": str(file_path),
-                "issue": f"Cannot read file: {e}",
-                "severity": "ERROR"
-            })
+            self.issues.append(
+                {
+                    "file": str(file_path),
+                    "issue": f"Cannot read file: {e}",
+                    "severity": "ERROR",
+                }
+            )
             return False
 
         is_compliant = True
@@ -67,34 +71,40 @@ class DocValidator:
             self.stats["files_with_terminal_format"] += 1
         else:
             is_compliant = False
-            self.issues.append({
-                "file": str(file_path),
-                "issue": "Missing terminal-style status box",
-                "severity": "HIGH",
-                "fix": "Add status box with progress bar"
-            })
+            self.issues.append(
+                {
+                    "file": str(file_path),
+                    "issue": "Missing terminal-style status box",
+                    "severity": "HIGH",
+                    "fix": "Add status box with progress bar",
+                }
+            )
 
         # Check for navigation JSON
         if self.has_navigation_json(content):
             self.stats["files_with_navigation"] += 1
         else:
             is_compliant = False
-            self.issues.append({
-                "file": str(file_path),
-                "issue": "Missing navigation JSON structure",
-                "severity": "MEDIUM",
-                "fix": "Add navigation section with parent/siblings/related"
-            })
+            self.issues.append(
+                {
+                    "file": str(file_path),
+                    "issue": "Missing navigation JSON structure",
+                    "severity": "MEDIUM",
+                    "fix": "Add navigation section with parent/siblings/related",
+                }
+            )
 
         # Check for proper header hierarchy
         if not self.has_proper_headers(content):
             is_compliant = False
-            self.issues.append({
-                "file": str(file_path),
-                "issue": "Improper header hierarchy",
-                "severity": "LOW",
-                "fix": "Ensure headers follow # > ## > ### pattern"
-            })
+            self.issues.append(
+                {
+                    "file": str(file_path),
+                    "issue": "Improper header hierarchy",
+                    "severity": "LOW",
+                    "fix": "Ensure headers follow # > ## > ### pattern",
+                }
+            )
 
         if is_compliant:
             self.stats["compliant_files"] += 1
@@ -106,9 +116,9 @@ class DocValidator:
     def has_terminal_format(self, content: str) -> bool:
         """Check if file has terminal-style status box"""
         patterns = [
-            r'┌─.*─┐',  # Box top
-            r'│.*│',    # Box content
-            r'└─.*─┘',  # Box bottom
+            r"┌─.*─┐",  # Box top
+            r"│.*│",  # Box content
+            r"└─.*─┘",  # Box bottom
         ]
         return all(re.search(pattern, content) for pattern in patterns)
 
@@ -122,8 +132,8 @@ class DocValidator:
 
     def has_proper_headers(self, content: str) -> bool:
         """Check for proper header hierarchy"""
-        lines = content.split('\n')
-        h1_count = sum(1 for line in lines if line.startswith('# '))
+        lines = content.split("\n")
+        h1_count = sum(1 for line in lines if line.startswith("# "))
 
         # Should have exactly one H1
         return h1_count == 1
@@ -135,7 +145,7 @@ class DocValidator:
                 "total_files": self.stats["total_files"],
                 "compliant_files": self.stats["compliant_files"],
                 "compliance_rate": f"{self.stats['compliance_rate']:.1f}%",
-                "files_needing_update": len(self.stats["files_needing_update"])
+                "files_needing_update": len(self.stats["files_needing_update"]),
             },
             "metrics": {
                 "terminal_format": f"{self.stats['files_with_terminal_format']}/{self.stats['total_files']}",
@@ -143,7 +153,7 @@ class DocValidator:
             },
             "issues_by_severity": self.group_issues_by_severity(),
             "files_needing_update": self.stats["files_needing_update"][:10],  # Top 10
-            "issues": self.issues[:20]  # Top 20 issues
+            "issues": self.issues[:20],  # Top 20 issues
         }
 
     def group_issues_by_severity(self) -> Dict:
@@ -156,9 +166,9 @@ class DocValidator:
 
     def print_report(self, report: Dict):
         """Print formatted report"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📊 DOCUMENTATION VALIDATION REPORT")
-        print("="*60)
+        print("=" * 60)
 
         print("\n📈 SUMMARY:")
         for key, value in report["summary"].items():
@@ -167,7 +177,9 @@ class DocValidator:
         print("\n⚠️ ISSUES BY SEVERITY:")
         for severity, count in report["issues_by_severity"].items():
             if count > 0:
-                symbol = {"ERROR": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}[severity]
+                symbol = {"ERROR": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}[
+                    severity
+                ]
                 print(f"  {symbol} {severity}: {count}")
 
         if report["files_needing_update"]:
@@ -180,8 +192,9 @@ class DocValidator:
             for issue in report["issues"][:10]:
                 print(f"\n  File: {issue['file']}")
                 print(f"  Issue: {issue['issue']}")
-                if 'fix' in issue:
+                if "fix" in issue:
                     print(f"  Fix: {issue['fix']}")
+
 
 def main():
     """Main entry point"""
@@ -189,6 +202,11 @@ def main():
 
     # Get root path from argument or use current directory
     root_path = sys.argv[1] if len(sys.argv) > 1 else "."
+
+    # If root_path is a file, use its parent directory
+    root_path_obj = Path(root_path)
+    if root_path_obj.is_file():
+        root_path = str(root_path_obj.parent)
 
     print(f"🔍 Validating documentation in: {root_path}")
 
@@ -202,14 +220,15 @@ def main():
     report_path = Path(root_path) / "docs" / "validation-report.json"
     report_path.parent.mkdir(exist_ok=True)
 
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         json.dump(report, f, indent=2, default=str)
 
     print(f"\n✅ Report saved to: {report_path}")
 
     # Exit with error code if compliance is below threshold
-    if report["summary"]["compliance_rate"].rstrip('%') < "80":
+    if report["summary"]["compliance_rate"].rstrip("%") < "80":
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

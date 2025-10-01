@@ -1,0 +1,91 @@
+# Lefthook Configuration
+# Fast parallel git hooks for B9 Dashboard
+# See: docs/development/SYSTEM_IMPROVEMENT_PLAN.md#lefthook-integration
+
+# Global settings
+colors: true
+no_tty: false
+
+# Pre-commit hook - runs before git commit
+pre-commit:
+  parallel: true
+  commands:
+    # Documentation validation
+    docs-validation:
+      glob: "*.md"
+      run: python3 docs/scripts/validate-docs.py {staged_files}
+      stage_fixed: true
+
+    # TypeScript type checking
+    typescript-check:
+      glob: "*.{ts,tsx}"
+      run: cd dashboard && npx tsc --noEmit
+      skip:
+        - merge
+        - rebase
+
+    # ESLint with auto-fix
+    eslint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: cd dashboard && npx eslint {staged_files} --fix --max-warnings 0
+      stage_fixed: true
+
+    # Console.log detection (block commits with console statements)
+    console-check:
+      glob: "*.{ts,tsx,js,jsx}"
+      exclude: ".*\\.test\\.(ts|tsx|js|jsx)$"
+      run: |
+        if grep -n 'console\.' {staged_files}; then
+          echo "❌ Console statements detected. Remove them or add to exceptions."
+          exit 1
+        fi
+
+    # Python formatting
+    python-format:
+      glob: "*.py"
+      run: black --check {staged_files}
+      stage_fixed: true
+
+# Pre-push hook - runs before git push
+pre-push:
+  commands:
+    # Full documentation compliance check
+    docs-compliance:
+      run: |
+        python3 docs/scripts/validate-docs.py --threshold 80
+        if [ $? -ne 0 ]; then
+          echo "❌ Documentation compliance below 80%. Run: python3 docs/scripts/validate-docs.py"
+          exit 1
+        fi
+
+    # Build check (ensure code compiles)
+    build-check:
+      run: cd dashboard && npm run build
+      skip:
+        - merge
+        - rebase
+
+# Post-checkout hook - runs after git checkout
+post-checkout:
+  commands:
+    # Remind about dependency updates
+    deps-check:
+      run: |
+        echo "📦 Checking for dependency updates..."
+        if [ -f "dashboard/package.json" ]; then
+          cd dashboard && npm outdated || true
+        fi
+
+# Commit-msg hook - validates commit message format
+commit-msg:
+  commands:
+    # Enforce conventional commits (optional)
+    message-format:
+      run: |
+        MSG=$(cat {1})
+        if ! echo "$MSG" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?:"; then
+          echo "⚠️  Commit message doesn't follow conventional format"
+          echo "   Expected: type(scope): message"
+          echo "   Example: feat(docs): add semantic versioning"
+          echo "   Types: feat, fix, docs, style, refactor, test, chore, perf"
+        fi
