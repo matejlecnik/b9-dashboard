@@ -9,6 +9,7 @@ import logging
 import os
 import random
 import queue
+import sys
 import threading
 import time
 # ThreadPoolExecutor no longer needed - v3.3.0 uses simple loop for username-only saving
@@ -17,6 +18,11 @@ from typing import Dict, List, Set
 
 # Handle imports for both standalone and module execution
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add parent directories to path for imports
+api_root = os.path.join(current_dir, "..", "..", "..")
+if api_root not in sys.path:
+    sys.path.insert(0, api_root)
 try:
     from .proxy_manager import ProxyManager
     from .public_reddit_api import PublicRedditAPI
@@ -35,7 +41,21 @@ except ImportError:
     spec.loader.exec_module(module)
     PublicRedditAPI = module.PublicRedditAPI
 
-SCRAPER_VERSION = "3.4.4"
+# Import Supabase logging handler
+try:
+    from app.core.utils.supabase_logger import SupabaseLogHandler
+except ImportError:
+    # Fallback for standalone execution
+    supabase_logger_path = os.path.join(api_root, "app", "core", "utils", "supabase_logger.py")
+    if os.path.exists(supabase_logger_path):
+        spec = importlib.util.spec_from_file_location("supabase_logger", supabase_logger_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        SupabaseLogHandler = module.SupabaseLogHandler
+    else:
+        SupabaseLogHandler = None  # Graceful degradation if not available
+
+SCRAPER_VERSION = "3.4.9"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -51,6 +71,10 @@ class RedditScraper:
     def __init__(self, supabase):
         self.supabase = supabase
         self.running = False
+
+        # Set up dual logging (console + Supabase)
+        self._setup_supabase_logging()
+
         self.proxy_manager = ProxyManager(supabase)
         self.api = None  # Async API for subreddit processing (will be initialized in run())
 
@@ -65,6 +89,7 @@ class RedditScraper:
         self.ok_cache: Set[str] = set()  # Ok subreddits (Loop 1 targets)
         self.no_seller_cache: Set[str] = set()  # No Seller subreddits (Loop 2 targets)
         self.session_processed: Set[str] = set()  # Subreddits processed in this session (prevents re-discovery)
+        self.session_fetched_users: Set[str] = set()  # Users whose posts we've already fetched (prevents duplicate fetches)
         self.skip_cache_time = None
         self.cache_ttl = timedelta(hours=1)  # Refresh cache every hour
 
@@ -72,9 +97,49 @@ class RedditScraper:
         # Key: subreddit_name, Value: dict with metadata
         self.subreddit_metadata_cache: Dict[str, dict] = {}
 
+    def _setup_supabase_logging(self):
+        """Configure dual logging: console (existing) + Supabase system_logs"""
+        if not SupabaseLogHandler or not self.supabase:
+            logger.warning("⚠️  Supabase logging not available - console only")
+            return
+
+        # Get the scraper's logger
+        scraper_logger = logging.getLogger(__name__)
+
+        # Check if Supabase handler already exists
+        has_supabase_handler = any(
+            isinstance(handler, SupabaseLogHandler)
+            for handler in scraper_logger.handlers
+        )
+
+        if not has_supabase_handler:
+            # Create Supabase log handler
+            supabase_handler = SupabaseLogHandler(
+                supabase_client=self.supabase,
+                source='reddit_scraper',
+                buffer_size=10,      # Flush every 10 logs
+                flush_interval=30    # Or every 30 seconds
+            )
+            supabase_handler.setLevel(logging.INFO)
+
+            # Use same formatter as console
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            supabase_handler.setFormatter(formatter)
+
+            # Add to logger (keeps existing console handler)
+            scraper_logger.addHandler(supabase_handler)
+
+            # Also add to PublicRedditAPI logger for API request logging
+            api_logger = logging.getLogger('public_reddit_api')
+            api_logger.addHandler(supabase_handler)
+            api_logger.setLevel(logging.INFO)
+
+            logger.info(f"✅ Supabase logging enabled (source: reddit_scraper)")
+
     async def run(self):
         """Main scraper loop"""
-        logger.info(f"🚀 Starting Reddit Scraper v{SCRAPER_VERSION}\n")
+        logger.info(f"🚀 Starting Reddit Scraper v{SCRAPER_VERSION}")
+        logger.info(f"📝 Version: {SCRAPER_VERSION} | Dual logging: console + Supabase system_logs\n")
 
         # Phase 1: Load and test proxies
         logger.info("📡 Phase 1: Proxy Setup")
@@ -103,10 +168,6 @@ class RedditScraper:
         subreddits_by_status = await self.get_target_subreddits()
         ok_subreddits = subreddits_by_status.get('ok', [])
         no_seller_subreddits = subreddits_by_status.get('no_seller', [])
-
-        # TEST: Limit to 10 subreddits (9 Ok + 1 No Seller) - DELETE AFTER TESTING
-        ok_subreddits = ok_subreddits[:9]
-        no_seller_subreddits = no_seller_subreddits[:1]
 
         if not ok_subreddits and not no_seller_subreddits:
             logger.warning("⚠️ No target subreddits found - nothing to scrape")
@@ -140,35 +201,44 @@ class RedditScraper:
                     if isinstance(discovered, set) and len(discovered) > 0:
                         # Filter to get only new subreddits
                         filtered = await self.filter_existing_subreddits(discovered)
+
+                        # Add ALL discoveries to session cache (prevents duplicate "NEW" logging)
+                        self.session_processed.update(discovered)
+
                         if filtered:
                             logger.info(f"\n   🔍 Processing {len(filtered)} discovered subreddits immediately...")
 
                             for discovery_idx, new_sub in enumerate(filtered, 1):
-                                if not self.running:
-                                    break
+                                try:
+                                    if not self.running:
+                                        break
 
-                                # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
-                                if new_sub not in self.subreddit_metadata_cache:
-                                    # u_ = user profile feeds (skip)
-                                    if new_sub.startswith('u_'):
-                                        self.subreddit_metadata_cache[new_sub] = {
-                                            'review': 'User Feed',
-                                            'primary_category': None,
-                                            'tags': [],
-                                            'over18': False
-                                        }
-                                    else:
-                                        # Regular subreddit = NULL for full analysis
-                                        self.subreddit_metadata_cache[new_sub] = {
-                                            'review': None,  # NULL = new discovery, needs full analysis
-                                            'primary_category': None,
-                                            'tags': [],
-                                            'over18': False
-                                        }
+                                    # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
+                                    if new_sub not in self.subreddit_metadata_cache:
+                                        # u_ = user profile feeds (skip)
+                                        if new_sub.startswith('u_'):
+                                            self.subreddit_metadata_cache[new_sub] = {
+                                                'review': 'User Feed',
+                                                'primary_category': None,
+                                                'tags': [],
+                                                'over18': False
+                                            }
+                                        else:
+                                            # Regular subreddit = NULL for full analysis
+                                            self.subreddit_metadata_cache[new_sub] = {
+                                                'review': None,  # NULL = new discovery, needs full analysis
+                                                'primary_category': None,
+                                                'tags': [],
+                                                'over18': False
+                                            }
 
-                                logger.info(f"      [{discovery_idx}/{len(filtered)}] 🆕 r/{new_sub}")
-                                await self.process_discovered_subreddit(new_sub)
-                                await asyncio.sleep(random.uniform(0.5, 1.5))
+                                    logger.info(f"      [{discovery_idx}/{len(filtered)}] 🆕 r/{new_sub}")
+                                    await self.process_discovered_subreddit(new_sub)
+                                    await asyncio.sleep(random.uniform(0.15, 0.45))
+
+                                except Exception as e:
+                                    logger.error(f"❌ Error processing discovery r/{new_sub}: {e}")
+                                    continue  # Continue to next discovery instead of breaking entire loop
 
                             logger.info(f"   ✅ Completed processing {len(filtered)} discoveries from r/{subreddit_name}\n")
 
@@ -477,10 +547,10 @@ class RedditScraper:
         # ========== PASS 1: Fetch & Save Subreddit + Posts ==========
 
         # 1. Parallelize all API calls (3-5x speedup: 2.5-5s → 0.8-1.2s)
-        subreddit_info, rules, hot_30, top_10_weekly = await asyncio.gather(
+        subreddit_info, rules, hot_10, top_10_weekly = await asyncio.gather(
             self.api.get_subreddit_info(subreddit_name, proxy),
             self.api.get_subreddit_rules(subreddit_name, proxy),
-            self.api.get_subreddit_hot_posts(subreddit_name, 30, proxy),
+            self.api.get_subreddit_hot_posts(subreddit_name, 10, proxy),
             self.api.get_subreddit_top_posts(subreddit_name, 'week', 10, proxy)
         )
 
@@ -529,16 +599,16 @@ class RedditScraper:
                 logger.warning(f"⚠️  Using empty rules list after {max_retries} retries")
                 rules = []
 
-        # Validate hot_30 (retry if None)
-        if not self.validate_api_data(hot_30, 'hot_30'):
+        # Validate hot_10 (retry if None)
+        if not self.validate_api_data(hot_10, 'hot_10'):
             for attempt in range(max_retries):
-                logger.info(f"   🔄 Retrying hot_30 (attempt {attempt + 1}/{max_retries})...")
-                hot_30 = await self.api.get_subreddit_hot_posts(subreddit_name, 30, self.proxy_manager.get_next_proxy())
-                if self.validate_api_data(hot_30, 'hot_30'):
+                logger.info(f"   🔄 Retrying hot_10 (attempt {attempt + 1}/{max_retries})...")
+                hot_10 = await self.api.get_subreddit_hot_posts(subreddit_name, 10, self.proxy_manager.get_next_proxy())
+                if self.validate_api_data(hot_10, 'hot_10'):
                     break
             else:
-                logger.warning(f"⚠️  Using empty hot_30 list after {max_retries} retries")
-                hot_30 = []
+                logger.warning(f"⚠️  Using empty hot_10 list after {max_retries} retries")
+                hot_10 = []
 
         # Validate top_10_weekly (retry if None)
         if not self.validate_api_data(top_10_weekly, 'top_10_weekly'):
@@ -553,7 +623,7 @@ class RedditScraper:
 
         # 4. Analyze rules for auto-categorization
         description = subreddit_info.get('description', '')
-        rules_combined = ' '.join([r.get('description', '') for r in rules]) if rules else ''
+        rules_combined = ' '.join([r.get('description') or '' for r in rules]) if rules else ''
         auto_review = self.analyze_rules_for_review(rules_combined, description)
 
         # 5. Save subreddit (with auto_review if detected)
@@ -563,7 +633,7 @@ class RedditScraper:
         self.session_processed.add(subreddit_name)
 
         # 4. Collect posts but DON'T save yet (authors must be saved first)
-        all_posts = hot_30 + top_10_weekly
+        all_posts = hot_10 + top_10_weekly
         unique_posts = {post.get('id'): post for post in all_posts if post.get('id')}
 
         logger.info(f"   ✅ Saved r/{subreddit_name} (posts will be saved after users)")
@@ -575,7 +645,7 @@ class RedditScraper:
             return set()  # No discoveries for No Seller subreddits
 
         # 5a. Extract authors from hot posts for discovery
-        hot_authors = self.extract_authors(hot_30)
+        hot_authors = self.extract_authors(hot_10)
 
         # 5b. Extract authors from all posts for username saving
         all_authors = self.extract_authors(all_posts)
@@ -586,9 +656,15 @@ class RedditScraper:
         if allow_discovery and hot_authors:
             logger.info(f"   🔍 Discovering subreddits from {len(hot_authors)} hot post authors...")
 
+            # Filter out already-fetched users (optimization - prevents duplicate API calls)
+            new_users = hot_authors - self.session_fetched_users
+            cached_count = len(hot_authors) - len(new_users)
+            if cached_count > 0:
+                logger.info(f"      🔄 Skipping {cached_count} already-fetched users (cache hit)")
+
             # Fetch posts sequentially (one user at a time) - Reddit requires sequential requests
             user_posts_results = []
-            hot_authors_list = list(hot_authors)
+            hot_authors_list = list(new_users)
 
             logger.info(f"      📥 Fetching posts from {len(hot_authors_list)} users sequentially...")
 
@@ -598,6 +674,8 @@ class RedditScraper:
                     user_posts_results.append(posts)
 
                     if isinstance(posts, list) and len(posts) > 0:
+                        # Cache user to prevent duplicate fetches in this session
+                        self.session_fetched_users.add(username)
                         logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ✅ {len(posts)} posts")
                     elif isinstance(posts, list):
                         logger.info(f"         [{idx}/{len(hot_authors_list)}] {username}: ⚠️  no posts")
@@ -672,49 +750,18 @@ class RedditScraper:
         return discovered_subreddits
 
     async def process_discovered_subreddit(self, subreddit_name: str):
-        """Process discovered subreddit with full user analysis but no further discovery
+        """Process discovered subreddit - metadata only, no user processing
 
         Args:
             subreddit_name: Name of discovered subreddit
         """
-        logger.info(f"      🆕 Processing r/{subreddit_name} with full analysis")
-
-        # Check review status to determine processing level
-        try:
-            result = self.supabase.table('reddit_subreddits')\
-                .select('review, primary_category, tags, over18')\
-                .eq('name', subreddit_name)\
-                .execute()
-
-            review_status = result.data[0]['review'] if result.data else None
-
-            # Update cache with existing DB values to preserve them during UPSERT
-            if result.data:
-                self.subreddit_metadata_cache[subreddit_name] = {
-                    'review': result.data[0].get('review'),
-                    'primary_category': result.data[0].get('primary_category'),
-                    'tags': result.data[0].get('tags', []),
-                    'over18': result.data[0].get('over18', False)
-                }
-
-            # NULL review = NEW discovery, needs FULL user analysis
-            # Only skip users for explicitly marked statuses
-            process_users = (review_status not in ['No Seller', 'Non Related', 'User Feed', 'Banned'])
-
-            if review_status is None:
-                logger.info(f"      ⚡ r/{subreddit_name} is NEW - analyzing with users")
-            elif not process_users:
-                logger.info(f"      ⚠️  r/{subreddit_name} is {review_status} - skipping users")
-
-        except Exception as e:
-            logger.warning(f"      ⚠️  Could not check review status for r/{subreddit_name}: {e}")
-            process_users = True  # Default to full processing on error
-
-        # Reuse main processing logic with allow_discovery=False
+        # OPTIMIZATION: Skip user processing for all discoveries
+        # We already collected user data from the main subreddit
+        # Discoveries just need subreddit metadata saved
         await self.process_subreddit(
             subreddit_name,
-            process_users=process_users,  # Determined by review status
-            allow_discovery=False         # Don't discover more subreddits
+            process_users=False,      # Skip user processing (optimization)
+            allow_discovery=False     # Don't discover more subreddits
         )
 
     def save_subreddit(self, name: str, info: dict, rules: list, top_weekly: list, auto_review: str = None):
