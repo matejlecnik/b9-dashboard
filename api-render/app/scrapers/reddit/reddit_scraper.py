@@ -275,7 +275,7 @@ class RedditScraper:
                 await asyncio.sleep(60)
 
     async def _fetch_subreddits_paginated(self, review_status: str, fields: str = 'name') -> List[dict]:
-        """Fetch all subreddits with pagination (999 rows per page - Supabase limit)
+        """Fetch all subreddits with pagination - uses Supabase's default max per page
 
         Args:
             review_status: Review status to filter by
@@ -286,16 +286,17 @@ class RedditScraper:
         """
         all_data = []
         offset = 0
-        batch_size = 999  # Supabase enforces max 999 rows per query
+        max_page_size = None  # Will be detected from first response
         iteration = 0
 
         while True:
             iteration += 1
-            logger.info(f"📄 Pagination [{review_status}] iteration {iteration}: offset={offset}, batch_size={batch_size}")
+            logger.info(f"📄 Pagination [{review_status}] iteration {iteration}: offset={offset}")
 
+            # No .limit() - let Supabase use its default max (range is large to not restrict)
             response = self.supabase.table('reddit_subreddits').select(
                 fields
-            ).eq('review', review_status).range(offset, offset + batch_size - 1).limit(batch_size).execute()
+            ).eq('review', review_status).range(offset, offset + 9999).execute()
 
             rows_returned = len(response.data) if response.data else 0
             logger.info(f"📄 [{review_status}] Got {rows_returned} rows, total so far: {len(all_data) + rows_returned}")
@@ -304,14 +305,19 @@ class RedditScraper:
                 logger.info(f"📄 [{review_status}] BREAK: No data (empty response)")
                 break
 
+            # First page: detect Supabase's actual max page size
+            if max_page_size is None:
+                max_page_size = len(response.data)
+                logger.info(f"📄 [{review_status}] Detected Supabase max page size: {max_page_size}")
+
             all_data.extend(response.data)
 
-            # If we got less than batch_size, we've reached the end
-            if len(response.data) < batch_size:
-                logger.info(f"📄 [{review_status}] BREAK: Got {len(response.data)} < {batch_size} (last page)")
+            # If we got less than first page size, we've reached the end
+            if len(response.data) < max_page_size:
+                logger.info(f"📄 [{review_status}] BREAK: Got {len(response.data)} < {max_page_size} (last page)")
                 break
 
-            offset += batch_size
+            offset += len(response.data)  # Use actual rows returned
 
         logger.info(f"📄 Pagination complete for review={review_status}: {len(all_data)} total rows in {iteration} iterations")
         return all_data
