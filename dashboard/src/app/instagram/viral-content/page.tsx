@@ -13,8 +13,8 @@ import {
 import { StandardToolbar } from '@/components/shared'
 import { ViralFilters } from '@/components/instagram/ViralFilters'
 import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
-import { MetricsCardsSkeleton, CardGridSkeleton } from '@/components/SkeletonLoaders'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { MetricsCardsSkeleton, CardGridSkeleton } from '@/components/shared/SkeletonLoaders'
 import { logger } from '@/lib/logger'
 import { formatNumber } from '@/lib/formatters'
 import {

@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from '@/providers/QueryProvider'
 import { ToastProvider } from '@/components/ui/toast'
-import { PerformanceMonitor } from '@/components/PerformanceMonitor'
+// import { PerformanceMonitor } from '@/components/PerformanceMonitor'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +36,7 @@ export default function RootLayout({
       >
         <QueryProvider>
           <ToastProvider>
-            <PerformanceMonitor />
+            {/* <PerformanceMonitor /> */}
             {children}
           </ToastProvider>
         </QueryProvider>

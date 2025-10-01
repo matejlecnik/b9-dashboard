@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { ModelForm } from '@/components/ModelForm'
+import { ModelForm } from '@/components/features/ModelForm'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 

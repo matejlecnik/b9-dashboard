@@ -1,4 +1,4 @@
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 export default function InstagramLayout({
   children,

@@ -6,16 +6,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui'
 import { useDebounce } from '@/hooks'
 import { logger } from '@/lib'
-import { TableSkeleton } from '@/components/SkeletonLoaders'
+import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
 import { createCategorizationTable } from '@/components/shared/tables/UniversalTable'
 import { queryKeys } from '@/lib/react-query'
 import { DashboardLayout } from '@/components/shared'
 import { Progress } from '@/components/ui'
 import { Sparkles, Tag } from 'lucide-react'
 import { formatNumber } from '@/lib'
-import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
-import { TagFilterDropdown } from '@/components/TagFilterDropdown'
+import { TagFilterDropdown } from '@/components/shared/TagFilterDropdown'
 
 // Import React Query hooks
 import {
@@ -58,7 +58,7 @@ const UniversalTable = dynamic(
 )
 
 const AICategorizationModal = dynamic(
-  () => import('@/components/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
+  () => import('@/components/features/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
   { ssr: false }
 )
 

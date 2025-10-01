@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui'
 import { DashboardLayout, MetricsCards } from '@/components/shared'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 export default function AnalyticsPage() {
   // Mock data for metrics - replace with actual data fetch

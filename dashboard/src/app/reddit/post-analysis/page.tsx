@@ -2,10 +2,10 @@
 
 import { useRef, useEffect } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { PostAnalysisErrorBanner } from '@/components/PostAnalysisErrorBanner'
-import { PostAnalysisStats } from '@/components/PostAnalysisStats'
-import { StandardPostCard } from '@/components/StandardPostCard'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { PostAnalysisErrorBanner } from '@/components/common/PostAnalysisErrorBanner'
+import { PostAnalysisStats } from '@/components/common/PostAnalysisStats'
+import { StandardPostCard } from '@/components/shared/StandardPostCard'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { usePostAnalysis } from '@/hooks/usePostAnalysis'
 import type { Post } from '@/types/post'
 

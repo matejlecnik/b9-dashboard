@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { TagsDisplay } from '@/components/TagsDisplay'
+import { TagsDisplay } from '@/components/shared/TagsDisplay'
 import { BookOpen, BadgeCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'

@@ -10,13 +10,6 @@ export type {
   ReviewPageStats
 } from './ReviewPageTemplate'
 
-export { AnalyticsPageTemplate } from './AnalyticsPageTemplate'
-export type {
-  AnalyticsMetric,
-  AnalyticsChart,
-  AnalyticsFilter
-} from './AnalyticsPageTemplate'
-
 // Template Hooks
 export { useTemplateData } from './hooks/useTemplateData'
 export type { UseTemplateDataOptions, UseTemplateDataReturn } from './hooks/useTemplateData'

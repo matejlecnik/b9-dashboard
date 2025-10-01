@@ -1,31 +1,31 @@
 {
   "summary": {
-    "total_files": 93,
-    "compliant_files": 21,
-    "compliance_rate": "22.6%",
-    "files_needing_update": 72
+    "total_files": 134,
+    "compliant_files": 81,
+    "compliance_rate": "60.4%",
+    "files_needing_update": 53
   },
   "metrics": {
-    "terminal_format": "63/93",
-    "navigation_json": "52/93"
+    "terminal_format": "134/134",
+    "navigation_json": "129/134"
   },
   "issues_by_severity": {
     "ERROR": 0,
-    "HIGH": 30,
-    "MEDIUM": 41,
-    "LOW": 39
+    "HIGH": 0,
+    "MEDIUM": 5,
+    "LOW": 50
   },
   "files_needing_update": [
     ".github/workflows/README.md",
     "CLAUDE.md",
     "README.md",
+    "ROADMAP.md",
+    "api-render/DOCUMENTATION_INDEX.md",
     "api-render/README.md",
     "api-render/app/core/README.md",
     "api-render/app/core/clients/README.md",
     "api-render/app/middleware/README.md",
-    "api-render/app/routes/README.md",
-    "api-render/app/scrapers/README.md",
-    "api-render/app/scrapers/reddit/ARCHITECTURE.md"
+    "api-render/app/routes/README.md"
   ],
   "issues": [
     {
@@ -57,6 +57,18 @@
       "issue": "Improper header hierarchy",
       "severity": "LOW",
       "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "ROADMAP.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    },
+    {
+      "file": "api-render/DOCUMENTATION_INDEX.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
     },
     {
       "file": "api-render/README.md",
@@ -107,12 +119,6 @@
       "fix": "Ensure headers follow # > ## > ### pattern"
     },
     {
-      "file": "api-render/app/scrapers/reddit/archive/PLAN_v3.1.0.md",
-      "issue": "Improper header hierarchy",
-      "severity": "LOW",
-      "fix": "Ensure headers follow # > ## > ### pattern"
-    },
-    {
       "file": "api-render/app/services/README.md",
       "issue": "Improper header hierarchy",
       "severity": "LOW",
@@ -129,12 +135,6 @@
       "issue": "Improper header hierarchy",
       "severity": "LOW",
       "fix": "Ensure headers follow # > ## > ### pattern"
-    },
-    {
-      "file": "api-render/docs/API.md",
-      "issue": "Missing navigation JSON structure",
-      "severity": "MEDIUM",
-      "fix": "Add navigation section with parent/siblings/related"
     },
     {
       "file": "api-render/docs/API.md",

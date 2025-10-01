@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic'
 import { DashboardTemplate } from './DashboardTemplate'
 import { MetricsCards } from '@/components/shared/cards/MetricsCards'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
-import { TableSkeleton, MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { TableSkeleton, MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import type { LucideIcon } from 'lucide-react'
 
 // Dynamic import for table

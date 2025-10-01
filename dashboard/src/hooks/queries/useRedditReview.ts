@@ -45,19 +45,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
   return useInfiniteSupabaseQuery<Subreddit[]>(
     queryKeys.reddit.reviews(filters),
     async ({ pageParam = 0 }) => {
-        filters,
-        pageParam,
-        searchValue: filters.search || 'none',
-        reviewFilter: filters.review || 'none'
-      }, null, 2))
-
-      // Check if Supabase client exists
-        clientExists: !!supabase,
-        clientType: supabase ? typeof supabase : 'null',
-        envUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
-        envKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing'
-      }, null, 2))
-
       if (!supabase) {
         const error = new Error('Supabase client not available - check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables')
         logger.error('❌ Supabase client initialization failed:', {
@@ -143,12 +130,6 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
 
         throw new Error(errorMessage)
       }
-
-        search: filters.search || 'none',
-        totalFetched: data?.length || 0,
-        pageParam,
-        firstFewResults: data?.slice(0, 3)?.map(s => ({ id: s.id, display_name: s.display_name, review: s.review }))
-      }, null, 2))
 
       return data || []
     },

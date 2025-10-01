@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2, Loader2, Edit, UserCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ModelsTableSkeleton } from '@/components/SkeletonLoaders'
+import { ModelsTableSkeleton } from '@/components/shared/SkeletonLoaders'
 
 
 interface Model {

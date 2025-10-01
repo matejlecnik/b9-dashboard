@@ -10,12 +10,12 @@ import { logger } from '@/lib'
 
 // Lazy load heavy components
 const ModelFormModal = dynamic(
-  () => import('@/components/ModelFormModal').then(mod => ({ default: mod.ModelFormModal })),
+  () => import('@/components/features/ModelFormModal').then(mod => ({ default: mod.ModelFormModal })),
   { ssr: false }
 )
 
 const ModelsTable = dynamic(
-  () => import('@/components/ModelsTable'),
+  () => import('@/components/features/ModelsTable'),
   {
     ssr: false,
     loading: () => (

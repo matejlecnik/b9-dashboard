@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, memo, type JSX } from 'react'
 import { useToast } from '@/components/ui/toast'
 import Image from 'next/image'
 import { logger } from '@/lib/logger'
-import { TagsDisplay } from '@/components/TagsDisplay'
+import { TagsDisplay } from '@/components/shared/TagsDisplay'
 import { supabase } from '@/lib/supabase'
 import {
   Users,

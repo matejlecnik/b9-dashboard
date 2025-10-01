@@ -13,13 +13,13 @@ import { Button, Card, CardContent } from '@/components/ui'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { ActiveAccountsSection } from '@/components/shared/ActiveAccountsSection'
-import { TagFilterDropdown } from '@/components/TagFilterDropdown'
+import { TagFilterDropdown } from '@/components/shared/TagFilterDropdown'
 import { useToast } from '@/components/ui'
 import { useErrorHandler, useThrottledCallback, PERFORMANCE_SETTINGS } from '@/lib'
 import { useDebounce } from '@/hooks'
 import { useAvailableTags } from '@/hooks/queries/useRedditCategorization'
 import { logger, supabase } from '@/lib'
-import type { SubredditWithPosts } from '@/components/DiscoveryTable'
+import type { SubredditWithPosts } from '@/components/features/DiscoveryTable'
 
 interface Creator {
   id: number
@@ -72,7 +72,7 @@ interface AddUserModalProps {
 
 // Dynamic imports for heavy components
 const DiscoveryTable = dynamic<DiscoveryTableProps>(
-  () => import('@/components/DiscoveryTable').then(mod => ({ default: mod.DiscoveryTable })),
+  () => import('@/components/features/DiscoveryTable').then(mod => ({ default: mod.DiscoveryTable })),
   {
     ssr: false,
     loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
@@ -80,7 +80,7 @@ const DiscoveryTable = dynamic<DiscoveryTableProps>(
 )
 
 const AddUserModal = dynamic<AddUserModalProps>(
-  () => import('@/components/AddUserModal').then(mod => ({ default: mod.AddUserModal })),
+  () => import('@/components/features/AddUserModal').then(mod => ({ default: mod.AddUserModal })),
   { ssr: false }
 )
 

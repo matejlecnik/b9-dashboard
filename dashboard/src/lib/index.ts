@@ -20,7 +20,7 @@ export { apiVersion, getApiEndpoint, API_VERSIONS } from './api-versioning'
 
 // Database & Supabase
 export { supabase, createClient } from './supabase'
-export { getSupabaseClient, getSupabaseAdmin } from './supabase-client'
+// export { getSupabaseClient, getSupabaseAdmin } from './supabase-client'
 export { performanceMonitor } from './database-performance'
 
 // AI & OpenAI

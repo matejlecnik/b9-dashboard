@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { DashboardLayout } from '@/components/DashboardLayout'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import type { User } from '@/lib/supabase/index'
 import { Badge, Button } from '@/components/ui'
 import { formatNumber as formatNumberUtil } from '@/lib'
@@ -21,8 +21,8 @@ import {
   Activity
 } from 'lucide-react'
 import NextImage from 'next/image'
-import { UserFilters } from '@/components/UserFilters'
-import { UserListSkeleton } from '@/components/UniversalLoading'
+import { UserFilters } from '@/components/shared/UserFilters'
+import { UserListSkeleton } from '@/components/shared/UniversalLoading'
 import { useToast } from '@/components/ui'
 import {
   useUserStats,
@@ -31,7 +31,7 @@ import {
   type UserProfile
 } from '@/hooks/useUserAnalytics'
 import { useDebounce } from '@/hooks/useDebounce'
-import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 // Enhanced Avatar component with better fallback handling
 const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, size?: number, username: string }) => {

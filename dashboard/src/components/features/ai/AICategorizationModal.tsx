@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { X, Sparkles, Info } from 'lucide-react'
-import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { LogViewerSupabase } from '@/components/features/LogViewerSupabase'
 
 interface AICategorizationModalProps {
   isOpen: boolean

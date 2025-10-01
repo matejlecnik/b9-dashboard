@@ -6,7 +6,7 @@ import {
   Square
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { LogViewerSupabase } from '@/components/LogViewerSupabase'
+import { LogViewerSupabase } from '@/components/features/LogViewerSupabase'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'

@@ -18,12 +18,12 @@ import {
 // Use ReviewStatus from hook to avoid divergence
 
 // Import components
-import { TableSkeleton, MetricsCardsSkeleton } from '@/components/SkeletonLoaders'
+import { TableSkeleton, MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
 import { createSubredditReviewTable, type Subreddit as TableSubreddit } from '@/components/shared/tables/UniversalTable'
 import type { Subreddit as DbSubreddit } from '@/lib/supabase'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { ErrorBoundary as ComponentErrorBoundary } from '@/components/ErrorBoundary'
-import { MetricsCards } from '@/components/MetricsCards'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { MetricsCards } from '@/components/shared/cards/MetricsCards'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { Plus, Check, UserX, X, Ban } from 'lucide-react'
@@ -36,7 +36,7 @@ const UniversalTable = dynamic(
 )
 
 const AddSubredditModal = dynamic(
-  () => import('@/components/AddSubredditModal').then(mod => mod.AddSubredditModal),
+  () => import('@/components/features/AddSubredditModal').then(mod => mod.AddSubredditModal),
   { ssr: false }
 )
 

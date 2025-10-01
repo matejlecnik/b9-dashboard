@@ -141,37 +141,17 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
     searchQuery: debouncedSearchQuery
   })
 
-  // Debug what we're receiving
-    viralPostsData,
-    dataType: typeof viralPostsData,
-    isArray: Array.isArray(viralPostsData),
-    length: viralPostsData?.length,
-    firstItem: viralPostsData?.[0],
-    loading: viralPostsLoading
-  })
-
   // Store all posts internally but display paginated
   const [allPosts, setAllPosts] = useState<Post[]>([])
   const [displayedPostsCount, setDisplayedPostsCount] = useState(initialPostsPerPage)
 
   // Process viral posts when data changes
   useEffect(() => {
-      dataReceived: viralPostsData,
-      dataLength: viralPostsData?.length,
-      loading: viralPostsLoading,
-      dataType: typeof viralPostsData,
-      isArray: Array.isArray(viralPostsData)
-    })
-
     if (!viralPostsLoading && viralPostsData) {
       // Ensure we have an array
       const postsArray = Array.isArray(viralPostsData)
         ? (viralPostsData as Array<Post & { viral_score?: number }>)
         : []
-
-        arrayLength: postsArray.length,
-        firstPost: postsArray[0]
-      })
 
       if (postsArray.length > 0) {
         // Add viralScore property for display if it doesn't exist
@@ -241,11 +221,6 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       setDisplayedPostsCount(nextCount)
       setHasMore(nextCount < allPosts.length)
       setLoadingMore(false)
-
-        showing: nextCount,
-        total: allPosts.length,
-        hasMore: nextCount < allPosts.length
-      })
     }, 300)
   }, [loadingMore, hasMore, displayedPostsCount, allPosts])
 

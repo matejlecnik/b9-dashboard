@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { UniversalToolbar } from '../UniversalToolbar'
+import { UniversalToolbar } from '@/components/shared/UniversalToolbar'
 
 interface UnifiedToolbarProps {
   children: React.ReactNode

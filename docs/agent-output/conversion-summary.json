@@ -1,0 +1,194 @@
+{
+  "timestamp": "2025-10-01",
+  "total_files": 37,
+  "converted": 37,
+  "errors": 0,
+  "files": [
+    {
+      "path": "dashboard/src/types/README.md",
+      "size": 1735,
+      "lines": 55
+    },
+    {
+      "path": "dashboard/src/app/README.md",
+      "size": 2761,
+      "lines": 67
+    },
+    {
+      "path": "dashboard/src/config/README.md",
+      "size": 1631,
+      "lines": 58
+    },
+    {
+      "path": "dashboard/src/providers/README.md",
+      "size": 1633,
+      "lines": 54
+    },
+    {
+      "path": "dashboard/src/components/README.md",
+      "size": 4701,
+      "lines": 149
+    },
+    {
+      "path": "dashboard/src/hooks/README.md",
+      "size": 1379,
+      "lines": 46
+    },
+    {
+      "path": "dashboard/src/lib/api-security-migration.md",
+      "size": 4634,
+      "lines": 174
+    },
+    {
+      "path": "dashboard/src/lib/README.md",
+      "size": 2673,
+      "lines": 59
+    },
+    {
+      "path": "dashboard/src/components/standard/README.md",
+      "size": 10981,
+      "lines": 459
+    },
+    {
+      "path": "dashboard/src/components/shared/tables/README.md",
+      "size": 6113,
+      "lines": 227
+    },
+    {
+      "path": "dashboard/src/app/dashboards/README.md",
+      "size": 2234,
+      "lines": 56
+    },
+    {
+      "path": "dashboard/src/app/reddit/README.md",
+      "size": 4824,
+      "lines": 153
+    },
+    {
+      "path": "dashboard/src/app/api/README.md",
+      "size": 17261,
+      "lines": 441
+    },
+    {
+      "path": "dashboard/src/app/instagram/README.md",
+      "size": 6203,
+      "lines": 180
+    },
+    {
+      "path": "dashboard/src/app/instagram/IMPROVEMENT_DASHBOARD.md",
+      "size": 11150,
+      "lines": 402
+    },
+    {
+      "path": "dashboard/src/app/instagram/viral-content/README.md",
+      "size": 6691,
+      "lines": 232
+    },
+    {
+      "path": "dashboard/src/app/instagram/creator-review/README.md",
+      "size": 5370,
+      "lines": 177
+    },
+    {
+      "path": "dashboard/src/app/instagram/analytics/README.md",
+      "size": 5218,
+      "lines": 165
+    },
+    {
+      "path": "dashboard/src/app/instagram/niching/README.md",
+      "size": 6250,
+      "lines": 203
+    },
+    {
+      "path": "dashboard/src/app/reddit/user-analysis/README.md",
+      "size": 2408,
+      "lines": 58
+    },
+    {
+      "path": "dashboard/src/app/reddit/categorization/README.md",
+      "size": 5366,
+      "lines": 152
+    },
+    {
+      "path": "dashboard/src/app/reddit/subreddit-review/README.md",
+      "size": 3673,
+      "lines": 67
+    },
+    {
+      "path": "dashboard/src/app/reddit/post-analysis/README.md",
+      "size": 2827,
+      "lines": 86
+    },
+    {
+      "path": "dashboard/src/app/reddit/posting/README.md",
+      "size": 4443,
+      "lines": 91
+    },
+    {
+      "path": "dashboard/src/app/models/new/README.md",
+      "size": 6339,
+      "lines": 246
+    },
+    {
+      "path": "dashboard/src/app/models/[id]/README.md",
+      "size": 5685,
+      "lines": 225
+    },
+    {
+      "path": "dashboard/src/app/monitor/reddit/README.md",
+      "size": 3472,
+      "lines": 120
+    },
+    {
+      "path": "dashboard/src/app/monitor/instagram/README.md",
+      "size": 6608,
+      "lines": 266
+    },
+    {
+      "path": "dashboard/docs/development/SESSION_LOG.md",
+      "size": 3923,
+      "lines": 143
+    },
+    {
+      "path": "dashboard/docs/development/TASKS.md",
+      "size": 6385,
+      "lines": 282
+    },
+    {
+      "path": "dashboard/docs/deployment/CHECKLIST.md",
+      "size": 4553,
+      "lines": 200
+    },
+    {
+      "path": "docs/database/TODO_CRON_SETUP.md",
+      "size": 11582,
+      "lines": 382
+    },
+    {
+      "path": "docs/database/SUPABASE_FUNCTIONS.md",
+      "size": 10536,
+      "lines": 504
+    },
+    {
+      "path": "docs/database/BACKGROUND_JOBS.md",
+      "size": 9663,
+      "lines": 419
+    },
+    {
+      "path": "docs/database/SUPABASE_QUERIES.md",
+      "size": 10038,
+      "lines": 405
+    },
+    {
+      "path": "api-render/docs/archive/PHASE_1_ASYNC_OPTIMIZATION.md",
+      "size": 22527,
+      "lines": 783
+    },
+    {
+      "path": "api-render/app/scrapers/reddit/README.md",
+      "size": 8816,
+      "lines": 278
+    }
+  ],
+  "error_details": []
+}

@@ -1,0 +1,484 @@
+{
+  "timestamp": "2025-10-01T15:21:58.339163",
+  "root_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard",
+  "standards": {
+    "version": "2.0.0",
+    "path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/DOCUMENTATION_STANDARDS.md"
+  },
+  "template": "LOADED",
+  "non_compliant_files": [
+    {
+      "path": "README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/DOCUMENTATION_INDEX.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/DOCUMENTATION_INDEX.md",
+      "issues": []
+    },
+    {
+      "path": "docs/INDEX.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/INDEX.md",
+      "issues": []
+    },
+    {
+      "path": "docs/DOCUMENTATION_METRICS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/DOCUMENTATION_METRICS.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/README.md",
+      "issues": []
+    },
+    {
+      "path": ".github/workflows/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/.github/workflows/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/TESTING_GUIDELINES.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/TESTING_GUIDELINES.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/API_INTEGRATION_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/API_INTEGRATION_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/DOCUMENTATION_MAP.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/DOCUMENTATION_MAP.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/TESTING_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/TESTING_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/COMPONENT_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/COMPONENT_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/API_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/API_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/types/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/types/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/config/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/config/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/providers/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/providers/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/components/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/components/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/hooks/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/hooks/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/lib/api-security-migration.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/lib/api-security-migration.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/lib/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/lib/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/components/standard/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/components/standard/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/components/shared/tables/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/components/shared/tables/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/dashboards/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/dashboards/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/api/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/api/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/IMPROVEMENT_DASHBOARD.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/IMPROVEMENT_DASHBOARD.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/viral-content/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/viral-content/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/creator-review/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/creator-review/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/analytics/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/analytics/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/instagram/niching/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/instagram/niching/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/user-analysis/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/user-analysis/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/categorization/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/categorization/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/subreddit-review/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/subreddit-review/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/post-analysis/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/post-analysis/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/reddit/posting/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/reddit/posting/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/models/new/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/models/new/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/models/[id]/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/models/[id]/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/monitor/reddit/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/monitor/reddit/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/src/app/monitor/instagram/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/src/app/monitor/instagram/README.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/development/REACT_QUERY_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/development/REACT_QUERY_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/development/SESSION_LOG.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/development/SESSION_LOG.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/development/REACT_QUERY_QUICK_REFERENCE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/development/REACT_QUERY_QUICK_REFERENCE.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/development/TASKS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/development/TASKS.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/deployment/CHECKLIST.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/deployment/CHECKLIST.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/templates/PAGE_PATTERNS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/templates/PAGE_PATTERNS.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/templates/DATA_FLOW_PATTERNS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/templates/DATA_FLOW_PATTERNS.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/templates/SIDEBAR_CONFIGURATION.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/templates/SIDEBAR_CONFIGURATION.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/templates/COMPONENT_CATALOG.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/templates/COMPONENT_CATALOG.md",
+      "issues": []
+    },
+    {
+      "path": "dashboard/docs/templates/DASHBOARD_TEMPLATE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/dashboard/docs/templates/DASHBOARD_TEMPLATE.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/TODO_CRON_SETUP.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/TODO_CRON_SETUP.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/SUPABASE_FUNCTIONS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/SUPABASE_FUNCTIONS.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/BACKGROUND_JOBS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/BACKGROUND_JOBS.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/README.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/SUPABASE_SCHEMA.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/SUPABASE_SCHEMA.md",
+      "issues": []
+    },
+    {
+      "path": "docs/database/SUPABASE_QUERIES.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/database/SUPABASE_QUERIES.md",
+      "issues": []
+    },
+    {
+      "path": "docs/archive/REDDIT_SCRAPER_ARCHITECTURE_v3.0.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/archive/REDDIT_SCRAPER_ARCHITECTURE_v3.0.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/DOCUMENTATION_TEMPLATE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/DOCUMENTATION_TEMPLATE.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/DOCUMENTATION_STANDARDS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/DOCUMENTATION_STANDARDS.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/SYSTEM_IMPROVEMENT_PLAN.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/SYSTEM_IMPROVEMENT_PLAN.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/SESSION_LOG.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/SESSION_LOG.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/DOCUMENTATION_MAP.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/DOCUMENTATION_MAP.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/DOCUMENTATION_AGENT_GUIDE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/DOCUMENTATION_AGENT_GUIDE.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/QUICK_CODES.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/QUICK_CODES.md",
+      "issues": []
+    },
+    {
+      "path": "docs/deployment/DEPLOYMENT.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/deployment/DEPLOYMENT.md",
+      "issues": []
+    },
+    {
+      "path": "docs/deployment/DEPLOYMENT_SECRETS.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/deployment/DEPLOYMENT_SECRETS.md",
+      "issues": []
+    },
+    {
+      "path": "docs/performance/PERFORMANCE_OPTIMIZATION.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/performance/PERFORMANCE_OPTIMIZATION.md",
+      "issues": []
+    },
+    {
+      "path": "docs/development/vscode/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/docs/development/vscode/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/migrations/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/migrations/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/ARCHITECTURE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/ARCHITECTURE.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/API.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/API.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/PERFORMANCE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/PERFORMANCE.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/DEPLOYMENT.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/DEPLOYMENT.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/logging.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/logging.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/MONITORING.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/MONITORING.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/docs/archive/PHASE_1_ASYNC_OPTIMIZATION.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/docs/archive/PHASE_1_ASYNC_OPTIMIZATION.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/middleware/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/middleware/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/core/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/core/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/utils/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/utils/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/scrapers/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/scrapers/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/routes/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/routes/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/services/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/services/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/services/tags/TAG_CATEGORIES.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/services/tags/TAG_CATEGORIES.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/services/tags/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/services/tags/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/scrapers/reddit/ARCHITECTURE.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/scrapers/reddit/ARCHITECTURE.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/scrapers/reddit/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/scrapers/reddit/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/scrapers/instagram/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/scrapers/instagram/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/scrapers/instagram/services/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/scrapers/instagram/services/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/core/clients/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/core/clients/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/core/database/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/core/database/README.md",
+      "issues": []
+    },
+    {
+      "path": "api-render/app/core/config/README.md",
+      "absolute_path": "/Users/matejlecnik/Desktop/b9_agency/b9_dashboard/api-render/app/core/config/README.md",
+      "issues": []
+    }
+  ],
+  "directory_structure": ".claude\n.git\n.git/hooks\n.git/info\n.git/logs\n.git/logs/refs\n.git/logs/refs/heads\n.git/logs/refs/heads/rollback\n.git/logs/refs/remotes\n.git/logs/refs/remotes/origin\n.git/objects\n.git/objects/00\n.git/objects/01\n.git/objects/02\n.git/objects/03\n.git/objects/04\n.git/objects/05\n.git/objects/06\n.git/objects/07\n.git/objects/08\n.git/objects/09\n.git/objects/0a\n.git/objects/0b\n.git/objects/0c\n.git/objects/0d\n.git/objects/0e\n.git/objects/0f\n.git/objects/10\n.git/objects/11\n.git/objects/12\n.git/objects/13\n.git/objects/14\n.git/objects/15\n.git/objects/16\n.git/objects/17\n.git/objects/18\n.git/objects/19\n.git/objects/1a\n.git/objects/1b\n.git/objects/1c\n.git/objects/1d\n.git/objects/1e\n.git/objects/1f\n.git/objects/20\n.git/objects/21\n.git/objects/22\n.git/objects/23\n.git/objects/24\n.git/objects/25\n.git/objects/26",
+  "metrics": {
+    "total_md_files": 1212,
+    "total_ts_files": 10363,
+    "total_py_files": 48,
+    "components": 121,
+    "hooks": 24
+  }
+}
