@@ -384,8 +384,93 @@ _Version: X.X.X | Updated: YYYY-MM-DD_
 }
 ```
 
+## 11. DOCUMENTATION STRUCTURE RULES (NEW v2.1.0)
+
+```json
+{
+  "principle": "Prevent redundancy, ensure logical organization",
+  "readme_placement": {
+    "create_when": [
+      "Directory contains 3+ files with related functionality",
+      "Complex module requiring overview",
+      "Entry point for developers (e.g., src/components/, api-render/app/)"
+    ],
+    "skip_when": [
+      "Single-file directories",
+      "Self-explanatory structure (e.g., .github/, .vscode/)",
+      "Parent README adequately documents children"
+    ]
+  },
+  "prevent_redundancy": {
+    "no_duplicate_content": "Don't copy-paste same content across READMEs",
+    "use_references": "Link to authoritative docs instead of duplicating",
+    "example": "Multiple components/ subdirs → link to parent components/README.md"
+  },
+  "agent_output_handling": {
+    "temp_directory": "docs/agent-output/",
+    "workflow": [
+      "1. Agent generates files in temp directory",
+      "2. Review generated files",
+      "3. Deploy to final locations",
+      "4. Delete temp directory",
+      "5. Agent-output/ is gitignored"
+    ],
+    "never_commit": "docs/agent-output/ or docs/agent-output-backup-*/"
+  },
+  "validation": {
+    "tool": "docs/scripts/validate-docs.py",
+    "checks": [
+      "Exactly one H1 header per file",
+      "Navigation JSON present",
+      "Terminal-style status box",
+      "No duplicate README content"
+    ],
+    "target": "95%+ compliance"
+  }
+}
+```
+
+### Anti-Patterns to Avoid
+
+| ❌ Don't Do This | ✅ Do This Instead |
+|-----------------|-------------------|
+| Create README.md in every subdirectory | Only create READMEs for complex modules |
+| Copy same "How to use" section across 5 READMEs | Link to single authoritative guide |
+| Commit `docs/agent-output/` to git | Add to .gitignore, delete after deployment |
+| Write 50-line inline code comments | 1-line comment + link to .md doc |
+| Keep 8 H1 headers in one file | Fix with `docs/scripts/fix-headers.py` |
+
+### Directory Structure Example
+
+```
+✅ GOOD STRUCTURE:
+/src
+  /components
+    README.md          ← Overview of all components
+    /ui
+      button.tsx       ← No README needed (parent covers it)
+      input.tsx
+    /features
+      README.md        ← Complex module, needs its own README
+      Header.tsx
+      Footer.tsx
+
+❌ BAD STRUCTURE:
+/src
+  /components
+    README.md
+    /ui
+      README.md        ← Redundant! Parent README covers this
+      button.tsx
+      README.md        ← Redundant! No need for single-file README
+    /features
+      README.md
+      Header.tsx
+      README.md        ← Redundant! Same info as parent
+```
+
 ---
 
-_Standards Version: 2.0.0 | Updated: 2025-10-01 | Mandatory: YES_
-_Changes: Added semantic versioning, code comment policy, plans-in-md rule_
+_Standards Version: 2.1.0 | Updated: 2025-10-01 | Mandatory: YES_
+_Changes: v2.1.0 - Added documentation structure rules, anti-patterns, directory guidelines_
 _Navigate: [← DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | [→ DOCUMENTATION_AGENT_GUIDE.md](DOCUMENTATION_AGENT_GUIDE.md) | [→ ROADMAP.md](../../ROADMAP.md)_
