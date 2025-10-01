@@ -291,7 +291,7 @@ async def get_reddit_scraper_status_detailed(request: Request):
 
 @router.get("/cycle-status")
 async def get_cycle_status():
-    """Get current Reddit scraper cycle status"""
+    """Get current Reddit scraper cycle status with elapsed time"""
     try:
         supabase = get_supabase()
 
@@ -300,47 +300,95 @@ async def get_cycle_status():
 
         if not result.data or len(result.data) == 0:
             return {
+                "success": True,
+                "running": False,
                 "status": "not_configured",
-                "message": "Reddit scraper not found in system_control table"
+                "message": "Reddit scraper not found in system_control table",
+                "cycle": {
+                    "elapsed_formatted": "Not Configured",
+                    "start_time": None,
+                    "elapsed_seconds": None
+                }
             }
 
         control = result.data[0]
+        is_enabled = control.get('enabled', False)
 
-        # Get latest cycle info from logs
-        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        if not is_enabled:
+            return {
+                "success": True,
+                "running": False,
+                "status": "Not Active",
+                "cycle": {
+                    "elapsed_formatted": "Not Active",
+                    "start_time": None,
+                    "elapsed_seconds": None
+                }
+            }
 
-        # Look for cycle start message
-        cycle_logs = supabase.table('system_logs')\
-            .select('message, timestamp')\
-            .eq('source', 'reddit_scraper')\
-            .gte('timestamp', today.isoformat())\
-            .like('message', '%Processing%subreddit%')\
-            .order('timestamp', desc=True)\
-            .limit(1)\
-            .execute()
+        # Get started_at from system_control
+        start_time = control.get('started_at')
 
-        current_subreddit = None
-        if cycle_logs.data and len(cycle_logs.data) > 0:
-            # Parse subreddit from message
-            import re
-            match = re.search(r'r/(\w+)', cycle_logs.data[0]['message'])
-            if match:
-                current_subreddit = match.group(1)
+        if not start_time:
+            # Fallback: try to find start from logs
+            result = supabase.table('system_logs')\
+                .select('timestamp')\
+                .eq('source', 'reddit_scraper')\
+                .like('message', '%Starting Reddit Scraper%')\
+                .order('timestamp', desc=True)\
+                .limit(1)\
+                .execute()
+
+            if result.data and len(result.data) > 0:
+                start_time = result.data[0]['timestamp']
+
+        if not start_time:
+            return {
+                "success": True,
+                "running": True,
+                "status": "Running",
+                "cycle": {
+                    "start_time": None,
+                    "elapsed_seconds": None,
+                    "elapsed_formatted": "Unknown"
+                }
+            }
+
+        # Calculate elapsed time
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        elapsed_seconds = (datetime.now(timezone.utc) - start_dt).total_seconds()
+
+        # Format elapsed time
+        if elapsed_seconds >= 3600:
+            hours = int(elapsed_seconds // 3600)
+            minutes = int((elapsed_seconds % 3600) // 60)
+            elapsed_formatted = f"{hours}h {minutes}m"
+        elif elapsed_seconds >= 60:
+            minutes = int(elapsed_seconds // 60)
+            seconds = int(elapsed_seconds % 60)
+            elapsed_formatted = f"{minutes}m {seconds}s"
+        else:
+            elapsed_formatted = f"{int(elapsed_seconds)}s"
 
         return {
-            "enabled": control.get('enabled', False),
-            "status": control.get('status', 'unknown'),
-            "pid": control.get('pid'),
-            "last_heartbeat": control.get('last_heartbeat'),
-            "current_subreddit": current_subreddit,
-            "version": API_VERSION
+            "success": True,
+            "running": True,
+            "status": "Running",
+            "cycle": {
+                "start_time": start_time,
+                "elapsed_seconds": int(elapsed_seconds),
+                "elapsed_formatted": elapsed_formatted
+            }
         }
 
     except Exception as e:
         logger.error(f"Failed to get cycle status: {e}")
         return {
+            "success": False,
+            "running": False,
             "status": "error",
-            "error": str(e)
+            "error": str(e),
+            "cycle": None
         }
 
 
@@ -374,6 +422,72 @@ async def get_reddit_api_stats():
             "daily_limit": 10000,
             "remaining": 10000,
             "error": str(e)
+        }
+
+
+@router.get("/success-rate")
+async def get_reddit_success_rate():
+    """Get Reddit API success rate from last 1000 requests"""
+    try:
+        supabase = get_supabase()
+
+        # Get last 1000 logs from reddit_scraper
+        all_logs = supabase.table('system_logs')\
+            .select('id, level, message')\
+            .eq('source', 'reddit_scraper')\
+            .order('timestamp', desc=True)\
+            .limit(1000)\
+            .execute()
+
+        if not all_logs.data or len(all_logs.data) == 0:
+            return {
+                "success": True,
+                "stats": {
+                    "total_requests": 0,
+                    "successful_requests": 0,
+                    "failed_requests": 0,
+                    "success_rate": 100.0
+                }
+            }
+
+        total_requests = len(all_logs.data)
+
+        # Count successes (has ✅ in message OR level is not error)
+        # Count failures (level == 'error')
+        failed_requests = sum(1 for log in all_logs.data if log.get('level') == 'error')
+        successful_requests = total_requests - failed_requests
+
+        success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 100.0
+
+        return {
+            "success": True,
+            "stats": {
+                "total_requests": total_requests,
+                "successful_requests": successful_requests,
+                "failed_requests": failed_requests,
+                "success_rate": round(success_rate, 2)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get Reddit success rate: {e}")
+        if system_logger:
+            system_logger.error(
+                f"Failed to get Reddit success rate: {e}",
+                source="reddit_scraper",
+                script_name="reddit_scraper_routes",
+                context={"error": str(e), "endpoint": "success_rate"},
+                sync=True
+            )
+        return {
+            "success": False,
+            "message": str(e),
+            "stats": {
+                "total_requests": 0,
+                "successful_requests": 0,
+                "failed_requests": 0,
+                "success_rate": 0
+            }
         }
 
 
