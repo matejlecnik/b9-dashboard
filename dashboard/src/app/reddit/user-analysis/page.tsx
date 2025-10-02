@@ -3,8 +3,9 @@
 import React, { useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import type { User } from '@/lib/supabase/index'
-import { Badge, Button } from '@/components/ui'
-import { formatNumber as formatNumberUtil } from '@/lib'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { formatNumber as formatNumberUtil } from '@/lib/formatters'
 import {
   Users,
   Clock,
@@ -23,7 +24,7 @@ import {
 import NextImage from 'next/image'
 import { UserFilters } from '@/components/shared/UserFilters'
 import { UserListSkeleton } from '@/components/shared/UniversalLoading'
-import { useToast } from '@/components/ui'
+import { useToast } from '@/components/ui/toast'
 import {
   useUserStats,
   useInfiniteUsers,

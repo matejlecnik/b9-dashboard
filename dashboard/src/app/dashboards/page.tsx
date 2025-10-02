@@ -13,8 +13,11 @@ import {
   Search,
   LogOut
 } from 'lucide-react'
-import { Button, Card, CardTitle, Input } from '@/components/ui'
-import { supabase, logger } from '@/lib'
+import { Button } from '@/components/ui/button'
+import { Card, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { getUserDashboardsClient, DashboardInfo } from '@/lib/permissions'
 import { useDashboardTracking } from '@/hooks/useDashboardTracking'
 

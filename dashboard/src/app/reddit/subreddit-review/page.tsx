@@ -26,7 +26,7 @@ import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/Err
 import { MetricsCards } from '@/components/shared/cards/MetricsCards'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
-import { Plus, Check, UserX, X, Ban } from 'lucide-react'
+import { Plus, Check, UserX, X } from 'lucide-react'
 import { logger } from '@/lib/logger'
 
 // Dynamic imports for heavy components
@@ -281,7 +281,6 @@ export default function SubredditReviewPage() {
     { value: 'ok' as FilterType, label: 'Ok', count: reviewCounts.ok },
     { value: 'no_seller' as FilterType, label: 'No Seller', count: reviewCounts.no_seller },
     { value: 'non_related' as FilterType, label: 'Non Related', count: reviewCounts.non_related },
-    { value: 'banned' as FilterType, label: 'User Feed', count: reviewCounts.banned },
   ], [reviewCounts])
 
   return (
@@ -359,13 +358,6 @@ export default function SubredditReviewPage() {
                   label: 'Non Related',
                   icon: X,
                   onClick: () => updateBulkReview('Non Related'),
-                  variant: 'secondary'
-                },
-                {
-                  id: 'banned',
-                  label: 'User Feed',
-                  icon: Ban,
-                  onClick: () => updateBulkReview('Banned'),
                   variant: 'secondary'
                 }
               ] : []}
