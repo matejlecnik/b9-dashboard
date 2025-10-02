@@ -1,13 +1,13 @@
 {
   "summary": {
-    "total_files": 96,
-    "compliant_files": 96,
+    "total_files": 97,
+    "compliant_files": 97,
     "compliance_rate": "100.0%",
     "files_needing_update": 0
   },
   "metrics": {
-    "terminal_format": "96/96",
-    "navigation_json": "96/96"
+    "terminal_format": "97/97",
+    "navigation_json": "97/97"
   },
   "issues_by_severity": {
     "ERROR": 0,

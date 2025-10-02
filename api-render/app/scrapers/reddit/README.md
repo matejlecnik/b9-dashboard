@@ -114,6 +114,15 @@
 
 ## Version History
 
+### v3.6.2 (2025-10-02) - Critical Bugfix ✅
+- **Bug**: Auto-categorization could overwrite manual review classifications
+- **Issue**: Line 1132 used ternary operator that prioritized auto_review over cached value
+- **Fix**: Preserve existing review status, only apply auto-review to NEW subreddits (review=NULL)
+- **Code**: reddit_scraper.py lines 1131-1139 (explicit NULL check with if/else)
+- **Impact**: Prevents "Ok" subreddits from being downgraded to "Non Related" on re-processing
+- **Protected**: All review statuses (Ok, Non Related, No Seller, User Feed, Banned)
+- **Behavior**: Manual classifications are ALWAYS preserved, auto-categorization only applies to discoveries
+
 ### v3.4.5 (2025-10-01) - Performance + Auto-categorization ✅
 - **Performance**: Removed yearly posts fetch (100 fewer API calls per subreddit)
 - **API Optimization**: Changed from 5 to 4 endpoints (hot, top weekly, about, rules)

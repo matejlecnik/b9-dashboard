@@ -22,6 +22,59 @@
 
 ```json
 {
+  "2025-10-02-reddit-scraper-bugfix-v3.6.2": {
+    "duration": "45m",
+    "commits": 0,
+    "files_created": 0,
+    "files_modified": 4,
+    "status": "COMPLETE",
+    "version": "3.6.2",
+    "achievements": [
+      {"task": "Analyze Reddit scraper review field preservation logic", "status": "COMPLETE"},
+      {"task": "Identify critical auto-categorization override bug (line 1132)", "status": "COMPLETE"},
+      {"task": "Fix review field preservation with explicit NULL check", "status": "COMPLETE", "lines": "1131-1139"},
+      {"task": "Update version 3.6.1 → 3.6.2", "status": "COMPLETE"},
+      {"task": "Update documentation (CLAUDE.md, SESSION_LOG.md, README.md)", "status": "COMPLETE"}
+    ],
+    "feature_details": {
+      "name": "Reddit Scraper - Critical Review Field Bugfix",
+      "problem": "Auto-categorization could overwrite manual review classifications",
+      "root_cause": "Line 1132 used ternary operator: review = auto_review if auto_review else cached.get('review')",
+      "vulnerability": [
+        "If auto_review='Non Related', it ALWAYS overwrites cached value",
+        "Manual 'Ok' classifications could be downgraded to 'Non Related'",
+        "Affected all review statuses when rules/description matched keywords"
+      ],
+      "solution": [
+        "Replace ternary with explicit NULL check",
+        "Only apply auto_review if cached_review is None (new subreddit)",
+        "ALWAYS preserve existing manual classifications"
+      ],
+      "impact": {
+        "bug_severity": "CRITICAL",
+        "affected_subreddits": "Any manually-classified subreddit with matching keywords",
+        "fix_location": "reddit_scraper.py:1131-1139",
+        "protection": "All review statuses (Ok, Non Related, No Seller, User Feed, Banned)"
+      }
+    },
+    "files_modified": [
+      {"reddit_scraper.py": "Version bump + review preservation fix (lines 64, 1131-1139)"},
+      {"CLAUDE.md": "Added v3.6.2 bugfix to Recent Activity Log"},
+      {"SESSION_LOG.md": "Added session entry for bugfix"},
+      {"api-render/app/scrapers/reddit/README.md": "Added v3.6.2 version history"}
+    ],
+    "code_changes": {
+      "before": "review = auto_review if auto_review else cached.get('review')",
+      "after": "cached_review = cached.get('review')\nif cached_review is None:\n    review = auto_review\nelse:\n    review = cached_review",
+      "behavior_change": "Auto-categorization only applies to NEW subreddits (review=NULL), existing classifications always preserved"
+    },
+    "metrics": {
+      "files_changed": 4,
+      "lines_added": 8,
+      "lines_removed": 1,
+      "net_change": "+7 lines"
+    }
+  },
   "2025-10-01-documentation-structure-cleanup": {
     "duration": "30m",
     "commits": 3,

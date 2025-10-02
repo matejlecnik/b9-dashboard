@@ -61,7 +61,7 @@ except ImportError:
     else:
         SupabaseLogHandler = None  # Graceful degradation if not available
 
-SCRAPER_VERSION = "3.6.1"
+SCRAPER_VERSION = "3.6.2"
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -1128,8 +1128,15 @@ class RedditScraper:
 
             # Get cached metadata (preserved fields)
             cached = self.subreddit_metadata_cache.get(name, {})
-            # Use auto_review if provided, otherwise use cached review
-            review = auto_review if auto_review else cached.get("review")
+            # Only use auto_review for NEW subreddits (NULL review)
+            # ALWAYS preserve existing manual classifications
+            cached_review = cached.get("review")
+            if cached_review is None:
+                # New discovery - apply auto-categorization
+                review = auto_review
+            else:
+                # Existing subreddit - PRESERVE manual classification
+                review = cached_review
             primary_category = cached.get("primary_category")
             tags = cached.get("tags", [])
             over18 = cached.get(

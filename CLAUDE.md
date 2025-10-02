@@ -19,7 +19,7 @@
     {"path": "dashboard/", "desc": "Frontend app", "status": "ACTIVE"}
   ],
   "docs": [
-    {"path": "d ocs/INDEX.md", "desc": "Master index", "status": "REFERENCE"},
+    {"path": "docs/INDEX.md", "desc": "Master index", "status": "REFERENCE"},
     {"path": "docs/development/SESSION_LOG.md", "desc": "Activity log", "status": "ACTIVE"},
     {"path": "docs/development/DOCUMENTATION_STANDARDS.md", "desc": "Mandatory rules", "status": "ENFORCED"}
   ]
@@ -130,6 +130,9 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ## Recent Activity Log
 
 ```diff
++ 2025-10-02: Reddit Scraper v3.6.2 - Fixed auto-categorization override bug ✅
++ Critical bugfix: Auto-review now only applies to NEW subreddits (review=NULL)
++ Manual classifications (Ok, Non Related, etc.) are always preserved
 + 2025-10-01: Documentation Excellence COMPLETE v3.6.0 + Automation v3.8.0 ✅
 + Phase 1: Documentation compliance 21.7% → 100% (96/96 files)
 + Phase 3: Lefthook automation installed with parallel git hooks
