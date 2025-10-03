@@ -10,8 +10,8 @@
 {
   "status": {
     "api": "LIVE",
-    "reddit_scraper": "V3.4.5_ACTIVE",
-    "instagram_scraper": "ACTIVE",
+    "reddit_scraper": "V3.6.3_ACTIVE",
+    "instagram_scraper": "V2.1.0_ACTIVE",
     "database": "SUPABASE_REST",
     "cache": "REMOVED",
     "deployment": "RENDER_LIVE"
@@ -23,8 +23,8 @@
     "cpu_usage": "35%",
     "uptime": "99.99%",
     "query_performance": "+30% after optimization",
-    "architecture": "v3.4.5 optimized",
-    "last_deployment": "2025-10-01T00:40:00Z"
+    "architecture": "v3.7.0 optimized",
+    "last_deployment": "2025-10-03T16:24:00Z"
   },
   "data": {
     "reddit_users": 303889,
@@ -340,5 +340,5 @@ pytest --cov=app --cov-report=html
 
 ---
 
-_API Version: 3.4.5 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-01_
+_API Version: 3.7.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-03_
 _Navigate: [→ ARCHITECTURE.md](docs/ARCHITECTURE.md) | [→ API.md](docs/API.md) | [→ DEPLOYMENT.md](docs/DEPLOYMENT.md)_
