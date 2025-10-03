@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Reddit Scraper Control & Status Endpoints
-Manages Reddit scraper v3.4.9+ via system_control table and subprocess
+Manages Reddit scraper via system_control table and subprocess
 """
 
-# Version tracking - matches Reddit scraper versions
-API_VERSION = "3.4.9"
+# Version tracking
+from app.version import REDDIT_SCRAPER_VERSION as API_VERSION
 
 import os
 import sys

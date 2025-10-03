@@ -29,12 +29,10 @@ class ScraperConfig:
     memory_error_threshold: float = 0.85
     memory_critical_threshold: float = 0.90
     memory_check_interval: int = 60
-    
-    # Batch Writer Configuration
-    batch_writer_size: int = 50
-    batch_writer_flush_interval: float = 5.0
+
+    # Retry Configuration
     max_retry_attempts: int = 3
-    
+
     # Cache Configuration
     user_cache_ttl: int = 3600  # 1 hour
     subreddit_cache_ttl: int = 7200  # 2 hours
@@ -93,8 +91,6 @@ class ScraperConfig:
             'memory_error_threshold': 'REDDIT_SCRAPER_MEMORY_ERROR',
             'memory_critical_threshold': 'REDDIT_SCRAPER_MEMORY_CRITICAL',
             'memory_check_interval': 'REDDIT_SCRAPER_MEMORY_CHECK_INTERVAL',
-            'batch_writer_size': 'REDDIT_SCRAPER_BATCH_WRITER_SIZE',
-            'batch_writer_flush_interval': 'REDDIT_SCRAPER_FLUSH_INTERVAL',
             'max_retry_attempts': 'REDDIT_SCRAPER_MAX_RETRIES',
             'user_cache_ttl': 'REDDIT_SCRAPER_USER_CACHE_TTL',
             'subreddit_cache_ttl': 'REDDIT_SCRAPER_SUBREDDIT_CACHE_TTL',
@@ -187,12 +183,10 @@ class ScraperConfig:
             },
             'memory_thresholds': {
                 'warning': self.memory_warning_threshold,
-                'error': self.memory_error_threshold, 
+                'error': self.memory_error_threshold,
                 'critical': self.memory_critical_threshold
             },
-            'batch_writer': {
-                'size': self.batch_writer_size,
-                'flush_interval': self.batch_writer_flush_interval,
+            'retry_config': {
                 'max_retries': self.max_retry_attempts
             },
             'cache_config': {

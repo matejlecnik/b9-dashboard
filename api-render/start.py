@@ -9,6 +9,7 @@ import sys
 import subprocess
 import signal
 import logging
+import asyncio
 from datetime import datetime, timezone
 
 # Configure logging
@@ -18,7 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def check_and_start_scrapers():
+async def check_and_start_scrapers():
     """Check database and start both Reddit and Instagram scrapers if enabled"""
     try:
         from supabase import create_client
@@ -54,8 +55,7 @@ def check_and_start_scrapers():
                     )
 
                     # Check if process is still running after a brief moment
-                    import time
-                    time.sleep(2)  # Startup context - sync sleep is acceptable here
+                    await asyncio.sleep(2)  # Non-blocking async sleep
 
                     if reddit_process.poll() is None:
                         # Process is still running
@@ -113,8 +113,7 @@ def check_and_start_scrapers():
                     )
 
                     # Check if process is still running after a brief moment
-                    import time
-                    time.sleep(2)  # Startup context - sync sleep is acceptable here
+                    await asyncio.sleep(2)  # Non-blocking async sleep
 
                     if instagram_process.poll() is None:
                         # Process is still running
@@ -189,7 +188,7 @@ if __name__ == "__main__":
 
     # Check if scrapers should auto-start based on database state
     logger.info("🔍 Checking if scrapers should auto-start...")
-    check_and_start_scrapers()
+    asyncio.run(check_and_start_scrapers())
 
     # Run API server in main thread
     logger.info("🎁 Starting API server in main thread...")

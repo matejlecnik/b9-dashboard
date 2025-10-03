@@ -4,8 +4,8 @@ Instagram Scraper Control & Status Endpoints
 Manages Instagram scraper via system_control table
 """
 
-# Version tracking - matches Instagram scraper versions
-API_VERSION = "2.0.0"
+# Version tracking
+from app.version import INSTAGRAM_SCRAPER_VERSION as API_VERSION
 
 import os
 import sys

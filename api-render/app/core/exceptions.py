@@ -49,11 +49,6 @@ class DatabaseException(RedditScraperException):
     pass
 
 
-class BatchWriterException(DatabaseException):
-    """Exceptions specific to batch writing operations"""
-    pass
-
-
 class CacheException(RedditScraperException):
     """Exceptions related to caching operations"""
     pass

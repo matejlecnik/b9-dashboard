@@ -30,7 +30,9 @@ router = APIRouter(prefix="/api/instagram/related-creators", tags=["instagram-re
 # Progress tracking is done in-memory since scripts run on Render
 
 # RapidAPI Configuration
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "75f3fede68msh4ac39896fdd4ed6p185621jsn83e2bdaabc08")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+if not RAPIDAPI_KEY:
+    raise ValueError("RAPIDAPI_KEY environment variable is required but not set")
 RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com"
 
 # Get Supabase client

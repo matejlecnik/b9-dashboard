@@ -61,7 +61,11 @@ except ImportError:
     else:
         SupabaseLogHandler = None  # Graceful degradation if not available
 
-SCRAPER_VERSION = "3.6.3"
+# Import version from central location
+try:
+    from app.version import REDDIT_SCRAPER_VERSION as SCRAPER_VERSION
+except ImportError:
+    SCRAPER_VERSION = "3.6.3"  # Fallback for standalone execution
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

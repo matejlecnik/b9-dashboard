@@ -34,6 +34,8 @@ from app.utils import (
     health_monitor, request_timer,
     system_logger, log_api_call, log_exception
 )
+# Import version
+from app.version import API_VERSION
 # Import services and routes using relative imports
 from app.services.ai_categorizer import TagCategorizationService
 from app.services.subreddit_api import fetch_subreddit
@@ -233,7 +235,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="B9 Dashboard API",
     description="Production Reddit Analytics API for OnlyFans Marketing Intelligence",
-    version="3.0.0",
+    version=API_VERSION,
     docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
     redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
     lifespan=lifespan
@@ -350,7 +352,7 @@ async def root():
     """Root endpoint with service information"""
     return {
         "service": "B9 Dashboard API",
-        "version": "3.0.0",
+        "version": API_VERSION,
         "status": "operational",
         "environment": os.getenv("ENVIRONMENT", "development"),
         "timestamp": datetime.now().isoformat(),
@@ -447,58 +449,8 @@ async def get_system_stats(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
-# CATEGORIZATION ENDPOINTS
-# =============================================================================
-
-@app.post("/api/categorization/start")
-async def start_tag_categorization(request: Request, payload: CategorizationRequest):
-    """Start AI tag-based categorization process for approved subreddits"""
-    logger.info(f"🏷️  Tag categorization request received: batch_size={payload.batchSize}, limit={payload.limit}")
-
-    if not tag_categorization_service:
-        logger.error("❌ Tag categorization service not initialized")
-        raise HTTPException(status_code=503, detail="Tag categorization service not initialized")
-
-    if not supabase:
-        logger.error("❌ Supabase client not initialized")
-        raise HTTPException(status_code=503, detail="Supabase connection not available")
-
-    try:
-        logger.info(f"🚀 Starting tag categorization with batch_size={payload.batchSize}, limit={payload.limit}")
-
-        # Start tag categorization with specified parameters
-        result = await tag_categorization_service.tag_all_uncategorized(
-            batch_size=payload.batchSize,
-            limit=payload.limit,
-            subreddit_ids=payload.subredditIds
-        )
-
-        logger.info(f"✅ Tag categorization completed: {result.get('status')}")
-        logger.info(f"📊 Stats: {result.get('stats')}")
-
-        # Return the result for frontend processing
-        return result
-
-    except Exception as e:
-        logger.error(f"❌ Tag categorization failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Tag categorization failed: {str(e)}")
-
-@app.get("/api/categorization/stats")
-async def get_tag_stats(request: Request):
-    """Get tag categorization statistics"""
-    if not tag_categorization_service:
-        raise HTTPException(status_code=503, detail="Tag categorization service not initialized")
-
-    try:
-        stats = await tag_categorization_service.get_tag_stats()
-        return stats
-
-    except Exception as e:
-        logger.error(f"Failed to get tag stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# =============================================================================
 # SINGLE SUBREDDIT FETCHER ENDPOINT
+# Note: AI Categorization endpoints moved to app/api/ai/categorization.py router
 # =============================================================================
 
 @app.post("/api/subreddits/fetch-single")
