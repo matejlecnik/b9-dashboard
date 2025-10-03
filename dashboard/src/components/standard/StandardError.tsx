@@ -55,7 +55,11 @@ export class StandardErrorBoundary extends React.Component<
   },
   ErrorBoundaryState
 > {
-  constructor(props: any) {
+  constructor(props: {
+    children: React.ReactNode
+    fallback?: React.ComponentType<{ error: Error; reset: () => void }>
+    onError?: (error: Error, errorInfo: React.ErrorInfo) => void
+  }) {
     super(props)
     this.state = { hasError: false, error: null }
   }

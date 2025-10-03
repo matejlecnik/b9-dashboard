@@ -6,4 +6,3 @@ export { PostAnalysisToolbar } from './PostAnalysisToolbar'
 
 // Modals
 export { AddSubredditModal } from './modals/AddSubredditModal'
-export { AddUserModal } from './modals/AddUserModal'

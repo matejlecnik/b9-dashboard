@@ -49,7 +49,7 @@ interface ReviewPageTemplateProps {
   platform?: 'instagram' | 'reddit' | 'models'
 
   // Data
-  data: any[]
+  data: unknown[]
   stats: ReviewPageStats | null
   isLoading: boolean
   isFetchingNextPage?: boolean
@@ -77,13 +77,13 @@ interface ReviewPageTemplateProps {
 
   // Actions
   bulkActions?: ReviewPageBulkAction[]
-  onItemUpdate?: (id: number, updates: any) => void
+  onItemUpdate?: (id: number, updates: Record<string, unknown>) => void
   actionButtons?: ReactNode
 
   // Customization
   accentColor?: string
   emptyMessage?: string
-  tableColumns?: any[]
+  tableColumns?: unknown[]
 }
 
 /**

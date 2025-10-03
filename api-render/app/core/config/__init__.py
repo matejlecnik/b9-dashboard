@@ -1,10 +1,8 @@
 """
 Core Configuration Components
-Proxy management
+Configuration management for scrapers
 """
 
-from .proxy_manager import ProxyManager
+# ProxyManager removed - use app.scrapers.reddit.proxy_manager.ProxyManager instead
 
-__all__ = [
-    'ProxyManager'
-]
+__all__ = []

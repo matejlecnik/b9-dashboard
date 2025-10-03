@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function POST() {
   try {
@@ -58,7 +59,7 @@ export async function POST() {
       active_accounts: await getActiveAccountCount(supabase)
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       message: 'Internal server error'
@@ -66,7 +67,7 @@ export async function POST() {
   }
 }
 
-async function getActiveAccountCount(supabase: any) {
+async function getActiveAccountCount(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from('scraper_accounts')
     .select('id')

@@ -40,7 +40,7 @@ export const GET = scraperApi(async () => {
     })
 
   } catch (error) {
-    logger.error('Error in GET /api/scraper/errors:', error)
+    logger.error('Error in GET /api/reddit/scraper/errors:', error)
     return NextResponse.json({
       success: false,
       title: 'Internal server error'

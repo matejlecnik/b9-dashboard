@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/index'
+import { logger } from '@/lib/logger'
 
 interface MergeCategoriesRequest {
   source_category_names: string[]  // Categories to merge (will be deleted)
@@ -342,7 +343,7 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

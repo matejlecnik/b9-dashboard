@@ -30,7 +30,7 @@ export async function GET(_request: NextRequest) {
     }
     
     return NextResponse.json({ whitelist })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       .eq('name', subreddit_name)
     
     return NextResponse.json({ whitelistEntry: data }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -156,7 +156,7 @@ export async function DELETE(request: NextRequest) {
       .eq('name', subreddit_name)
     
     return NextResponse.json({ message: 'Subreddit removed from whitelist successfully' })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

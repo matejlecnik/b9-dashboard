@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build update object
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       our_creator,
       updated_at: new Date().toISOString()
     }

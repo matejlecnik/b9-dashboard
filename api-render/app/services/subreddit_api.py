@@ -550,5 +550,5 @@ if __name__ == "__main__":
         # Use logging instead of print for test output
         logger.info(f"Result: {json.dumps(result, indent=2)}")
     else:
-        logger.info("Usage: python single_subreddit_fetcher.py <subreddit_name>")
-        logger.info("Example: python single_subreddit_fetcher.py technology")
+        logger.info("Usage: python subreddit_api.py <subreddit_name>")
+        logger.info("Example: python subreddit_api.py technology")

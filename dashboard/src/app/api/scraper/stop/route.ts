@@ -59,7 +59,7 @@ export async function POST() {
       active_accounts: 0
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       message: 'Internal server error'

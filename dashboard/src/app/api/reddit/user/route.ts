@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         userPosts = (postsResponse as any).data.children.map((child: { data: unknown }) => child.data)
       }
-    } catch (error) {
+    } catch (_error) {
     }
 
     // Analyze posts for patterns
@@ -390,9 +390,9 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

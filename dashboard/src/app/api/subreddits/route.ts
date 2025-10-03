@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       } : undefined
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let subredditData: any = {
+    let subredditData: Record<string, unknown> = {
       name: cleanName,
       display_name_prefixed: `r/${cleanName}`,
       created_at: new Date().toISOString(),
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
         }
-      } catch (error) {
+      } catch (_error) {
       }
     }
 
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
       message: `Successfully added r/${cleanName}`
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error', success: false },
       { status: 500 }

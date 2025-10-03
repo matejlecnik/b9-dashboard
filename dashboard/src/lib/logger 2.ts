@@ -6,36 +6,36 @@
 const isDevelopment = process.env.NODE_ENV === 'development'
 
 export const logger = {
-  log: (...args: any[]) => {
+  log: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args)
     }
   },
 
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     // Always log errors, even in production (for debugging)
     console.error(...args)
   },
 
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (isDevelopment) {
       console.warn(...args)
     }
   },
 
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (isDevelopment) {
       console.info(...args)
     }
   },
 
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.debug(...args)
     }
   },
 
-  table: (data: any) => {
+  table: (data: unknown) => {
     if (isDevelopment) {
       console.table(data)
     }
@@ -68,7 +68,7 @@ export const logger = {
 
 // For critical production logging (e.g., error reporting)
 export const prodLogger = {
-  error: (message: string, data?: any) => {
+  error: (message: string, data?: unknown) => {
     // In production, you could send this to an error tracking service
     console.error(`[ERROR] ${message}`, data)
 
@@ -78,7 +78,7 @@ export const prodLogger = {
     // }
   },
 
-  metric: (event: string, data?: any) => {
+  metric: (event: string, data?: unknown) => {
     // In production, send to analytics
     if (isDevelopment) {
       console.log(`[METRIC] ${event}`, data)

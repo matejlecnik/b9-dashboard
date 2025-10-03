@@ -10,7 +10,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { performanceMonitor } from '@/lib/performance-monitor'
 
 interface CacheEntry {
-  data: any
+  data: unknown
   timestamp: number
   ttl: number
 }
@@ -193,11 +193,11 @@ export class QueryCache {
     setInterval(() => this.cleanup(), 60000)
   }
 
-  private getCacheKey(query: string, params?: any): string {
+  private getCacheKey(query: string, params?: Record<string, unknown>): string {
     return `${query}::${JSON.stringify(params || {})}`
   }
 
-  get(query: string, params?: any): any | null {
+  get(query: string, params?: Record<string, unknown>): unknown | null {
     const key = this.getCacheKey(query, params)
     const cached = this.cache.get(key)
 
@@ -219,7 +219,7 @@ export class QueryCache {
     return cached.data
   }
 
-  set(query: string, params: any, data: any, ttl?: number) {
+  set(query: string, params: Record<string, unknown> | undefined, data: unknown, ttl?: number) {
     const key = this.getCacheKey(query, params)
 
     // Evict oldest if at capacity
@@ -431,9 +431,9 @@ export class OptimizedDatabaseClient {
     }
   }
 
-  async query<T = any>(
+  async query<T = unknown>(
     tableName: string,
-    queryBuilder: (client: SupabaseClient) => any,
+    queryBuilder: (client: SupabaseClient) => Promise<unknown>,
     options: {
       cache?: boolean
       cacheTTL?: number
@@ -538,10 +538,10 @@ export function getOptimizedDatabaseClient(): OptimizedDatabaseClient {
  */
 import { useEffect, useState, useCallback } from 'react'
 
-export function useOptimizedQuery<T = any>(
+export function useOptimizedQuery<T = unknown>(
   tableName: string,
-  queryBuilder: (client: SupabaseClient) => any,
-  dependencies: any[] = [],
+  queryBuilder: (client: SupabaseClient) => Promise<unknown>,
+  dependencies: unknown[] = [],
   options: {
     enabled?: boolean
     cache?: boolean
@@ -605,9 +605,9 @@ export function useOptimizedQuery<T = any>(
  */
 export class BatchQueryOptimizer {
   private queue: Map<string, {
-    resolve: (data: any) => void
+    resolve: (data: unknown) => void
     reject: (error: Error) => void
-    query: () => Promise<any>
+    query: () => Promise<unknown>
   }[]> = new Map()
   private flushTimeout: NodeJS.Timeout | null = null
   private batchDelay: number

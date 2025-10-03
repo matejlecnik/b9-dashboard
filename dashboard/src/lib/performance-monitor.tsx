@@ -10,7 +10,7 @@ import React, { useEffect, useRef, useCallback } from 'react'
 interface PerformanceMark {
   name: string
   timestamp: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface PerformanceMeasure {
@@ -18,7 +18,7 @@ interface PerformanceMeasure {
   duration: number
   startMark: string
   endMark: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface PerformanceBudget {
@@ -31,7 +31,7 @@ export class PerformanceMonitor {
   private marks = new Map<string, PerformanceMark>()
   private measures = new Map<string, PerformanceMeasure[]>()
   private budgets = new Map<string, PerformanceBudget>()
-  private observers = new Set<(data: any) => void>()
+  private observers = new Set<(data: unknown) => void>()
   private navigationStart = performance.now()
 
   // Core Web Vitals
@@ -56,8 +56,8 @@ export class PerformanceMonitor {
       // LCP Observer
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries()
-        const lastEntry = entries[entries.length - 1] as any
-        this.metrics.LCP = lastEntry.renderTime || lastEntry.loadTime
+        const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number }
+        this.metrics.LCP = lastEntry.renderTime || lastEntry.loadTime || 0
         if (this.metrics.LCP !== null) {
           this.checkBudget('LCP', this.metrics.LCP)
         }
@@ -80,8 +80,8 @@ export class PerformanceMonitor {
       // FID Observer
       const fidObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries()
-        const firstInput = entries[0] as any
-        if (firstInput) {
+        const firstInput = entries[0] as PerformanceEntry & { processingStart?: number }
+        if (firstInput && firstInput.processingStart !== undefined) {
           this.metrics.FID = firstInput.processingStart - firstInput.startTime
           if (this.metrics.FID !== null) {
             this.checkBudget('FID', this.metrics.FID)
@@ -92,12 +92,12 @@ export class PerformanceMonitor {
 
       // CLS Observer
       let clsValue = 0
-      let clsEntries: any[] = []
+      const clsEntries: PerformanceEntry[] = []
       const clsObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as any) {
+        for (const entry of list.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number }>) {
           if (!entry.hadRecentInput) {
             clsEntries.push(entry)
-            clsValue += entry.value
+            clsValue += entry.value || 0
           }
         }
         this.metrics.CLS = clsValue
@@ -120,7 +120,7 @@ export class PerformanceMonitor {
   }
 
   // Mark a point in time
-  mark(name: string, metadata?: Record<string, any>) {
+  mark(name: string, metadata?: Record<string, unknown>) {
     const timestamp = performance.now()
     this.marks.set(name, { name, timestamp, metadata })
     
@@ -132,20 +132,20 @@ export class PerformanceMonitor {
   // Measure between two marks
   measure(name: string, startMark: string, endMark?: string) {
     const start = this.marks.get(startMark)
-    const end = endMark ? this.marks.get(endMark) : { timestamp: performance.now() }
-    
+    const end = endMark ? this.marks.get(endMark) : { timestamp: performance.now(), metadata: {} as Record<string, unknown> | undefined }
+
     if (!start || !end) {
       logger.warn(`Cannot measure: missing marks (${startMark}, ${endMark})`)
       return null
     }
 
-    const duration = (end as any).timestamp - start.timestamp
+    const duration = end.timestamp - start.timestamp
     const measure: PerformanceMeasure = {
       name,
       duration,
       startMark,
       endMark: endMark || 'now',
-      metadata: { ...start.metadata, ...(end as any).metadata }
+      metadata: { ...start.metadata, ...end.metadata }
     }
 
     if (!this.measures.has(name)) {
@@ -217,12 +217,12 @@ export class PerformanceMonitor {
   }
 
   // Subscribe to performance events
-  subscribe(callback: (data: any) => void) {
+  subscribe(callback: (data: unknown) => void) {
     this.observers.add(callback)
     return () => this.observers.delete(callback)
   }
 
-  private notifyObservers(data: any) {
+  private notifyObservers(data: unknown) {
     this.observers.forEach(callback => callback(data))
   }
 

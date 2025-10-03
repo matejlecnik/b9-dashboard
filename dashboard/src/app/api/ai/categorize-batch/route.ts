@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     
     
     // Forward the request to the Render API
-    const renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/start`, {
+    const renderResponse = await fetch(`${RENDER_API_URL}/api/ai/categorization/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     return NextResponse.json(response)
 
   } catch (error) {
-    
+
     if (error instanceof TypeError && error.message.includes('fetch')) {
       // Log connection error
       const renderUrl = getRenderApiUrl()
@@ -242,7 +242,7 @@ export async function GET() {
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
-      renderResponse = await fetch(`${RENDER_API_URL}/api/categorization/stats`, {
+      renderResponse = await fetch(`${RENDER_API_URL}/api/ai/categorization/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +252,7 @@ export async function GET() {
       })
       clearTimeout(timeoutId)
       renderData = await renderResponse.json()
-    } catch (error) {
+    } catch (_error) {
       
       // Development fallback - return mock service status
       return NextResponse.json({
@@ -320,7 +320,7 @@ export async function GET() {
     })
 
   } catch (error) {
-    
+
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return NextResponse.json({
         success: false,

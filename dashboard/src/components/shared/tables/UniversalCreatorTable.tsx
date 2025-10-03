@@ -126,7 +126,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
       label: 'Viral',
       width: 'w-20',
       render: (item: Subreddit) => {
-        const viralCount = (item as any).viral_content_count || 0
+        const viralCount = (item as Record<string, unknown>).viral_content_count as number || 0
         return (
           <div className="text-sm font-medium">
             {viralCount > 0 ? (
@@ -143,7 +143,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
       label: 'Avg Views',
       width: 'w-24',
       render: (item: Subreddit) => {
-        const avgViews = (item as any).avg_views_per_reel || 0
+        const avgViews = (item as Record<string, unknown>).avg_views_per_reel as number || 0
         return (
           <div className="text-sm">
             {avgViews > 0 ? formatNumber(avgViews) : '-'}

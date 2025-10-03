@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
 
     // Call the Python backend API for tag categorization
-    const apiUrl = `${RENDER_API_URL}/api/categorization/start`
+    const apiUrl = `${RENDER_API_URL}/api/ai/categorization/start`
 
     const response = await fetch(apiUrl, {
       method: 'POST',

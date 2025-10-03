@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
           stats.passed++
         }
         
-      } catch (error) {
+      } catch (_error) {
         stats.errors++
       }
     }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       results: results.slice(0, 20) // Return first 20 results for preview
     })
     
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

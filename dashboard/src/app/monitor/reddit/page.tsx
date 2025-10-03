@@ -30,7 +30,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/scraper/cycle-status`, {
+        const response = await fetch(`${API_URL}/api/reddit/scraper/cycle-status`, {
           mode: 'cors',
           signal: controller.signal,
           headers: {
@@ -85,7 +85,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/scraper/success-rate`, {
+        const response = await fetch(`${API_URL}/api/reddit/scraper/success-rate`, {
           mode: 'cors',
           signal: controller.signal,
           headers: {
@@ -156,7 +156,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for Render cold start
 
       try {
-        const statusRes = await fetch(`${API_URL}/api/scraper/status-detailed`, {
+        const statusRes = await fetch(`${API_URL}/api/reddit/scraper/status-detailed`, {
           mode: 'cors',
           signal: controller.signal,
           headers: {
@@ -209,7 +209,7 @@ export default function RedditMonitor() {
 
       // Call the backend API on Render (production scraper)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
-      const endpoint = action === 'start' ? '/api/scraper/start' : '/api/scraper/stop'
+      const endpoint = action === 'start' ? '/api/reddit/scraper/start' : '/api/reddit/scraper/stop'
 
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
@@ -308,7 +308,7 @@ export default function RedditMonitor() {
         const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
 
         try {
-          const statusRes = await fetch(`${API_URL}/api/scraper/status`, {
+          const statusRes = await fetch(`${API_URL}/api/reddit/scraper/status`, {
             mode: 'cors',
             signal: controller.signal
           })

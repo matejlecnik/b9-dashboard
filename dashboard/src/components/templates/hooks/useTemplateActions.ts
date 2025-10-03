@@ -23,12 +23,12 @@ export interface UseTemplateActionsOptions {
 export interface BulkActionParams {
   ids: number[]
   action: string
-  data?: any
+  data?: unknown
 }
 
 export interface SingleActionParams {
   id: number
-  updates: any
+  updates: Record<string, unknown>
 }
 
 export interface UseTemplateActionsReturn {
@@ -123,9 +123,9 @@ export function useTemplateActions({
 
       const previousData = queryClient.getQueryData(queryKey)
 
-      queryClient.setQueryData(queryKey, (old: any) => {
+      queryClient.setQueryData(queryKey, (old: unknown) => {
         if (Array.isArray(old)) {
-          return old.map(item =>
+          return old.map((item: Record<string, unknown>) =>
             item.id === id ? { ...item, ...updates } : item
           )
         }
@@ -166,9 +166,9 @@ export function useTemplateActions({
 
       const previousData = queryClient.getQueryData(queryKey)
 
-      queryClient.setQueryData(queryKey, (old: any) => {
+      queryClient.setQueryData(queryKey, (old: unknown) => {
         if (Array.isArray(old)) {
-          return old.filter(item => item.id !== id)
+          return old.filter((item: Record<string, unknown>) => item.id !== id)
         }
         return old
       })

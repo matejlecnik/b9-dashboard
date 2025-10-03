@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       updates: updateFields
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -163,7 +163,7 @@ export async function GET() {
       }
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

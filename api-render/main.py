@@ -35,20 +35,20 @@ from app.utils import (
     system_logger, log_api_call, log_exception
 )
 # Import services and routes using relative imports
-from app.services.categorization_service_tags import TagCategorizationService
-from app.services.single_subreddit_fetcher import fetch_subreddit
-from app.routes.user_routes import router as user_router
+from app.services.ai_categorizer import TagCategorizationService
+from app.services.subreddit_api import fetch_subreddit
+from app.api.reddit.users import router as user_router
 
 # Optional Instagram route imports
 try:
-    from app.routes.instagram_scraper_routes import router as instagram_scraper_router
+    from app.api.instagram.scraper import router as instagram_scraper_router
     INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = True
 except ImportError:
     INSTAGRAM_SCRAPER_ROUTES_AVAILABLE = False
     instagram_scraper_router = None
 
 try:
-    from app.routes.instagram_related_creators_routes import router as instagram_related_router
+    from app.api.instagram.related_creators import router as instagram_related_router
     INSTAGRAM_RELATED_ROUTES_AVAILABLE = True
 except ImportError:
     INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
@@ -56,7 +56,7 @@ except ImportError:
 
 # Reddit scraper route imports
 try:
-    from app.routes.reddit_scraper_routes import router as reddit_scraper_router
+    from app.api.reddit.scraper import router as reddit_scraper_router
     REDDIT_SCRAPER_ROUTES_AVAILABLE = True
 except ImportError:
     REDDIT_SCRAPER_ROUTES_AVAILABLE = False
@@ -64,7 +64,7 @@ except ImportError:
 
 # AI Categorization route imports
 try:
-    from app.routes.categorization_routes import router as categorization_router
+    from app.api.ai.categorization import router as categorization_router
     CATEGORIZATION_ROUTES_AVAILABLE = True
 except ImportError:
     CATEGORIZATION_ROUTES_AVAILABLE = False

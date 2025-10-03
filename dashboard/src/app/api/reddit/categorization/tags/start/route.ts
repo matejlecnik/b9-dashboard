@@ -39,7 +39,7 @@ export const POST = aiApi(async (request: NextRequest) => {
     logger.log('🎯 Starting tag categorization:', { batch_size, limit })
 
     // Call the Python backend API for tag categorization
-    const apiUrl = `${RENDER_API_URL}/api/categorization/start`
+    const apiUrl = `${RENDER_API_URL}/api/ai/categorization/start`
     logger.log('📡 Calling Render API:', apiUrl)
 
     const response = await fetch(apiUrl, {

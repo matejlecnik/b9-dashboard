@@ -91,7 +91,7 @@ class InstagramScraperUnified:
                 self.supabase.table('system_logs').insert({
                     'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'instagram_scraper',  # Always instagram_scraper
-                    'script_name': 'unified_scraper',
+                    'script_name': 'instagram_scraper',
                     'level': level,
                     'message': message,
                     'context': context or {}

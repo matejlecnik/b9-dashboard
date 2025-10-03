@@ -2,8 +2,24 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
 // Removed zod schema to eliminate dependency
 
+// Type for scraper account from database
+interface ScraperAccount {
+  account_name: string
+  status: string
+  is_enabled: boolean
+  total_requests: number
+  successful_requests: number
+  failed_requests: number
+  success_rate: string
+  avg_response_time: string
+  last_success_at: string | null
+  last_used_at?: string | null
+  proxy_host?: string | null
+  proxy_port?: string | number | null
+}
+
 // Calculate rate limit remaining based on account status and recent activity
-function calculateRateLimitRemaining(account: any): number {
+function calculateRateLimitRemaining(account: ScraperAccount): number {
   if (account.status !== 'active' || !account.is_enabled) {
     return 0
   }
@@ -49,12 +65,12 @@ export async function GET() {
       throw error
     }
 
-    const accounts = accountsData || []
+    const accounts = (accountsData as ScraperAccount[]) || []
     const total = accounts.length
-    const active = accounts.filter((a: any) => a.status === 'active' && a.is_enabled).length
-    
+    const active = accounts.filter((a: ScraperAccount) => a.status === 'active' && a.is_enabled).length
+
     // Map database fields to expected interface with enhanced status logic
-    const details = accounts.map((account: any) => ({
+    const details = accounts.map((account: ScraperAccount) => ({
       username: account.account_name || 'unknown',
       status: account.status === 'banned' ? 'banned' : 
               (account.status === 'active' && account.is_enabled) ? 'active' : 'inactive',
@@ -68,9 +84,9 @@ export async function GET() {
     }))
     
     // Get proxy information from accounts with proxy data
-    const proxiesFromAccounts = accounts.filter((a: any) => a.proxy_host && a.proxy_port)
+    const proxiesFromAccounts = accounts.filter((a: ScraperAccount) => a.proxy_host && a.proxy_port)
     const uniqueProxies = Array.from(
-      new Map(proxiesFromAccounts.map((a: any) => [
+      new Map(proxiesFromAccounts.map((a: ScraperAccount) => [
         `${a.proxy_host}:${a.proxy_port}`,
         {
           host: a.proxy_host,
@@ -79,10 +95,10 @@ export async function GET() {
         }
       ])).values()
     )
-    
-    const proxyDetails = uniqueProxies
-    
-    const activeProxies = proxyDetails.filter((p: any) => p.status === 'active').length
+
+    const proxyDetails = Array.from(uniqueProxies)
+
+    const activeProxies = proxyDetails.filter(p => p.status === 'active').length
     
     const response = { 
       accounts: { total, active, details },
@@ -90,8 +106,8 @@ export async function GET() {
     }
     // Removed zod validation - return response directly
     return NextResponse.json(response)
-  } catch (error) {
-    return NextResponse.json({ 
+  } catch {
+    return NextResponse.json({
       accounts: { total: 0, active: 0, details: [] },
       proxies: { total: 0, active: 0, details: [] }
     })

@@ -99,7 +99,7 @@ export const POST = protectedApi(async (request: NextRequest) => {
           stats.passed++
         }
         
-      } catch (error) {
+      } catch (_error) {
         logger.error(`Error processing subreddit ${subreddit.name}:`, error)
         stats.errors++
       }

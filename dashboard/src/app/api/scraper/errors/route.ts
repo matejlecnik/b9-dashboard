@@ -33,7 +33,7 @@ export async function GET() {
       count: errors?.length || 0
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       message: 'Internal server error'
@@ -92,7 +92,7 @@ export async function DELETE() {
       cleared_count: data?.length || 0
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       message: 'Internal server error'

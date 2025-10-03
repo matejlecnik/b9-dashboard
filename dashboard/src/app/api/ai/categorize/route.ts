@@ -5,9 +5,9 @@ import { NextResponse } from 'next/server'
 
 // POST /api/ai/categorize - Deprecated
 export async function POST(_request: Request) {
-  return NextResponse.json({ 
-    success: false, 
-    error: 'This endpoint has been moved to the backend API. Use /api/categorization/start instead.',
+  return NextResponse.json({
+    success: false,
+    error: 'This endpoint has been moved to the backend API. Use /api/ai/categorization/start instead.',
     deprecated: true
   }, { status: 410 }) // Gone
 }

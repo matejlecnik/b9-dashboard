@@ -91,8 +91,10 @@ export function useCategorizedSubreddits(filters: SubredditFilters = {}) {
             query = query.not('tags', 'is', null).neq('tags', '[]')
           }
 
-          // Apply sorting
-          query = query.order('subscribers', { ascending: false })
+          // Apply sorting with secondary sort for stability
+          query = query
+            .order('subscribers', { ascending: false, nullsFirst: false })
+            .order('id', { ascending: true })
 
           const { data, error } = await query
 
@@ -128,10 +130,12 @@ export function useCategorizedSubreddits(filters: SubredditFilters = {}) {
         query = query.eq('review', filters.review)
       }
 
-      // Apply sorting
+      // Apply sorting with secondary sort by id for stability
       const orderBy = filters.orderBy || 'subscribers'
       const order = filters.order || 'desc'
-      query = query.order(orderBy, { ascending: order === 'asc' })
+      query = query
+        .order(orderBy, { ascending: order === 'asc', nullsFirst: false })
+        .order('id', { ascending: true })
 
       const { data, error } = await query
 

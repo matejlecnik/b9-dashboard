@@ -26,7 +26,7 @@ import type { Creator } from '@/components/shared'
 const PAGE_SIZE = 50
 
 export default function NichingPage() {
-  const [creators, setCreators] = useState<any[]>([])
+  const [creators, setCreators] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)

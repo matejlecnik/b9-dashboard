@@ -154,7 +154,7 @@ export async function GET() {
         complete_records: completeRecords,
         missing_fields: missingFields,
         quality_score: qualityScore,
-        error_rate: scraperLogs.filter((log: any) => log.level === 'error').length
+        error_rate: scraperLogs.filter((log: Record<string, unknown>) => log.level === 'error').length
       },
       system_health: systemHealth,
       recent_activity: recentActivity,
@@ -165,7 +165,7 @@ export async function GET() {
     // Removed zod validation - return response directly
     return NextResponse.json(response)
     
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       discovery: { subreddits_found_24h: 0, new_subreddits: [], processing_speed: 0 },
       data_quality: { total_records: 0, complete_records: 0, missing_fields: 0, quality_score: 0, error_rate: 0 },

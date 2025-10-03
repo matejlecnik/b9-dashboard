@@ -660,7 +660,7 @@ async def start_instagram_scraper(request: Request):
 
             # Start Instagram scraper subprocess with proper logging
             instagram_process = subprocess.Popen(
-                [sys.executable, "-u", "core/continuous_instagram_scraper.py"],
+                [sys.executable, "-u", "app/scrapers/instagram/instagram_controller.py"],
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
@@ -857,9 +857,9 @@ async def get_control_info():
             "type": "subprocess_managed_by_container",
             "runs_24_7": True,
             "check_interval": "30 seconds",
-            "scraper_file": "api/core/continuous_instagram_scraper.py",
-            "logic_file": "api/services/instagram/unified_scraper.py",
-            "startup_handler": "api/start.py"
+            "scraper_file": "api-render/app/scrapers/instagram/instagram_controller.py",
+            "logic_file": "api-render/app/scrapers/instagram/services/instagram_scraper.py",
+            "startup_handler": "api-render/start.py"
         },
         "note": "The Instagram scraper is controlled via API endpoints or database. The subprocess is managed by the container's start.py script and checks the control table every 30 seconds."
     }

@@ -136,9 +136,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const totalDuration = Date.now() - startTime
-    
+
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Unknown error occurred',
         performance: {
           totalDuration: `${totalDuration}ms`

@@ -95,7 +95,7 @@ export function isPublicApiRoute(pathname: string): boolean {
  * Higher-order function to wrap API routes with authentication
  * Usage: export const GET = withAuth(async (req, user) => {...})
  */
-export function withAuth<T extends any[], R>(
+export function withAuth<T extends unknown[], R>(
   handler: (request: NextRequest, user: User, ...args: T) => Promise<R>
 ) {
   return async (request: NextRequest, ...args: T): Promise<R | NextResponse> => {
@@ -103,7 +103,14 @@ export function withAuth<T extends any[], R>(
     if (isPublicApiRoute(request.nextUrl.pathname)) {
       // For TypeScript, we need to handle the case where user might be null
       // Public routes can create a dummy user or handle null case
-      const dummyUser = { id: 'public', email: 'public@api' } as User
+      const dummyUser: User = {
+        id: 'public',
+        email: 'public@api',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString()
+      }
       return handler(request, dummyUser, ...args)
     }
 

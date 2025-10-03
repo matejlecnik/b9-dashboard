@@ -247,7 +247,7 @@ export async function PATCH(
       category 
     } as CategoryResponse)
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -362,7 +362,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       message: 'Category deleted successfully' 
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -419,7 +419,7 @@ export async function GET(
       category 
     } as CategoryResponse)
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

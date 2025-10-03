@@ -179,7 +179,7 @@ export async function GET(request: Request) {
       categories: categoryList 
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -298,7 +298,7 @@ export async function POST(request: Request) {
       category 
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

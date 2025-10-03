@@ -246,7 +246,7 @@ export default function UserAnalysisPage() {
     setBulkActionLoading(true)
     
     try {
-      const response = await fetch('/api/users/bulk-update', {
+      const response = await fetch('/api/reddit/users/bulk-update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

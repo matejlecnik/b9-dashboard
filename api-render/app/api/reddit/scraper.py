@@ -28,7 +28,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/scraper", tags=["reddit-scraper"])
+router = APIRouter(prefix="/api/reddit/scraper", tags=["reddit-scraper"])
 
 # Get Supabase client
 def get_supabase():

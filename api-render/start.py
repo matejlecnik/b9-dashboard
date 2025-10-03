@@ -104,7 +104,7 @@ def check_and_start_scrapers():
 
                     # Start with output to log file so we can see errors
                     instagram_process = subprocess.Popen(
-                        [sys.executable, "-u", "app/core/continuous_instagram_scraper.py"],
+                        [sys.executable, "-u", "app/scrapers/instagram/instagram_controller.py"],
                         stdout=instagram_log,
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,

@@ -23,7 +23,7 @@ except ImportError:
     from app.core.clients.api_pool import PublicRedditAPI
 
 # Initialize router
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/api/reddit/users", tags=["reddit-users"])
 
 # Configure logging
 logger = logging.getLogger(__name__)

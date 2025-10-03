@@ -5,20 +5,20 @@ import { NextResponse } from 'next/server'
 
 // POST /api/ai/bulk-categorize - Deprecated
 export async function POST(_request: Request) {
-  return NextResponse.json({ 
-    success: false, 
-    error: 'This endpoint has been moved to the backend API. Use /api/categorization/start instead.',
+  return NextResponse.json({
+    success: false,
+    error: 'This endpoint has been moved to the backend API. Use /api/ai/categorization/start instead.',
     deprecated: true,
-    newEndpoint: '/api/categorization/start'
+    newEndpoint: '/api/ai/categorization/start'
   }, { status: 410 }) // Gone
 }
 
-// GET /api/ai/bulk-categorize - Deprecated  
+// GET /api/ai/bulk-categorize - Deprecated
 export async function GET(_request: Request) {
-  return NextResponse.json({ 
-    success: false, 
+  return NextResponse.json({
+    success: false,
     error: 'This endpoint has been deprecated. Use the backend API for categorization status.',
     deprecated: true,
-    newEndpoint: '/api/categorization/status'
+    newEndpoint: '/api/ai/categorization/status'
   }, { status: 410 }) // Gone
 }

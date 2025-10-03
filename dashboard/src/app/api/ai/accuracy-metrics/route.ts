@@ -232,7 +232,7 @@ export async function GET(request: Request) {
       confidenceThreshold
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

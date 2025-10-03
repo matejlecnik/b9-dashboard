@@ -5,7 +5,7 @@ export { AddUserModal } from './AddUserModal'
 export { DiscoveryTable } from './DiscoveryTable'
 export { ModelForm } from './ModelForm'
 export { ModelFormModal } from './ModelFormModal'
-export { ModelsTable } from './ModelsTable'
+export { default as ModelsTable } from './ModelsTable'
 export { PerformanceProfiler } from './PerformanceProfiler'
 
 // AI features

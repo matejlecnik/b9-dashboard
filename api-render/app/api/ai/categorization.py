@@ -7,12 +7,12 @@ from typing import Optional, List, Dict, Any
 import logging
 import os
 
-from app.services.categorization_service_tags import TagCategorizationService
+from app.services.ai_categorizer import TagCategorizationService
 from supabase import create_client
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/categorization", tags=["ai-categorization"])
+router = APIRouter(prefix="/api/ai/categorization", tags=["ai-categorization"])
 
 # Supabase configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')

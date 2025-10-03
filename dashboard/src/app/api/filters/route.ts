@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest) {
     }
     
     return NextResponse.json({ filterSettings })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json({ filterSetting: data }, { status: 201 })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -120,7 +120,7 @@ export async function PUT(request: NextRequest) {
     }
     
     return NextResponse.json({ filterSetting: data })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     return NextResponse.json({ message: 'Filter setting deleted successfully' })
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

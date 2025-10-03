@@ -69,7 +69,7 @@ export function addVersionHeaders(response: NextResponse, version: ApiVersion): 
 /**
  * Version-aware API wrapper
  */
-export function versionedApi<T extends any[], R>(
+export function versionedApi<T extends unknown[], R>(
   handlers: Record<ApiVersion, (request: NextRequest, ...args: T) => Promise<NextResponse | Response>>
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse | Response> => {
@@ -103,7 +103,7 @@ export function versionedApi<T extends any[], R>(
 /**
  * Create a deprecated version warning response
  */
-export function deprecationWarning(version: ApiVersion, message?: string): Record<string, any> {
+export function deprecationWarning(version: ApiVersion, message?: string): Record<string, unknown> {
   return {
     warning: `API version ${version} is deprecated`,
     message: message || `Please migrate to version ${CURRENT_VERSION}`,

@@ -133,9 +133,23 @@ export function useInfiniteSupabaseQuery<TData = unknown, TError = Error>(
 
       try {
         const data = await queryFn({ pageParam })
+        const duration = Date.now() - startTime
         measureQueryPerformance([...queryKey, 'page', pageParam], startTime)
+
+        // Log slow infinite queries with pagination context
+        if (duration > 500) {
+          logger.warn(`Slow infinite query detected`, {
+            queryKey,
+            pageParam,
+            duration: `${duration}ms`,
+            pageDepth: typeof pageParam === 'object' ? 'cursor-based' : Math.floor((pageParam as number) / (options?.pageSize || 50)),
+            threshold: '500ms'
+          })
+        }
+
         return data
       } catch (error) {
+        const duration = Date.now() - startTime
         measureQueryPerformance([...queryKey, 'page', pageParam], startTime)
 
         logger.error('Query error', {

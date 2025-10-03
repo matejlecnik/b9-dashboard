@@ -15,7 +15,6 @@
     {"path": "templates/PAGE_PATTERNS.md", "desc": "Page patterns", "status": "COMPLETE"}
   ],
   "related": [
-    {"path": "../DEDUPLICATION_MAP.md", "desc": "Phase 2 completion", "status": "REFERENCE"},
     {"path": "../../ROADMAP.md", "desc": "v3.7.0 barrel exports", "status": "IN_PROGRESS"}
   ]
 }
@@ -664,10 +663,6 @@
     {
       "file": "dashboard/docs/templates/PAGE_PATTERNS.md",
       "updates": ["Updated import patterns", "Design system usage"]
-    },
-    {
-      "file": "dashboard/DEDUPLICATION_MAP.md",
-      "updates": ["Mark as HISTORICAL", "Reference new structure"]
     },
     {
       "file": "ROADMAP.md",

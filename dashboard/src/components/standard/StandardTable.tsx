@@ -105,7 +105,7 @@ const TableSkeleton: React.FC<{
 // MAIN COMPONENT
 // ============================================================================
 
-export function StandardTable<T extends Record<string, any>>({
+export function StandardTable<T extends Record<string, unknown>>({
   variant = 'simple',
   data,
   columns,
@@ -114,7 +114,7 @@ export function StandardTable<T extends Record<string, any>>({
   selectable = false,
   selectedItems = new Set(),
   onSelectionChange,
-  getItemId = (item) => item.id,
+  getItemId = (item) => item.id as string | number,
 
   sortable = false,
   onSort,
@@ -325,7 +325,7 @@ export function StandardTable<T extends Record<string, any>>({
                     >
                       {column.render
                         ? column.render(item, index)
-                        : item[column.key]
+                        : (item[column.key] as React.ReactNode)
                       }
                     </td>
                   ))}
@@ -344,7 +344,7 @@ export function StandardTable<T extends Record<string, any>>({
 // ============================================================================
 
 // Helper for creating subreddit review table columns
-export const createReviewColumns = (): TableColumn<any>[] => [
+export const createReviewColumns = (): TableColumn<Record<string, unknown>>[] => [
   {
     key: 'icon',
     header: '',
@@ -353,7 +353,7 @@ export const createReviewColumns = (): TableColumn<any>[] => [
       <div className="relative w-8 h-8">
         {item.icon_img ? (
           <Image
-            src={item.icon_img}
+            src={item.icon_img as string}
             alt=""
             fill
             className="rounded-full object-cover"
@@ -422,7 +422,7 @@ export const createReviewColumns = (): TableColumn<any>[] => [
 ]
 
 // Helper for creating posting table columns
-export const createPostingColumns = (): TableColumn<any>[] => [
+export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] => [
   {
     key: 'subreddit',
     header: 'Subreddit',

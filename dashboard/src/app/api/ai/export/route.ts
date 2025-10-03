@@ -220,7 +220,7 @@ export async function GET(request: Request) {
       })
     }
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
@@ -395,7 +395,7 @@ export async function POST(request: Request) {
       error: 'No data specified for export' 
     }, { status: 400 })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 

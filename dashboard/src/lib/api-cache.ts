@@ -139,7 +139,7 @@ export const CACHE_CONFIGS = {
  * Helper to create cached JSON response
  */
 export function cachedJsonResponse(
-  data: any,
+  data: unknown,
   cacheOptions: CacheOptions = {},
   init?: ResponseInit
 ): NextResponse {

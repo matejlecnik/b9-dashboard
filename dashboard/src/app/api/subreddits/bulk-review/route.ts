@@ -149,7 +149,7 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       wouldUpdate: subreddits?.length || 0
     })
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -13,7 +13,7 @@ from supabase import create_client
 from dotenv import load_dotenv
 
 # Use absolute imports from api_render package
-from api_render.scrapers.instagram.services.unified_scraper import InstagramScraperUnified
+from api_render.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
 from api_render.scrapers.instagram.services.instagram_config import Config
 try:
     from api_render.utils.system_logger import system_logger
