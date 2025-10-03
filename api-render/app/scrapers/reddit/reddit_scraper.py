@@ -61,7 +61,7 @@ except ImportError:
     else:
         SupabaseLogHandler = None  # Graceful degradation if not available
 
-SCRAPER_VERSION = "3.6.2"
+SCRAPER_VERSION = "3.6.3"
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -747,12 +747,20 @@ class RedditScraper:
         # ========== PASS 1: Fetch & Save Subreddit + Posts ==========
 
         # 1. Parallelize all API calls (3-5x speedup: 2.5-5s → 0.8-1.2s)
-        subreddit_info, rules, hot_10, top_10_weekly = await asyncio.gather(
-            self.api.get_subreddit_info(subreddit_name, proxy),
-            self.api.get_subreddit_rules(subreddit_name, proxy),
-            self.api.get_subreddit_hot_posts(subreddit_name, 10, proxy),
-            self.api.get_subreddit_top_posts(subreddit_name, "week", 10, proxy),
-        )
+        # Add 60s timeout to prevent infinite hangs (v3.6.3 bugfix)
+        try:
+            subreddit_info, rules, hot_10, top_10_weekly = await asyncio.wait_for(
+                asyncio.gather(
+                    self.api.get_subreddit_info(subreddit_name, proxy),
+                    self.api.get_subreddit_rules(subreddit_name, proxy),
+                    self.api.get_subreddit_hot_posts(subreddit_name, 10, proxy),
+                    self.api.get_subreddit_top_posts(subreddit_name, "week", 10, proxy),
+                ),
+                timeout=60.0
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"❌ API timeout (60s) for r/{subreddit_name} - skipping")
+            return set()
 
         # 2. Check for banned/forbidden/not_found subreddits
         if isinstance(subreddit_info, dict) and "error" in subreddit_info:

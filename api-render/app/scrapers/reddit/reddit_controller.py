@@ -21,7 +21,7 @@ else:
     sys.path.insert(0, api_root)
     from core.database.supabase_client import get_supabase_client
 
-CONTROLLER_VERSION = "2.0.0"
+CONTROLLER_VERSION = "2.1.0"
 CHECK_INTERVAL = 30  # seconds
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -62,6 +62,47 @@ class RedditController:
             }).eq("script_name", "reddit_scraper").execute()
         except Exception as e:
             logger.error(f"Failed to update heartbeat: {e}")
+
+    async def check_scraper_health(self):
+        """Check if scraper is hung by monitoring last log timestamp (v2.1.0 watchdog)"""
+        if not self.scraper:
+            return True  # No scraper running, no health check needed
+
+        try:
+            # Get last log timestamp from system_logs
+            result = self.supabase.table("system_logs")\
+                .select("timestamp")\
+                .eq("source", "reddit_scraper")\
+                .order("timestamp", desc=True)\
+                .limit(1)\
+                .execute()
+
+            if result.data and len(result.data) > 0:
+                last_log_time = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                idle_duration = (now - last_log_time).total_seconds()
+
+                # If no logs for 10 minutes, scraper is likely hung
+                if idle_duration > 600:  # 10 minutes
+                    logger.warning(f"⚠️  Scraper hung detected: no logs for {int(idle_duration/60)} minutes")
+                    logger.warning(f"🔄 Auto-restarting hung scraper...")
+
+                    # Force restart
+                    await self.stop_scraper()
+                    await asyncio.sleep(5)  # Wait for cleanup
+                    await self.start_scraper()
+
+                    return False  # Health check failed, restarted
+
+                # Log health check status for debugging
+                if idle_duration > 300:  # Warn if idle > 5 minutes
+                    logger.info(f"⏳ Scraper idle for {int(idle_duration/60)} minutes (healthy)")
+
+            return True  # Health check passed
+
+        except Exception as e:
+            logger.error(f"Failed to check scraper health: {e}")
+            return True  # Don't restart on health check errors
 
     async def start_scraper(self):
         """Start the scraper"""
@@ -136,6 +177,10 @@ class RedditController:
                 # Stop scraper if disabled and running
                 elif not enabled and self.scraper:
                     await self.stop_scraper()
+
+                # Check scraper health (watchdog for hung scrapers - v2.1.0)
+                if enabled and self.scraper:
+                    await self.check_scraper_health()
 
                 # Update heartbeat
                 await self.update_heartbeat()
