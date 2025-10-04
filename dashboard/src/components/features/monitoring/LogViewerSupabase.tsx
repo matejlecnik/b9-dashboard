@@ -261,20 +261,20 @@ export function LogViewerSupabase({
         // Handle both table structures
         const newLog: LogEntry = useSystemLogs ? {
           id: logId,
-          timestamp: newData.timestamp || '',
-          level: newData.level || 'info',
-          title: formatLogMessage(newData.message || '', newData.context),
-          message: newData.message || '',
-          source: newData.source || newData.script_name || 'unknown',
-          context: newData.context
+          timestamp: (newData.timestamp as string) || '',
+          level: (newData.level as 'info' | 'warning' | 'error' | 'success' | 'debug') || 'info',
+          title: formatLogMessage((newData.message as string) || '', newData.context as LogContext | undefined),
+          message: (newData.message as string) || '',
+          source: (newData.source as string) || (newData.script_name as string) || 'unknown',
+          context: newData.context as LogContext | undefined
         } : {
           id: logId,
-          timestamp: newData.timestamp || '',
-          level: newData.level || 'info',
-          title: formatLogMessage(newData.message || '', newData.context),
-          message: newData.message || '',
-          source: newData.source || 'scraper',
-          context: newData.context
+          timestamp: (newData.timestamp as string) || '',
+          level: (newData.level as 'info' | 'warning' | 'error' | 'success' | 'debug') || 'info',
+          title: formatLogMessage((newData.message as string) || '', newData.context as LogContext | undefined),
+          message: (newData.message as string) || '',
+          source: (newData.source as string) || 'scraper',
+          context: newData.context as LogContext | undefined
         }
 
         // Apply filters based on table type

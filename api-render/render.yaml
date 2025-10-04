@@ -1,5 +1,6 @@
 services:
   # Main API Service
+  # Handles all API endpoints + manages scrapers via subprocess architecture
   - type: web
     name: b9-dashboard-api
     runtime: python3
@@ -21,111 +22,90 @@ services:
         value: true
       - key: LOG_LEVEL
         value: info
-      - key: CACHE_TTL
-        value: 300
     autoDeploy: true
-    rootDir: api
+    rootDir: api-render
     healthCheckPath: "/health"
-    
-  # Redis Cache Service
-  - type: redis
-    name: b9-dashboard-redis
-    plan: starter
-    maxmemoryPolicy: allkeys-lru
-    region: oregon
-    
-  # Reddit Scraper Service (Dedicated 24/7 Scraper)
-  - type: worker
-    name: reddit-scraper
+
+  # NOTE: The following services are DISABLED - functionality handled by main API service
+  # Redis Cache Service - REMOVED (cache disabled, see requirements.txt)
+  # - type: redis
+  #   name: b9-dashboard-redis
+  #   plan: starter
+  #   maxmemoryPolicy: allkeys-lru
+  #   region: oregon
+
+  # Reddit Scraper - MANAGED VIA SUBPROCESS (start.py handles auto-start based on system_control table)
+  # - type: worker
+  #   name: reddit-scraper
+  #   runtime: python3
+  #   buildCommand: "pip install -r requirements.txt"
+  #   startCommand: "python app/scrapers/reddit/reddit_controller.py"
+  #   plan: starter
+  #   region: oregon
+  #   branch: main
+  #   rootDir: api-render
+  #   autoDeploy: true
+
+  # Background Worker Service - REMOVED (worker.py does not exist)
+  # Functionality handled via start.py subprocess architecture
+  # - type: worker
+  #   name: b9-dashboard-worker
+  #   runtime: python3
+  #   buildCommand: "./build.sh"
+  #   startCommand: "python worker.py"
+  #   plan: starter
+  #   region: oregon
+  #   branch: main
+  #   rootDir: api-render
+  #   autoDeploy: true
+
+  # Cron Job Service - Log Cleanup (CRON-001: CRITICAL)
+  # Prevents disk overflow by cleaning old logs daily
+  - type: cron
+    name: b9-log-cleanup
     runtime: python3
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python reddit_scraper.py"
+    schedule: "0 2 * * *"  # Daily at 2 AM UTC
+    startCommand: 'curl -X POST "${RENDER_SERVICE_URL}/api/cron/cleanup-logs?retention_days=30" -H "Authorization: Bearer ${CRON_SECRET}"'
     plan: starter
     region: oregon
     branch: main
-    rootDir: scraper
+    rootDir: api-render
     autoDeploy: true
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
-      - key: AUTO_START
-        value: true
-      - key: LOG_LEVEL
-        value: info
-      - key: MAX_DAILY_REQUESTS
-        value: 50000
-      - key: BATCH_SIZE
-        value: 10
-      - key: MIN_DELAY_SECONDS
-        value: 2.5
-      - key: MAX_DELAY_SECONDS
-        value: 6.0
-      - key: ENABLE_METRICS
-        value: true
-      - key: HEALTH_CHECK_ENABLED
-        value: true
-      - key: HEALTH_CHECK_PORT
-        value: 8080
-
-  # Background Worker Service (General Purpose Tasks)
-  - type: worker
-    name: b9-dashboard-worker
-    runtime: python3
-    buildCommand: "./build.sh"
-    startCommand: "python worker.py"
-    plan: starter
-    region: oregon
-    branch: main
-    rootDir: api
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
-      - key: LOG_LEVEL
-        value: info
-
-  # Cron Job Service for Scheduled Tasks
-  - type: cron
-    name: b9-dashboard-cron
-    runtime: python3
-    buildCommand: "./build.sh"
-    schedule: "0 */6 * * *"  # Every 6 hours
-    startCommand: "python cron_jobs.py"
-    plan: starter
-    region: oregon
-    branch: main
-    rootDir: api
-    autoDeploy: true
-
-databases:
-  # PostgreSQL for queue management (optional - using Supabase primarily)
-  - name: b9-dashboard-queue
-    databaseName: b9_queue
-    user: b9_user
-    plan: free
-    region: oregon
-
-# Environment Groups (shared across services)
-envVarGroups:
-  - name: shared-config
-    envVars:
-      - key: REDIS_URL
+      - key: RENDER_SERVICE_URL
         fromService:
-          type: redis
-          name: b9-dashboard-redis
-          property: connectionString
-      - key: DATABASE_URL
-        fromDatabase:
-          name: b9-dashboard-queue
-          property: connectionString
+          type: web
+          name: b9-dashboard-api
+          property: host
+      - key: CRON_SECRET
+        generateValue: true  # Render auto-generates secure random value
+      - key: SUPABASE_URL
+        sync: false  # Sync from main service
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false  # Sync from main service
 
-# Blueprints for easy deployment
-blueprints:
-  - name: b9-complete-stack
-    services:
-      - b9-dashboard-api
-      - b9-dashboard-redis
-      - reddit-scraper
-      - b9-dashboard-worker
-    databases:
-      - b9-dashboard-queue
+# NOTE: No additional databases needed - using Supabase for all data storage
+# databases:
+#   - name: b9-dashboard-queue
+#     databaseName: b9_queue
+#     user: b9_user
+#     plan: free
+#     region: oregon
+
+# NOTE: Environment groups removed - Redis and separate database not used
+# All configuration via environment variables set directly on the service
+# envVarGroups:
+#   - name: shared-config
+#     envVars:
+#       - key: REDIS_URL
+#         fromService:
+#           type: redis
+#           name: b9-dashboard-redis
+#           property: connectionString
+
+# Blueprints for deployment
+# blueprints:
+#   - name: b9-complete-stack
+#     services:
+#       - b9-dashboard-api

@@ -10,14 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { TrendingUp, SortAsc, Calendar } from 'lucide-react'
-
-interface ViralReelsFilters {
-  minViews: number
-  sortBy: 'views' | 'likes' | 'engagement' | 'recent'
-  sortOrder: 'asc' | 'desc'
-  dateFrom?: string
-  dateTo?: string
-}
+import type { ViralReelsFilters } from '@/lib/supabase/viral-reels'
 
 interface ViralFiltersProps {
   filters: ViralReelsFilters

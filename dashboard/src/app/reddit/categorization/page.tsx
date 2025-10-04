@@ -28,21 +28,7 @@ import {
 } from '@/hooks/queries/useRedditCategorization'
 
 // Import types
-interface Subreddit {
-  id: number
-  name: string
-  display_name: string
-  public_description?: string
-  subscribers?: number
-  is_nsfw?: boolean
-  subreddit_tags?: string[]
-  tags?: string[]
-  review?: string
-  title?: string
-  created_utc?: number
-  rules_data?: unknown
-  display_name_prefixed?: string
-}
+import type { Subreddit } from '@/types/subreddit'
 
 interface AICategorizationSettings {
   limit: number
@@ -576,7 +562,7 @@ export default function CategorizationPage() {
                   subreddits,
                   selectedSubreddits,
                   setSelectedSubreddits,
-                  onUpdateTags: updateTags,
+                  onBulkUpdateTags: updateBulkTags,
                   onUpdateReview: updateReview,
                   onUpdateSingleTag: updateSingleTag,
                   onRemoveTag: removeTag,

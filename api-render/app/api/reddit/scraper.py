@@ -11,35 +11,29 @@ import os
 import sys
 import signal
 import subprocess
-import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
-from supabase import create_client
+from supabase import Client
 
-# Import system logger
-try:
-    from ..utils.system_logger import system_logger, log_api_call
-except ImportError:
-    system_logger = None
-    log_api_call = None
+# Import database singleton and unified logger
+from app.core.database import get_db
+from app.logging import get_logger
 
-logger = logging.getLogger(__name__)
+# Note: system_logger and log_api_call moved to unified logging system
+system_logger = None
+log_api_call = None
+
+logger = get_logger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api/reddit/scraper", tags=["reddit-scraper"])
 
-# Get Supabase client
-def get_supabase():
-    """Get Supabase client"""
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-    if not supabase_url or not supabase_key:
-        raise HTTPException(status_code=500, detail="Supabase not configured")
-
-    return create_client(supabase_url, supabase_key)
+# Get Supabase client using singleton
+def get_supabase() -> Client:
+    """Get Supabase client from singleton"""
+    return get_db()
 
 
 @router.get("/health")

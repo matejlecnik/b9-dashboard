@@ -4,13 +4,13 @@ AI Categorization Routes - Tag-based subreddit categorization API endpoints
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-import logging
 import os
 
 from app.services.ai_categorizer import TagCategorizationService
-from supabase import create_client
+from app.core.database import get_db
+from app.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/ai/categorization", tags=["ai-categorization"])
 
@@ -52,13 +52,7 @@ class StatsResponse(BaseModel):
 # ============================================================
 
 def get_categorization_service() -> TagCategorizationService:
-    """Initialize and return categorization service"""
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="Supabase configuration missing"
-        )
-
+    """Initialize and return categorization service using singleton database client"""
     openai_api_key = os.getenv('OPENAI_API_KEY')
     if not openai_api_key:
         raise HTTPException(
@@ -66,8 +60,9 @@ def get_categorization_service() -> TagCategorizationService:
             detail="OPENAI_API_KEY environment variable not set"
         )
 
-    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    return TagCategorizationService(supabase, openai_api_key)
+    # Use singleton database client
+    db = get_db()
+    return TagCategorizationService(db, openai_api_key)
 
 
 # ============================================================

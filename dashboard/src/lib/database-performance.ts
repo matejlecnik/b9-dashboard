@@ -465,19 +465,19 @@ export class OptimizedDatabaseClient {
 
     try {
       // Execute query
-      const result = await queryBuilder(client)
+      const result = await queryBuilder(client) as { data: T | null; error: unknown }
       const duration = performance.now() - startTime
 
       // Record metrics
       if (this.config.monitoringEnabled) {
-        const rowCount = result.data ? 
+        const rowCount = result.data ?
           (Array.isArray(result.data) ? result.data.length : 1) : 0
         this.monitor.recordQuery(tableName, duration, rowCount, false)
       }
 
       // Cache result if enabled
       if (cacheEnabled && result.data) {
-        this.cache.set(cacheKey, null, result.data, options.cacheTTL)
+        this.cache.set(cacheKey, undefined, result.data, options.cacheTTL)
       }
 
       return result.data as T
@@ -625,7 +625,11 @@ export class BatchQueryOptimizer {
       }
       
       const queries = this.queue.get(key)!
-      queries.push({ resolve, reject, query })
+      queries.push({
+        resolve: resolve as (data: unknown) => void,
+        reject,
+        query: query as () => Promise<unknown>
+      })
 
       // Flush if batch is full
       if (queries.length >= this.maxBatchSize) {

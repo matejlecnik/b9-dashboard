@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   Film,
   TrendingUp,
@@ -14,42 +14,16 @@ import { StandardToolbar } from '@/components/shared'
 import { ViralFilters } from '@/components/instagram/ViralFilters'
 import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
-import { MetricsCardsSkeleton, CardGridSkeleton } from '@/components/shared/SkeletonLoaders'
-import { logger } from '@/lib/logger'
+import { MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
 import { formatNumber } from '@/lib/formatters'
+import type { ViralReelsFilters } from '@/lib/supabase/viral-reels'
 import {
-  getViralReels,
-  getViralReelsStats,
-  getTopCreators,
-  ViralReel,
-  ViralReelsFilters
-} from '@/lib/supabase/viral-reels'
-
-interface ViralStats {
-  total_reels: number
-  total_viral: number
-  ultra_viral: number
-  mega_viral?: number
-  avg_views: number
-  avg_likes: number
-  max_views: number
-}
-
-interface TopCreator {
-  username: string
-  viral_count: number
-  total_views: number
-  avg_views: number
-}
+  useViralReels,
+  useViralReelsStats,
+  useTopCreators
+} from '@/hooks/queries/useInstagramReview'
 
 export default function ViralContentPage() {
-  const [reels, setReels] = useState<ViralReel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [stats, setStats] = useState<ViralStats | null>(null)
-  const [topCreators, setTopCreators] = useState<TopCreator[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<ViralReelsFilters>({
     minViews: 50000,
@@ -57,56 +31,29 @@ export default function ViralContentPage() {
     sortOrder: 'desc'
   })
 
-  const loadReels = useCallback(async (pageNum: number, currentFilters: ViralReelsFilters, append = false) => {
-    try {
-      if (!append) setLoading(true)
-      else setLoadingMore(true)
+  // Fetch viral reels with infinite scroll
+  const {
+    data: infiniteData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useViralReels(filters)
 
-      const { reels: newReels, totalPages: pages } = await getViralReels(currentFilters, pageNum, 20)
+  // Fetch stats
+  const { data: stats } = useViralReelsStats(filters)
 
-      if (append) {
-        setReels(prev => [...prev, ...newReels])
-      } else {
-        setReels(newReels)
-      }
+  // Fetch top creators
+  const { data: topCreators = [] } = useTopCreators(filters, 5)
 
-      setTotalPages(pages)
-      setPage(pageNum)
-    } catch (error) {
-      logger.error('Error loading reels:', error)
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }, [])
-
-  const loadStats = useCallback(async (currentFilters: ViralReelsFilters) => {
-    try {
-      const [statsData, creatorsData] = await Promise.all([
-        getViralReelsStats(currentFilters),
-        getTopCreators(currentFilters, 5)
-      ])
-      setStats(statsData)
-      setTopCreators(creatorsData)
-    } catch (error) {
-      logger.error('Error loading stats:', error)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadReels(1, filters)
-    loadStats(filters)
-  }, [filters, loadReels, loadStats])
-
-  const handleLoadMore = useCallback(() => {
-    if (page < totalPages) {
-      loadReels(page + 1, filters, true)
-    }
-  }, [page, totalPages, filters, loadReels])
+  // Flatten infinite pages into single array
+  const reels = useMemo(
+    () => infiniteData?.pages.flat() || [],
+    [infiniteData]
+  )
 
   const handleFiltersChange = useCallback((newFilters: ViralReelsFilters) => {
     setFilters(newFilters)
-    setPage(1)
   }, [])
 
   const handleResetFilters = useCallback(() => {
@@ -115,7 +62,6 @@ export default function ViralContentPage() {
       sortBy: 'views',
       sortOrder: 'desc'
     })
-    setPage(1)
   }, [])
 
   return (
@@ -142,7 +88,7 @@ export default function ViralContentPage() {
             <div className="space-y-6">
               {/* Stats Cards */}
               <ComponentErrorBoundary>
-                {loading && !stats ? (
+                {isLoading && !stats ? (
                   <MetricsCardsSkeleton />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
@@ -325,7 +271,7 @@ export default function ViralContentPage() {
                 currentSort={filters.sortBy}
                 onSortChange={(sortBy: string) => handleFiltersChange({ ...filters, sortBy: sortBy as 'views' | 'likes' | 'engagement' | 'recent' })}
 
-                  loading={loading}
+                  loading={isLoading}
                   accentColor="linear-gradient(135deg, #E1306C, #F77737)"
                 />
               </ComponentErrorBoundary>
@@ -346,17 +292,17 @@ export default function ViralContentPage() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Viral Reels Feed</h3>
                       <span className="text-sm text-gray-600">
-                        {reels.length} reels shown {page < totalPages && `• Page ${page} of ${totalPages}`}
+                        {reels.length} reels shown {hasNextPage && '• More available'}
                       </span>
                     </div>
                   </div>
                   <div className="p-6">
                     <ViralReelsGrid
                       reels={reels}
-                      loading={loading}
-                      hasMore={page < totalPages}
-                      onLoadMore={handleLoadMore}
-                      loadingMore={loadingMore}
+                      loading={isLoading}
+                      hasMore={hasNextPage || false}
+                      onLoadMore={() => fetchNextPage()}
+                      loadingMore={isFetchingNextPage}
                     />
                   </div>
                 </div>

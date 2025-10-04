@@ -581,7 +581,7 @@ export default function NichingPage() {
               <ComponentErrorBoundary>
                 <div className="relative rounded-2xl overflow-hidden transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
                   <UniversalCreatorTable
-                  creators={creators as Creator[]}
+                  creators={creators as unknown as Creator[]}
                   loading={loading}
                   selectedCreators={selectedCreators}
                   setSelectedCreators={setSelectedCreators}

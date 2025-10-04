@@ -17,15 +17,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import ValidationError as PydanticValidationError
 import json
 
-# Import Supabase logging
-try:
-    from app.core.utils.supabase_logger import SupabaseLogHandler
-    from app.core.database.supabase_client import get_supabase_client
-    SUPABASE_AVAILABLE = True
-except ImportError:
-    SUPABASE_AVAILABLE = False
+# Use unified logging system
+from app.logging import get_logger
+from app.core.database import get_db
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+SUPABASE_AVAILABLE = True  # Using unified logging with Supabase support
 
 def filter_sensitive_headers(headers: dict) -> dict:
     """Remove sensitive headers before logging"""
@@ -260,36 +257,6 @@ class CustomExceptionHandler:
         )
     
     @staticmethod
-    def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResponse:
-        """Handle rate limit errors"""
-        logger.warning(f"Rate limit exceeded at {request.url}: {exc}")
-
-        # Use configuration for retry time if available
-        retry_seconds = 60
-        if SUPABASE_AVAILABLE:
-            try:
-                config = get_scraper_config()
-                retry_seconds = config.db_rate_limit_window
-            except Exception:
-                pass
-
-        return JSONResponse(
-            status_code=429,
-            content={
-                "error": "Too Many Requests",
-                "message": "Rate limit exceeded. Please try again later.",
-                "status_code": 429,
-                "timestamp": datetime.now().isoformat(),
-                "path": str(request.url),
-                "method": request.method,
-                "retry_after": f"{retry_seconds} seconds"
-            },
-            headers={
-                "Retry-After": str(retry_seconds)
-            }
-        )
-    
-    @staticmethod
     def external_api_error_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle external API errors (OpenAI, Reddit, etc.)"""
         logger.error(f"External API error at {request.url}: {exc}")
@@ -334,14 +301,7 @@ def add_error_handlers(app):
         # Let other exceptions be handled by the middleware
         raise exc
 
-    # Register rate limit handler (if using custom rate limit exception)
-    try:
-        from app.utils.rate_limit import RateLimitExceeded
-        @app.exception_handler(RateLimitExceeded)
-        async def handle_rate_limit(request: Request, exc: RateLimitExceeded):
-            return custom_handler.rate_limit_error_handler(request, exc)
-    except ImportError:
-        pass
+    # Rate limiting has been disabled (Redis removed)
 
     # Add specific exception handlers
     @app.exception_handler(404)

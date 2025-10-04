@@ -9,16 +9,15 @@ import os
 import sys
 import logging
 from datetime import datetime, timezone, timedelta
-from supabase import create_client
 from dotenv import load_dotenv
 
 # Use absolute imports from api_render package
 from api_render.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
+from api_render.core.database import get_db
 from api_render.scrapers.instagram.services.instagram_config import Config
-try:
-    from api_render.utils.system_logger import system_logger
-except ImportError:
-    system_logger = None
+
+# Note: system_logger moved to unified logging system
+system_logger = None
 
 # Version tracking
 SCRAPER_VERSION = "3.0.0"  # Simplified to match Reddit pattern
@@ -51,15 +50,9 @@ class ContinuousInstagramScraper:
         self.next_cycle_at = None
 
     def initialize_supabase(self):
-        """Initialize Supabase client"""
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-        if not supabase_url or not supabase_key:
-            raise Exception("Supabase credentials not configured")
-
-        self.supabase = create_client(supabase_url, supabase_key)
-        logger.info("✅ Supabase client initialized")
+        """Initialize Supabase client from singleton"""
+        self.supabase = get_db()
+        logger.info("✅ Supabase client initialized (singleton)")
 
     async def update_heartbeat(self):
         """Update heartbeat in database to show scraper is alive"""

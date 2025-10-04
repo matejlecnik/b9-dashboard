@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { getUserDashboardsClient, DashboardInfo } from '@/lib/permissions'
-import { useDashboardTracking } from '@/hooks/useDashboardTracking'
+import { useDashboardTracking, DashboardWithTracking } from '@/hooks/useDashboardTracking'
 
 
 // Reddit Icon Component
@@ -155,7 +155,7 @@ export default function DashboardsPage() {
     }
 
     // Sort by most recently accessed
-    return sortDashboardsByRecent(filtered)
+    return sortDashboardsByRecent(filtered as DashboardWithTracking[])
   }, [searchQuery, dashboards, sortDashboardsByRecent])
 
   // Highlight search matches
@@ -272,7 +272,7 @@ export default function DashboardsPage() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
-              {filteredDashboards.map((dashboard: DashboardInfo, index: number) => {
+              {filteredDashboards.map((dashboard: DashboardWithTracking, index: number) => {
                 const Icon = dashboardIcons[dashboard.dashboard_id] as React.ComponentType<{ className?: string }> || Activity
                 const colors = dashboardColors[dashboard.dashboard_id] || {
                   color: 'text-gray-500',

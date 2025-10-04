@@ -10,19 +10,12 @@ from typing import Dict, Optional, Any, Tuple
 from fake_useragent import UserAgent
 import random
 from datetime import datetime, timezone
-# Import logging helper with fallback
-try:
-    from core.logging_helper import LoggingHelper
-    logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
-except ImportError:
-    try:
-        from app.core.logging_helper import LoggingHelper
-        logger_helper = LoggingHelper(source='reddit_scraper', script_name='api_pool')
-    except ImportError:
-        # Fallback: create a dummy logger if LoggingHelper is not available
-        logger_helper = None
+# Use unified logging system
+from app.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+# Backward compatibility: logger_helper points to unified logger
+logger_helper = logger
 
 
 class PublicRedditAPI:

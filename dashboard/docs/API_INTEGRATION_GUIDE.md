@@ -12,7 +12,7 @@
   "current": "API_INTEGRATION_GUIDE.md",
   "siblings": [
     {"path": "COMPONENT_GUIDE.md", "desc": "Component patterns", "status": "ACTIVE"},
-    {"path": "TESTING_GUIDELINES.md", "desc": "Testing strategies", "status": "ACTIVE"},
+    {"path": "TESTING_GUIDE.md", "desc": "Testing strategies", "status": "ACTIVE"},
     {"path": "DOCUMENTATION_MAP.md", "desc": "Full navigation", "status": "COMPLETE"}
   ]
 }

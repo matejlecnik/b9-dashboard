@@ -5,16 +5,12 @@ import { UnifiedSidebar } from '@/components/shared/layouts/UnifiedSidebar'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
-  title?: string
-  subtitle?: string
-  showSearch?: boolean
+  title?: string // For metadata/SEO only - not displayed
+  subtitle?: string // For metadata/SEO only - not displayed
 }
 
-const DashboardLayout = memo(function DashboardLayout({ 
-  children,
-  title,
-  subtitle,
-  showSearch = true
+const DashboardLayout = memo(function DashboardLayout({
+  children
 }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
@@ -36,36 +32,9 @@ const DashboardLayout = memo(function DashboardLayout({
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        {(title || subtitle) && (
-          <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  {title && (
-                    <h1 className="text-2xl font-bold text-gray-900 truncate">
-                      {title}
-                    </h1>
-                  )}
-                  {subtitle && (
-                    <p className="mt-1 text-sm text-gray-500 truncate">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-                {showSearch && (
-                  <div className="ml-4 flex-shrink-0">
-                    {/* Search functionality can be added here later */}
-                  </div>
-                )}
-              </div>
-            </div>
-          </header>
-        )}
-        
         {/* Page Content */}
-        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
-          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
+        <main className="flex-1 overflow-auto bg-transparent flex flex-col">
+          <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
             {children}
           </div>
         </main>

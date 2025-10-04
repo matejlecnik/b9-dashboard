@@ -380,11 +380,11 @@ export const createReviewColumns = (): TableColumn<Record<string, unknown>>[] =>
           className="font-medium text-gray-900 hover:text-b9-pink transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
-          r/{item.display_name}
+          r/{item.display_name as React.ReactNode}
         </a>
-        {item.title && (
+        {(item.title as React.ReactNode) && (
           <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">
-            {item.title}
+            {item.title as React.ReactNode}
           </p>
         )}
       </div>
@@ -408,16 +408,19 @@ export const createReviewColumns = (): TableColumn<Record<string, unknown>>[] =>
     sortable: true,
     className: 'text-right',
     headerClassName: 'text-right',
-    render: (item) => (
-      <span className={cn(
-        'font-semibold',
-        item.score >= 80 ? 'text-green-600' :
-        item.score >= 50 ? 'text-yellow-600' :
-        'text-red-600'
-      )}>
-        {item.score || 0}
-      </span>
-    )
+    render: (item) => {
+      const score = item.score as number
+      return (
+        <span className={cn(
+          'font-semibold',
+          score >= 80 ? 'text-green-600' :
+          score >= 50 ? 'text-yellow-600' :
+          'text-red-600'
+        )}>
+          {score || 0}
+        </span>
+      )
+    }
   }
 ]
 
@@ -429,7 +432,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
     sortable: true,
     render: (item) => (
       <div className="font-medium text-gray-900">
-        r/{item.subreddit}
+        r/{item.subreddit as React.ReactNode}
       </div>
     )
   },
@@ -441,7 +444,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
     headerClassName: 'text-center',
     render: (item) => (
       <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-        {item.post_count || 0}
+        {(item.post_count as number) || 0}
       </span>
     )
   },
@@ -451,7 +454,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
     sortable: true,
     render: (item) => (
       <span className="text-sm text-gray-600">
-        {item.last_posted ? new Date(item.last_posted).toLocaleDateString() : 'Never'}
+        {item.last_posted ? new Date(item.last_posted as string).toLocaleDateString() : 'Never'}
       </span>
     )
   },
@@ -459,7 +462,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
     key: 'status',
     header: 'Status',
     render: (item) => {
-      const status = item.status || 'active'
+      const status = (item.status as string) || 'active'
       const statusColors = {
         active: 'bg-green-100 text-green-800',
         paused: 'bg-yellow-100 text-yellow-800',
@@ -471,7 +474,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
           'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
           statusColors[status as keyof typeof statusColors]
         )}>
-          {status}
+          {status as React.ReactNode}
         </span>
       )
     }

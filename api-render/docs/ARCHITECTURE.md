@@ -45,11 +45,10 @@ api-render/
 │   ├── /middleware/             # Request/Response handling
 │   │   └── error_handler.py    # Global error handling
 │   │
-│   ├── /routes/                 # API endpoints (Presentation layer)
-│   │   ├── api.py               # Main API routes
-│   │   ├── instagram.py         # Instagram endpoints
-│   │   ├── reddit.py            # Reddit endpoints
-│   │   └── stats.py             # Statistics endpoints
+│   ├── /api/                    # API endpoints (Presentation layer)
+│   │   ├── /ai/                 # AI categorization routes
+│   │   ├── /instagram/          # Instagram endpoints
+│   │   └── /reddit/             # Reddit endpoints
 │   │
 │   ├── /services/               # Business logic layer
 │   │   ├── /tags/               # Tag categorization
@@ -105,7 +104,7 @@ api-render/
 ```json
 {
   "presentation": {
-    "location": "/app/routes/",
+    "location": "/app/api/",
     "responsibility": "HTTP handling, request/response transformation",
     "components": [
       "API endpoint definitions",

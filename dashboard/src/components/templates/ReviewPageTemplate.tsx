@@ -4,10 +4,11 @@ import React, { ReactNode, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { DashboardTemplate } from './DashboardTemplate'
 import { MetricsCards } from '@/components/shared/cards/MetricsCards'
-import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { StandardToolbar, type ActionButton, type BulkAction } from '@/components/shared/toolbars/StandardToolbar'
 import { TableSkeleton, MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import type { LucideIcon } from 'lucide-react'
+import type { Subreddit } from '@/types/subreddit'
 
 // Dynamic import for table
 const UniversalTable = dynamic(
@@ -42,14 +43,14 @@ export interface ReviewPageStats {
   rejected: number
 }
 
-interface ReviewPageTemplateProps {
+interface ReviewPageTemplateProps<T = unknown> {
   // Page metadata
   title: string
   subtitle?: string
   platform?: 'instagram' | 'reddit' | 'models'
 
   // Data
-  data: unknown[]
+  data: T[]
   stats: ReviewPageStats | null
   isLoading: boolean
   isFetchingNextPage?: boolean
@@ -115,7 +116,7 @@ interface ReviewPageTemplateProps {
  * />
  * ```
  */
-export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
+export const ReviewPageTemplate = <T = unknown,>({
   title,
   subtitle,
   platform = 'instagram',
@@ -142,7 +143,7 @@ export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
   accentColor,
   emptyMessage = 'No items found',
   tableColumns
-}) => {
+}: ReviewPageTemplateProps<T>) => {
   // Handle clear selection
   const handleClearSelection = useCallback(() => {
     onSelectionChange(new Set())
@@ -164,7 +165,7 @@ export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
             <MetricsCardsSkeleton />
           ) : (
             <MetricsCards
-              platform={platform}
+              platform={platform === 'models' ? undefined : platform}
               totalCreators={stats.total}
               pendingCount={stats.pending}
               approvedCount={stats.approved}
@@ -180,7 +181,6 @@ export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
             // Search
             searchValue={searchValue}
             onSearchChange={onSearchChange}
-            searchPlaceholder={searchPlaceholder}
 
             // Filters
             filters={filters}
@@ -193,11 +193,11 @@ export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
             onSortChange={onSortChange}
 
             // Actions
-            actionButtons={actionButtons}
+            actionButtons={actionButtons as ActionButton[] | undefined}
 
             // Bulk actions
             selectedCount={selectedItems.size}
-            bulkActions={bulkActions}
+            bulkActions={bulkActions as BulkAction[] | undefined}
             onClearSelection={handleClearSelection}
 
             // Styling
@@ -209,16 +209,13 @@ export const ReviewPageTemplate: React.FC<ReviewPageTemplateProps> = ({
         {/* Data Table */}
         <ComponentErrorBoundary>
           <UniversalTable
-            data={data}
-            columns={tableColumns}
+            subreddits={data as unknown as Subreddit[]}
             loading={isLoading}
-            selectedItems={selectedItems}
-            setSelectedItems={onSelectionChange}
-            onUpdateItem={onItemUpdate}
+            selectedSubreddits={selectedItems}
+            setSelectedSubreddits={onSelectionChange}
             hasMore={hasNextPage}
             onReachEnd={onFetchNextPage}
             loadingMore={isFetchingNextPage}
-            emptyMessage={emptyMessage}
           />
         </ComponentErrorBoundary>
       </div>

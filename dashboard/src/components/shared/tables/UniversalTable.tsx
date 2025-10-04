@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useLRUSet } from '@/lib/lru-cache'
 import { logger } from '@/lib/logger'
 import { formatNumber } from '@/lib/formatters'
+import type { Subreddit } from '@/types/subreddit'
 
 // Removed local TagsDisplay; using shared component
 
@@ -47,55 +48,6 @@ const UniversalTableSkeleton = () => (
 // ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================
-
-export interface Subreddit {
-  id: number
-  name: string
-  display_name: string
-  display_name_prefixed?: string
-  title?: string
-  public_description?: string
-  description?: string
-  subscribers?: number
-  is_nsfw?: boolean
-  over18?: boolean
-  verification_required?: boolean
-  community_icon?: string
-  icon_img?: string
-  engagement?: number
-  avg_upvotes_per_post?: number
-  subreddit_tags?: string[]
-  tags?: string[]
-  review?: string
-  created_utc?: number
-  rules_data?: {
-    rules?: Array<{
-      kind: string
-      short_name?: string
-      description?: string
-      violation_reason?: string
-    }>
-  } | Array<{
-    kind: string
-    short_name?: string
-    description?: string
-    violation_reason?: string
-  }> | null
-  // Allow additional properties with specific types
-  [key: string]: string | number | boolean | string[] | null | undefined | {
-    rules?: Array<{
-      kind: string
-      short_name?: string
-      description?: string
-      violation_reason?: string
-    }>
-  } | Array<{
-    kind: string
-    short_name?: string
-    description?: string
-    violation_reason?: string
-  }>
-}
 
 type TableVariant = 'standard' | 'virtualized' | 'compact'
 type TableMode = 'review' | 'category'
@@ -345,8 +297,7 @@ export const UniversalTable = memo(function UniversalTable({
   // STATE MANAGEMENT
   // ============================================================================
 
-  const [sortField] = useState<keyof Subreddit>('avg_upvotes_per_post')
-  const [sortDirection] = useState<'asc' | 'desc'>('desc')
+  // Sorting removed - backend handles via orderBy parameter
   // Use LRU Set to prevent memory leaks (max 200 broken icons cached)
   const brokenIconsLRU = useLRUSet<number>(200)
   
@@ -403,37 +354,16 @@ export const UniversalTable = memo(function UniversalTable({
   // ============================================================================
   // SORTING LOGIC
   // ============================================================================
-  
+
+  // NOTE: Sorting disabled for infinite scroll compatibility
+  // Backend query handles sorting via orderBy parameter
+  // Client-side re-sorting breaks pagination across multiple pages
   const processedSubreddits = useMemo(() => {
     if (!workingSubreddits?.length) return []
-    
-    const sorted = [...workingSubreddits]
-    
-    // Apply sorting
-    sorted.sort((a, b) => {
-      const aVal = a[sortField]
-      const bVal = b[sortField]
-      
-      // Handle null/undefined values
-      if (aVal == null && bVal == null) return 0
-      if (aVal == null) return 1
-      if (bVal == null) return -1
-      
-      // Compare values
-      let comparison = 0
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        comparison = aVal.localeCompare(bVal)
-      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-        comparison = aVal - bVal
-      } else {
-        comparison = String(aVal).localeCompare(String(bVal))
-      }
-      
-      return sortDirection === 'desc' ? -comparison : comparison
-    })
-    
-    return sorted
-  }, [workingSubreddits, sortField, sortDirection])
+
+    // Return data as-is - backend already sorted correctly
+    return [...workingSubreddits]
+  }, [workingSubreddits])
   
   // ============================================================================
   // INFINITE SCROLL SETUP
@@ -871,3 +801,6 @@ export const createCompactSubredditTable = (props: Omit<UniversalTableProps, 'va
   variant: 'compact' as const,
   compactMode: true
 })
+
+// Re-export Subreddit type for backwards compatibility
+export type { Subreddit } from '@/types/subreddit'

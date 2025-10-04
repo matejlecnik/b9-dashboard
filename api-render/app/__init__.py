@@ -4,8 +4,9 @@ Central application module containing all business logic
 """
 
 from app.config import config, Config
+from app.version import API_VERSION
 
-__version__ = "2.0.0"
+__version__ = API_VERSION
 __all__ = ["config", "Config"]
 
 # Application metadata

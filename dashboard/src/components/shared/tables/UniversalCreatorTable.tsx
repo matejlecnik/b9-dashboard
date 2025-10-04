@@ -126,7 +126,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
       label: 'Viral',
       width: 'w-20',
       render: (item: Subreddit) => {
-        const viralCount = (item as Record<string, unknown>).viral_content_count as number || 0
+        const viralCount = (item as unknown as Record<string, unknown>).viral_content_count as number || 0
         return (
           <div className="text-sm font-medium">
             {viralCount > 0 ? (
@@ -143,7 +143,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
       label: 'Avg Views',
       width: 'w-24',
       render: (item: Subreddit) => {
-        const avgViews = (item as Record<string, unknown>).avg_views_per_reel as number || 0
+        const avgViews = (item as unknown as Record<string, unknown>).avg_views_per_reel as number || 0
         return (
           <div className="text-sm">
             {avgViews > 0 ? formatNumber(avgViews) : '-'}
@@ -155,12 +155,11 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
 
   return (
     <UniversalTable
-      subreddits={mappedSubreddits}
+      subreddits={mappedSubreddits as unknown as Subreddit[]}
       selectedSubreddits={selectedCreators}
-      onToggleSelection={setSelectedCreators}
+      setSelectedSubreddits={setSelectedCreators}
       searchQuery={searchQuery}
       loading={loading}
-      error={null}
       onReachEnd={onReachEnd}
       hasMore={hasMore}
       loadingMore={loadingMore}

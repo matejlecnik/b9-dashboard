@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 B9 Dashboard API - Middleware Package
-Production-ready middleware for logging and security
+Production-ready middleware for logging, security, and monitoring
 """
 
-__all__ = []
+from app.middleware.monitoring import configure_middleware
+
+__all__ = ["configure_middleware"]

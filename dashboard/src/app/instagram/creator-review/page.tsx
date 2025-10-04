@@ -213,6 +213,15 @@ export default function CreatorReviewPage() {
     })
   }, [updateStatusMutation])
 
+  // 11a. Wrapper for ReviewPageTemplate compatibility
+  const handleItemUpdateWrapper = useCallback((id: number, updates: Record<string, unknown>) => {
+    const review = updates.review as 'ok' | 'non_related' | 'pending'
+    if (review) {
+      // Fire and forget - template expects sync function
+      void handleItemUpdate(id, review)
+    }
+  }, [handleItemUpdate])
+
   // 12. Transform creators for table
   const transformedCreators = React.useMemo((): InstagramCreatorType[] => {
     return creators.map((creator: Creator) => ({
@@ -321,11 +330,8 @@ export default function CreatorReviewPage() {
 
         // Actions
         bulkActions={bulkActions}
-        onItemUpdate={handleItemUpdate}
+        onItemUpdate={handleItemUpdateWrapper}
         actionButtons={actionButtons}
-
-        // Custom table component
-        tableColumns={customTable}
 
         // Customization
         emptyMessage="No creators found"

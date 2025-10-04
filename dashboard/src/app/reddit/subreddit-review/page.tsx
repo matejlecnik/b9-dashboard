@@ -92,7 +92,7 @@ export default function SubredditReviewPage() {
   } = useSubredditsForReview({
     search: debouncedSearchQuery,
     review: getReviewFromFilter(currentFilter),
-    orderBy: 'subscribers',
+    orderBy: 'avg_upvotes_per_post',
     order: 'desc'
   })
 

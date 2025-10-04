@@ -47,6 +47,35 @@
 
 ```json
 {
+  "v3.8.0": {
+    "date": "2025-10-04",
+    "type": "PATCH",
+    "highlights": [
+      "Reddit Dashboard COMPLETE - All 5 pages locked ✅",
+      "Fixed posting account removal bug (status='suspended')",
+      "Categorization, posting, post-analysis, subreddit-review, user-analysis all working flawlessly",
+      "API migration to render marked as future work"
+    ]
+  },
+  "v3.7.0": {
+    "date": "2025-10-03",
+    "type": "PATCH",
+    "highlights": [
+      "Phase 1 Critical Fixes - Dead code elimination",
+      "Deleted 1,200+ lines (batch_writer.py never imported)",
+      "Fixed hardcoded RAPIDAPI_KEY security vulnerability",
+      "Performance: Fixed async/sync blocking (time.sleep → asyncio.sleep)"
+    ]
+  },
+  "v3.6.0": {
+    "date": "2025-10-01",
+    "type": "MINOR",
+    "highlights": [
+      "Documentation Excellence - 21.7% → 100% compliance",
+      "Automation & Tooling - Lefthook git hooks",
+      "Created ROADMAP.md + SYSTEM_IMPROVEMENT_PLAN.md"
+    ]
+  },
   "v3.5.0": {
     "date": "2025-10-01",
     "type": "MINOR",
@@ -303,6 +332,17 @@
     "current": {"doc_compliance_rate": "21.7%", "build_time": "unknown"},
     "target": {"doc_compliance_rate": "95%+", "build_time": "<60s"},
     "timeline": "Ongoing"
+  },
+  "reddit": {
+    "current": {"pages": 5, "completion": "100%", "status": "LOCKED ✅"},
+    "pages": [
+      "categorization - COMPLETE ✅",
+      "posting - COMPLETE ✅",
+      "post-analysis - COMPLETE ✅",
+      "subreddit-review - COMPLETE ✅",
+      "user-analysis - COMPLETE ✅"
+    ],
+    "future_work": "API migration to render (post-refactor)"
   },
   "instagram": {
     "current": {"creators": 1247, "completion": "65%"},

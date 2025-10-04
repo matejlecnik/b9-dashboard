@@ -22,7 +22,7 @@ interface ReviewFilters {
   review?: ReviewStatus
   minSubscribers?: number
   maxSubscribers?: number
-  orderBy?: 'subscribers' | 'created_at' | 'display_name'
+  orderBy?: 'subscribers' | 'created_at' | 'display_name' | 'avg_upvotes_per_post'
   order?: 'asc' | 'desc'
   nsfw?: boolean
   over18?: boolean
@@ -99,7 +99,7 @@ export function useSubredditsForReview(filters: ReviewFilters = {}) {
       }
 
       // Apply sorting with secondary sort by ID for stable pagination
-      const orderBy = filters.orderBy || 'subscribers'
+      const orderBy = filters.orderBy || 'avg_upvotes_per_post'
       const order = filters.order || 'desc'
       query = query.order(orderBy, {
         ascending: order === 'asc',

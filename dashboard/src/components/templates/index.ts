@@ -1,6 +1,5 @@
 // Template Components
 export { DashboardTemplate } from './DashboardTemplate'
-export type { DashboardTemplateProps } from './DashboardTemplate'
 
 export { ReviewPageTemplate } from './ReviewPageTemplate'
 export type {

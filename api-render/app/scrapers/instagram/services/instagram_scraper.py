@@ -41,7 +41,7 @@ import random
 try:
     import requests
     from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-    from supabase import create_client, Client
+    from supabase import Client
     from dotenv import load_dotenv
     logger.info("✅ All external dependencies loaded successfully")
 except ImportError as e:
@@ -160,8 +160,9 @@ class InstagramScraperUnified:
 
 
     def _get_supabase(self) -> Client:
-        """Initialize Supabase client"""
-        return create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        """Get Supabase client from singleton"""
+        from app.core.database import get_db
+        return get_db()
 
     def _identify_external_url_type(self, url: str) -> str:
         """Identify the type of external URL (OnlyFans, Linktree, etc.)"""

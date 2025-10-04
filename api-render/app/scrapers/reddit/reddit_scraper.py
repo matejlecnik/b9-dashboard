@@ -43,23 +43,7 @@ except ImportError:
     spec.loader.exec_module(module)
     PublicRedditAPI = module.PublicRedditAPI
 
-# Import Supabase logging handler
-try:
-    from app.core.utils.supabase_logger import SupabaseLogHandler
-except ImportError:
-    # Fallback for standalone execution
-    supabase_logger_path = os.path.join(
-        api_root, "app", "core", "utils", "supabase_logger.py"
-    )
-    if os.path.exists(supabase_logger_path):
-        spec = importlib.util.spec_from_file_location(
-            "supabase_logger", supabase_logger_path
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        SupabaseLogHandler = module.SupabaseLogHandler
-    else:
-        SupabaseLogHandler = None  # Graceful degradation if not available
+# Note: Supabase logging now handled by unified logging system (app/logging/)
 
 # Import version from central location
 try:

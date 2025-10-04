@@ -6,12 +6,11 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { UnifiedSidebar } from '@/components/shared/layouts/UnifiedSidebar'
 
 interface DashboardTemplateProps {
-  // Page metadata
+  // Page metadata (for SEO/debugging only - not displayed)
   title: string
   subtitle?: string
 
   // Layout options
-  showSearch?: boolean
   fullWidth?: boolean
 
   // Content
@@ -29,12 +28,13 @@ interface DashboardTemplateProps {
  * - Error boundary protection
  * - Consistent layout structure
  * - Gradient backgrounds
+ * - NO page headers (navigation via sidebar only)
  *
  * Usage:
  * ```tsx
  * <DashboardTemplate
- *   title="Your Dashboard"
- *   subtitle="Dashboard description"
+ *   title="Your Dashboard" // Metadata only
+ *   subtitle="Dashboard description" // Metadata only
  * >
  *   <YourContent />
  * </DashboardTemplate>
@@ -43,7 +43,6 @@ interface DashboardTemplateProps {
 export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   title,
   subtitle,
-  showSearch = true,
   fullWidth = false,
   children,
   errorFallback

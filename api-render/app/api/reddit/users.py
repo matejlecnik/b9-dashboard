@@ -7,14 +7,13 @@ Uses the same proxy system as the Reddit scraper for reliability
 
 import os
 import sys
-import logging
 import random
 import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
-from supabase import create_client
+from supabase import Client
 
 # Flexible import that works both locally and in production
 try:
@@ -22,23 +21,23 @@ try:
 except ImportError:
     from app.core.clients.api_pool import PublicRedditAPI
 
+# Import database singleton and unified logger
+from app.core.database import get_db
+from app.logging import get_logger
+
 # Initialize router
 router = APIRouter(prefix="/api/reddit/users", tags=["reddit-users"])
 
-# Configure logging
-logger = logging.getLogger(__name__)
-
-# Initialize Supabase client
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise Exception("Supabase credentials not configured")
-
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+# Use unified logger
+logger = get_logger(__name__)
 
 # Initialize the PublicRedditAPI client (same as scraper uses)
 public_api = PublicRedditAPI(max_retries=3, base_delay=1.0)
+
+# Module-level database client accessor (uses singleton)
+def _get_db() -> Client:
+    """Get database client for module-level functions"""
+    return get_db()
 
 # Request/Response models
 class UserDiscoverRequest(BaseModel):
@@ -53,7 +52,7 @@ async def get_proxy_configs() -> List[Dict[str, str]]:
     """Load proxy configurations from scraper_accounts table (same as scraper)"""
     try:
         # Get enabled accounts with proxy info, ordered by priority and success rate
-        resp = supabase.table('scraper_accounts').select('*').eq(
+        resp = _get_db().table('scraper_accounts').select('*').eq(
             'is_enabled', True
         ).neq(
             'status', 'banned'
@@ -106,7 +105,7 @@ async def log_user_discovery(username: str, action: str, success: bool,
             'context': context
         }
 
-        supabase.table('system_logs').insert(log_entry).execute()
+        _get_db().table('system_logs').insert(log_entry).execute()
 
         # Also maintain backward compatibility - keep old table for now
         legacy_entry = {
@@ -119,7 +118,7 @@ async def log_user_discovery(username: str, action: str, success: bool,
             'source': 'api_user_discovery'
         }
         try:
-            supabase.table('user_discovery_logs').insert(legacy_entry).execute()
+            _get_db().table('user_discovery_logs').insert(legacy_entry).execute()
         except Exception:
             pass  # Ignore errors on legacy table
 
@@ -167,7 +166,7 @@ async def fetch_reddit_data(url: str) -> Dict[str, Any]:
                 # Update proxy success metrics
                 if proxy_config.get('account_id'):
                     try:
-                        supabase.table('scraper_accounts').update({
+                        _get_db().table('scraper_accounts').update({
                             'last_success_at': datetime.now(timezone.utc).isoformat(),
                             'last_used_at': datetime.now(timezone.utc).isoformat()
                         }).eq('id', proxy_config['account_id']).execute()
@@ -184,7 +183,7 @@ async def fetch_reddit_data(url: str) -> Dict[str, Any]:
             # Update proxy failure metrics
             if proxy_config.get('account_id'):
                 try:
-                    supabase.table('scraper_accounts').update({
+                    _get_db().table('scraper_accounts').update({
                         'last_failure_at': datetime.now(timezone.utc).isoformat(),
                         'last_error_message': last_error,
                         'last_used_at': datetime.now(timezone.utc).isoformat()
@@ -367,7 +366,7 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
         }
 
         # Save to database
-        result = supabase.table('reddit_users').upsert(user_payload, on_conflict='username').execute()
+        result = _get_db().table('reddit_users').upsert(user_payload, on_conflict='username').execute()
 
         if result.data:
             # Log successful save

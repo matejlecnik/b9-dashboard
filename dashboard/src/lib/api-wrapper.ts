@@ -3,6 +3,7 @@ import { addCorsHeaders as withCors, type CorsOptions, corsResponse } from '@/li
 import { rateLimitConfigs } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { getAuthenticatedUser } from '@/lib/auth'
+import type { User } from '@supabase/supabase-js'
 /**
  * Unified API Security Wrapper
  * Combines authentication, rate limiting, and CORS into a single middleware
@@ -27,7 +28,7 @@ const defaultOptions: ApiSecurityOptions = {
  * Applies authentication, rate limiting, and CORS to API routes
  */
 export function withApiSecurity<T extends unknown[]>(
-  handler: (request: NextRequest, user: { id: string; email?: string } | null, ...args: T) => Promise<NextResponse | Response>,
+  handler: (request: NextRequest, user: User | null, ...args: T) => Promise<NextResponse | Response>,
   options: ApiSecurityOptions = {}
 ) {
   const config = { ...defaultOptions, ...options }
@@ -84,12 +85,12 @@ export function withApiSecurity<T extends unknown[]>(
       }
 
       // Verify authentication
-      let user: { id: string; email?: string } | null = null
+      let user: User | null = null
       if (config.requireAuth) {
         // Best-effort auth using existing helper
         try {
           const { user: candidate } = await getAuthenticatedUser()
-          user = candidate as unknown as { id: string; email?: string } | null
+          user = candidate as User | null
         } catch {
           user = null
         }
@@ -157,7 +158,7 @@ export const publicApi = <T extends unknown[]>(
 
 // Protected endpoint (auth required, rate limited, CORS)
 export const protectedApi = <T extends unknown[]>(
-  handler: (request: NextRequest, user: { id: string; email?: string }, ...args: T) => Promise<NextResponse | Response>
+  handler: (request: NextRequest, user: User, ...args: T) => Promise<NextResponse | Response>
 ) => {
   return withApiSecurity<T>(
     async (req: NextRequest, user, ...args) => {
@@ -170,7 +171,7 @@ export const protectedApi = <T extends unknown[]>(
 
 // AI endpoint (stricter rate limiting)
 export const aiApi = <T extends unknown[]>(
-  handler: (request: NextRequest, user: { id: string; email?: string }, ...args: T) => Promise<NextResponse | Response>
+  handler: (request: NextRequest, user: User, ...args: T) => Promise<NextResponse | Response>
 ) => {
   return withApiSecurity<T>(
     async (req: NextRequest, user, ...args) => {
@@ -183,7 +184,7 @@ export const aiApi = <T extends unknown[]>(
 
 // Scraper endpoint (specific rate limiting)
 export const scraperApi = <T extends unknown[]>(
-  handler: (request: NextRequest, user: { id: string; email?: string }, ...args: T) => Promise<NextResponse | Response>
+  handler: (request: NextRequest, user: User, ...args: T) => Promise<NextResponse | Response>
 ) => {
   return withApiSecurity<T>(
     async (req: NextRequest, user, ...args) => {

@@ -45,8 +45,8 @@ mkdir -p cache
 
 # Set proper permissions
 chmod +x main.py
-chmod +x worker.py
-chmod +x cron_jobs.py
+chmod +x start.py
+# Note: worker.py and cron_jobs.py do not exist - functionality handled via start.py subprocess architecture
 
 # Verify Python version
 echo "🐍 Python version: $(python --version)"

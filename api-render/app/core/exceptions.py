@@ -4,17 +4,10 @@ Provides specific exception types for better error handling and debugging
 """
 import re
 from typing import Any
-# Import logging helper with fallback
-try:
-    from core.logging_helper import LoggingHelper
-    logger_helper = LoggingHelper(source='reddit_scraper', script_name='exceptions')
-except ImportError:
-    try:
-        from app.core.logging_helper import LoggingHelper
-        logger_helper = LoggingHelper(source='reddit_scraper', script_name='exceptions')
-    except ImportError:
-        # Fallback: create a dummy logger if LoggingHelper is not available
-        logger_helper = None
+# Use unified logging system
+from app.logging import get_logger
+
+logger_helper = get_logger(__name__)
 
 
 class RedditScraperException(Exception):

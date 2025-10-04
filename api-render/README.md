@@ -52,7 +52,7 @@
   },
   "modules": {
     "app/core/": {"desc": "Infrastructure", "status": "STABLE"},
-    "app/routes/": {"desc": "API endpoints", "status": "ACTIVE"},
+    "app/api/": {"desc": "API endpoints", "status": "ACTIVE"},
     "app/services/": {"desc": "Business logic", "status": "STABLE"},
     "app/scrapers/": {"desc": "Data acquisition v3.4.5", "status": "LIVE"}
   }
@@ -250,7 +250,7 @@ api-render/
 ├── /app/                 # Application code
 │   ├── /core/           # Infrastructure
 │   ├── /middleware/     # Request handling
-│   ├── /routes/         # API endpoints
+│   ├── /api/            # API endpoints (routes)
 │   ├── /services/       # Business logic
 │   ├── /scrapers/       # Data acquisition
 │   └── /utils/          # Utilities

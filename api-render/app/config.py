@@ -41,7 +41,7 @@ class ScraperConfig:
 class APIConfig:
     """API configuration"""
     title: str = "B9 Dashboard API"
-    version: str = "2.0.0"
+    version: str = "3.7.0"
     description: str = "Backend API for B9 Dashboard"
     host: str = "0.0.0.0"
     port: int = 8000

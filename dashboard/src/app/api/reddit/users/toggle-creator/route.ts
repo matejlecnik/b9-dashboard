@@ -105,12 +105,14 @@ export const POST = protectedApi(async (req: NextRequest) => {
     // Build update object
     interface UpdateData {
       our_creator: boolean
+      status: 'active' | 'inactive' | 'suspended'
       updated_at: string
       model_id?: number
     }
 
     const updateData: UpdateData = {
       our_creator,
+      status: our_creator ? 'active' : 'suspended',
       updated_at: new Date().toISOString()
     }
 

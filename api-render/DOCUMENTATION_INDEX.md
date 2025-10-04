@@ -132,13 +132,13 @@
 }
 ```
 
-#### API Routes (`/app/routes`)
+#### API Routes (`/app/api`)
 
 ```json
 {
-  "routes/README.md": {
-    "lines": 294,
-    "covers": ["All route modules", "Endpoint structure", "Route patterns"]
+  "api/README.md": {
+    "lines": 9,
+    "covers": ["API route organization by domain", "ai/, reddit/, instagram/ subdirectories"]
   }
 }
 ```
@@ -251,7 +251,7 @@
   ],
   "frontend_developers": [
     "docs/API.md → All API endpoints",
-    "app/routes/README.md → Endpoint details"
+    "app/api/README.md → Endpoint details"
   ],
   "devops_engineers": [
     "docs/DEPLOYMENT.md → Deploy guide",
@@ -274,7 +274,7 @@
     "app/scrapers/instagram/services/README.md → Implementation"
   ],
   "api_routes": [
-    "app/routes/README.md → All routes",
+    "app/api/README.md → All routes",
     "docs/API.md → Endpoint reference"
   ],
   "categorization": [

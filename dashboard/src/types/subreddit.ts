@@ -16,6 +16,8 @@ export interface Subreddit {
   active_user_count: number | null
   accounts_active: number | null
   over18: boolean
+  is_nsfw?: boolean // Alias for over18
+  verification_required?: boolean
   category_text: string | null
   primary_category: string | null
   tags: string[] | null
@@ -36,6 +38,7 @@ export interface Subreddit {
   allow_images?: boolean | null
   allow_videos?: boolean | null
   spoilers_enabled?: boolean | null
+  rules_data?: unknown
 
   // Computed/joined fields
   post_count?: number

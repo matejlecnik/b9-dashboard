@@ -20,12 +20,16 @@ import requests
 from datetime import datetime, timezone
 from typing import Dict, Optional, List
 from fake_useragent import UserAgent
-from supabase import create_client
+from supabase import Client
 
 # Add parent directories to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 api_root = os.path.join(current_dir, "..", "..")
 sys.path.insert(0, api_root)
+
+# Import database singleton and unified logger
+from app.core.database import get_db
+from app.logging import get_logger
 
 # Import ProxyManager from scraper
 try:
@@ -39,21 +43,13 @@ except ImportError:
     spec.loader.exec_module(module)
     ProxyManager = module.ProxyManager
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Use unified logger
+logger = get_logger(__name__)
 
-# Initialize Supabase client
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise Exception("Supabase credentials not configured")
-
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+# Module-level function to get Supabase singleton
+def _get_db() -> Client:
+    """Get database client from singleton"""
+    return get_db()
 
 class PublicRedditAPI:
     """Public Reddit JSON API client with retry logic and proxy support"""
@@ -246,8 +242,10 @@ class SubredditFetcher:
 
     def __init__(self):
         self.api = PublicRedditAPI(max_retries=3)
-        self.proxy_manager = ProxyManager(supabase)
-        self.supabase = supabase
+        # Use singleton database client
+        db = _get_db()
+        self.proxy_manager = ProxyManager(db)
+        self.supabase = db
 
         # Load proxies from database
         logger.info("🔄 Loading proxies from database...")
