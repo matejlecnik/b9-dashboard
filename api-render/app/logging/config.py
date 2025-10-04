@@ -18,7 +18,7 @@ class LoggingConfig:
     # Supabase logging
     supabase_logging_enabled: bool = True
     supabase_table: str = "system_logs"  # Fixed: was "logs", should be "system_logs"
-    supabase_batch_size: int = 10
+    supabase_batch_size: int = 1  # Flush immediately (was 10, caused logs to be batched and lost)
     supabase_flush_interval: int = 5  # seconds
 
     # File logging
