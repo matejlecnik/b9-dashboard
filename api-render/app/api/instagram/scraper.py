@@ -659,7 +659,7 @@ async def start_instagram_scraper(request: Request):
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # API directory
+                cwd="/app/api-render",  # Absolute path to api-render directory
                 env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
             )
 

@@ -14,7 +14,7 @@ import subprocess
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from supabase import Client
 
 # Import database singleton and unified logger
@@ -406,7 +406,7 @@ async def get_reddit_api_stats():
             "daily_calls": api_calls.count if api_calls.count else 0,
             "daily_limit": 10000,
             "remaining": 10000 - (api_calls.count if api_calls.count else 0),
-            "reset_at": (today.replace(hour=0, minute=0, second=0) + timezone.timedelta(days=1)).isoformat()
+            "reset_at": (today.replace(hour=0, minute=0, second=0) + timedelta(days=1)).isoformat()
         }
 
     except Exception as e:
@@ -544,7 +544,7 @@ async def start_reddit_scraper(request: Request):
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # Project root
+                cwd="/app/api-render",  # Absolute path to api-render directory
                 env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
             )
 
