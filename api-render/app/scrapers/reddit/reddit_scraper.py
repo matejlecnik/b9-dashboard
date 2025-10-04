@@ -68,9 +68,6 @@ class RedditScraper:
         self.supabase = supabase
         self.running = False
 
-        # Set up dual logging (console + Supabase)
-        self._setup_supabase_logging()
-
         self.proxy_manager = ProxyManager(supabase)
         self.api = (
             None  # Async API for subreddit processing (will be initialized in run())
@@ -103,45 +100,6 @@ class RedditScraper:
         # Cache subreddit metadata (review, primary_category, tags, over18)
         # Key: subreddit_name, Value: dict with metadata
         self.subreddit_metadata_cache: Dict[str, dict] = {}
-
-    def _setup_supabase_logging(self):
-        """Configure dual logging: console (existing) + Supabase system_logs"""
-        if not SupabaseLogHandler or not self.supabase:
-            logger.warning("⚠️  Supabase logging not available - console only")
-            return
-
-        # Get the scraper's logger
-        scraper_logger = logging.getLogger(__name__)
-
-        # Check if Supabase handler already exists
-        has_supabase_handler = any(
-            isinstance(handler, SupabaseLogHandler)
-            for handler in scraper_logger.handlers
-        )
-
-        if not has_supabase_handler:
-            # Create Supabase log handler
-            supabase_handler = SupabaseLogHandler(
-                supabase_client=self.supabase,
-                source="reddit_scraper",
-                buffer_size=10,  # Flush every 10 logs
-                flush_interval=30,  # Or every 30 seconds
-            )
-            supabase_handler.setLevel(logging.INFO)
-
-            # Use same formatter as console
-            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-            supabase_handler.setFormatter(formatter)
-
-            # Add to logger (keeps existing console handler)
-            scraper_logger.addHandler(supabase_handler)
-
-            # Also add to PublicRedditAPI logger for API request logging
-            api_logger = logging.getLogger("public_reddit_api")
-            api_logger.addHandler(supabase_handler)
-            api_logger.setLevel(logging.INFO)
-
-            logger.info(f"✅ Supabase logging enabled (source: reddit_scraper)")
 
     async def run(self):
         """Main scraper loop"""
