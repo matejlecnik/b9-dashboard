@@ -11,10 +11,10 @@ import logging
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-# Use absolute imports from api_render package
-from api_render.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
-from api_render.core.database import get_db
-from api_render.scrapers.instagram.services.instagram_config import Config
+# Use absolute imports from app package
+from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
+from app.core.database import get_db
+from app.scrapers.instagram.services.instagram_config import Config
 
 # Note: system_logger moved to unified logging system
 system_logger = None
