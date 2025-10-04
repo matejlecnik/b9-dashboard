@@ -54,7 +54,10 @@ except ImportError:
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__)
+
+# Use unified logger with Supabase support
+from app.logging import get_logger
+logger = get_logger(__name__)
 
 # Reduce noise from external libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
