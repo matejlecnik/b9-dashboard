@@ -653,6 +653,10 @@ async def start_instagram_scraper(request: Request):
             log_file.flush()
 
             # Start Instagram scraper subprocess with proper logging
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            env['PYTHONPATH'] = '/app/api-render'  # Ensure module imports work
+
             instagram_process = subprocess.Popen(
                 [sys.executable, "-u", "app/scrapers/instagram/instagram_controller.py"],
                 stdout=log_file,
@@ -660,7 +664,7 @@ async def start_instagram_scraper(request: Request):
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
                 cwd="/app/api-render",  # Absolute path to api-render directory
-                env={**os.environ, 'PYTHONUNBUFFERED': '1'}  # Force unbuffered output
+                env=env
             )
 
             # Check if process started successfully
