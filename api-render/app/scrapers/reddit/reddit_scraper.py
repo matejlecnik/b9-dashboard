@@ -57,7 +57,8 @@ logging.basicConfig(
 
 # Use unified logger with Supabase support
 from app.logging import get_logger
-logger = get_logger(__name__)
+# Note: logger will be initialized in __init__ with Supabase client
+logger = None
 
 # Reduce noise from external libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -70,6 +71,11 @@ class RedditScraper:
     def __init__(self, supabase):
         self.supabase = supabase
         self.running = False
+
+        # Initialize logger with Supabase client for database logging
+        global logger
+        logger = get_logger(__name__, supabase_client=supabase, source="reddit_scraper")
+        self.logger = logger
 
         self.proxy_manager = ProxyManager(supabase)
         self.api = (
