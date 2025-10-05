@@ -160,7 +160,7 @@ export class PerformanceMonitor {
     if (typeof window !== 'undefined' && window.performance?.measure) {
       try {
         window.performance.measure(name, startMark, endMark)
-      } catch (e) {
+      } catch (_e) {
         // Marks may not exist in native API
       }
     }

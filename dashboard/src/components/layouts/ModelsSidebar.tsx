@@ -32,7 +32,7 @@ export const ModelsSidebar = React.memo<ModelsSidebarProps>(() => {
     try {
       await supabase.auth.signOut()
       router.push('/login')
-    } catch (error) {
+    } catch (_error) {
       router.push('/login')
     }
   }

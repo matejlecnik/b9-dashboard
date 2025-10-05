@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
-import { SocialIcon } from './IconLibrary'
+// import { SocialIcon } from './IconLibrary'
 
 // ============================================================================
 // TYPES

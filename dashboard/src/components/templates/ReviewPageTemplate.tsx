@@ -130,7 +130,7 @@ export const ReviewPageTemplate = <T = unknown,>({
   onFetchNextPage,
   searchValue,
   onSearchChange,
-  searchPlaceholder,
+  searchPlaceholder: _searchPlaceholder,
   filters,
   currentFilter,
   onFilterChange,
@@ -140,12 +140,12 @@ export const ReviewPageTemplate = <T = unknown,>({
   selectedItems,
   onSelectionChange,
   bulkActions,
-  onItemUpdate,
+  onItemUpdate: _onItemUpdate,
   actionButtons,
   headerActions,
   accentColor,
-  emptyMessage = 'No items found',
-  tableColumns,
+  emptyMessage: _emptyMessage = 'No items found',
+  tableColumns: _tableColumns,
   customTable
 }: ReviewPageTemplateProps<T>) => {
   // Handle clear selection

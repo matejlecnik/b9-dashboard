@@ -93,9 +93,9 @@ async function fetchWithProxy(url: string, maxRetries = 5): Promise<unknown> {
   let lastError: Error | null = null
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const proxy = proxyPool[(attempt - 1) % proxyPool.length]
+    const _proxy = proxyPool[(attempt - 1) % proxyPool.length]
     try {
-      
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': userAgent,

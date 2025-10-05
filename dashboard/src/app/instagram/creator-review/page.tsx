@@ -96,6 +96,7 @@ export default function CreatorReviewPage() {
 
   // Transform creators for table
   const transformedCreators = React.useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transformed = creators.map((creator: any) => ({
       id: creator.id,
       ig_user_id: creator.ig_user_id || String(creator.id),

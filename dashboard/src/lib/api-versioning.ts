@@ -69,7 +69,7 @@ export function addVersionHeaders(response: NextResponse, version: ApiVersion): 
 /**
  * Version-aware API wrapper
  */
-export function versionedApi<T extends unknown[], R>(
+export function versionedApi<T extends unknown[], _R>(
   handlers: Record<ApiVersion, (request: NextRequest, ...args: T) => Promise<NextResponse | Response>>
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse | Response> => {

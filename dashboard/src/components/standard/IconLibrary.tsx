@@ -78,7 +78,7 @@ export const SocialIcon: React.FC<IconProps> = ({
   name,
   size = 'md',
   className,
-  color
+  color: _color
 }) => {
   const sizeClass = iconSizes[size]
   const combinedClass = cn(sizeClass, className)

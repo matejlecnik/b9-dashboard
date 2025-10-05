@@ -152,7 +152,7 @@ export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   ...searchProps
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [selectedIndex, _setSelectedIndex] = useState(-1)
 
   const handleSelectSuggestion = (suggestion: string) => {
     searchProps.onChange(suggestion)

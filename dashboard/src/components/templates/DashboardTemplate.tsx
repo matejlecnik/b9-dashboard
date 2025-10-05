@@ -3,7 +3,7 @@
 import React, { ReactNode } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
-import { UnifiedSidebar } from '@/components/shared/layouts/UnifiedSidebar'
+// import { UnifiedSidebar } from '@/components/shared/layouts/UnifiedSidebar'
 
 interface DashboardTemplateProps {
   // Page metadata (for SEO/debugging only - not displayed)

@@ -33,7 +33,7 @@ const VirtualizedCreatorTable = memo(function VirtualizedCreatorTable({
   hasMore = false,
   loadingMore = false,
   className,
-  postsMetrics
+  postsMetrics: _postsMetrics
 }: VirtualizedCreatorTableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 })

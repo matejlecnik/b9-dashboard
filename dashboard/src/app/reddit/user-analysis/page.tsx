@@ -66,7 +66,7 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
       // Validate URL format
       new URL(cleanUrl)
       return cleanUrl
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }, [src])
@@ -103,7 +103,7 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
         height={size}
         className={`rounded-full object-cover border-2 border-gray-200 shadow-sm transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         style={{ width: size, height: size }}
-        onError={(e) => {
+        onError={(_e) => {
           setImageError(true)
           setIsLoading(false)
         }}
@@ -278,10 +278,10 @@ export default function UserAnalysisPage() {
       // Optionally refresh the data
       // You might want to invalidate the query here to refresh the user list
       
-    } catch (error) {
+    } catch (_error) {
       showError(
         'Bulk Update Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
+        _error instanceof Error ? _error.message : 'An unexpected error occurred'
       )
     } finally {
       setBulkActionLoading(false)
@@ -328,7 +328,7 @@ export default function UserAnalysisPage() {
         `Exported ${selectedUsers.length} users to CSV file`
       )
       
-    } catch (error) {
+    } catch (_error) {
       showError('Export Failed', 'Unable to generate CSV file')
     }
   }, [selectedUserIds, allUsers, showWarning, showSuccess, showError])

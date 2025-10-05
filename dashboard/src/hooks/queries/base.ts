@@ -18,13 +18,13 @@ import { logger } from '@/lib/logger'
 
 // Performance monitoring
 const measureQueryPerformance = (queryKey: QueryKey, startTime: number) => {
-  const duration = Date.now() - startTime
+  const _duration = Date.now() - startTime
 
   // Log slow queries (>1000ms)
-  if (duration > 1000) {
+  if (_duration > 1000) {
     logger.warn(`Slow query detected`, {
       queryKey,
-      duration: `${duration}ms`,
+      duration: `${_duration}ms`,
     })
   }
 
@@ -33,7 +33,7 @@ const measureQueryPerformance = (queryKey: QueryKey, startTime: number) => {
     const key = Array.isArray(queryKey) ? queryKey.join(':') : String(queryKey)
     performance.measure(`query:${key}`, {
       start: startTime,
-      duration,
+      duration: _duration,
     })
   }
 }
@@ -92,15 +92,15 @@ export function useSupabaseMutation<
       try {
         const data = await mutationFn(variables)
 
-        const duration = Date.now() - startTime
-        logger.info('Mutation completed', { duration: `${duration}ms` })
+        const _duration = Date.now() - startTime
+        logger.info('Mutation completed', { duration: `${_duration}ms` })
 
         return data
       } catch (error) {
-        const duration = Date.now() - startTime
+        const _duration = Date.now() - startTime
         logger.error('Mutation failed', {
           error: error instanceof Error ? error.message : 'Unknown error',
-          duration: `${duration}ms`,
+          duration: `${_duration}ms`,
         })
 
         throw error
@@ -133,15 +133,15 @@ export function useInfiniteSupabaseQuery<TData = unknown, TError = Error>(
 
       try {
         const data = await queryFn({ pageParam })
-        const duration = Date.now() - startTime
+        const _duration = Date.now() - startTime
         measureQueryPerformance([...queryKey, 'page', pageParam], startTime)
 
         // Log slow infinite queries with pagination context
-        if (duration > 500) {
+        if (_duration > 500) {
           logger.warn(`Slow infinite query detected`, {
             queryKey,
             pageParam,
-            duration: `${duration}ms`,
+            duration: `${_duration}ms`,
             pageDepth: typeof pageParam === 'object' ? 'cursor-based' : Math.floor((pageParam as number) / (options?.pageSize || 50)),
             threshold: '500ms'
           })
@@ -149,7 +149,7 @@ export function useInfiniteSupabaseQuery<TData = unknown, TError = Error>(
 
         return data
       } catch (error) {
-        const duration = Date.now() - startTime
+        const _duration = Date.now() - startTime
         measureQueryPerformance([...queryKey, 'page', pageParam], startTime)
 
         logger.error('Query error', {

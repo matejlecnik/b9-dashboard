@@ -9,7 +9,7 @@ interface ScraperLog {
   context?: Record<string, unknown> | null
 }
 
-interface SubredditQualityData {
+interface _SubredditQualityData {
   name: string
   description: string | null
   subscriber_engagement_ratio: number | null

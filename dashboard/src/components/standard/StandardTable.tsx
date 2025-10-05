@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
+// import { Button } from '@/components/ui/button'
 import { ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react'
 import Image from 'next/image'
 
@@ -186,7 +186,7 @@ export function StandardTable<T extends Record<string, unknown>>({
     return data.every(item => selectedItems.has(getItemId(item)))
   }, [data, selectedItems, getItemId])
 
-  const someSelected = useMemo(() => {
+  const _someSelected = useMemo(() => {
     return data.some(item => selectedItems.has(getItemId(item)))
   }, [data, selectedItems, getItemId])
 

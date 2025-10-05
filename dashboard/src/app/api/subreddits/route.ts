@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/index'
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
-  const requestId = Math.random().toString(36).substring(7)
+  const _requestId = Math.random().toString(36).substring(7)
   
   try {
     
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       hasMore: data && data.length === limit,
       stats,
       _debug: process.env.NODE_ENV === 'development' ? {
-        requestId,
+        requestId: _requestId,
         performance: {
           queryDuration,
           statsDuration,
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(7)
+  const _requestId = Math.random().toString(36).substring(7)
 
   try {
 

@@ -20,7 +20,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now()
-  const requestId = Math.random().toString(36).substring(7)
+  const _requestId = Math.random().toString(36).substring(7)
   const params = await context.params
   
   try {
@@ -82,7 +82,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now()
-  const requestId = Math.random().toString(36).substring(7)
+  const _requestId = Math.random().toString(36).substring(7)
   const params = await context.params
   
   try {

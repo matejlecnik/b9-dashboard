@@ -336,7 +336,7 @@ export async function POST(request: Request) {
         message: `Successfully merged ${sourceCategories.length} categories into "${updatedTargetCategory.name}", updating ${totalSubredditsUpdated} subreddits`
       })
 
-    } catch (transactionError) {
+    } catch (_transactionError) {
       return NextResponse.json({
         success: false,
         error: 'Failed to complete category merge operation'

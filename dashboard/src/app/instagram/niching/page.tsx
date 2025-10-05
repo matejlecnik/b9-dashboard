@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { StandardToolbar, UniversalCreatorTable } from '@/components/shared'
-import { NicheSelector } from '@/components/instagram/NicheSelector'
+// import { NicheSelector } from '@/components/instagram/NicheSelector'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -239,7 +239,7 @@ export default function NichingPage() {
   }, [selectedNiches, availableNiches, debouncedSearchQuery, currentPage, hasMore, loadingMore])
 
   // Update niche for single creator
-  const updateNiche = useCallback(async (creatorId: number, niche: string | null) => {
+  const _updateNiche = useCallback(async (creatorId: number, niche: string | null) => {
     try {
       if (!supabase) {
         logger.error('Supabase client not available')

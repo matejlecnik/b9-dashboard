@@ -68,7 +68,7 @@ export async function POST() {
 }
 
 async function getActiveAccountCount(supabase: SupabaseClient) {
-  const { data, error } = await supabase
+  const { data, error: _error } = await supabase
     .from('scraper_accounts')
     .select('id')
     .eq('status', 'active')

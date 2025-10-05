@@ -200,10 +200,10 @@ export async function POST(request: Request) {
         }`
       })
 
-    } catch (transactionError) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to complete category rename operation' 
+    } catch (_transactionError) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to complete category rename operation'
       }, { status: 500 })
     }
 
