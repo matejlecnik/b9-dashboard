@@ -8,7 +8,7 @@
 
 ```json
 {
-  "current": "api-render/docs/archive/PHASE_1_ASYNC_OPTIMIZATION.md",
+  "current": "docs/backend/archive/PHASE_1_ASYNC_OPTIMIZATION.md",
   "parent": "docs/INDEX.md"
 }
 ```

@@ -22,7 +22,7 @@ interface SubredditFilters {
   category?: string
   hasCategory?: boolean
   showUntaggedOnly?: boolean
-  orderBy?: 'subscribers' | 'created_at' | 'category_text'
+  orderBy?: 'subscribers' | 'created_at' | 'primary_category'
   order?: 'asc' | 'desc'
 }
 
@@ -501,16 +501,92 @@ export function useAICategorization() {
     mutationFn: async ({
       subredditIds,
       batchSize = 10,
+      limit,
       onProgress,
     }: {
-      subredditIds: number[]
+      subredditIds?: number[]  // Made optional - backend can find uncategorized
       batchSize?: number
+      limit?: number  // Total items to process (when subredditIds not provided)
       onProgress?: (progress: number) => void
     }) => {
       const results = []
 
       try {
-        // Try the AI categorization endpoint
+        // If no specific IDs provided, let backend handle all uncategorized
+        if (!subredditIds || subredditIds.length === 0) {
+          logger.info('Starting AI categorization for all uncategorized items', { limit })
+
+          const requestBody = {
+            subredditIds: null,  // Backend will find uncategorized
+            batchSize,
+            limit: limit || 100
+          }
+
+          console.log('🚀 [AI Categorization] About to send fetch request', {
+            url: '/api/reddit/categorization/tags/start',
+            method: 'POST',
+            body: requestBody
+          })
+
+          let response
+          try {
+            response = await fetch('/api/reddit/categorization/tags/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestBody),
+            })
+
+            console.log('📡 [AI Categorization] Fetch response received', {
+              status: response.status,
+              statusText: response.statusText,
+              ok: response.ok,
+              headers: Object.fromEntries(response.headers.entries())
+            })
+          } catch (fetchError) {
+            console.error('❌ [AI Categorization] Fetch failed', {
+              error: fetchError,
+              errorMessage: fetchError instanceof Error ? fetchError.message : String(fetchError)
+            })
+            throw fetchError
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('❌ [AI Categorization] Response not OK', {
+              status: response.status,
+              errorText
+            })
+
+            let errorData
+            try {
+              errorData = JSON.parse(errorText)
+            } catch {
+              errorData = { error: errorText }
+            }
+
+            if (errorData.configuration_needed) {
+              throw new Error('AI service not configured. Please set up the backend service or configure NEXT_PUBLIC_API_URL.')
+            }
+            throw new Error(errorData.error || 'AI categorization failed')
+          }
+
+          const data = await response.json()
+
+          console.log('✅ [AI Categorization] Response data received', {
+            success: data.success,
+            resultsCount: data.results?.length,
+            stats: data.stats
+          })
+
+          // Report 100% progress for single-shot backend processing
+          if (onProgress) {
+            onProgress(100)
+          }
+
+          return data.results || []
+        }
+
+        // Original behavior: Process specific IDs in batches
         for (let i = 0; i < subredditIds.length; i += batchSize) {
           const batch = subredditIds.slice(i, i + batchSize)
 

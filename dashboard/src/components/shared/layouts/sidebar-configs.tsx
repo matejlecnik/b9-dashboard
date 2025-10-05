@@ -3,7 +3,6 @@ import {
   Activity,
   Monitor,
   UserCircle2,
-  ChartArea,
   Target,
   TrendingUp,
   Layers,
@@ -97,12 +96,6 @@ export const instagramSidebarConfig: SidebarConfig = {
       title: 'Creator Review',
       href: '/instagram/creator-review',
       icon: UserPlus
-    },
-    {
-      id: 'instagram-analytics',
-      title: 'Analytics',
-      href: '/instagram/analytics',
-      icon: ChartArea
     },
     {
       id: 'niching',

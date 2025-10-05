@@ -1,10 +1,11 @@
-# Lefthook Configuration
-# Fast parallel git hooks for B9 Dashboard
+# Lefthook Configuration - Enhanced v2.0
+# Fast parallel git hooks with documentation automation
 # See: docs/development/SYSTEM_IMPROVEMENT_PLAN.md#lefthook-integration
 
 # Global settings
 colors: true
 no_tty: false
+skip_in_ci: true
 
 # Pre-commit hook - runs before git commit
 pre-commit:
@@ -15,6 +16,34 @@ pre-commit:
       glob: "*.md"
       run: python3 docs/scripts/validate-docs.py {staged_files}
       stage_fixed: true
+      tags: [documentation]
+
+    # Update metrics before commit (quick run - only if significant time passed)
+    update-metrics:
+      run: |
+        if [ -f "docs/scripts/automation/metrics-daemon.py" ]; then
+          # Only update if metrics are older than 30 minutes
+          if [ -f "docs/data/metrics.json" ]; then
+            AGE=$(($(date +%s) - $(stat -f%m docs/data/metrics.json 2>/dev/null || stat -c%Y docs/data/metrics.json 2>/dev/null)))
+            if [ $AGE -gt 1800 ]; then
+              echo "📊 Updating metrics (older than 30 min)..."
+              python3 docs/scripts/automation/metrics-daemon.py 2>/dev/null || true
+            fi
+          else
+            python3 docs/scripts/automation/metrics-daemon.py 2>/dev/null || true
+          fi
+        fi
+      tags: [metrics]
+
+    # Update search index only if .md files actually changed
+    update-search:
+      glob: "*.md"
+      run: |
+        if [ -f "docs/scripts/search/doc-search.py" ]; then
+          # Incremental update is fast, always run if .md changed
+          python3 docs/scripts/search/doc-search.py 2>/dev/null || true
+        fi
+      tags: [search]
 
     # TypeScript type checking
     typescript-check:
@@ -23,12 +52,14 @@ pre-commit:
       skip:
         - merge
         - rebase
+      tags: [typescript]
 
     # ESLint with auto-fix
     eslint:
       glob: "*.{ts,tsx,js,jsx}"
       run: cd dashboard && npx eslint {staged_files} --fix --max-warnings 0
       stage_fixed: true
+      tags: [javascript]
 
     # Console.log detection (block commits with console statements)
     console-check:
@@ -39,16 +70,53 @@ pre-commit:
           echo "❌ Console statements detected. Remove them or add to exceptions."
           exit 1
         fi
+      tags: [quality]
 
     # Python formatting
     python-format:
       glob: "*.py"
       run: black --check {staged_files}
       stage_fixed: true
+      tags: [python]
+
+    # Python linting with Ruff (fast!)
+    python-lint:
+      glob: "*.py"
+      run: |
+        if command -v ruff &> /dev/null; then
+          ruff check {staged_files} --fix
+        else
+          echo "⚠️  Ruff not installed. Install: pip install ruff"
+        fi
+      stage_fixed: true
+      tags: [python]
+
+    # Check for hardcoded secrets
+    secrets-check:
+      glob: "*"
+      exclude: ".*\\.(md|json|lock)$"
+      run: |
+        if grep -E '(api_key|secret_key|password|token)\\s*=\\s*["\'][^"\']+["\']' {staged_files} 2>/dev/null; then
+          echo "⚠️  Warning: Potential hardcoded secret found"
+        fi
+      tags: [security]
 
 # Pre-push hook - runs before git push
 pre-push:
   commands:
+    # Full code quality check (blocks push if critical errors)
+    code-quality:
+      run: |
+        echo "🔍 Running full code quality validation..."
+        python3 docs/scripts/validation/code-quality-check.py
+        if [ $? -ne 0 ]; then
+          echo "❌ Code quality check failed. Fix errors before pushing."
+          echo "   Run: python3 docs/scripts/validation/code-quality-check.py"
+          exit 1
+        fi
+        echo "✅ Code quality: All checks passed"
+      tags: [quality]
+
     # Full documentation compliance check
     docs-compliance:
       run: |
@@ -66,6 +134,25 @@ pre-push:
         - merge
         - rebase
 
+# Post-commit hook - runs after successful commit
+post-commit:
+  commands:
+    # Auto-log session to SESSION_LOG.md
+    session-log:
+      run: |
+        if [ -f "docs/scripts/automation/session-logger.py" ]; then
+          python3 docs/scripts/automation/session-logger.py --commits 1 2>/dev/null || true
+        fi
+      tags: [documentation]
+
+    # Update CLAUDE.md with latest metrics
+    update-claude:
+      run: |
+        if [ -f "docs/scripts/automation/template-processor.py" ]; then
+          python3 docs/scripts/automation/template-processor.py CLAUDE.md 2>/dev/null || true
+        fi
+      tags: [metrics]
+
 # Post-checkout hook - runs after git checkout
 post-checkout:
   commands:
@@ -76,6 +163,16 @@ post-checkout:
         if [ -f "dashboard/package.json" ]; then
           cd dashboard && npm outdated || true
         fi
+      tags: [dependencies]
+
+    # Rebuild search index after branch switch
+    rebuild-search:
+      run: |
+        if [ -f "docs/scripts/search/doc-search.py" ]; then
+          echo "🔍 Rebuilding documentation search index..."
+          python3 docs/scripts/search/doc-search.py --rebuild 2>/dev/null || true
+        fi
+      tags: [search]
 
 # Commit-msg hook - validates commit message format
 commit-msg:
@@ -90,3 +187,60 @@ commit-msg:
           echo "   Example: feat(docs): add semantic versioning"
           echo "   Types: feat, fix, docs, style, refactor, test, chore, perf"
         fi
+      tags: [convention]
+
+# Manual commands - run with: lefthook run <command>
+manual:
+  commands:
+    # Full metrics update
+    metrics-full:
+      run: |
+        echo "📊 Updating all metrics..."
+        python3 docs/scripts/automation/metrics-daemon.py --once
+        python3 docs/scripts/automation/template-processor.py --process-all
+        echo "✅ Metrics updated"
+      tags: [metrics]
+
+    # Interactive documentation search
+    search-docs:
+      run: python3 docs/scripts/search/doc-search.py
+      tags: [search]
+
+    # Force metrics update (normally automatic)
+    metrics-now:
+      run: |
+        echo "📊 Updating metrics..."
+        python3 docs/scripts/automation/metrics-daemon.py
+        echo "✅ Metrics updated"
+      tags: [metrics]
+
+    # Generate documentation report
+    docs-report:
+      run: |
+        echo "📝 Generating documentation report..."
+        python3 docs/scripts/validate-docs.py --json > docs/validation-report.json
+        echo "✅ Report saved to docs/validation-report.json"
+      tags: [documentation]
+
+    # Full code quality check
+    quality-check:
+      run: |
+        echo "🔍 Running full code quality validation..."
+        python3 docs/scripts/validation/code-quality-check.py
+        echo "✅ Code quality check complete"
+      tags: [quality]
+
+    # Quick code quality check (staged files only)
+    quality-quick:
+      run: |
+        echo "⚡ Quick quality check..."
+        python3 docs/scripts/validation/code-quality-check.py --quick
+        echo "✅ Quick check complete"
+      tags: [quality]
+
+    # Code quality dashboard
+    quality-dashboard:
+      run: |
+        echo "📊 Generating code quality dashboard..."
+        python3 docs/scripts/validation/quality-dashboard.py
+      tags: [quality]

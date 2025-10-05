@@ -691,7 +691,6 @@ export default function PostingPage() {
     <DashboardLayout
       title=""
       subtitle={undefined}
-      showSearch={false}
     >
       <div className="space-y-6">
         {/* Active Posting Accounts Section - Using Shared Component */}

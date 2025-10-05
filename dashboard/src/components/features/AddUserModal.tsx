@@ -85,7 +85,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
   const fetchModels = async () => {
     try {
-      const response = await fetch('/api/models/list')
+      const response = await fetch(`${API_URL}/api/models/list`)
       const data = await response.json()
       if (data.success) {
         const activeModels = data.models.filter((m: Model) => m.status === 'active')
@@ -108,7 +108,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
     setCreatingModel(true)
     try {
-      const response = await fetch('/api/models/create', {
+      const response = await fetch(`${API_URL}/api/models/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,7 +146,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setNotFoundUsername(null)
 
     try {
-      const response = await fetch(`/api/reddit/users/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`${API_URL}/api/reddit/users/search?q=${encodeURIComponent(query)}`)
       const data = await response.json()
 
       // Check for success field in response
@@ -193,7 +193,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
       // Mark as our creator with model
       try {
-        const response = await fetch('/api/reddit/users/toggle-creator', {
+        const response = await fetch(`${API_URL}/api/reddit/users/toggle-creator`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -244,7 +244,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       const data = await response.json()
       if (data.success && data.user) {
         // Now update the user with our_creator and model_id
-        const updateResponse = await fetch('/api/reddit/users/toggle-creator', {
+        const updateResponse = await fetch(`${API_URL}/api/reddit/users/toggle-creator`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

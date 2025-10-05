@@ -100,7 +100,6 @@ const VirtualizedCreatorTable = memo(function VirtualizedCreatorTable({
         hasMore={hasMore}
         loadingMore={loadingMore}
         className={className}
-        postsMetrics={postsMetrics}
       />
     )
   }
@@ -127,7 +126,6 @@ const VirtualizedCreatorTable = memo(function VirtualizedCreatorTable({
         onReachEnd={() => {}} // Handle in scroll listener
         hasMore={false} // Prevent double loading
         loadingMore={loadingMore}
-        postsMetrics={postsMetrics}
       />
 
       {/* Bottom spacer */}

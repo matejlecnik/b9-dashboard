@@ -367,12 +367,12 @@ export function useCategoryDistribution() {
       // Get Reddit category distribution
       const { data: redditCategories } = await supabase
         .from('reddit_subreddits')
-        .select('category_text')
-        .not('category_text', 'is', null)
+        .select('primary_category')
+        .not('primary_category', 'is', null)
 
       const redditDist = new Map<string, number>()
       redditCategories?.forEach(item => {
-        const cat = item.category_text || 'Uncategorized'
+        const cat = item.primary_category || 'Uncategorized'
         redditDist.set(cat, (redditDist.get(cat) || 0) + 1)
       })
 

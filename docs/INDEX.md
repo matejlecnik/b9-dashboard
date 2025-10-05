@@ -23,9 +23,9 @@
 |---------|------|-------------|
 | **Control Center** | [`CLAUDE.md`](../CLAUDE.md) | Main hub, metrics, TODO queue |
 | **Project Overview** | [`README.md`](../README.md) | Architecture, setup, deployment |
-| **API Reference** | [`api-render/docs/API.md`](../api-render/docs/API.md) | Endpoints, auth, examples |
+| **API Reference** | [`docs/backend/API.md`](backend/API.md) | Endpoints, auth, examples |
 | **Database Schema** | [`docs/database/SUPABASE_SCHEMA.md`](database/SUPABASE_SCHEMA.md) | Tables, functions, queries |
-| **Component Guide** | [`dashboard/docs/COMPONENT_GUIDE.md`](../dashboard/docs/COMPONENT_GUIDE.md) | UI components, patterns |
+| **Component Guide** | [`docs/frontend/COMPONENT_GUIDE.md`](frontend/COMPONENT_GUIDE.md) | UI components, patterns |
 
 ## 📚 Documentation by Category
 
@@ -64,12 +64,12 @@
 ```json
 {
   "main": {
-    "file": "api-render/docs/API.md",
+    "file": "docs/backend/API.md",
     "lines": 495,
     "endpoints": 25
   },
   "architecture": {
-    "file": "api-render/docs/ARCHITECTURE.md",
+    "file": "docs/backend/ARCHITECTURE.md",
     "lines": 391,
     "version": "3.4.5"
   },
@@ -79,7 +79,7 @@
     "architecture": "api-render/app/scrapers/reddit/ARCHITECTURE.md"
   },
   "logging": {
-    "file": "api-render/docs/logging.md",
+    "file": "docs/backend/logging.md",
     "lines": 156,
     "topics": ["Log levels", "Supabase logging", "Best practices"]
   }
@@ -90,33 +90,28 @@
 ```json
 {
   "testing": {
-    "file": "dashboard/docs/TESTING_GUIDE.md",
+    "file": "docs/frontend/TESTING_GUIDE.md",
     "lines": 662,
     "coverage": "85%"
   },
-  "testing_guidelines": {
-    "file": "dashboard/docs/TESTING_GUIDELINES.md",
-    "lines": 580,
-    "topics": ["Unit tests", "Integration tests", "Mocking", "Best practices"]
-  },
-  "api_guide": {
-    "file": "dashboard/docs/API_GUIDE.md",
-    "lines": 639,
-    "topics": ["React Query", "auth", "error handling"]
-  },
   "api_integration": {
-    "file": "dashboard/docs/API_INTEGRATION_GUIDE.md",
+    "file": "docs/frontend/API_INTEGRATION_GUIDE.md",
     "lines": 600,
     "topics": ["Query patterns", "Mutations", "Caching", "Error handling"]
   },
   "components": {
-    "file": "dashboard/docs/COMPONENT_GUIDE.md",
+    "file": "docs/frontend/COMPONENT_GUIDE.md",
     "lines": 525,
     "components": 105
   },
+  "standardization": {
+    "file": "docs/frontend/STANDARDIZATION_PLAN.md",
+    "lines": 890,
+    "topics": ["Component patterns", "Code standards", "Best practices"]
+  },
   "react_query": {
-    "guide": "dashboard/docs/development/REACT_QUERY_GUIDE.md (567 lines)",
-    "reference": "dashboard/docs/development/REACT_QUERY_QUICK_REFERENCE.md (327 lines)"
+    "guide": "docs/frontend/development/REACT_QUERY_GUIDE.md (567 lines)",
+    "reference": "docs/frontend/development/REACT_QUERY_QUICK_REFERENCE.md (327 lines)"
   }
 }
 ```
@@ -127,7 +122,7 @@
   "deployment": {
     "guide": "docs/deployment/DEPLOYMENT.md (256 lines)",
     "secrets": "docs/deployment/DEPLOYMENT_SECRETS.md (108 lines)",
-    "checklist": "dashboard/docs/deployment/CHECKLIST.md (260 lines)"
+    "checklist": "docs/frontend/deployment/CHECKLIST.md (260 lines)"
   },
   "workflows": {
     "github": ".github/workflows/README.md (245 lines)",
@@ -135,7 +130,7 @@
     "ci": ".github/workflows/ci.yml"
   },
   "monitoring": {
-    "file": "api-render/docs/MONITORING.md",
+    "file": "docs/backend/MONITORING.md",
     "lines": 243
   }
 }
@@ -147,13 +142,13 @@
   "documentation": {
     "standards": "docs/development/DOCUMENTATION_STANDARDS.md (296 lines)",
     "template": "docs/development/DOCUMENTATION_TEMPLATE.md (263 lines)",
-    "map": "docs/development/DOCUMENTATION_MAP.md (273 lines)"
+    "map": "docs/frontend/DOCUMENTATION_MAP.md (273 lines)"
   },
   "session": {
-    "log": "docs/development/SESSION_LOG.md (416 lines)",
-    "dashboard": "dashboard/docs/development/SESSION_LOG.md (148 lines)"
+    "log": "docs/development/SESSION_LOG.md (416 lines)"
   },
-  "quick_codes": "docs/development/QUICK_CODES.md (108 lines)"
+  "quick_codes": "docs/development/QUICK_CODES.md (108 lines)",
+  "tasks": "docs/frontend/development/TASKS.md"
 }
 ```
 
@@ -186,17 +181,17 @@
 ## 🔍 Quick Search Index
 
 ### By Technology
-- **React/Next.js**: `dashboard/docs/`, `COMPONENT_GUIDE.md`, `REACT_QUERY_*.md`
-- **Python/FastAPI**: `api-render/`, `docs/API.md`, `scrapers/`
-- **PostgreSQL/Supabase**: `database/`, `SUPABASE_*.md`, `migrations/`
-- **Docker/Render**: `deployment/`, `Dockerfile`, `render.yaml`
+- **React/Next.js**: `docs/frontend/`, `COMPONENT_GUIDE.md`, `REACT_QUERY_*.md`
+- **Python/FastAPI**: `docs/backend/`, `api-render/`, `scrapers/`
+- **PostgreSQL/Supabase**: `docs/database/`, `SUPABASE_*.md`, `migrations/`
+- **Docker/Render**: `docs/deployment/`, `Dockerfile`, `render.yaml`
 
 ### By Task
 - **Setup Project**: `README.md` → `dashboard/README.md` → `.env.example`
-- **Add API Endpoint**: `api-render/main.py` → `routes/` → `docs/API.md`
-- **Database Query**: `SUPABASE_QUERIES.md` → `SUPABASE_FUNCTIONS.md`
-- **Deploy Changes**: `DEPLOYMENT.md` → `CHECKLIST.md` → GitHub Actions
-- **Fix Bugs**: `SESSION_LOG.md` → `system_logs` → `docs/MONITORING.md`
+- **Add API Endpoint**: `api-render/main.py` → `routes/` → `docs/backend/API.md`
+- **Database Query**: `docs/database/SUPABASE_QUERIES.md` → `SUPABASE_FUNCTIONS.md`
+- **Deploy Changes**: `docs/deployment/DEPLOYMENT.md` → `CHECKLIST.md` → GitHub Actions
+- **Fix Bugs**: `docs/development/SESSION_LOG.md` → `system_logs` → `docs/backend/MONITORING.md`
 
 ### By Priority
 1. **🔴 CRITICAL**: `TODO_CRON_SETUP.md` - Log cleanup (30 days)
@@ -210,21 +205,69 @@
 b9_dashboard/
 ├── 📄 CLAUDE.md (368 lines) - Control center
 ├── 📄 README.md (320 lines) - Project overview
-├── 📁 docs/
+├── 📁 docs/ (CONSOLIDATED STRUCTURE)
 │   ├── 📄 INDEX.md (THIS FILE) - Master index
+│   ├── 📁 frontend/ (15 files) - Dashboard/React docs
+│   │   ├── COMPONENT_GUIDE.md, TESTING_GUIDE.md, etc.
+│   │   ├── 📁 templates/ - Component patterns
+│   │   ├── 📁 development/ - React Query guides
+│   │   └── 📁 deployment/ - Frontend deployment
+│   ├── 📁 backend/ (11 files) - API/Python docs
+│   │   ├── API.md, ARCHITECTURE.md, MONITORING.md
+│   │   ├── PHASE_2B_REFACTORING.md, logging.md
+│   │   └── 📁 archive/ - Historical docs
 │   ├── 📁 database/ (6 files, 2,646 lines)
 │   ├── 📁 deployment/ (2 files, 364 lines)
 │   ├── 📁 development/ (6 files, 1,316 lines)
-│   └── 📁 performance/ (1 file, 243 lines)
+│   ├── 📁 scripts/ - Automation & validation
+│   └── 📁 archive/ - Historical snapshots
 ├── 📁 api-render/ (26 files, 7,847 lines)
-│   ├── 📄 README.md
-│   ├── 📄 DOCUMENTATION_INDEX.md
-│   ├── 📁 docs/ (API.md, ARCHITECTURE.md, DEPLOYMENT.md, etc.)
+│   ├── 📄 README.md - API module overview
 │   └── 📁 app/ [scrapers, routes, services...]
 ├── 📁 dashboard/ (8 files, 3,499 lines)
-│   ├── 📄 README.md
-│   └── 📁 docs/
+│   └── 📄 README.md - Dashboard overview
 └── 📁 .github/workflows/ (1 file, 245 lines)
+```
+
+## 🧭 Module Quick Navigation
+
+### API-Render Module (Backend)
+```json
+{
+  "version": "3.4.5",
+  "total_files": 25,
+  "total_lines": 6500,
+  "navigation": {
+    "overview": "api-render/README.md",
+    "architecture": "docs/backend/ARCHITECTURE.md",
+    "api_reference": "docs/backend/API.md",
+    "deployment": "docs/backend/DEPLOYMENT.md",
+    "monitoring": "docs/backend/MONITORING.md"
+  },
+  "scrapers": {
+    "reddit": "api-render/app/scrapers/reddit/ARCHITECTURE.md (1081 lines)",
+    "instagram": "api-render/app/scrapers/instagram/README.md"
+  }
+}
+```
+
+### Dashboard Module (Frontend)
+```bash
+## Quick Jump Commands
+$ open dashboard/src/app/reddit/          # Reddit module [LOCKED]
+$ open dashboard/src/app/instagram/       # Instagram module [ACTIVE]
+$ open dashboard/src/app/models/          # Models management [PLANNED]
+$ open dashboard/src/components/          # Component library
+```
+
+### Module Status Summary
+```json
+{
+  "reddit": {"status": "LOCKED", "completion": 100, "desc": "DO NOT MODIFY"},
+  "instagram": {"status": "ACTIVE", "completion": 65, "desc": "In development"},
+  "models": {"status": "PLANNED", "completion": 0, "desc": "Future work"},
+  "api_render": {"status": "PRODUCTION", "completion": 100, "desc": "Stable"}
+}
 ```
 
 ## 🔗 Navigation Links
@@ -232,8 +275,7 @@ b9_dashboard/
 - **Previous**: [`CLAUDE.md`](../CLAUDE.md) - Return to control center
 - **Next**: [`database/SUPABASE_SCHEMA.md`](database/SUPABASE_SCHEMA.md) - Database schema
 - **Standards**: [`DOCUMENTATION_STANDARDS.md`](development/DOCUMENTATION_STANDARDS.md) - Doc rules
-- **Map**: [`DOCUMENTATION_MAP.md`](development/DOCUMENTATION_MAP.md) - Visual map
 
 ---
 
-_Index Version: 1.2 | Files: 59 | Lines: 18,973 | Updated: 2025-10-01 | Reddit v3.4.5_
+_Index Version: 2.0.0 | Files: 91 | Lines: 18,973 | Updated: 2025-10-05 | Consolidation Complete_

@@ -327,30 +327,15 @@ export default function CategorizationPage() {
 
   // Handle starting AI categorization with settings
   const handleStartAICategorization = useCallback(async (settings: AICategorizationSettings) => {
-    setCategorizationLogs([`Starting AI tagging with ${settings.limit} items...`])
+    setCategorizationLogs([`Starting AI tagging with up to ${settings.limit} items...`])
 
-    // Get uncategorized subreddit IDs
-    const uncategorizedIds = subreddits
-      .filter((s: Subreddit) => !s.tags || !Array.isArray(s.tags) || s.tags.length === 0)
-      .slice(0, settings.limit)
-      .map((s: Subreddit) => s.id)
-
-    if (uncategorizedIds.length === 0) {
-      addToast({
-        type: 'warning',
-        title: 'No uncategorized items',
-        description: 'All visible items are already categorized',
-        duration: 3000
-      })
-      setShowAIModal(false)
-      return
-    }
-
-    // Use the mutation
+    // Let backend handle finding uncategorized subreddits
+    // This ensures we always get fresh data from the database
     aiCategorizationMutation.mutate(
       {
-        subredditIds: uncategorizedIds,
+        subredditIds: undefined,  // Backend will find all uncategorized items
         batchSize: settings.batchSize,
+        limit: settings.limit,
         onProgress: (progress: number) => {
           setCategorizationLogs(prev => [...prev, `Progress: ${progress}%`])
         }
@@ -372,7 +357,7 @@ export default function CategorizationPage() {
         }
       }
     )
-  }, [subreddits, aiCategorizationMutation, addToast])
+  }, [aiCategorizationMutation])
 
   // Bulk tags update using React Query mutation
   const updateBulkTags = useCallback(async (tags: string[]) => {

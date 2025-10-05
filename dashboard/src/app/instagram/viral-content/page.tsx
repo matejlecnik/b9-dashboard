@@ -14,6 +14,7 @@ import { StandardToolbar } from '@/components/shared'
 import { ViralFilters } from '@/components/instagram/ViralFilters'
 import { ViralReelsGrid } from '@/components/instagram/ViralReelsGrid'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
 import { formatNumber } from '@/lib/formatters'
 import type { ViralReelsFilters } from '@/lib/supabase/viral-reels'
@@ -65,27 +66,8 @@ export default function ViralContentPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
-      {/* Background texture */}
-      <div
-        className="fixed inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
-          `
-        }}
-      />
-
-      {/* Sidebar */}
-      <div className="relative z-50">
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 overflow-auto bg-transparent flex flex-col">
-          <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
-            <div className="space-y-6">
+    <DashboardLayout>
+      <div className="flex flex-col gap-6">
               {/* Stats Cards */}
               <ComponentErrorBoundary>
                 {isLoading && !stats ? (
@@ -307,10 +289,7 @@ export default function ViralContentPage() {
                   </div>
                 </div>
               </ComponentErrorBoundary>
-            </div>
-          </div>
-        </main>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

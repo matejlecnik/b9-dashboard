@@ -1,10 +1,8 @@
 'use client'
 
-import React, { memo, useCallback } from 'react'
+import React, { memo } from 'react'
 import { UniversalTable } from './UniversalTable'
 import type { Subreddit } from './UniversalTable'
-import { formatNumber } from '@/lib/formatters'
-import { Badge } from '@/components/ui/badge'
 
 // Instagram Creator type matching the existing structure
 export interface InstagramCreator {
@@ -18,18 +16,33 @@ export interface InstagramCreator {
   following: number
   posts_count: number
   media_count: number
-  review_status: 'pending' | 'ok' | 'non_related' | null
+  review_status: 'ok' | 'non_related' | null  // Database values only
   reviewed_at: string | null
   reviewed_by: string | null
   discovery_source: string | null
   is_private: boolean
   is_verified: boolean
+  is_business_account?: boolean
   avg_views_per_reel_cached: number | null
   engagement_rate_cached: number | null
   viral_content_count_cached: number | null
   external_url: string | null
+  external_url_type?: string | null
   bio_links: Array<{ url: string }> | null
   avg_likes_per_post?: number | null
+  avg_comments_per_post_cached?: number | null
+  avg_likes_per_reel_cached?: number | null
+  avg_comments_per_reel_cached?: number | null
+  avg_saves_per_post_cached?: number | null
+  avg_shares_per_post_cached?: number | null
+  posting_frequency_per_week?: number | null
+  follower_growth_rate_weekly?: number | null
+  follower_growth_rate_daily?: number | null
+  save_to_like_ratio?: number | null
+  last_post_days_ago?: number | null
+  best_content_type?: string | null
+  posting_consistency_score?: number | null
+  reels_count?: number | null
   niche?: string | null
 }
 
@@ -44,7 +57,6 @@ interface UniversalCreatorTableProps {
   hasMore?: boolean
   loadingMore?: boolean
   className?: string
-  postsMetrics?: Map<string, { avgLikes: number, avgComments: number }>
 }
 
 /**
@@ -61,8 +73,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
   onReachEnd,
   hasMore = false,
   loadingMore = false,
-  className,
-  postsMetrics
+  className
 }: UniversalCreatorTableProps) {
 
   // Map Instagram creators to Subreddit format for UniversalTable
@@ -82,76 +93,52 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
     icon_img: creator.profile_pic_url || undefined,
     engagement: creator.engagement_rate_cached || 0,
     avg_upvotes_per_post: creator.avg_likes_per_post || 0,
-    subreddit_tags: creator.niche ? [creator.niche] : [],
-    tags: creator.niche ? [creator.niche] : [],
-    review: creator.review_status === 'ok' ? 'ok' :
-            creator.review_status === 'non_related' ? 'non_related' :
-            'pending',
+    subreddit_tags: [], // Tags removed from Instagram creator view
+    tags: [], // Tags removed from Instagram creator view
+    review: creator.review_status === 'ok' ? 'Ok' :
+            creator.review_status === 'non_related' ? 'Non Related' :
+            null, // Map to UI values for review buttons
     created_utc: undefined,
     rules_data: null,
 
     // Store original Instagram data as additional properties
     ig_user_id: creator.ig_user_id,
     is_verified: creator.is_verified,
+    is_business_account: creator.is_business_account,
     following: creator.following,
     posts_count: creator.posts_count,
+    reels_count: creator.reels_count,
     viral_content_count: creator.viral_content_count_cached,
     avg_views_per_reel: creator.avg_views_per_reel_cached,
-    bio_links: creator.bio_links
+    bio_links: creator.bio_links,
+    niche: creator.niche,
+    // Performance metrics
+    posting_frequency_per_week: creator.posting_frequency_per_week,
+    follower_growth_rate_weekly: creator.follower_growth_rate_weekly,
+    follower_growth_rate_daily: creator.follower_growth_rate_daily,
+    save_to_like_ratio: creator.save_to_like_ratio,
+    last_post_days_ago: creator.last_post_days_ago,
+    // External links
+    external_url: creator.external_url,
+    external_url_type: creator.external_url_type,
+    // Additional engagement metrics
+    avg_likes_per_reel_cached: creator.avg_likes_per_reel_cached,
+    avg_comments_per_post_cached: creator.avg_comments_per_post_cached,
+    avg_comments_per_reel_cached: creator.avg_comments_per_reel_cached,
+    avg_saves_per_post_cached: creator.avg_saves_per_post_cached,
+    avg_shares_per_post_cached: creator.avg_shares_per_post_cached,
+    best_content_type: creator.best_content_type,
+    posting_consistency_score: creator.posting_consistency_score,
+    // IMPORTANT: Preserve review_status for Instagram-specific logic
+    review_status: creator.review_status
   }))
 
-  // Custom columns for Instagram-specific data
-  const customColumns = [
-    {
-      key: 'engagement',
-      label: 'Engagement',
-      width: 'w-24',
-      render: (item: Subreddit) => {
-        const engagement = item.engagement || 0
-        return (
-          <div className="text-sm">
-            {engagement > 0 ? (
-              <Badge variant={engagement > 5 ? 'default' : 'secondary'}>
-                {engagement.toFixed(1)}%
-              </Badge>
-            ) : (
-              <span className="text-gray-400">-</span>
-            )}
-          </div>
-        )
-      }
-    },
-    {
-      key: 'viral_content',
-      label: 'Viral',
-      width: 'w-20',
-      render: (item: Subreddit) => {
-        const viralCount = (item as unknown as Record<string, unknown>).viral_content_count as number || 0
-        return (
-          <div className="text-sm font-medium">
-            {viralCount > 0 ? (
-              <span className="text-pink-600">{formatNumber(viralCount)}</span>
-            ) : (
-              <span className="text-gray-400">0</span>
-            )}
-          </div>
-        )
-      }
-    },
-    {
-      key: 'avg_views',
-      label: 'Avg Views',
-      width: 'w-24',
-      render: (item: Subreddit) => {
-        const avgViews = (item as unknown as Record<string, unknown>).avg_views_per_reel as number || 0
-        return (
-          <div className="text-sm">
-            {avgViews > 0 ? formatNumber(avgViews) : '-'}
-          </div>
-        )
-      }
-    }
-  ]
+  // DEBUG: Log mapped subreddits
+  console.log('📊 Mapped Subreddits for UniversalTable:', mappedSubreddits)
+  console.log('📊 Mapped Count:', mappedSubreddits.length)
+  if (mappedSubreddits.length > 0) {
+    console.log('📊 First mapped item:', mappedSubreddits[0])
+  }
 
   return (
     <UniversalTable
@@ -169,6 +156,7 @@ const UniversalCreatorTable = memo(function UniversalCreatorTable({
       } : undefined}
       className={className}
       variant="standard"
+      mode="review"
       platform="instagram"
     />
   )

@@ -13,25 +13,51 @@ import type { ViralReel, ViralReelsFilters } from '@/lib/supabase/viral-reels'
 
 const PAGE_SIZE = 50
 
-export type CreatorStatus = 'pending' | 'approved' | 'rejected' | 'needs_review' | 'blacklisted'
+// Instagram creator review status values (matches database schema)
+// NULL = pending review, 'ok' = approved, 'non_related' = rejected
+export type CreatorStatus = 'ok' | 'non_related' | null
 
 export interface Creator {
   id: number
+  ig_user_id?: string
   username: string
   full_name?: string
-  bio?: string
+  biography?: string  // DB column name
   followers: number
   following: number
-  posts: number
-  engagement_rate?: number
+  posts_count: number  // DB column name
+  media_count?: number
+  engagement_rate_cached?: number  // DB column name
+  avg_engagement_rate?: number
   review_status: CreatorStatus
-  categories?: string[]
-  discovered_at: string
+  discovery_date: string  // DB column name
+  discovery_source?: string
   reviewed_at?: string
   reviewed_by?: string
   notes?: string
   profile_pic_url?: string
+  is_private?: boolean
   is_verified?: boolean
+  is_business_account?: boolean
+  avg_likes_per_post_cached?: number  // DB column name
+  avg_comments_per_post_cached?: number
+  avg_likes_per_reel_cached?: number
+  avg_comments_per_reel_cached?: number
+  avg_saves_per_post_cached?: number
+  avg_shares_per_post_cached?: number
+  avg_views_per_reel_cached?: number
+  viral_content_count_cached?: number
+  posting_frequency_per_week?: number
+  follower_growth_rate_weekly?: number
+  follower_growth_rate_daily?: number
+  save_to_like_ratio?: number
+  last_post_days_ago?: number
+  external_url?: string
+  external_url_type?: string
+  best_content_type?: string
+  posting_consistency_score?: number
+  reels_count?: number
+  niche?: string
 }
 
 interface CreatorFilters {
@@ -42,45 +68,103 @@ interface CreatorFilters {
   minEngagement?: number
   categories?: string[]
   isVerified?: boolean
-  orderBy?: 'followers' | 'engagement_rate' | 'discovered_at'
+  orderBy?: 'followers' | 'engagement_rate_cached' | 'discovery_date'
   order?: 'asc' | 'desc'
 }
 
 export interface CreatorStats {
   total: number
-  pending: number
-  approved: number
-  rejected: number
-  needsReview: number
-  blacklisted: number
+  pending: number  // NULL values
+  approved: number  // 'ok' values (lowercase in DB)
+  rejected: number  // 'non_related' values
 }
 
 /**
  * Hook for fetching Instagram creators with infinite scroll
  */
 export function useInstagramCreators(filters: CreatorFilters = {}) {
+  // Add explicit logging for debugging
+  console.log('🚀 useInstagramCreators hook called', {
+    filters,
+    supabaseAvailable: !!supabase
+  })
+
   return useInfiniteSupabaseQuery<Creator[]>(
     queryKeys.instagram.creators(filters),
     async ({ pageParam = 0 }) => {
+      console.log('🔥 useInstagramCreators query function executing', {
+        pageParam,
+        filters,
+        supabaseExists: !!supabase
+      })
+
       if (!supabase) {
         logger.error('Supabase client not available')
+        console.error('❌ Supabase client is null/undefined')
         throw new Error('Supabase client not available')
       }
 
+      console.log('📚 Building Supabase query...')
+
       let query = supabase
         .from('instagram_creators')
-        .select('*')
+        .select(`
+          id,
+          ig_user_id,
+          username,
+          full_name,
+          biography,
+          profile_pic_url,
+          followers,
+          following,
+          posts_count,
+          media_count,
+          is_verified,
+          is_private,
+          is_business_account,
+          review_status,
+          reviewed_at,
+          reviewed_by,
+          discovery_source,
+          discovery_date,
+          engagement_rate_cached,
+          avg_engagement_rate,
+          avg_views_per_reel_cached,
+          viral_content_count_cached,
+          avg_likes_per_post_cached,
+          avg_comments_per_post_cached,
+          avg_likes_per_reel_cached,
+          avg_comments_per_reel_cached,
+          avg_saves_per_post_cached,
+          avg_shares_per_post_cached,
+          posting_frequency_per_week,
+          follower_growth_rate_weekly,
+          follower_growth_rate_daily,
+          save_to_like_ratio,
+          last_post_days_ago,
+          external_url,
+          external_url_type,
+          best_content_type,
+          posting_consistency_score,
+          reels_count,
+          niche
+        `)
         .range(pageParam, pageParam + PAGE_SIZE - 1)
 
       // Apply filters
       if (filters.search) {
         query = query.or(
-          `username.ilike.%${filters.search}%,full_name.ilike.%${filters.search}%,bio.ilike.%${filters.search}%`
+          `username.ilike.%${filters.search}%,full_name.ilike.%${filters.search}%,biography.ilike.%${filters.search}%`
         )
       }
 
-      if (filters.status) {
-        query = query.eq('review_status', filters.status)
+      if (filters.status !== undefined) {
+        // Handle NULL values (pending) vs actual status values
+        if (filters.status === null) {
+          query = query.is('review_status', null)
+        } else {
+          query = query.eq('review_status', filters.status)
+        }
       }
 
       if (filters.minFollowers !== undefined) {
@@ -92,7 +176,7 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
       }
 
       if (filters.minEngagement !== undefined) {
-        query = query.gte('engagement_rate', filters.minEngagement)
+        query = query.gte('engagement_rate_cached', filters.minEngagement)
       }
 
       if (filters.categories && filters.categories.length > 0) {
@@ -108,7 +192,24 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
       const order = filters.order || 'desc'
       query = query.order(orderBy, { ascending: order === 'asc' })
 
+      console.log('🔍 Executing Supabase query with filters:', {
+        status: filters.status,
+        search: filters.search,
+        orderBy,
+        order,
+        pageRange: `${pageParam} to ${pageParam + PAGE_SIZE - 1}`
+      })
+
       const { data, error } = await query
+
+      // Debug logging
+      console.log('🔍 Instagram Query Debug:', {
+        pageParam,
+        filters,
+        supabaseAvailable: !!supabase,
+        dataReturned: data?.length || 0,
+        error: error?.message || null
+      })
 
       if (error) {
         logger.error('Failed to fetch Instagram creators', error)
@@ -121,6 +222,9 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
       pageSize: PAGE_SIZE,
       staleTime: 60 * 1000, // 1 minute
       gcTime: 5 * 60 * 1000, // 5 minutes
+      enabled: true, // Explicitly enable the query
+      refetchOnMount: true,
+      refetchOnWindowFocus: false
     }
   )
 }
@@ -138,22 +242,19 @@ export function useCreatorStats() {
       }
 
       // Run all counts in parallel
-      const [total, pending, approved, rejected, needsReview, blacklisted] = await Promise.all([
+      // Pending = NULL values, Approved = 'ok', Rejected = 'non_related'
+      const [total, pending, ok, nonRelated] = await Promise.all([
         supabase.from('instagram_creators').select('id', { count: 'exact', head: true }),
-        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'pending'),
-        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'approved'),
-        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'rejected'),
-        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'needs_review'),
-        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'blacklisted'),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).is('review_status', null),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok'),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'non_related'),
       ])
 
       return {
         total: total.count || 0,
         pending: pending.count || 0,
-        approved: approved.count || 0,
-        rejected: rejected.count || 0,
-        needsReview: needsReview.count || 0,
-        blacklisted: blacklisted.count || 0,
+        approved: ok.count || 0,
+        rejected: nonRelated.count || 0,
       }
     },
     {
@@ -475,6 +576,22 @@ export interface TopCreator {
   viral_count: number
 }
 
+interface ReelWithCreator {
+  creator_id: string
+  creator_username: string
+  creator?: {
+    ig_user_id: string
+    username: string
+    profile_pic_url: string
+    followers: number
+  } | Array<{
+    ig_user_id: string
+    username: string
+    profile_pic_url: string
+    followers: number
+  }>
+}
+
 /**
  * Hook for fetching viral reels with infinite scroll
  */
@@ -731,7 +848,7 @@ export function useTopCreators(filters: ViralReelsFilters = {}, limit = 5) {
       // Group by creator and count viral reels
       const creatorMap = new Map<string, TopCreator>()
 
-      data?.forEach((reel: any) => {
+      data?.forEach((reel: ReelWithCreator) => {
         if (!reel.creator_username) return
 
         if (!creatorMap.has(reel.creator_username)) {

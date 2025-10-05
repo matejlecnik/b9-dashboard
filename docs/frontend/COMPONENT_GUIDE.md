@@ -361,7 +361,41 @@ function DashboardMetrics() {
 }
 ```
 
-### 2. Error Handling
+### 2. Layout & Navigation
+
+```json
+{
+  "rules": [
+    "❌ NEVER use page headers - navigation via sidebar only",
+    "All page titles should be in the sidebar, not as page headers",
+    "DashboardLayout title/subtitle are for metadata only (not displayed)",
+    "Maximize vertical space for content"
+  ]
+}
+```
+
+**Rationale:**
+- Page headers waste valuable vertical space
+- Navigation is handled by the sidebar - headers are redundant
+- Modern dashboard UX avoids duplicate navigation elements
+- More content visible = better user experience
+
+```tsx
+// ✅ Good: No header, content starts immediately
+<DashboardTemplate title="Creator Review">
+  <MetricsCards />
+  <Toolbar />
+  <DataTable />
+</DashboardTemplate>
+
+// ❌ Bad: Don't add custom headers
+<DashboardTemplate title="Creator Review">
+  <h1>Creator Review</h1>  {/* ❌ Redundant */}
+  <MetricsCards />
+</DashboardTemplate>
+```
+
+### 3. Error Handling
 
 ```tsx
 // Always handle loading, error, and empty states
@@ -379,7 +413,7 @@ function DataComponent() {
 }
 ```
 
-### 3. Performance
+### 4. Performance
 
 ```tsx
 // Use React.memo for expensive components
@@ -395,7 +429,7 @@ const sortedData = useMemo(
 const HeavyChart = lazy(() => import('./HeavyChart'));
 ```
 
-### 4. Accessibility
+### 5. Accessibility
 
 ```tsx
 // Always include ARIA labels

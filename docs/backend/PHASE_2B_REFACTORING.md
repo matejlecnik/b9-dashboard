@@ -1,12 +1,39 @@
 # Phase 2b: Deep Architecture Refactoring
 
-**Status**: ✅ COMPLETE (Options 1 & 2)
-**Started**: 2025-10-04
-**Completed**: 2025-10-04
-**Version**: 3.7.0
-**Scope**: Critical architecture improvements and consolidation
+┌─ REFACTORING PHASE ─────────────────────────────────────┐
+│ ✅ COMPLETE   │ ████████████████████ 100% DONE          │
+└─────────────────────────────────────────────────────────┘
 
----
+## Navigation
+
+```json
+{
+  "parent": "API_RENDER_IMPROVEMENT_PLAN.md",
+  "current": "PHASE_2B_REFACTORING.md",
+  "siblings": [
+    {"path": "PHASE_1_FIXES_TODO.md", "desc": "Phase 1 implementation", "status": "COMPLETE"}
+  ],
+  "related": [
+    {"path": "../app/README.md", "desc": "API documentation", "status": "ACTIVE"},
+    {"path": "../../ROADMAP.md", "desc": "Strategic vision", "status": "ACTIVE"}
+  ]
+}
+```
+
+## Metrics
+
+```json
+{
+  "status": "COMPLETE",
+  "started": "2025-10-04",
+  "completed": "2025-10-04",
+  "version": "3.7.0",
+  "options_completed": 2,
+  "files_created": 20,
+  "lines_removed": 293,
+  "reduction_percentage": 49.7
+}
+```
 
 ## Executive Summary
 
@@ -51,7 +78,7 @@ Phase 2b focuses on deep architectural improvements to reduce technical debt, im
 
 **Implementation Details**:
 ```python
-# Usage example
+## Usage example
 from app.logging import get_logger
 
 logger = get_logger(__name__)
@@ -256,8 +283,8 @@ async def cron_health():
 ##### 3. Render Cron Configuration (`render.yaml`)
 
 ```yaml
-# Cron Job Service - Log Cleanup (CRON-001: CRITICAL)
-# Prevents disk overflow by cleaning old logs daily
+## Cron Job Service - Log Cleanup (CRON-001: CRITICAL)
+## Prevents disk overflow by cleaning old logs daily
 - type: cron
   name: b9-log-cleanup
   runtime: python3
@@ -286,10 +313,10 @@ async def cron_health():
 ##### 4. Router Registration (`main.py`)
 
 ```python
-# Import cron router
+## Import cron router
 from app.api.cron import router as cron_router
 
-# Register router (with availability check)
+## Register router (with availability check)
 CRON_ROUTES_AVAILABLE = True
 try:
     from app.api import cron
@@ -309,11 +336,11 @@ if CRON_ROUTES_AVAILABLE:
 
 **Testing**:
 ```bash
-# Test cron endpoint locally
+## Test cron endpoint locally
 curl -X POST "http://localhost:10000/api/cron/cleanup-logs?retention_days=30" \
   -H "Authorization: Bearer your-cron-secret-here"
 
-# Check cron health
+## Check cron health
 curl http://localhost:10000/api/cron/health
 ```
 
@@ -366,7 +393,7 @@ app = FastAPI(lifespan=lifespan)
 ```python
 from app.middleware import configure_middleware
 
-# Configure all middleware (security, CORS, compression, monitoring)
+## Configure all middleware (security, CORS, compression, monitoring)
 configure_middleware(app)
 ```
 
@@ -497,7 +524,7 @@ def _get_db() -> Client:
     """Get database client for module-level functions"""
     return get_db()
 
-# Usage in helper functions
+## Usage in helper functions
 async def get_proxy_configs():
     resp = _get_db().table('scraper_accounts').select('*').execute()
 ```
@@ -530,11 +557,11 @@ def get_categorization_service():
 **Pattern**: Helper function replacement
 **Changes**:
 ```python
-# Before
+## Before
 def get_supabase():
     return create_client(url, key)
 
-# After
+## After
 def get_supabase() -> Client:
     return get_db()
 ```
@@ -656,11 +683,11 @@ class SubredditFetcher:
 
 **Migration Pattern**:
 ```python
-# OLD
+## OLD
 import logging
 logger = logging.getLogger(__name__)
 
-# NEW
+## NEW
 from app.logging import get_logger
 logger = get_logger(__name__)
 ```
@@ -689,15 +716,15 @@ logger = get_logger(__name__)
 
 **Migration Pattern**:
 ```python
-# OLD
+## OLD
 from supabase import create_client
 db = create_client(url, key)
 
-# NEW
+## NEW
 from app.core.database import get_supabase_client
 db = get_supabase_client()
 
-# For FastAPI endpoints with dependency injection
+## For FastAPI endpoints with dependency injection
 from fastapi import Depends
 from app.core.database import get_db
 
@@ -921,10 +948,12 @@ If singleton causes connection issues:
 - [SYSTEM_IMPROVEMENT_PLAN.md](/docs/development/SYSTEM_IMPROVEMENT_PLAN.md) - Technical blueprint
 - [SESSION_LOG.md](/docs/development/SESSION_LOG.md) - Activity log
 - [ARCHITECTURE.md](/api-render/ARCHITECTURE.md) - System architecture
-- [API_RENDER_IMPROVEMENT_PLAN.md](/api-render/docs/API_RENDER_IMPROVEMENT_PLAN.md) - Full 80-page improvement plan
+- [API_RENDER_IMPROVEMENT_PLAN.md](/docs/backend/API_RENDER_IMPROVEMENT_PLAN.md) - Full 80-page improvement plan
 
 ---
 
 **Last Updated**: 2025-10-04
 **Next Review**: After Task 2.2 completion
-**Document Version**: 1.0.0
+
+---
+_Version: 1.1.0 | Updated: 2025-10-05_

@@ -80,11 +80,13 @@ interface ReviewPageTemplateProps<T = unknown> {
   bulkActions?: ReviewPageBulkAction[]
   onItemUpdate?: (id: number, updates: Record<string, unknown>) => void
   actionButtons?: ReactNode
+  headerActions?: ReactNode
 
   // Customization
   accentColor?: string
   emptyMessage?: string
   tableColumns?: unknown[]
+  customTable?: ReactNode
 }
 
 /**
@@ -140,9 +142,11 @@ export const ReviewPageTemplate = <T = unknown,>({
   bulkActions,
   onItemUpdate,
   actionButtons,
+  headerActions,
   accentColor,
   emptyMessage = 'No items found',
-  tableColumns
+  tableColumns,
+  customTable
 }: ReviewPageTemplateProps<T>) => {
   // Handle clear selection
   const handleClearSelection = useCallback(() => {
@@ -161,18 +165,27 @@ export const ReviewPageTemplate = <T = unknown,>({
       <div className="space-y-6">
         {/* Metrics Cards */}
         <ComponentErrorBoundary>
-          {!stats ? (
-            <MetricsCardsSkeleton />
-          ) : (
-            <MetricsCards
-              platform={platform === 'models' ? undefined : platform}
-              totalCreators={stats.total}
-              pendingCount={stats.pending}
-              approvedCount={stats.approved}
-              nonRelatedCount={stats.rejected}
-              loading={false}
-            />
-          )}
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1">
+              {!stats ? (
+                <MetricsCardsSkeleton />
+              ) : (
+                <MetricsCards
+                  platform={platform === 'models' ? undefined : platform}
+                  totalCreators={stats.total}
+                  pendingCount={stats.pending}
+                  approvedCount={stats.approved}
+                  nonRelatedCount={stats.rejected}
+                  loading={false}
+                />
+              )}
+            </div>
+            {headerActions && (
+              <div className="flex items-center pt-1">
+                {headerActions}
+              </div>
+            )}
+          </div>
         </ComponentErrorBoundary>
 
         {/* Toolbar */}
@@ -208,15 +221,17 @@ export const ReviewPageTemplate = <T = unknown,>({
 
         {/* Data Table */}
         <ComponentErrorBoundary>
-          <UniversalTable
-            subreddits={data as unknown as Subreddit[]}
-            loading={isLoading}
-            selectedSubreddits={selectedItems}
-            setSelectedSubreddits={onSelectionChange}
-            hasMore={hasNextPage}
-            onReachEnd={onFetchNextPage}
-            loadingMore={isFetchingNextPage}
-          />
+          {customTable || (
+            <UniversalTable
+              subreddits={data as unknown as Subreddit[]}
+              loading={isLoading}
+              selectedSubreddits={selectedItems}
+              setSelectedSubreddits={onSelectionChange}
+              hasMore={hasNextPage}
+              onReachEnd={onFetchNextPage}
+              loadingMore={isFetchingNextPage}
+            />
+          )}
         </ComponentErrorBoundary>
       </div>
     </DashboardTemplate>

@@ -1,5 +1,4 @@
 import { logger } from '@/lib/logger'
-import { protectedApi } from '@/lib/api-wrapper'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
 import { NextRequest } from 'next/server'
@@ -55,7 +54,7 @@ function validateCategoryName(name: string): { isValid: boolean; errors: string[
 }
 
 // GET /api/categories - Get all categories
-export const GET = protectedApi(async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     
@@ -147,15 +146,15 @@ export const GET = protectedApi(async (request: NextRequest) => {
 
   } catch (error) {
     logger.error('Error fetching categories:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error' 
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
     }, { status: 500 })
   }
-})
+}
 
 // POST /api/categories - Create a new category
-export const POST = protectedApi(async (request: NextRequest) => {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as CreateCategoryRequest
     const { name, description, color, icon, parent_id, sort_order } = body
@@ -269,9 +268,9 @@ export const POST = protectedApi(async (request: NextRequest) => {
 
   } catch (error) {
     logger.error('Error creating category:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error' 
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
     }, { status: 500 })
   }
-})
+}

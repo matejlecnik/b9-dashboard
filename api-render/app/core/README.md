@@ -1,6 +1,41 @@
 # Core Infrastructure
 
-Core infrastructure components for the B9 Dashboard API.
+┌─ MODULE STATUS ─────────────────────────────────────────┐
+│ ● OPERATIONAL │ ████████████████████ 100% COMPLETE      │
+└─────────────────────────────────────────────────────────┘
+
+## Navigation
+
+```json
+{
+  "parent": "../README.md",
+  "current": "core/README.md",
+  "children": [
+    {"path": "clients/README.md", "desc": "API client management", "status": "ACTIVE"},
+    {"path": "config/README.md", "desc": "Configuration management", "status": "ACTIVE"},
+    {"path": "database/README.md", "desc": "Database layer", "status": "ACTIVE"},
+    {"path": "utils/README.md", "desc": "Utility functions", "status": "ACTIVE"}
+  ],
+  "siblings": [
+    {"path": "../scrapers/README.md", "desc": "Scraper modules", "status": "ACTIVE"},
+    {"path": "../middleware/README.md", "desc": "Middleware layer", "status": "ACTIVE"},
+    {"path": "../routes/README.md", "desc": "API routes", "status": "ACTIVE"},
+    {"path": "../services/README.md", "desc": "Business logic", "status": "ACTIVE"}
+  ]
+}
+```
+
+## Metrics
+
+```json
+{
+  "components": 8,
+  "subdirectories": 4,
+  "status": "OPERATIONAL",
+  "version": "3.0.0",
+  "last_refactor": "2025-10-03"
+}
+```
 
 ## Directory Structure
 
@@ -47,15 +82,15 @@ core/
 ## Usage
 
 ```python
-# Database client
+## Database client
 from app.core.database.supabase_client import get_supabase_client
 client = get_supabase_client()
 
-# Configuration
+## Configuration
 from app.core.config.config_manager import ConfigManager
 config = ConfigManager(client)
 
-# Logging
+## Logging
 from app.core.utils.supabase_logger import SupabaseLogHandler
 logger.addHandler(SupabaseLogHandler(client))
 ```

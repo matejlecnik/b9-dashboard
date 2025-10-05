@@ -1,9 +1,9 @@
 'use client'
 
-import React, { memo, useMemo, useCallback, useState, useEffect, useRef } from 'react'
+import React, { memo, useMemo, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { TagsDisplay } from '@/components/shared/TagsDisplay'
-import { BookOpen, BadgeCheck } from 'lucide-react'
+import { BookOpen, BadgeCheck, Lock, Briefcase, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
@@ -259,7 +259,8 @@ export const UniversalTable = memo(function UniversalTable({
 
   // Mode and behavior
   mode = 'category',
-  
+  platform = 'reddit',
+
   // Infinite scroll
   onReachEnd,
   hasMore = false,
@@ -285,7 +286,10 @@ export const UniversalTable = memo(function UniversalTable({
   // Animation
   removingIds = new Set()
 }: UniversalTableProps) {
-  
+
+  // DEBUG: Log platform prop value
+  console.log('🎯 UniversalTable - Platform prop:', platform)
+
   // ============================================================================
   // PERFORMANCE MONITORING
   // ============================================================================
@@ -333,8 +337,21 @@ export const UniversalTable = memo(function UniversalTable({
   }, [brokenIcons, brokenIconsLRU])
   
   const handleUpdate = useCallback((id: number, value: string) => {
-    if (onUpdateReview) return onUpdateReview(id, value)
-  }, [onUpdateReview])
+    if (!onUpdateReview) return
+
+    // Map UI labels to database values for Instagram
+    if (platform === 'instagram') {
+      const mappedValue =
+        value === 'Ok' ? 'ok' :
+        value === 'Non Related' ? 'non_related' :
+        value === 'Unreviewed' ? 'pending' :
+        value
+      return onUpdateReview(id, mappedValue)
+    }
+
+    // Reddit keeps original values
+    return onUpdateReview(id, value)
+  }, [onUpdateReview, platform])
   
   const handleIconErrorInternal = useCallback((id: number | string) => {
     logger.log(`🖼️ [Image] Failed to load icon for subreddit ID: ${id}`)
@@ -406,9 +423,24 @@ export const UniversalTable = memo(function UniversalTable({
       : (subreddit.icon_img && subreddit.icon_img.trim() !== ''
         ? subreddit.icon_img
         : '')
+
+    // DEBUG: Log icon URL determination for Instagram (first 5 only to avoid spam)
+    if (platform === 'instagram' && index < 5) {
+      console.log(`🖼️ Icon URL for ${subreddit.name}:`, {
+        community_icon: subreddit.community_icon,
+        icon_img: subreddit.icon_img,
+        finalUrl: iconUrl,
+        hasUrl: !!iconUrl
+      })
+    }
     const isBroken = finalBrokenIcons.has(subreddit.id)
-    const safeDisplayName = subreddit.display_name_prefixed || (subreddit.name ? `r/${subreddit.name}` : 'Unknown subreddit')
+    const safeDisplayName = subreddit.display_name_prefixed || (subreddit.name ? `r/${subreddit.name}` : platform === 'instagram' ? 'Unknown creator' : 'Unknown subreddit')
     const safeTitle = subreddit.title || ''
+
+    // Platform-specific URL generation
+    const profileUrl = platform === 'instagram'
+      ? `https://instagram.com/${subreddit.name || subreddit.display_name || ''}`
+      : `https://www.reddit.com/${safeDisplayName}`
 
     return (
       <div
@@ -444,42 +476,66 @@ export const UniversalTable = memo(function UniversalTable({
         
         {/* Icon */}
         {showIcons && (
-          <a 
-            href={`https://www.reddit.com/${safeDisplayName}`}
+          <a
+            href={profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-14 flex justify-center hover:opacity-80 transition-opacity"
+            className={cn(
+              "flex justify-center hover:opacity-80 transition-opacity",
+              platform === 'instagram' ? "w-16" : "w-14"
+            )}
           >
             {iconUrl && iconUrl.trim() !== '' && !isBroken ? (
               (() => {
-                const optimizedUrl = isValidRedditImageUrl(iconUrl) 
+                const optimizedUrl = platform === 'reddit' && isValidRedditImageUrl(iconUrl)
                   ? getOptimizedRedditImageUrl(iconUrl, compactMode ? 'small' : 'medium')
                   : iconUrl
-                
+
+                // Use the proven working pattern from ViralReelCard
+                // Instagram images work with fill + sizes, no need for platform branching
+                const imageSize = platform === 'instagram'
+                  ? (compactMode ? "32px" : "40px")
+                  : (compactMode ? "24px" : "32px")
+
                 return (
                   <div className={cn(
-                    "overflow-hidden rounded-full border border-gray-200",
-                    compactMode ? "w-6 h-6" : "w-8 h-8"
+                    "relative overflow-hidden rounded-full border border-gray-200",
+                    platform === 'instagram'
+                      ? (compactMode ? "w-8 h-8" : "w-10 h-10")
+                      : (compactMode ? "w-6 h-6" : "w-8 h-8")
                   )}>
-                    <Image
-                      src={optimizedUrl}
-                      alt={`${subreddit.name || safeDisplayName} icon`}
-                      width={compactMode ? 24 : 32}
-                      height={compactMode ? 24 : 32}
-                      className="w-full h-full object-cover"
-                      onError={() => handleIconErrorInternal(subreddit.id)}
-                      unoptimized
-                      loading="lazy"
-                    />
+                    {platform === 'instagram' ? (
+                      // Instagram: Proxy through /api/img to bypass CORS restrictions
+                      <img
+                        src={`/api/img?url=${encodeURIComponent(optimizedUrl)}`}
+                        alt={`${subreddit.name || safeDisplayName} icon`}
+                        className="object-cover w-full h-full"
+                        onError={() => handleIconErrorInternal(subreddit.id)}
+                        loading="lazy"
+                      />
+                    ) : (
+                      // Reddit: Keep using Next.js Image optimization (works fine for Reddit)
+                      <Image
+                        src={optimizedUrl}
+                        alt={`${subreddit.name || safeDisplayName} icon`}
+                        fill
+                        className="object-cover"
+                        sizes={imageSize}
+                        onError={() => handleIconErrorInternal(subreddit.id)}
+                        loading="lazy"
+                      />
+                    )}
                   </div>
                 )
               })()
             ) : (
               <div className={cn(
-                "rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white text-xs font-bold border border-pink-500",
-                compactMode ? "w-6 h-6" : "w-8 h-8"
+                "rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white font-bold border border-pink-500",
+                platform === 'instagram'
+                  ? (compactMode ? "w-8 h-8 text-sm" : "w-10 h-10 text-base")
+                  : (compactMode ? "w-6 h-6 text-xs" : "w-8 h-8 text-xs")
               )}>
-                {subreddit.name?.charAt(0)?.toUpperCase() || 'R'}
+                {platform === 'instagram' ? '@' : (subreddit.name?.charAt(0)?.toUpperCase() || 'R')}
               </div>
             )}
           </a>
@@ -487,150 +543,405 @@ export const UniversalTable = memo(function UniversalTable({
         
         {/* Name and title */}
         <a
-          href={`https://www.reddit.com/${safeDisplayName}`}
+          href={profileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-72 min-w-0 px-3 hover:opacity-80 transition-opacity"
+          className={cn(
+            "min-w-0 px-3 hover:opacity-80 transition-opacity",
+            platform === 'instagram' ? "w-56" : "w-72"
+          )}
         >
-          <div className={cn(
-            "font-semibold text-gray-900 truncate flex items-center gap-2",
-            compactMode ? "text-xs" : "text-sm"
-          )}>
-            {safeDisplayName}
-            {/* Verification Badge */}
-            {subreddit.verification_required && (
-              <span title="Verification Required">
-                <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-              </span>
-            )}
-            {/* NSFW/SFW Badge */}
-            {(() => {
-              const nsfwFlag = typeof subreddit.is_nsfw === 'boolean'
-                ? subreddit.is_nsfw
-                : (typeof subreddit.over18 === 'boolean' ? subreddit.over18 : undefined)
-              if (typeof nsfwFlag !== 'boolean') return null
-              return (
-              <span className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                nsfwFlag
-                  ? "bg-red-100 text-red-800 border border-red-200"
-                  : "bg-green-100 text-green-800 border border-green-200",
-                compactMode && "px-1.5 py-0 text-[10px]"
+          {platform === 'instagram' ? (
+            // Instagram: Show full name prominently with username underneath
+            <div className="flex flex-col gap-0.5">
+              <div className={cn(
+                "font-bold text-gray-900 truncate flex items-center gap-1.5",
+                compactMode ? "text-sm" : "text-base"
               )}>
-                {nsfwFlag ? "NSFW" : "SFW"}
-              </span>
-              )
-            })()}
-          </div>
-          {safeTitle && !compactMode && (
-            <div className="text-xs text-gray-600 line-clamp-2">
-              {safeTitle}
+                {safeTitle || safeDisplayName}
+                {/* Instagram Badges next to full name */}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(subreddit as any).is_verified && (
+                  <span title="Verified Account">
+                    <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  </span>
+                )}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(subreddit as any).is_business_account && (
+                  <span title="Business Account">
+                    <Briefcase className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                  </span>
+                )}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(subreddit as any).is_private && (
+                  <span title="Private Account">
+                    <Lock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  </span>
+                )}
+              </div>
+              <div className={cn(
+                "text-gray-500 truncate font-normal",
+                compactMode ? "text-xs" : "text-sm"
+              )}>
+                {safeDisplayName}
+              </div>
             </div>
+          ) : (
+            // Reddit: Original layout
+            <>
+              <div className={cn(
+                "font-semibold text-gray-900 truncate flex items-center gap-2",
+                compactMode ? "text-xs" : "text-sm"
+              )}>
+                {safeDisplayName}
+                {/* Reddit Verification Badge */}
+                {subreddit.verification_required && (
+                  <span title="Verification Required">
+                    <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                  </span>
+                )}
+                {/* NSFW/SFW Badge */}
+                {(() => {
+                  const nsfwFlag = typeof subreddit.is_nsfw === 'boolean'
+                    ? subreddit.is_nsfw
+                    : (typeof subreddit.over18 === 'boolean' ? subreddit.over18 : undefined)
+                  if (typeof nsfwFlag !== 'boolean') return null
+                  return (
+                  <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                    nsfwFlag
+                      ? "bg-red-100 text-red-800 border border-red-200"
+                      : "bg-green-100 text-green-800 border border-green-200",
+                    compactMode && "px-1.5 py-0 text-[10px]"
+                  )}>
+                    {nsfwFlag ? "NSFW" : "SFW"}
+                  </span>
+                  )
+                })()}
+              </div>
+              {safeTitle && !compactMode && (
+                <div className="text-xs text-gray-600 line-clamp-2">
+                  {safeTitle}
+                </div>
+              )}
+            </>
           )}
         </a>
         
-        {/* Rules button */}
-        <div className="w-14 flex justify-center">
-          {onShowRules && (() => {
-            // Check if rules_data exists and has content
-            const hasRulesData = subreddit.rules_data && 
-              typeof subreddit.rules_data === 'object' && (
-                (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
-                (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data && 
-                 Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
-              );
-            
-            return (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (hasRulesData) {
-                    onShowRules(subreddit);
-                  } else {
-                    const confirmOpen = window.confirm(
-                      `No rules data found for ${safeDisplayName}.\n\nWould you like to open the subreddit rules page on Reddit?`
-                    );
-                    if (confirmOpen) {
-                      window.open(
-                        `https://www.reddit.com/${safeDisplayName}/about/rules`,
-                        '_blank',
-                        'noopener,noreferrer'
+        {/* Rules button - only for Reddit */}
+        {platform === 'reddit' && (
+          <div className="w-14 flex justify-center">
+            {onShowRules && (() => {
+              // Check if rules_data exists and has content
+              const hasRulesData = subreddit.rules_data &&
+                typeof subreddit.rules_data === 'object' && (
+                  (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
+                  (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
+                   Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
+                );
+
+              return (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (hasRulesData) {
+                      onShowRules(subreddit);
+                    } else {
+                      const confirmOpen = window.confirm(
+                        `No rules data found for ${safeDisplayName}.\n\nWould you like to open the subreddit rules page on Reddit?`
                       );
+                      if (confirmOpen) {
+                        window.open(
+                          `https://www.reddit.com/${safeDisplayName}/about/rules`,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                      }
                     }
-                  }
-                }}
-                className={cn(
-                  "p-0 hover:bg-gray-100",
-                  compactMode ? "h-6 w-6" : "h-8 w-8"
-                )}
-                aria-label={`View rules for ${safeDisplayName}`}
-              >
-                <BookOpen className={cn(
-                  hasRulesData ? "text-gray-500" : "text-gray-300",
-                  compactMode ? "h-3 w-3" : "h-4 w-4"
-                )} />
-              </Button>
-            )
-          })()}
-        </div>
-        
-        {/* Subscribers */}
-        <div className="w-24 text-center">
-          <div className={cn(
-            "font-medium text-gray-700",
-            compactMode ? "text-xs" : "text-sm"
-          )}>
-            {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
+                  }}
+                  className={cn(
+                    "p-0 hover:bg-gray-100",
+                    compactMode ? "h-6 w-6" : "h-8 w-8"
+                  )}
+                  aria-label={`View rules for ${safeDisplayName}`}
+                >
+                  <BookOpen className={cn(
+                    hasRulesData ? "text-gray-500" : "text-gray-300",
+                    compactMode ? "h-3 w-3" : "h-4 w-4"
+                  )} />
+                </Button>
+              )
+            })()}
           </div>
-        </div>
-        
-        {/* Engagement */}
-        <div className="w-24 text-center">
-          {typeof subreddit.engagement === 'number' ? (
-            <span className={cn(
-              "font-medium",
-              compactMode ? "text-xs" : "text-sm",
-              subreddit.engagement > 0.15 ? 'text-pink-600' :
-              subreddit.engagement > 0.05 ? 'text-gray-700' : 'text-gray-500'
+        )}
+
+        {/* Followers - Instagram only (moved right after Creator) */}
+        {platform === 'instagram' && mode === 'review' && (
+          <div className="w-28 text-center">
+            <div className={cn(
+              "font-medium text-gray-700",
+              compactMode ? "text-xs" : "text-sm"
             )}>
-              {(subreddit.engagement * 100).toFixed(1)}%
-            </span>
-          ) : (
-            <span className="text-gray-400">—</span>
-          )}
-        </div>
-        
-        {/* Upvotes */}
-        <div className="w-16 text-center">
-          <div className={cn(
-            "font-medium text-gray-700",
-            compactMode ? "text-xs" : "text-sm"
-          )}>
-            {typeof subreddit.avg_upvotes_per_post === 'number' ? formatNumber(Math.round(subreddit.avg_upvotes_per_post)) : '—'}
+              {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
+            </div>
           </div>
-        </div>
-        
+        )}
+
+        {/* Bio + Link - Instagram only */}
+        {platform === 'instagram' && mode === 'review' && (
+          <div className="w-80 min-w-0 px-3">
+            <div className={cn(
+              "text-gray-700 line-clamp-2",
+              compactMode ? "text-xs" : "text-sm"
+            )}>
+              {subreddit.description || subreddit.public_description || (
+                <span className="text-gray-400 italic">No bio</span>
+              )}
+            </div>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(subreddit as any).external_url && (
+              <a
+                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                href={(subreddit as any).external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 mt-1 text-pink-600 hover:text-pink-700 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                <span className={cn(
+                  "truncate font-medium",
+                  compactMode ? "text-xs" : "text-xs"
+                )}>
+                  {(() => {
+                    try {
+                      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                      const url = new URL((subreddit as any).external_url)
+                      return url.hostname.replace('www.', '')
+                    } catch {
+                      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                      return (subreddit as any).external_url
+                    }
+                  })()}
+                </span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Subscribers - Reddit only */}
+        {!(platform === 'instagram' && mode === 'review') && (
+          <div className="w-24 text-center">
+            <div className={cn(
+              "font-medium text-gray-700",
+              compactMode ? "text-xs" : "text-sm"
+            )}>
+              {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
+            </div>
+          </div>
+        )}
+
+        {/* Engagement - Hidden for Instagram review mode */}
+        {!(platform === 'instagram' && mode === 'review') && (
+          <div className="w-24 text-center">
+            {typeof subreddit.engagement === 'number' ? (
+              <span className={cn(
+                "font-medium",
+                compactMode ? "text-xs" : "text-sm",
+                subreddit.engagement > 0.15 ? 'text-pink-600' :
+                subreddit.engagement > 0.05 ? 'text-gray-700' : 'text-gray-500'
+              )}>
+                {(subreddit.engagement * 100).toFixed(1)}%
+              </span>
+            ) : (
+              <span className="text-gray-400">—</span>
+            )}
+          </div>
+        )}
+
+        {/* Upvotes / Avg Likes - Hidden for Instagram review mode */}
+        {!(platform === 'instagram' && mode === 'review') && (
+          <div className="w-16 text-center">
+            <div className={cn(
+              "font-medium text-gray-700",
+              compactMode ? "text-xs" : "text-sm"
+            )}>
+              {typeof subreddit.avg_upvotes_per_post === 'number' ? formatNumber(Math.round(subreddit.avg_upvotes_per_post)) : '—'}
+            </div>
+          </div>
+        )}
+
+        {/* Instagram-specific metric columns - Hidden in review mode */}
+        {platform === 'instagram' && mode !== 'review' && (
+          <>
+            {/* Niche */}
+            <div className="w-28 px-2">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const niche = (subreddit as any).niche as string | null
+                return niche ? (
+                  <div className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200",
+                    compactMode && "px-1.5 py-0 text-[10px]"
+                  )}>
+                    {niche}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )
+              })()}
+            </div>
+
+            {/* Viral Content */}
+            <div className="w-20 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const viralCount = (subreddit as any).viral_content_count as number || 0
+                return (
+                  <div className={cn(
+                    "font-medium",
+                    compactMode ? "text-xs" : "text-sm",
+                    viralCount > 0 ? "text-pink-600" : "text-gray-400"
+                  )}>
+                    {viralCount > 0 ? viralCount : '—'}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Avg Reel Views */}
+            <div className="w-24 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const avgViews = (subreddit as any).avg_views_per_reel as number || 0
+                return (
+                  <div className={cn(
+                    "font-medium text-gray-700",
+                    compactMode ? "text-xs" : "text-sm"
+                  )}>
+                    {avgViews > 0 ? formatNumber(avgViews) : '—'}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Posting Frequency */}
+            <div className="w-24 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const frequency = (subreddit as any).posting_frequency_per_week as number | null
+                return frequency !== null && frequency !== undefined ? (
+                  <div className={cn(
+                    "font-medium",
+                    compactMode ? "text-xs" : "text-sm",
+                    frequency > 7 ? "text-green-600" :
+                    frequency > 3 ? "text-gray-700" : "text-orange-600"
+                  )}>
+                    {frequency.toFixed(1)}/wk
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )
+              })()}
+            </div>
+
+            {/* Growth Rate */}
+            <div className="w-24 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const growthRate = (subreddit as any).follower_growth_rate_weekly as number | null
+                return growthRate !== null && growthRate !== undefined ? (
+                  <div className={cn(
+                    "font-medium flex items-center justify-center gap-1",
+                    compactMode ? "text-xs" : "text-sm",
+                    growthRate > 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {growthRate > 0 ? '↑' : '↓'} {Math.abs(growthRate).toFixed(1)}%
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )
+              })()}
+            </div>
+
+            {/* Save/Like Ratio */}
+            <div className="w-20 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const saveRatio = (subreddit as any).save_to_like_ratio as number | null
+                return saveRatio !== null && saveRatio !== undefined ? (
+                  <div className={cn(
+                    "font-medium",
+                    compactMode ? "text-xs" : "text-sm",
+                    saveRatio > 0.1 ? "text-green-600" :
+                    saveRatio > 0.05 ? "text-yellow-600" : "text-gray-600"
+                  )}>
+                    {(saveRatio * 100).toFixed(1)}%
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )
+              })()}
+            </div>
+
+            {/* Last Posted */}
+            <div className="w-24 text-center">
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const daysAgo = (subreddit as any).last_post_days_ago as number | null
+                return daysAgo !== null && daysAgo !== undefined ? (
+                  <div className={cn(
+                    "font-medium",
+                    compactMode ? "text-xs" : "text-sm",
+                    daysAgo > 30 ? "text-red-600" :
+                    daysAgo > 14 ? "text-orange-600" :
+                    daysAgo > 7 ? "text-yellow-600" : "text-gray-700"
+                  )}>
+                    {daysAgo < 1 ? 'Today' :
+                     daysAgo === 1 ? 'Yesterday' :
+                     `${Math.round(daysAgo)}d ago`}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )
+              })()}
+            </div>
+          </>
+        )}
+
         {/* Review column */}
         <div className="w-52 px-2">
           {mode === 'review' || mode === 'category' ? (
             <div className="flex gap-1">
-              {['Ok', 'No Seller', 'Non Related'].map((option) => (
-                <Button
-                  key={option}
-                  variant={subreddit.review === option ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleUpdate(subreddit.id, option)}
-                  className={cn(
-                    "text-xs",
-                    compactMode ? "h-6 px-1" : "h-7 px-2",
-                    subreddit.review === option && "bg-pink-500 hover:bg-pink-600 text-white"
-                  )}
-                  title={`Mark as ${option}`}
-                >
-                  {compactMode ? option.charAt(0) : option}
-                </Button>
-              ))}
+              {(() => {
+                // Platform-specific review options
+                const reviewOptions = platform === 'instagram'
+                  ? ['Ok', 'Non Related', 'Unreviewed']
+                  : ['Ok', 'No Seller', 'Non Related']
+
+                // Map database review value to button label for comparison
+                const currentReviewLabel = platform === 'instagram'
+                  ? (subreddit.review || 'Unreviewed') // Use the already mapped review field
+                  : subreddit.review
+
+                return reviewOptions.map((option) => (
+                  <Button
+                    key={option}
+                    variant={currentReviewLabel === option ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleUpdate(subreddit.id, option)}
+                    className={cn(
+                      "text-xs",
+                      compactMode ? "h-6 px-1" : "h-7 px-2",
+                      currentReviewLabel === option && "bg-pink-500 hover:bg-pink-600 text-white"
+                    )}
+                    title={`Mark as ${option}`}
+                  >
+                    {compactMode ? option.charAt(0) : option}
+                  </Button>
+                ))
+              })()}
             </div>
           ) : null}
         </div>
@@ -653,6 +964,7 @@ export const UniversalTable = memo(function UniversalTable({
     selectedSubreddits,
     setSelectedSubreddits,
     mode,
+    platform,
     allowSelectionInReview,
     showSelection,
     showIcons,
@@ -676,7 +988,9 @@ export const UniversalTable = memo(function UniversalTable({
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-        <span className="ml-2 text-gray-500">Loading subreddits...</span>
+        <span className="ml-2 text-gray-500">
+          {platform === 'instagram' ? 'Loading creators...' : 'Loading subreddits...'}
+        </span>
       </div>
     )
   }
@@ -714,12 +1028,59 @@ export const UniversalTable = memo(function UniversalTable({
               />
             </div>
           )}
-          {showIcons && <div className="w-14 flex justify-center font-medium text-gray-700 pr-3" role="columnheader">Icon</div>}
-          <div className="w-72 px-3" role="columnheader">Subreddit</div>
-          <div className="w-14 flex justify-center font-medium text-gray-700 pr-3" role="columnheader">Rules</div>
-          <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Members</div>
-          <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Engagement</div>
-          <div className="w-16 text-center font-medium text-gray-700 pr-3" role="columnheader">Avg Upvotes</div>
+          {showIcons && (
+            <div className={cn(
+              "flex justify-center font-medium text-gray-700 pr-3",
+              platform === 'instagram' ? "w-16" : "w-14"
+            )} role="columnheader">
+              Icon
+            </div>
+          )}
+          <div className={cn(
+            "px-3",
+            platform === 'instagram' ? "w-56" : "w-72"
+          )} role="columnheader">
+            {platform === 'instagram' ? 'Creator' : 'Subreddit'}
+          </div>
+          {platform === 'reddit' && (
+            <div className="w-14 flex justify-center font-medium text-gray-700 pr-3" role="columnheader">Rules</div>
+          )}
+          {/* Followers header - Instagram review mode only (moved after Creator) */}
+          {platform === 'instagram' && mode === 'review' && (
+            <div className="w-28 text-center font-medium text-gray-700 pr-3" role="columnheader">
+              Followers
+            </div>
+          )}
+          {/* Bio + Link header - Instagram review mode only */}
+          {platform === 'instagram' && mode === 'review' && (
+            <div className="w-80 px-3 font-medium text-gray-700" role="columnheader">
+              Bio + Link
+            </div>
+          )}
+          {/* Members header - Reddit only */}
+          {!(platform === 'instagram' && mode === 'review') && (
+            <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">
+              Members
+            </div>
+          )}
+          {/* Engagement - Hidden for Instagram review mode */}
+          {!(platform === 'instagram' && mode === 'review') && (
+            <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Engagement</div>
+          )}
+          {/* Avg Likes/Upvotes - Hidden for Instagram review mode */}
+          {!(platform === 'instagram' && mode === 'review') && (
+            <div className="w-16 text-center font-medium text-gray-700 pr-3" role="columnheader">
+              {platform === 'instagram' ? 'Avg Likes' : 'Avg Upvotes'}
+            </div>
+          )}
+          {/* Instagram-specific metric headers - Hidden in review mode */}
+          {platform === 'instagram' && mode !== 'review' && (
+            <>
+              <div className="w-28 px-2 font-medium text-gray-700" role="columnheader">Niche</div>
+              <div className="w-20 text-center font-medium text-gray-700 pr-3" role="columnheader">Viral</div>
+              <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Avg Views</div>
+            </>
+          )}
           <div className="w-52 px-2 font-medium text-gray-700" role="columnheader">
             {mode === 'review' ? 'Review' : 'Review'}
           </div>
@@ -742,7 +1103,7 @@ export const UniversalTable = memo(function UniversalTable({
           <UniversalTableSkeleton />
         ) : processedSubreddits.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-gray-500">
-            No subreddits found
+            {platform === 'instagram' ? 'No creators found' : 'No subreddits found'}
             {searchQuery && (
               <span className="ml-1">for &quot;{searchQuery}&quot;</span>
             )}

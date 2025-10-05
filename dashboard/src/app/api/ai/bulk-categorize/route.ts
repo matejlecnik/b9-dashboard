@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 // These endpoints exist only to maintain compatibility
 
 // POST /api/ai/bulk-categorize - Deprecated
-export async function POST(_request: Request) {
+export async function POST() {
   return NextResponse.json({
     success: false,
     error: 'This endpoint has been moved to the backend API. Use /api/ai/categorization/start instead.',
@@ -14,7 +14,7 @@ export async function POST(_request: Request) {
 }
 
 // GET /api/ai/bulk-categorize - Deprecated
-export async function GET(_request: Request) {
+export async function GET() {
   return NextResponse.json({
     success: false,
     error: 'This endpoint has been deprecated. Use the backend API for categorization status.',

@@ -1,4 +1,4 @@
-# Performance Optimization Guide
+# API Performance Optimization Guide
 
 ┌─ PERFORMANCE STATUS ────────────────────────────────────┐
 │ ● OPTIMIZED   │ ████████████████░░░░ 85% OPTIMAL       │
@@ -10,13 +10,16 @@
 {
   "parent": "../README.md",
   "current": "docs/PERFORMANCE.md",
+  "main_performance_guide": "../../docs/performance/PERFORMANCE_OPTIMIZATION.md",
   "siblings": [
-    {"path": "API_ENDPOINTS.md", "desc": "Endpoint reference", "status": "REFERENCE"},
+    {"path": "API.md", "desc": "Endpoint reference", "status": "REFERENCE"},
     {"path": "DEPLOYMENT.md", "desc": "Deploy guide", "status": "GUIDE"},
     {"path": "MONITORING.md", "desc": "Health monitoring", "status": "GUIDE"}
   ]
 }
 ```
+
+**Note:** This document covers API-specific performance. For overall system performance optimization, see: [`../../docs/performance/PERFORMANCE_OPTIMIZATION.md`](../../docs/performance/PERFORMANCE_OPTIMIZATION.md)
 
 ## System Requirements
 

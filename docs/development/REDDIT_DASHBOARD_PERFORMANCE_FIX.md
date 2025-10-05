@@ -1,11 +1,39 @@
 # Reddit Dashboard Performance & Bug Fix Plan
 
-**Version:** 1.0.0
-**Date:** 2025-10-03
-**Status:** In Progress
-**Priority:** P0 Critical
+┌─ BUG FIX PLAN ──────────────────────────────────────────┐
+│ ● IN PROGRESS │ ████████░░░░░░░░░░░░ 40% IMPLEMENTATION │
+└─────────────────────────────────────────────────────────┘
 
----
+## Navigation
+
+```json
+{
+  "parent": "../../CLAUDE.md",
+  "current": "REDDIT_DASHBOARD_PERFORMANCE_FIX.md",
+  "siblings": [
+    {"path": "SESSION_LOG.md", "desc": "Development history", "status": "ACTIVE"},
+    {"path": "ERROR_FIX_LOG.md", "desc": "Error resolution", "status": "COMPLETE"}
+  ],
+  "related": [
+    {"path": "../../dashboard/src/hooks/queries/useRedditReview.ts", "desc": "Target file", "status": "FIX_NEEDED"},
+    {"path": "../../dashboard/src/hooks/queries/useRedditCategorization.ts", "desc": "Target file", "status": "FIX_NEEDED"}
+  ]
+}
+```
+
+## Metrics
+
+```json
+{
+  "version": "1.0.0",
+  "date": "2025-10-03",
+  "status": "IN_PROGRESS",
+  "priority": "P0_CRITICAL",
+  "bugs_identified": 3,
+  "bugs_fixed": 0,
+  "performance_improvement_target": "17x"
+}
+```
 
 ## 📊 Executive Summary
 
@@ -614,4 +642,5 @@ Page 2: [sub_D(100k, id:51), sub_E(100k, id:52), ...]  ✅ No duplicates
 
 ---
 
+_Version: 1.0.1 | Updated: 2025-10-05_
 _This document follows the standards outlined in DOCUMENTATION_STANDARDS.md_

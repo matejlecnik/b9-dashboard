@@ -9,7 +9,7 @@
 ```json
 {
   "parent": "../ROADMAP.md",
-  "current": "dashboard/docs/STANDARDIZATION_PLAN.md",
+  "current": "docs/frontend/STANDARDIZATION_PLAN.md",
   "siblings": [
     {"path": "COMPONENT_GUIDE.md", "desc": "Component catalog", "status": "COMPLETE"},
     {"path": "templates/PAGE_PATTERNS.md", "desc": "Page patterns", "status": "COMPLETE"}
@@ -229,7 +229,7 @@
       "id": "BARREL-003",
       "task": "Analyze imports using each barrel export",
       "command": "grep -r \"from '@/components/templates'\" dashboard/src",
-      "output_to": "dashboard/docs/temp/barrel-import-analysis.txt",
+      "output_to": "docs/frontend/temp/barrel-import-analysis.txt",
       "effort": "15min"
     },
     {
@@ -657,11 +657,11 @@
       "updates": ["Component structure", "Import patterns", "Build metrics"]
     },
     {
-      "file": "dashboard/docs/COMPONENT_GUIDE.md",
+      "file": "docs/frontend/COMPONENT_GUIDE.md",
       "updates": ["New directory structure", "Import examples", "Migration guide"]
     },
     {
-      "file": "dashboard/docs/templates/PAGE_PATTERNS.md",
+      "file": "docs/frontend/templates/PAGE_PATTERNS.md",
       "updates": ["Updated import patterns", "Design system usage"]
     },
     {

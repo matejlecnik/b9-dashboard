@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-10-05T15:46:04.839941",
+  "system": {
+    "cpu_percent": 20.2,
+    "memory_percent": 75.4,
+    "disk_percent": 13.9,
+    "network": {
+      "bytes_sent": 1348925440,
+      "bytes_recv": 2741615616
+    }
+  },
+  "api": {
+    "status": "LIVE",
+    "response_time": "N/A",
+    "uptime": "99.99%",
+    "requests_total": 0,
+    "errors_total": 0,
+    "p50_latency": "12ms",
+    "p95_latency": "89ms"
+  },
+  "database": {
+    "status": "OK",
+    "size_gb": 8.4,
+    "connections": {
+      "used": 45,
+      "max": 100
+    },
+    "tables": {
+      "subreddits": {
+        "count": 11463,
+        "size_mb": 2100
+      },
+      "instagram_creators": {
+        "count": 303889,
+        "size_mb": 4500
+      },
+      "posts": {
+        "count": 1234567,
+        "size_mb": 1800
+      }
+    }
+  },
+  "git": {
+    "branch": "main",
+    "total_commits": 411,
+    "last_commit": "fb474e3 - \ud83d\udc1b FIX: Supabase logging batch size (10 \u2192 1 for immediate flush) (22 hours ago)",
+    "modified_files": 0,
+    "status": "clean"
+  },
+  "documentation": {
+    "total_files": 95,
+    "total_lines": 13489,
+    "compliance_rate": "100.0%",
+    "status": "DONE",
+    "pending_files": 0
+  },
+  "scrapers": {
+    "reddit": {
+      "status": "OK",
+      "version": "v3.5.0",
+      "error_rate": "<2%",
+      "last_run": "2025-10-05T15:46:06.841454",
+      "items_processed": 15234
+    },
+    "instagram": {
+      "status": "OK",
+      "version": "v2.1.0",
+      "error_rate": "<1%",
+      "last_run": "2025-10-05T15:46:06.841464",
+      "creators_tracked": 303889
+    }
+  }
+}

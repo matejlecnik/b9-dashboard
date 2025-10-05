@@ -16,18 +16,9 @@ export default async function RedditDashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Temporary bypass for development - remove once authentication is fixed
-  const isDevelopment = process.env.NODE_ENV === 'development'
-  const bypassAuth = process.env.BYPASS_AUTH === 'true'
-  
-  if (isDevelopment || bypassAuth) {
-    logger.log('⚠️ DEVELOPMENT MODE: Bypassing authentication for testing data loading')
-    return <>{children}</>
-  }
-  
   try {
     const { user, error } = await getAuthenticatedUser()
-    
+
     if (error || !user) {
       redirect('/login')
       return null

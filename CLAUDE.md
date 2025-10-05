@@ -228,6 +228,14 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md        # Technical details
 ## Recent Activity Log
 
 ```diff
++ 2025-10-05: Redundant Files Cleanup v4.0.1 - Repository Cleanup Complete ✅
++ Removed 20 redundant files (~91KB saved):
++ - Deleted 5 duplicate docs from root (already archived in docs/archive/)
++ - Deleted 6 one-time diagnostic scripts from api-render/ (Instagram bug fixed, no longer needed)
++ - Removed api-render/docs/ directory (completed consolidation to docs/backend/)
++ - Deleted dashboard/docs/ directory (auto-generated validation report)
++ - Removed 2 executed migration files (Oct 5 cleanup, already applied to database)
++ Result: Cleaner git status, fully consolidated documentation, organized migrations
 + 2025-10-05: Instagram Related Creators - API Key Fix & NoneType Bug ✅
 + Fixed RAPIDAPI_KEY environment variable on Render (placeholder → actual key)
 + Fixed NoneType crash when API returns {"data": {"user": null}}

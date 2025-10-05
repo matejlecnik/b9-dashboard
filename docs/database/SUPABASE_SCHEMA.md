@@ -26,7 +26,7 @@
   "version": "15.x",
   "total_tables": 26,
   "total_size": "~6.5GB",
-  "last_updated": "2025-01-29",
+  "last_updated": "2025-10-05",
   "connection": "REST API (no direct SQL)",
   "environment": {
     "SUPABASE_URL": "Required",
@@ -40,9 +40,9 @@
 ```json
 {
   "data_volume": {
-    "reddit_posts": 1758207,
-    "reddit_users": 298999,
-    "reddit_subreddits": 10619,
+    "reddit_posts": 1833991,
+    "reddit_users": 309608,
+    "reddit_subreddits": 34682,
     "instagram_creators": 220,
     "instagram_posts": 1668,
     "instagram_reels": 8693,
@@ -98,7 +98,7 @@
 
 ### 🔴 Reddit Tables
 
-#### `reddit_users` (52 columns, ~299K rows)
+#### `reddit_users` (45 columns, ~310K rows)
 ```json
 {
   "purpose": "Stores Reddit user profiles and quality metrics",
@@ -112,13 +112,6 @@
     "our_creator": "BOOLEAN (tracked creator flag)",
     "model_id": "INTEGER (link to models table)",
     "status": "VARCHAR DEFAULT 'inactive'"
-  },
-  "quality_scores": {
-    "username_quality_score": "NUMERIC",
-    "age_quality_score": "NUMERIC",
-    "karma_quality_score": "NUMERIC",
-    "posting_frequency_score": "NUMERIC",
-    "engagement_consistency_score": "NUMERIC"
   },
   "activity_metrics": {
     "avg_posts_per_month": "NUMERIC",
@@ -135,7 +128,7 @@
 }
 ```
 
-#### `reddit_subreddits` (71 columns, ~10.6K rows)
+#### `reddit_subreddits` (70 columns, ~34.7K rows)
 ```json
 {
   "purpose": "Subreddit profiles with engagement metrics",
@@ -427,22 +420,54 @@ instagram_creators.niche_id ──→ instagram_niche_groups.id
 
 ## Recent Optimizations
 
-### Reddit Field Cleanup (2025-01-29)
+### Database Cleanup (2025-10-05) - ✅ COMPLETED
 ```json
 {
-  "fields_removed": 85,
-  "tables_affected": 3,
-  "improvements": {
-    "storage_saved": "~800MB",
-    "query_performance": "+40%",
-    "index_efficiency": "+25%"
+  "status": "EXECUTED",
+  "date": "2025-10-05",
+  "fields_removed": 9,
+  "tables_affected": 2,
+  "details": {
+    "reddit_users": {
+      "removed": [
+        "username_quality_score",
+        "age_quality_score",
+        "karma_quality_score",
+        "posting_frequency_score",
+        "engagement_consistency_score",
+        "awardee_karma",
+        "awarder_karma"
+      ],
+      "count": 7
+    },
+    "reddit_subreddits": {
+      "removed": ["avg_engagement_velocity", "category_text"],
+      "count": 2
+    }
   },
-  "denormalized_fields_kept": [
-    "sub_over18",
-    "sub_tags",
-    "sub_primary_category"
+  "functions_fixed": [
+    "get_filter_status_stats() - Fixed table name 'subreddits' → 'reddit_subreddits'",
+    "get_user_stats() - Fixed table name 'users' → 'reddit_users'",
+    "get_post_analytics_metrics() - Fixed table names in query"
   ],
-  "reason": "Performance optimization for common queries"
+  "migration_path": "category_text → primary_category",
+  "data_coverage": {
+    "category_text": "1,429 values (deprecated)",
+    "primary_category": "2,678 values (better coverage)"
+  },
+  "code_updated": [
+    "dashboard/src/hooks/queries/useAnalytics.ts",
+    "dashboard/src/types/subreddit.ts",
+    "dashboard/src/lib/supabase/reddit.ts",
+    "dashboard/src/lib/supabase.ts",
+    "dashboard/src/hooks/queries/useRedditCategorization.ts"
+  ],
+  "improvements": {
+    "storage_saved": "~120MB",
+    "redundant_fields_removed": 9,
+    "broken_functions_fixed": 3,
+    "code_quality": "Migrated from deprecated field to better data"
+  }
 }
 ```
 
@@ -618,6 +643,6 @@ COMMIT;
 
 ---
 
-_Schema Version: 3.0 | Last Updated: 2025-01-29 | Total Tables: 26_
-_Data Volume: 2.07M+ rows | Storage: ~6.5GB | Growth: 50MB/day_
+_Schema Version: 3.1 | Last Updated: 2025-10-05 | Total Tables: 26_
+_Data Volume: 2.18M+ rows | Storage: ~8.4GB | Growth: 50MB/day_
 _Functions: 28 | Views: 3 | Triggers: 0 | Log Retention: 2 DAYS_

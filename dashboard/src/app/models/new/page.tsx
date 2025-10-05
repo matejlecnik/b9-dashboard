@@ -60,7 +60,6 @@ export default function NewModelPage() {
     <DashboardLayout
       title="Create New Model"
       subtitle="Set up a new model profile with tag preferences"
-      showSearch={false}
     >
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">

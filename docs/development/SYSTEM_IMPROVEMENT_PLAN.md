@@ -675,30 +675,500 @@
 }
 ```
 
+## Phase 4: Instagram Dashboard Completion (v4.0.0)
+
+### 4.1 Creator Quality Scoring [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "features": [
+    {
+      "name": "Quality metrics calculator",
+      "desc": "Score creators based on engagement, follower growth, content consistency",
+      "metrics": [
+        "Engagement rate (likes + comments / followers)",
+        "Follower growth velocity",
+        "Post frequency consistency",
+        "Content theme relevance",
+        "Audience demographics quality"
+      ],
+      "implementation": {
+        "backend": "api-render/scrapers/instagram/scoring.py",
+        "frontend": "dashboard/components/features/instagram/QualityScore.tsx",
+        "database": "instagram_creator_scores table"
+      },
+      "effort": "8h"
+    },
+    {
+      "name": "Viral detection algorithm",
+      "desc": "Identify posts with viral potential early",
+      "signals": [
+        "Above-average initial engagement velocity",
+        "Share/save ratio",
+        "Comment sentiment positivity",
+        "Hashtag reach potential"
+      ],
+      "effort": "12h"
+    },
+    {
+      "name": "Advanced filtering UI",
+      "desc": "Multi-criteria creator search and filtering",
+      "filters": [
+        "Quality score range",
+        "Follower count brackets",
+        "Engagement rate thresholds",
+        "Content categories",
+        "Location/language"
+      ],
+      "effort": "6h"
+    }
+  ],
+  "api_endpoints": {
+    "/api/instagram/creators/score": "Calculate quality scores",
+    "/api/instagram/posts/viral": "Get viral potential posts",
+    "/api/instagram/analytics/trends": "Trending content analysis"
+  },
+  "timeline": "2025-Q4",
+  "total_effort": "26h"
+}
+```
+
+### 4.2 Creator Management Dashboard [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "pages": [
+    {
+      "path": "/instagram/creators",
+      "name": "Creator Hub",
+      "features": [
+        "Bulk creator import/export",
+        "Tag management system",
+        "Notes and collaboration features",
+        "Historical tracking graphs"
+      ]
+    },
+    {
+      "path": "/instagram/analytics",
+      "name": "Analytics Dashboard",
+      "features": [
+        "Growth charts",
+        "Engagement heatmaps",
+        "Best posting times analysis",
+        "Competitor comparison"
+      ]
+    },
+    {
+      "path": "/instagram/campaigns",
+      "name": "Campaign Tracker",
+      "features": [
+        "Campaign creation wizard",
+        "ROI calculator",
+        "Performance tracking",
+        "Automated reporting"
+      ]
+    }
+  ],
+  "effort": "40h",
+  "dependencies": ["Supabase RLS policies", "Redis caching"]
+}
+```
+
+## Phase 5: Tracking Interface (v5.0.0)
+
+### 5.1 Universal Tracking System [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "architecture": {
+    "core": "Event-driven tracking pipeline",
+    "storage": "TimescaleDB for time-series data",
+    "processing": "Apache Kafka for event streaming",
+    "visualization": "Grafana embedded dashboards"
+  },
+  "trackable_entities": [
+    {
+      "type": "Content",
+      "metrics": ["views", "engagement", "shares", "saves"],
+      "sources": ["reddit", "instagram", "future_platforms"]
+    },
+    {
+      "type": "Creators/Users",
+      "metrics": ["follower_growth", "engagement_rate", "post_frequency"],
+      "alerts": ["unusual_activity", "milestone_reached"]
+    },
+    {
+      "type": "Campaigns",
+      "metrics": ["reach", "conversions", "roi", "budget_spent"],
+      "reporting": "Automated weekly/monthly"
+    },
+    {
+      "type": "Keywords/Hashtags",
+      "metrics": ["volume", "sentiment", "trending_score"],
+      "prediction": "Trend forecasting ML model"
+    }
+  ],
+  "user_interface": {
+    "dashboard": "/tracking",
+    "features": [
+      "Customizable widgets",
+      "Real-time data streams",
+      "Alert configuration",
+      "Export capabilities (CSV, PDF, API)"
+    ]
+  },
+  "timeline": "2026-Q1",
+  "effort": "80h"
+}
+```
+
+### 5.2 Notification & Alert System [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "channels": [
+    {"type": "email", "provider": "SendGrid"},
+    {"type": "sms", "provider": "Twilio"},
+    {"type": "push", "provider": "Firebase"},
+    {"type": "webhook", "provider": "Custom"}
+  ],
+  "alert_types": [
+    "Threshold breached (customizable)",
+    "Anomaly detected (ML-based)",
+    "Milestone achieved",
+    "System health issues"
+  ],
+  "configuration": {
+    "ui": "/settings/alerts",
+    "api": "/api/alerts",
+    "storage": "alert_configurations table"
+  },
+  "effort": "20h"
+}
+```
+
+## Phase 6: Models Management & Onboarding (v6.0.0)
+
+### 6.1 Model Management System [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "features": {
+    "profile_management": {
+      "fields": ["bio", "stats", "media", "rates", "availability"],
+      "verification": "Identity verification system",
+      "documents": "Contract and document storage"
+    },
+    "communication": {
+      "messaging": "In-app messaging system",
+      "scheduling": "Calendar integration",
+      "automation": "Template responses, auto-replies"
+    },
+    "payments": {
+      "integration": "Stripe Connect",
+      "features": ["Split payments", "Invoicing", "Tax reporting"],
+      "currencies": "Multi-currency support"
+    },
+    "analytics": {
+      "performance": "Individual model performance metrics",
+      "earnings": "Revenue tracking and projections",
+      "optimization": "AI-driven recommendations"
+    }
+  },
+  "database_schema": {
+    "models": "Profile and verification data",
+    "model_content": "Content library and rights management",
+    "model_earnings": "Financial tracking",
+    "model_campaigns": "Campaign participation"
+  },
+  "timeline": "2026-Q1 to Q2",
+  "effort": "120h"
+}
+```
+
+### 6.2 Onboarding System [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "flow": {
+    "steps": [
+      {"step": 1, "name": "Account creation", "time": "2min"},
+      {"step": 2, "name": "Platform selection", "time": "1min"},
+      {"step": 3, "name": "Interest configuration", "time": "3min"},
+      {"step": 4, "name": "Integration setup", "time": "5min"},
+      {"step": 5, "name": "Tutorial completion", "time": "10min"}
+    ],
+    "personalization": {
+      "user_types": ["Creator", "Brand", "Agency", "Model"],
+      "custom_flows": "Role-specific onboarding paths",
+      "ai_assistant": "GPT-powered setup helper"
+    }
+  },
+  "features": [
+    "Interactive tutorials",
+    "Progress tracking",
+    "Quick setup wizards",
+    "Import from existing tools",
+    "Team invitations"
+  ],
+  "success_metrics": {
+    "completion_rate": "Target >80%",
+    "time_to_value": "Target <30min",
+    "activation_rate": "Target >60% in 7 days"
+  },
+  "effort": "40h"
+}
+```
+
+## Phase 7: Adult Content Module (v7.0.0)
+
+### 7.1 Content Display System [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "architecture": {
+    "segregation": "Separate subdomain/route with auth",
+    "storage": "Encrypted S3 buckets with CloudFront CDN",
+    "compliance": "Age verification, geo-restrictions",
+    "safety": "CSAM detection, consent verification"
+  },
+  "features": {
+    "content_sourcing": {
+      "platforms": ["Reddit NSFW subreddits"],
+      "filtering": "AI-based content categorization",
+      "moderation": "Manual review queue for flagged content"
+    },
+    "display_interface": {
+      "layout": "Grid/masonry with lazy loading",
+      "filters": ["Category", "Popularity", "Recency", "Creator"],
+      "interaction": ["Save", "Share (with warnings)", "Report"]
+    },
+    "creator_tools": {
+      "analytics": "View counts, engagement metrics",
+      "monetization": "Premium content, tips",
+      "protection": "Watermarking, DMCA tools"
+    }
+  },
+  "legal_requirements": {
+    "verification": "2257 compliance records",
+    "consent": "Model releases and agreements",
+    "privacy": "GDPR/CCPA compliant data handling",
+    "payment": "Adult-friendly payment processors"
+  },
+  "timeline": "2026-Q2",
+  "effort": "80h",
+  "risk": "HIGH - Requires legal review"
+}
+```
+
+### 7.2 Safety & Moderation [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "automated_systems": {
+    "content_scanning": {
+      "provider": "PhotoDNA or similar",
+      "purpose": "Detect illegal content",
+      "action": "Immediate removal and reporting"
+    },
+    "age_verification": {
+      "methods": ["Document upload", "Third-party service"],
+      "storage": "Encrypted, time-limited"
+    },
+    "consent_tracking": {
+      "database": "Immutable audit log",
+      "verification": "Blockchain consideration"
+    }
+  },
+  "manual_moderation": {
+    "queue_system": "Priority-based review queue",
+    "tools": ["Bulk actions", "Pattern detection", "User history"],
+    "team": "Trained moderators with mental health support"
+  },
+  "effort": "60h"
+}
+```
+
+## Phase 8: Multi-Platform Expansion (v8.0.0)
+
+### 8.1 Platform Integration Framework [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "target_platforms": [
+    {
+      "name": "TikTok",
+      "priority": 1,
+      "features": ["Creator discovery", "Trend analysis", "Sound tracking"],
+      "api": "Official API + web scraping fallback",
+      "effort": "60h"
+    },
+    {
+      "name": "Twitter/X",
+      "priority": 2,
+      "features": ["Thread tracking", "Influencer monitoring", "Sentiment analysis"],
+      "api": "API v2 (paid tier required)",
+      "effort": "40h"
+    },
+    {
+      "name": "YouTube",
+      "priority": 3,
+      "features": ["Channel analytics", "Video performance", "Comment analysis"],
+      "api": "YouTube Data API v3",
+      "effort": "50h"
+    },
+    {
+      "name": "OnlyFans",
+      "priority": 4,
+      "features": ["Creator analytics", "Content performance", "Revenue tracking"],
+      "api": "Unofficial/scraping required",
+      "effort": "80h",
+      "risk": "HIGH - No official API"
+    },
+    {
+      "name": "LinkedIn",
+      "priority": 5,
+      "features": ["B2B influencer tracking", "Company pages", "Article performance"],
+      "api": "LinkedIn API (limited access)",
+      "effort": "40h"
+    }
+  ],
+  "architecture": {
+    "adapter_pattern": {
+      "interface": "Unified platform interface",
+      "adapters": "Platform-specific implementations",
+      "benefits": "Easy to add new platforms"
+    },
+    "data_normalization": {
+      "schema": "Common data model across platforms",
+      "mapping": "Platform-specific field mappings",
+      "storage": "Unified database with platform identifiers"
+    }
+  },
+  "timeline": "2026-Q3 onwards",
+  "total_effort": "270h"
+}
+```
+
+### 8.2 Unified Dashboard [░░░░░░░░░░░░░░░░░░░░] 0%
+
+```json
+{
+  "features": {
+    "cross_platform_analytics": {
+      "metrics": ["Total reach", "Engagement rate", "Growth rate", "ROI"],
+      "comparison": "Platform performance comparison",
+      "insights": "AI-generated recommendations"
+    },
+    "unified_inbox": {
+      "messages": "All platform messages in one place",
+      "comments": "Aggregated comment moderation",
+      "mentions": "Brand mention tracking"
+    },
+    "content_scheduler": {
+      "platforms": "Post to multiple platforms simultaneously",
+      "optimization": "Best time to post per platform",
+      "adaptation": "Platform-specific content variations"
+    },
+    "reporting": {
+      "templates": "Customizable report templates",
+      "automation": "Scheduled report generation",
+      "export": "Multiple format support"
+    }
+  },
+  "ui_routes": {
+    "/dashboard": "Unified overview",
+    "/platforms/[platform]": "Platform-specific views",
+    "/analytics/compare": "Cross-platform comparison",
+    "/content/schedule": "Multi-platform scheduler"
+  },
+  "effort": "100h"
+}
+```
+
+## Updated Timeline
+
+```json
+{
+  "2025_Q4": {
+    "phase": "Phase 4",
+    "focus": "Instagram Dashboard Completion",
+    "deliverables": ["Quality scoring", "Viral detection", "Creator management"],
+    "version": "v4.0.0"
+  },
+  "2026_Q1": {
+    "phases": ["Phase 5", "Phase 6 Start"],
+    "focus": "Tracking Interface & Models Management",
+    "deliverables": ["Universal tracking", "Alert system", "Model profiles"],
+    "versions": "v5.0.0, v6.0.0-alpha"
+  },
+  "2026_Q2": {
+    "phases": ["Phase 6 Complete", "Phase 7"],
+    "focus": "Onboarding & Adult Content",
+    "deliverables": ["Onboarding flow", "Adult content module", "Safety systems"],
+    "versions": "v6.0.0, v7.0.0"
+  },
+  "2026_Q3_onwards": {
+    "phase": "Phase 8",
+    "focus": "Multi-Platform Expansion",
+    "deliverables": ["Platform integrations", "Unified dashboard"],
+    "version": "v8.0.0+"
+  }
+}
+```
+
+## Resource Requirements
+
+```json
+{
+  "team": {
+    "current": ["1 developer"],
+    "phase_4": ["1 developer"],
+    "phase_5": ["2 developers", "1 DevOps"],
+    "phase_6": ["2 developers", "1 designer"],
+    "phase_7": ["2 developers", "1 legal advisor", "2 moderators"],
+    "phase_8": ["3 developers", "1 data engineer"]
+  },
+  "infrastructure": {
+    "phase_4": "Current (Render + Supabase)",
+    "phase_5": "Add TimescaleDB, Redis, Kafka",
+    "phase_6": "Add Stripe Connect, SendGrid",
+    "phase_7": "Add CDN, S3, age verification service",
+    "phase_8": "Scale all services, add monitoring"
+  },
+  "estimated_costs": {
+    "phase_4": "$100/month",
+    "phase_5": "$500/month",
+    "phase_6": "$800/month",
+    "phase_7": "$1500/month",
+    "phase_8": "$2500+/month"
+  }
+}
+```
+
 ## Next Steps
 
 ```json
 {
   "immediate": [
-    {"task": "Complete SYSTEM_IMPROVEMENT_PLAN.md", "eta": "30m"},
-    {"task": "Update CLAUDE.md", "eta": "1h"},
-    {"task": "Enhance DOCUMENTATION_STANDARDS.md", "eta": "30m"},
-    {"task": "Create DOCUMENTATION_AGENT_GUIDE.md", "eta": "45m"}
+    {"task": "Complete Phase 3 (Documentation)", "eta": "2 days"},
+    {"task": "Update CLAUDE.md with new roadmap", "eta": "30m"},
+    {"task": "Create VISION_2026.md for detailed planning", "eta": "2h"}
   ],
-  "short_term": [
-    {"task": "Create generate-docs.py script", "eta": "1h"},
-    {"task": "Spawn documentation agent", "eta": "2-3h"},
-    {"task": "Review agent output", "eta": "1h"}
+  "phase_4_start": [
+    {"task": "Design quality scoring algorithm", "eta": "4h"},
+    {"task": "Create instagram_creator_scores table", "eta": "1h"},
+    {"task": "Build QualityScore component", "eta": "3h"}
   ],
-  "medium_term": [
-    {"task": "Resolve component duplicates", "eta": "1.5h"},
-    {"task": "Optimize directory structure", "eta": "2h"},
-    {"task": "Complete barrel exports", "eta": "1h"}
+  "planning": [
+    {"task": "Create technical specs for each phase", "eta": "8h"},
+    {"task": "Research platform APIs and limitations", "eta": "6h"},
+    {"task": "Legal consultation for Phase 7", "eta": "4h"}
   ]
 }
 ```
 
 ---
 
-_Plan Version: 1.0.0 | Updated: 2025-10-01 | Status: IN_PROGRESS_
+_Plan Version: 2.0.0 | Updated: 2025-10-05 | Status: EXTENDED_
 _Navigate: [← ROADMAP.md](../../ROADMAP.md) | [→ DOCUMENTATION_AGENT_GUIDE.md](DOCUMENTATION_AGENT_GUIDE.md) | [→ DOCUMENTATION_STANDARDS.md](DOCUMENTATION_STANDARDS.md)_

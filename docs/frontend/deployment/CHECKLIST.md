@@ -8,7 +8,7 @@
 
 ```json
 {
-  "current": "dashboard/docs/deployment/CHECKLIST.md",
+  "current": "docs/frontend/deployment/CHECKLIST.md",
   "parent": "docs/INDEX.md"
 }
 ```

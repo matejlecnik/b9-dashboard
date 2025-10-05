@@ -7,14 +7,9 @@ interface TagCategorizationRequest {
   limit?: number
 }
 
-// Resolve the API URL at request time to avoid build-time inlining
-function getRenderApiUrl(): string | undefined {
-  return (
-    process.env['NEXT_PUBLIC_API_URL'] ||
-    process.env['RENDER_API_URL'] ||
-    process.env['NEXT_PUBLIC_RENDER_API_URL'] ||
-    undefined
-  )
+// Get the Render API URL
+function getRenderApiUrl(): string {
+  return process.env['NEXT_PUBLIC_API_URL'] || 'https://b9-dashboard.onrender.com'
 }
 
 // POST /api/categorization/tags/start - Start AI tag categorization
@@ -22,21 +17,14 @@ export async function POST(request: Request) {
   const startTime = Date.now()
 
   try {
-    const RENDER_API_URL = getRenderApiUrl()
-    if (!RENDER_API_URL) {
-      return NextResponse.json({
-        success: false,
-        error: 'AI categorization service not configured. Please set NEXT_PUBLIC_API_URL environment variable.',
-        configuration_needed: true
-      }, { status: 500 })
-    }
+    const API_URL = getRenderApiUrl()
 
     const body: TagCategorizationRequest = await request.json()
     const { batch_size = 30, limit = 100 } = body
 
 
-    // Call the Python backend API for tag categorization
-    const apiUrl = `${RENDER_API_URL}/api/ai/categorization/start`
+    // Call the Render backend API for tag categorization
+    const apiUrl = `${API_URL}/api/ai/categorization/start`
 
     const response = await fetch(apiUrl, {
       method: 'POST',

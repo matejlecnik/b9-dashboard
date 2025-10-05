@@ -192,7 +192,10 @@ const StandardToolbar = memo(function StandardToolbar({
   }
 
   return (
-    <div className={cn('flex flex-col lg:flex-row gap-3 justify-between', className)}>
+    <div
+      className={cn('flex flex-col lg:flex-row gap-3 justify-between', className)}
+      suppressHydrationWarning
+    >
       {/* Left Section - Search Bar */}
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none z-10" />

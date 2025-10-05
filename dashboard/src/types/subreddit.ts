@@ -18,7 +18,6 @@ export interface Subreddit {
   over18: boolean
   is_nsfw?: boolean // Alias for over18
   verification_required?: boolean
-  category_text: string | null
   primary_category: string | null
   tags: string[] | null
   review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null
@@ -61,6 +60,6 @@ export interface SubredditFilters {
   category?: string
   hasCategory?: boolean
   showUntaggedOnly?: boolean
-  orderBy?: 'subscribers' | 'created_at' | 'category_text'
+  orderBy?: 'subscribers' | 'created_at' | 'primary_category'
   order?: 'asc' | 'desc'
 }

@@ -542,7 +542,7 @@ export default function CategorizationPage() {
   },
   "internal_docs": {
     "implementation_plan": "/dashboard/REACT_QUERY_IMPLEMENTATION_PLAN.md",
-    "quick_reference": "/dashboard/docs/REACT_QUERY_QUICK_REFERENCE.md",
+    "quick_reference": "/docs/frontend/development/REACT_QUERY_QUICK_REFERENCE.md",
     "hooks_library": "/dashboard/src/hooks/README.md"
   }
 }
@@ -552,10 +552,10 @@ export default function CategorizationPage() {
 
 ```json
 {
-  "current": "/dashboard/docs/REACT_QUERY_GUIDE.md",
-  "parent": "/dashboard/docs/",
+  "current": "/docs/frontend/development/REACT_QUERY_GUIDE.md",
+  "parent": "/docs/frontend/",
   "related": {
-    "quick_reference": "/dashboard/docs/REACT_QUERY_QUICK_REFERENCE.md",
+    "quick_reference": "/docs/frontend/development/REACT_QUERY_QUICK_REFERENCE.md",
     "providers": "/dashboard/src/providers/README.md",
     "hooks": "/dashboard/src/hooks/README.md",
     "types": "/dashboard/src/types/README.md"

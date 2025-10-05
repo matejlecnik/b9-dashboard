@@ -119,7 +119,6 @@ export default function EditModelPage({ params }: { params: Promise<{ id: string
       <DashboardLayout
         title="Edit Model"
         subtitle=""
-        showSearch={false}
       >
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -136,7 +135,6 @@ export default function EditModelPage({ params }: { params: Promise<{ id: string
     <DashboardLayout
       title={`Edit Model: ${model.stage_name}`}
       subtitle="Update model profile and tag preferences"
-      showSearch={false}
     >
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">

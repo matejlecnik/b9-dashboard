@@ -29,9 +29,8 @@ Main layout wrapper for all dashboard pages.
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 
 <DashboardLayout
-  title="Page Title"           // Required: Page heading
-  subtitle="Page description"  // Optional: Subheading
-  showSearch={true}            // Optional: Show search in header
+  title="Page Title"           // Metadata only (not displayed)
+  subtitle="Page description"  // Metadata only (not displayed)
 >
   {children}
 </DashboardLayout>
@@ -41,7 +40,12 @@ import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 - Integrated UnifiedSidebar
 - Gradient background
 - Responsive design
-- Header with title/subtitle
+- ❌ **NO page headers** - navigation via sidebar only
+
+**Important:**
+- `title` and `subtitle` props are for metadata/debugging only
+- They are NOT displayed as headers on the page
+- All navigation should be through the sidebar
 
 #### UnifiedSidebar
 Automatic sidebar based on current route.

@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress'
 import { StandardToolbar, UniversalCreatorTable } from '@/components/shared'
 import { NicheSelector } from '@/components/instagram/NicheSelector'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
@@ -42,7 +43,6 @@ export default function NichingPage() {
   const [availableNiches, setAvailableNiches] = useState<string[]>(['Girl next door'])
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [customNiche, setCustomNiche] = useState('')
-  const [postsMetrics, setPostsMetrics] = useState<Map<string, { avgLikes: number, avgComments: number }>>(new Map())
   const fetchingPageRef = useRef<number | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -122,65 +122,6 @@ export default function NichingPage() {
     }
   }, [])
 
-  // Fetch post metrics
-  const fetchPostMetrics = useCallback(async (creatorIds: string[], signal?: AbortSignal) => {
-    try {
-      if (!supabase) {
-        logger.error('Supabase client not available')
-        return
-      }
-
-      let query = supabase
-        .from('instagram_posts')
-        .select('creator_id, like_count, comment_count')
-        .in('creator_id', creatorIds)
-
-      if (signal) {
-        query = query.abortSignal(signal)
-      }
-
-      const { data, error } = await query
-
-      if (signal?.aborted) return
-
-      if (error) {
-        if ((error as Error).name !== 'AbortError') {
-          logger.error('Error fetching post metrics:', error)
-        }
-        return
-      }
-
-      // Calculate averages per creator
-      const metricsMap = new Map<string, { avgLikes: number, avgComments: number }>()
-      const creatorData = new Map<string, { likes: number[], comments: number[] }>()
-
-      // Group by creator
-      data?.forEach(post => {
-        if (!creatorData.has(post.creator_id)) {
-          creatorData.set(post.creator_id, { likes: [], comments: [] })
-        }
-        const creator = creatorData.get(post.creator_id)!
-        if (post.like_count !== null) creator.likes.push(post.like_count)
-        if (post.comment_count !== null) creator.comments.push(post.comment_count)
-      })
-
-      // Calculate averages
-      creatorData.forEach((data, creatorId) => {
-        const avgLikes = data.likes.length > 0
-          ? data.likes.reduce((a, b) => a + b, 0) / data.likes.length
-          : 0
-        const avgComments = data.comments.length > 0
-          ? data.comments.reduce((a, b) => a + b, 0) / data.comments.length
-          : 0
-        metricsMap.set(creatorId, { avgLikes, avgComments })
-      })
-
-      setPostsMetrics(metricsMap)
-    } catch (error) {
-      logger.error('Error calculating post metrics:', error)
-    }
-  }, [])
-
   // Fetch creators
   const fetchCreators = useCallback(async (signal?: AbortSignal) => {
     if (fetchingPageRef.current === 0) return
@@ -232,11 +173,6 @@ export default function NichingPage() {
       setCreators(data || [])
       setHasMore((data?.length || 0) === PAGE_SIZE)
       setCurrentPage(0)
-
-      // Fetch post metrics
-      if (data && data.length > 0) {
-        fetchPostMetrics(data.map(c => c.ig_user_id), signal)
-      }
     } catch (error) {
       if (error && (error as Error).name !== 'AbortError') {
         logger.error('Error fetching creators:', error)
@@ -246,7 +182,7 @@ export default function NichingPage() {
       setLoading(false)
       fetchingPageRef.current = null
     }
-  }, [selectedNiches, availableNiches, debouncedSearchQuery, fetchPostMetrics])
+  }, [selectedNiches, availableNiches, debouncedSearchQuery])
 
   // Load more creators
   const loadMoreCreators = useCallback(async () => {
@@ -294,18 +230,13 @@ export default function NichingPage() {
       setCreators(prev => [...prev, ...newData])
       setHasMore(newData.length === PAGE_SIZE)
       setCurrentPage(nextPage)
-
-      // Fetch post metrics for new creators
-      if (newData.length > 0) {
-        fetchPostMetrics(newData.map(c => c.ig_user_id))
-      }
     } catch (error) {
       logger.error('Error loading more creators:', error)
     } finally {
       setLoadingMore(false)
       fetchingPageRef.current = null
     }
-  }, [selectedNiches, availableNiches, debouncedSearchQuery, currentPage, hasMore, loadingMore, fetchPostMetrics])
+  }, [selectedNiches, availableNiches, debouncedSearchQuery, currentPage, hasMore, loadingMore])
 
   // Update niche for single creator
   const updateNiche = useCallback(async (creatorId: number, niche: string | null) => {
@@ -406,27 +337,8 @@ export default function NichingPage() {
   }, [selectedNiches, debouncedSearchQuery])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
-      {/* Background texture */}
-      <div
-        className="fixed inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
-          `
-        }}
-      />
-
-      {/* Sidebar */}
-      <div className="relative z-50">
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 overflow-auto bg-transparent flex flex-col">
-          <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full">
-            <div className="space-y-6">
+    <DashboardLayout>
+      <div className="flex flex-col gap-6">
               {/* Progress Card with AI Button */}
               <ComponentErrorBoundary>
                 <div className="flex gap-3">
@@ -589,7 +501,6 @@ export default function NichingPage() {
                   onReachEnd={loadMoreCreators}
                   hasMore={hasMore}
                   loadingMore={loadingMore}
-                  postsMetrics={postsMetrics}
                   onUpdateReview={(id: number, status: 'ok' | 'non_related' | 'pending') => {
                     // Update review status
                     (async () => {
@@ -627,10 +538,7 @@ export default function NichingPage() {
                   />
                 </div>
               </ComponentErrorBoundary>
-            </div>
-          </div>
-        </main>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

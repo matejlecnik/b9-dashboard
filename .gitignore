@@ -91,6 +91,13 @@ temp/
 docs/_build/
 docs/.docusaurus/
 
+# Documentation temp/test files
+docs/test.md
+docs/**/test.md
+docs/**/validation-report.json
+!docs/data/validation-report.json
+!docs/data/code-quality.json
+
 # Agent-Generated Documentation (temporary processing)
 docs/agent-output/
 docs/agent-output-backup-*/

@@ -13,6 +13,9 @@ import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
 
 export default function InstagramMonitor() {
+  // API URL configuration - must be at component top level for client components
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
@@ -24,7 +27,6 @@ export default function InstagramMonitor() {
   // Calculate success rate from API
   const calculateSuccessRate = useCallback(async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
@@ -62,7 +64,6 @@ export default function InstagramMonitor() {
   // Fetch cost data from API
   const fetchCostData = useCallback(async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
@@ -98,7 +99,6 @@ export default function InstagramMonitor() {
   // Fetch cycle data from API
   const fetchCycleData = useCallback(async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
@@ -172,7 +172,6 @@ export default function InstagramMonitor() {
       }
 
       // Always try to fetch from production API on Render for scraper status
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for Render cold start
 
@@ -224,7 +223,6 @@ export default function InstagramMonitor() {
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
       // Call the backend API on Render (production scraper)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
       const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
 
       const res = await fetch(`${API_URL}${endpoint}`, {
@@ -316,7 +314,6 @@ export default function InstagramMonitor() {
         }
 
         // Then try API with a short timeout for additional metrics
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
 
@@ -368,28 +365,7 @@ export default function InstagramMonitor() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex relative">
-        {/* Apple-style background texture */}
-        <div
-          className="fixed inset-0 opacity-30 pointer-events-none"
-          style={{
-          backgroundImage: `
-            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
-          `
-        }}
-      />
-
-      {/* Sidebar */}
-      <div className="relative z-50">
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Page Content */}
-        <main className="flex-1 overflow-hidden bg-transparent flex flex-col">
-          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 w-full flex flex-col min-h-0">
-            <div className="space-y-6">
+      <div className="space-y-6">
         {/* Main Content Area */}
         <div className="flex flex-col gap-4">
           {/* Top Row - Controls, Logs */}
@@ -462,11 +438,7 @@ export default function InstagramMonitor() {
             </div>
           </div>
         </div>
-            </div>
-          </div>
-        </main>
       </div>
-    </div>
     </DashboardLayout>
   )
 }

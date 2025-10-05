@@ -1,28 +1,22 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Check, X, UserPlus, Tag, Sparkles, Users, TrendingUp, Clock } from 'lucide-react'
+import { Check, X, Users } from 'lucide-react'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
+import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { MetricsCards } from '@/components/shared/cards/MetricsCards'
+import { useDebounce } from '@/hooks/useDebounce'
 
-// Import templates and hooks
-import {
-  ReviewPageTemplate,
-  useTemplateData,
-  useTemplateActions
-} from '@/components/templates'
-
-// Import data hooks
+// Import data hooks directly
 import {
   useInstagramCreators,
   useCreatorStats,
   useUpdateCreatorStatus,
   useBulkUpdateCreatorStatus,
-  type Creator,
   type CreatorStatus
 } from '@/hooks/queries/useInstagramReview'
-
-// Import InstagramCreator type for type safety
-import type { Creator as InstagramCreatorType } from '@/components/shared/tables/UniversalCreatorTable'
 
 // Dynamic imports for heavy components
 const UniversalCreatorTable = dynamic(
@@ -35,40 +29,34 @@ const RelatedCreatorsModal = dynamic(
   { ssr: false }
 )
 
-type FilterType = 'pending' | 'approved' | 'rejected' | 'needs_review' | 'blacklisted'
+type FilterType = 'pending' | 'approved' | 'rejected'
 
 export default function CreatorReviewPage() {
-  // 1. Use template data hook for state management
-  const {
-    searchQuery,
-    setSearchQuery,
-    debouncedSearchQuery,
-    currentFilter,
-    setCurrentFilter,
-    selectedItems,
-    setSelectedItems,
-    clearSelection
-  } = useTemplateData({
-    defaultFilter: 'pending',
-    clearSelectionOnFilterChange: true
-  })
+  // State management - simple and direct like Reddit
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentFilter, setCurrentFilter] = useState<FilterType>('pending')
+  const [selectedCreators, setSelectedCreators] = useState<Set<number>>(new Set())
+  const [showRelatedModal, setShowRelatedModal] = useState(false)
 
-  // 2. Modal state
-  const [isRelatedCreatorsModalOpen, setIsRelatedCreatorsModalOpen] = React.useState(false)
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  // 3. Map filter type to creator status
-  const getStatusFromFilter = (filter: string): CreatorStatus => {
+  // Clear selection when filter changes
+  useEffect(() => {
+    setSelectedCreators(new Set())
+  }, [currentFilter])
+
+  // Map filter type to creator status
+  const getStatusFromFilter = (filter: string): CreatorStatus | undefined => {
     switch (filter) {
-      case 'pending': return 'pending'
-      case 'approved': return 'approved'
-      case 'rejected': return 'rejected'
-      case 'needs_review': return 'needs_review'
-      case 'blacklisted': return 'blacklisted'
-      default: return 'pending'
+      case 'pending': return null  // NULL in database
+      case 'approved': return 'ok'  // 'ok' in database
+      case 'rejected': return 'non_related'  // 'non_related' in database
+      default: return undefined
     }
   }
 
-  // 4. Fetch creators data
+  // Fetch creators data directly with the hook
   const {
     data: infiniteData,
     isLoading,
@@ -78,133 +66,99 @@ export default function CreatorReviewPage() {
   } = useInstagramCreators({
     search: debouncedSearchQuery,
     status: getStatusFromFilter(currentFilter),
-    orderBy: currentFilter === 'pending' ? 'followers' : 'discovered_at',
+    orderBy: currentFilter === 'pending' ? 'followers' : 'discovery_date',
     order: 'desc'
   })
 
-  // 5. Fetch statistics
+  // Fetch statistics
   const { data: stats } = useCreatorStats()
 
-  // 6. Mutations
+  // Mutations
   const updateStatusMutation = useUpdateCreatorStatus()
   const bulkUpdateMutation = useBulkUpdateCreatorStatus()
 
-  // 7. Flatten paginated data
+  // Flatten paginated data
   const creators = React.useMemo(
     () => infiniteData?.pages.flat() || [],
     [infiniteData]
   )
 
-  // 8. Map stats to template format
-  const templateStats = React.useMemo(() => {
-    if (!stats) return null
-    return {
-      total: stats.total || 0,
-      pending: stats.pending || 0,
-      approved: stats.approved || 0,
-      rejected: stats.rejected || 0
+  // DEBUG: Log data
+  useEffect(() => {
+    console.log('🎯 Instagram Creators Page Data:', {
+      creatorsCount: creators.length,
+      isLoading,
+      hasNextPage,
+      currentFilter,
+      stats
+    })
+  }, [creators.length, isLoading, hasNextPage, currentFilter, stats])
+
+  // Transform creators for table
+  const transformedCreators = React.useMemo(() => {
+    const transformed = creators.map((creator: any) => ({
+      id: creator.id,
+      ig_user_id: creator.ig_user_id || String(creator.id),
+      username: creator.username,
+      full_name: creator.full_name || null,
+      biography: creator.biography || null,
+      profile_pic_url: creator.profile_pic_url || null,
+      followers: creator.followers,
+      following: creator.following,
+      posts_count: creator.posts_count,
+      media_count: creator.media_count || creator.posts_count,
+      review_status: creator.review_status,
+      reviewed_at: creator.reviewed_at || null,
+      reviewed_by: creator.reviewed_by || null,
+      discovery_source: creator.discovery_source || null,
+      is_private: creator.is_private || false,
+      is_verified: creator.is_verified || false,
+      is_business_account: creator.is_business_account || false,
+      avg_views_per_reel_cached: creator.avg_views_per_reel_cached || null,
+      engagement_rate_cached: creator.engagement_rate_cached || null,
+      viral_content_count_cached: creator.viral_content_count_cached || null,
+      external_url: creator.external_url || null,
+      external_url_type: creator.external_url_type || null,
+      bio_links: null,
+      avg_likes_per_post: creator.avg_likes_per_post_cached || null,
+      avg_comments_per_post_cached: creator.avg_comments_per_post_cached || null,
+      avg_likes_per_reel_cached: creator.avg_likes_per_reel_cached || null,
+      avg_comments_per_reel_cached: creator.avg_comments_per_reel_cached || null,
+      avg_saves_per_post_cached: creator.avg_saves_per_post_cached || null,
+      avg_shares_per_post_cached: creator.avg_shares_per_post_cached || null,
+      posting_frequency_per_week: creator.posting_frequency_per_week || null,
+      follower_growth_rate_weekly: creator.follower_growth_rate_weekly || null,
+      follower_growth_rate_daily: creator.follower_growth_rate_daily || null,
+      save_to_like_ratio: creator.save_to_like_ratio || null,
+      last_post_days_ago: creator.last_post_days_ago || null,
+      best_content_type: creator.best_content_type || null,
+      posting_consistency_score: creator.posting_consistency_score || null,
+      reels_count: creator.reels_count || null,
+      niche: creator.niche || null
+    }))
+
+    // DEBUG: Log profile picture URLs
+    if (transformed.length > 0) {
+      console.log('🖼️ PROFILE PIC DEBUG - First 3 creators:', transformed.slice(0, 3).map(c => ({
+        username: c.username,
+        profile_pic_url: c.profile_pic_url,
+        hasUrl: !!c.profile_pic_url,
+        urlLength: c.profile_pic_url?.length || 0
+      })))
+
+      const withPics = transformed.filter(c => c.profile_pic_url).length
+      const withoutPics = transformed.length - withPics
+      console.log(`🖼️ PROFILE PIC STATS: ${withPics} with URLs, ${withoutPics} without URLs (${((withPics/transformed.length)*100).toFixed(1)}% have pics)`)
     }
-  }, [stats])
 
-  // 9. Define filters with counts
-  const filters = React.useMemo(() => [
-    {
-      id: 'pending',
-      label: 'Pending',
-      count: stats?.pending || 0
-    },
-    {
-      id: 'approved',
-      label: 'Approved',
-      count: stats?.approved || 0
-    },
-    {
-      id: 'rejected',
-      label: 'Rejected',
-      count: stats?.rejected || 0
-    },
-    {
-      id: 'needs_review',
-      label: 'Needs Review',
-      count: stats?.needsReview || 0
-    },
-    {
-      id: 'blacklisted',
-      label: 'Blacklisted',
-      count: stats?.blacklisted || 0
-    }
-  ], [stats])
+    return transformed
+  }, [creators])
 
-  // 10. Define bulk actions
-  const bulkActions = React.useMemo(() => {
-    if (selectedItems.size === 0) return []
-
-    return [
-      {
-        id: 'approve',
-        label: 'Approve',
-        icon: Check,
-        onClick: async () => {
-          const selectedIds = Array.from(selectedItems)
-          await bulkUpdateMutation.mutateAsync({
-            creatorIds: selectedIds.map(Number),
-            status: 'approved'
-          })
-          clearSelection()
-        },
-        variant: 'secondary' as const
-      },
-      {
-        id: 'reject',
-        label: 'Reject',
-        icon: X,
-        onClick: async () => {
-          const selectedIds = Array.from(selectedItems)
-          await bulkUpdateMutation.mutateAsync({
-            creatorIds: selectedIds.map(Number),
-            status: 'rejected'
-          })
-          clearSelection()
-        },
-        variant: 'secondary' as const
-      },
-      {
-        id: 'needs-review',
-        label: 'Needs Review',
-        icon: UserPlus,
-        onClick: async () => {
-          const selectedIds = Array.from(selectedItems)
-          await bulkUpdateMutation.mutateAsync({
-            creatorIds: selectedIds.map(Number),
-            status: 'needs_review'
-          })
-          clearSelection()
-        },
-        variant: 'secondary' as const
-      },
-      {
-        id: 'blacklist',
-        label: 'Blacklist',
-        icon: Tag,
-        onClick: async () => {
-          const selectedIds = Array.from(selectedItems)
-          await bulkUpdateMutation.mutateAsync({
-            creatorIds: selectedIds.map(Number),
-            status: 'blacklisted'
-          })
-          clearSelection()
-        },
-        variant: 'secondary' as const
-      }
-    ]
-  }, [selectedItems, bulkUpdateMutation, clearSelection])
-
-  // 11. Handle single item update
+  // Handle single item update
   const handleItemUpdate = useCallback(async (id: number, review: 'ok' | 'non_related' | 'pending') => {
-    // Map review to status
-    let status: CreatorStatus = 'pending'
-    if (review === 'ok') status = 'approved'
-    else if (review === 'non_related') status = 'rejected'
+    let status: CreatorStatus = null  // 'pending' → NULL
+    if (review === 'ok') status = 'ok'
+    else if (review === 'non_related') status = 'non_related'
 
     await updateStatusMutation.mutateAsync({
       creatorId: id,
@@ -213,137 +167,111 @@ export default function CreatorReviewPage() {
     })
   }, [updateStatusMutation])
 
-  // 11a. Wrapper for ReviewPageTemplate compatibility
-  const handleItemUpdateWrapper = useCallback((id: number, updates: Record<string, unknown>) => {
-    const review = updates.review as 'ok' | 'non_related' | 'pending'
-    if (review) {
-      // Fire and forget - template expects sync function
-      void handleItemUpdate(id, review)
-    }
-  }, [handleItemUpdate])
+  // Handle bulk actions
+  const handleBulkApprove = useCallback(async () => {
+    if (selectedCreators.size === 0) return
 
-  // 12. Transform creators for table
-  const transformedCreators = React.useMemo((): InstagramCreatorType[] => {
-    return creators.map((creator: Creator) => ({
-      id: creator.id,
-      ig_user_id: String(creator.id),
-      username: creator.username,
-      full_name: creator.full_name || null,
-      biography: creator.bio || null,
-      profile_pic_url: creator.profile_pic_url || null,
-      followers: creator.followers,
-      following: creator.following,
-      posts_count: creator.posts,
-      media_count: creator.posts,
-      review_status: (
-        creator.review_status === 'approved' ? 'ok' :
-        creator.review_status === 'rejected' ? 'non_related' :
-        'pending'
-      ) as 'pending' | 'ok' | 'non_related' | null,
-      reviewed_at: creator.reviewed_at || null,
-      reviewed_by: creator.reviewed_by || null,
-      discovery_source: null,
-      is_private: false,
-      is_verified: creator.is_verified || false,
-      avg_views_per_reel_cached: null,
-      engagement_rate_cached: creator.engagement_rate || null,
-      viral_content_count_cached: null,
-      external_url: null,
-      bio_links: null,
-      avg_likes_per_post: null
-    }))
-  }, [creators])
+    const selectedIds = Array.from(selectedCreators)
+    await bulkUpdateMutation.mutateAsync({
+      creatorIds: selectedIds,
+      status: 'ok'
+    })
+    setSelectedCreators(new Set())
+  }, [selectedCreators, bulkUpdateMutation])
 
-  // 13. Define sort options
-  const sortOptions = [
-    { id: 'followers', label: 'Followers', icon: Users },
-    { id: 'engagement', label: 'Engagement', icon: TrendingUp },
-    { id: 'recent', label: 'Recent', icon: Clock }
-  ]
+  const handleBulkReject = useCallback(async () => {
+    if (selectedCreators.size === 0) return
 
-  // 14. Action buttons
-  const actionButtons = (
-    <>
-      <button
-        onClick={() => setIsRelatedCreatorsModalOpen(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-      >
-        <Sparkles className="w-4 h-4" />
-        Find Related
-      </button>
-    </>
-  )
+    const selectedIds = Array.from(selectedCreators)
+    await bulkUpdateMutation.mutateAsync({
+      creatorIds: selectedIds,
+      status: 'non_related'
+    })
+    setSelectedCreators(new Set())
+  }, [selectedCreators, bulkUpdateMutation])
 
-  // 15. Custom table component with postsMetrics
-  const customTable = React.useMemo(() => {
-    const postsMetrics = new Map<string, { avgLikes: number; avgComments: number }>()
-
-    return (
-      <UniversalCreatorTable
-        creators={transformedCreators}
-        loading={isLoading}
-        selectedCreators={selectedItems}
-        setSelectedCreators={setSelectedItems}
-        onUpdateReview={handleItemUpdate}
-        postsMetrics={postsMetrics}
-        hasMore={hasNextPage || false}
-        onReachEnd={fetchNextPage}
-        loadingMore={isFetchingNextPage}
-      />
-    )
-  }, [transformedCreators, isLoading, selectedItems, setSelectedItems, handleItemUpdate, hasNextPage, fetchNextPage, isFetchingNextPage])
-
-  // 16. Render using ReviewPageTemplate
+  // Render using DashboardLayout directly (like Reddit does)
   return (
     <>
-      <ReviewPageTemplate
-        // Page metadata
-        title="Creator Review"
-        subtitle="Review and categorize Instagram creators"
-        platform="instagram"
+      <DashboardLayout>
+        <div className="flex flex-col gap-6">
+          {/* Stats with Action Button */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <MetricsCards
+                platform="instagram"
+                totalCreators={stats?.total || 0}
+                pendingCount={stats?.pending || 0}
+                approvedCount={stats?.approved || 0}
+                nonRelatedCount={stats?.rejected || 0}
+                loading={isLoading}
+              />
+            </div>
+            {/* Get Related Creators Button */}
+            {!isLoading && (
+              <StandardActionButton
+                onClick={() => setShowRelatedModal(true)}
+                label="Get Related Creators"
+                icon={Users}
+                variant="primary"
+              />
+            )}
+          </div>
 
-        // Data
-        data={transformedCreators}
-        stats={templateStats}
-        isLoading={isLoading}
-        isFetchingNextPage={isFetchingNextPage}
-        hasNextPage={hasNextPage}
-        onFetchNextPage={fetchNextPage}
+          {/* Toolbar with filters, search and actions */}
+          <StandardToolbar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            filters={[
+              { id: 'pending', label: 'Pending', count: stats?.pending },
+              { id: 'approved', label: 'Approved', count: stats?.approved },
+              { id: 'rejected', label: 'Rejected', count: stats?.rejected }
+            ]}
+            currentFilter={currentFilter}
+            onFilterChange={(filter) => setCurrentFilter(filter as FilterType)}
+            selectedCount={selectedCreators.size}
+            onClearSelection={() => setSelectedCreators(new Set())}
+            bulkActions={
+              selectedCreators.size > 0 ? [
+                {
+                  id: 'approve',
+                  label: 'Mark Ok',
+                  icon: Check,
+                  onClick: handleBulkApprove,
+                  variant: 'secondary'
+                },
+                {
+                  id: 'reject',
+                  label: 'Not Related',
+                  icon: X,
+                  onClick: handleBulkReject,
+                  variant: 'secondary'
+                }
+              ] : []
+            }
+          />
 
-        // Search
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search creators..."
-
-        // Filters
-        filters={filters}
-        currentFilter={currentFilter}
-        onFilterChange={setCurrentFilter}
-
-        // Sorting
-        sortOptions={sortOptions}
-        currentSort={currentFilter === 'pending' ? 'followers' : 'recent'}
-
-        // Selection
-        selectedItems={selectedItems}
-        onSelectionChange={setSelectedItems}
-
-        // Actions
-        bulkActions={bulkActions}
-        onItemUpdate={handleItemUpdateWrapper}
-        actionButtons={actionButtons}
-
-        // Customization
-        emptyMessage="No creators found"
-      />
+          {/* Table */}
+          <div className="bg-white rounded-lg shadow-sm border">
+            <UniversalCreatorTable
+              creators={transformedCreators}
+              loading={isLoading}
+              selectedCreators={selectedCreators}
+              setSelectedCreators={setSelectedCreators}
+              onUpdateReview={handleItemUpdate}
+              hasMore={hasNextPage || false}
+              onReachEnd={fetchNextPage}
+              loadingMore={isFetchingNextPage}
+            />
+          </div>
+        </div>
+      </DashboardLayout>
 
       {/* Related Creators Modal */}
-      {isRelatedCreatorsModalOpen && (
-        <RelatedCreatorsModal
-          isOpen={isRelatedCreatorsModalOpen}
-          onClose={() => setIsRelatedCreatorsModalOpen(false)}
-        />
-      )}
+      <RelatedCreatorsModal
+        isOpen={showRelatedModal}
+        onClose={() => setShowRelatedModal(false)}
+      />
     </>
   )
 }

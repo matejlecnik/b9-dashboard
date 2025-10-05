@@ -71,7 +71,6 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
       <DashboardLayout
         title={title}
         subtitle={subtitle}
-        showSearch={showSearch}
       >
         <div className={fullWidth ? 'w-full' : 'max-w-7xl mx-auto'}>
           {children}

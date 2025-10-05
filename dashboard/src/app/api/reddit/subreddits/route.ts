@@ -1,9 +1,7 @@
 import { logger } from '@/lib/logger'
-import { protectedApi } from '@/lib/api-wrapper'
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase'
-
 
 // Prevent static generation of API routes
 export const dynamic = 'force-dynamic'
@@ -18,7 +16,7 @@ interface SubredditData {
   [key: string]: unknown // Allow additional fields from Reddit API
 }
 
-export const GET = protectedApi(async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   const startTime = Date.now()
   const requestId = Math.random().toString(36).substring(7)
 
@@ -160,9 +158,9 @@ export const GET = protectedApi(async (request: NextRequest) => {
       { status: 500 }
     )
   }
-})
+}
 
-export const POST = protectedApi(async (request: NextRequest) => {
+export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
 
   try {
@@ -244,8 +242,8 @@ export const POST = protectedApi(async (request: NextRequest) => {
       try {
         logger.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
 
-        // Call Python backend to fetch subreddit details
-        const backendUrl = process.env.PYTHON_BACKEND_URL || 'https://b9-dashboard.onrender.com'
+        // Call Render backend to fetch subreddit details
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
         const response = await fetch(`${backendUrl}/api/subreddits/fetch-single`, {
           method: 'POST',
           headers: {
@@ -304,4 +302,4 @@ export const POST = protectedApi(async (request: NextRequest) => {
       { status: 500 }
     )
   }
-})
+}

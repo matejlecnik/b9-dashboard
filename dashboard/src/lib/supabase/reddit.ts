@@ -13,7 +13,6 @@ export interface Subreddit {
   accounts_active?: number | null // Active members count
   review: 'Ok' | 'No Seller' | 'Non Related' | 'User Feed' | 'Banned' | null // Review status for subreddit-review page
   category_id?: string | null // Foreign key reference to categories table
-  category_text?: string | null // Category text field for tagging
   primary_category?: string | null // Primary category from tag system (e.g., "body", "style", "physical")
   tags?: string[] | null // Array of hierarchical tags (e.g., ["body:ass:general", "style:clothing:lingerie"])
   engagement?: number | null

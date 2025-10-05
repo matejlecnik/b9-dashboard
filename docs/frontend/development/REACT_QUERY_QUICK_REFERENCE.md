@@ -312,10 +312,10 @@ const { data } = useQuery({
 
 ```json
 {
-  "current": "/dashboard/docs/REACT_QUERY_QUICK_REFERENCE.md",
-  "parent": "/dashboard/docs/",
+  "current": "/docs/frontend/development/REACT_QUERY_QUICK_REFERENCE.md",
+  "parent": "/docs/frontend/",
   "related": {
-    "full_guide": "/dashboard/docs/REACT_QUERY_GUIDE.md",
+    "full_guide": "/docs/frontend/development/REACT_QUERY_GUIDE.md",
     "providers": "/dashboard/src/providers/README.md",
     "hooks": "/dashboard/src/hooks/README.md",
     "implementation_plan": "/dashboard/REACT_QUERY_IMPLEMENTATION_PLAN.md"
