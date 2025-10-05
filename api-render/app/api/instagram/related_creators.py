@@ -72,7 +72,7 @@ def get_related_profiles(user_id: str, supabase=None) -> Optional[List[Dict]]:
         response = requests.get(url, headers=headers, params=params, timeout=30)
         if response.status_code == 200:
             data = response.json()
-            if data and "data" in data and "user" in data["data"]:
+            if data and "data" in data and data["data"].get("user"):
                 edges = data["data"]["user"].get("edge_related_profiles", {}).get("edges", [])
                 return [edge["node"] for edge in edges]
         else:
