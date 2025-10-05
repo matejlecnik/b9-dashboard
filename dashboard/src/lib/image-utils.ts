@@ -7,6 +7,7 @@ const ALLOWED_IMAGE_HOSTS = [
   'www.instagram.com',
   'cdninstagram.com',
   'fbcdn.net',
+  'fna.fbcdn.net', // For instagram.*.fna.fbcdn.net URLs
   'instagram.fbcdn.net',
   'scontent.cdninstagram.com',
   'i.imgur.com',
