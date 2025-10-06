@@ -38,7 +38,7 @@ export async function POST() {
       .from('reddit_posts')
       .select('id, subreddit_name')
       .in('subreddit_name', subredditNames)
-      .is('sub_category_text', null)
+      .is('sub_primary_category', null)
       .limit(10000)
 
     if (fetchError) {
@@ -75,7 +75,7 @@ export async function POST() {
         if (subData) {
           updates.push({
             id: post.id,
-            sub_category_text: subData.primary_category,
+            sub_primary_category: subData.primary_category,
             sub_over18: subData.over18
           })
         }
@@ -106,7 +106,7 @@ export async function POST() {
       .from('reddit_posts')
       .select('*', { count: 'exact', head: true })
       .in('subreddit_name', subredditNames)
-      .is('sub_category_text', null)
+      .is('sub_primary_category', null)
 
     return NextResponse.json({
       message: `Updated ${updatedCount} posts from ${subredditNames.length} target subreddits`,
@@ -152,7 +152,7 @@ export async function GET() {
       .from('reddit_posts')
       .select('*', { count: 'exact', head: true })
       .in('subreddit_name', subredditNames)
-      .is('sub_category_text', null)
+      .is('sub_primary_category', null)
 
     const { count: totalPosts } = await supabase
       .from('reddit_posts')
