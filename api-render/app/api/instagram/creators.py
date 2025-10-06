@@ -201,20 +201,24 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
         logger.info(f"Profile fetched: @{username} (ID: {ig_user_id}, {profile_data.get('follower_count', 0):,} followers)")
 
         # 4. Check if creator already exists in database
-        existing_creator = _get_db().table('instagram_creators')\
-            .select('id, ig_user_id, username, review_status')\
-            .eq('username', username)\
-            .maybe_single()\
-            .execute()
+        try:
+            existing_creator = _get_db().table('instagram_creators')\
+                .select('id, ig_user_id, username, review_status')\
+                .eq('username', username)\
+                .maybe_single()\
+                .execute()
+        except Exception as e:
+            logger.warning(f"Error checking for existing creator @{username}: {e}")
+            existing_creator = None
 
-        if existing_creator.data:
+        if existing_creator and hasattr(existing_creator, 'data') and existing_creator.data:
             logger.info(f"Creator @{username} already exists (ID: {existing_creator.data['id']}), will update")
             await log_creator_addition(username, 'existing_creator_found', True,
                                       {'existing_id': existing_creator.data['id'],
                                        'current_review_status': existing_creator.data.get('review_status')})
 
         # 5. INSERT or UPDATE minimal creator record
-        if not existing_creator.data:
+        if not existing_creator or not hasattr(existing_creator, 'data') or not existing_creator.data:
             # Create new creator record
             initial_data = {
                 'ig_user_id': ig_user_id,
@@ -228,7 +232,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
 
             insert_result = _get_db().table('instagram_creators').insert(initial_data).execute()
 
-            if not insert_result.data:
+            if not insert_result or not hasattr(insert_result, 'data') or not insert_result.data:
                 await log_creator_addition(username, 'database_insert_failed', False,
                                           error="Failed to insert creator record")
                 return CreatorAddResponse(
@@ -297,7 +301,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             .single()\
             .execute()
 
-        if not final_creator.data:
+        if not final_creator or not hasattr(final_creator, 'data') or not final_creator.data:
             await log_creator_addition(username, 'final_fetch_failed', False,
                                       error="Creator processed but not found in database")
             return CreatorAddResponse(
