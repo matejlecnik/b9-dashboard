@@ -219,13 +219,13 @@
 }
 ```
 
-### Phase 4: Instagram Dashboard Completion (v4.0.0) [████░░░░░░░░░░░░░░░░] 20%
+### Phase 4: Instagram Dashboard Completion (v4.0.0) [█████░░░░░░░░░░░░░░░] 25%
 
 ```json
 {
   "version": "4.0.0",
   "timeline": "2025-Q4",
-  "status": "ACTIVE",
+  "status": "IN_PROGRESS",
   "effort": "40-60h",
   "type": "MAJOR",
   "dependencies": ["Phase 3 complete"],
@@ -237,13 +237,17 @@
     "completion": "Finish all Instagram dashboard features"
   },
   "tasks": [
+    {"id": "INST-411", "task": "Manual Instagram creator addition endpoint (POST /api/instagram/creator/add)", "progress": 100, "status": "COMPLETE", "completed": "2025-10-06"},
     {"id": "INST-401", "task": "Viral content detection algorithm", "progress": 0},
     {"id": "INST-402", "task": "Creator quality scoring system", "progress": 20},
     {"id": "INST-403", "task": "Niche categorization engine", "progress": 15},
     {"id": "INST-404", "task": "Automated posting workflow", "progress": 0},
     {"id": "INST-405", "task": "Analytics dashboard enhancements", "progress": 10},
     {"id": "INST-406", "task": "Complete creator review interface", "progress": 65},
-    {"id": "INST-407", "task": "Finalize viral content detection", "progress": 0}
+    {"id": "INST-407", "task": "Finalize viral content detection", "progress": 0},
+    {"id": "INST-408", "task": "Add last updated timestamp (Mac style) to posting subreddit cards", "progress": 0},
+    {"id": "INST-409", "task": "Fix profile pictures not loading in Creator Review page", "progress": 0},
+    {"id": "SCRAPER-001", "task": "Expand proxy pool and optimize Reddit scraper (20% speed boost)", "progress": 0}
   ],
   "priority": "HIGH"
 }
@@ -317,6 +321,7 @@
   "dependencies": ["Phase 6 complete"],
   "goals": {
     "reddit_adult": "Reddit adult content aggregation and display",
+    "onlyfans_scraper": "OnlyFans content scraper and API integration",
     "moderation": "Content moderation and filtering system",
     "verification": "Age verification integration",
     "separation": "Separate routing and dashboard",
@@ -327,7 +332,11 @@
     {"id": "ADULT-702", "task": "Implement moderation tools", "progress": 0},
     {"id": "ADULT-703", "task": "Add age verification", "progress": 0},
     {"id": "ADULT-704", "task": "Create separate dashboard", "progress": 0},
-    {"id": "ADULT-705", "task": "Enhance security measures", "progress": 0}
+    {"id": "ADULT-705", "task": "Enhance security measures", "progress": 0},
+    {"id": "ADULT-706", "task": "OnlyFans API research and integration", "progress": 0},
+    {"id": "ADULT-707", "task": "OnlyFans scraper development", "progress": 0},
+    {"id": "ADULT-708", "task": "OnlyFans content aggregation dashboard", "progress": 0},
+    {"id": "INST-410", "task": "Build AI auto-tagging system for Instagram creator body attributes (self-hosted, 50K scale)", "progress": 0}
   ],
   "considerations": [
     "Legal compliance requirements",

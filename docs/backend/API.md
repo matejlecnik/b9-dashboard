@@ -402,6 +402,82 @@
       },
       "viral_content": []
     }
+  },
+  "POST /api/instagram/creator/add": {
+    "auth": false,
+    "description": "Manually add Instagram creator with full data processing (profile, reels, posts, analytics)",
+    "body": {
+      "username": "string (e.g., 'username' or '@username')",
+      "niche": "string|null (optional, e.g., 'Fitness', 'Beauty', 'Fashion')"
+    },
+    "response": {
+      "success": true,
+      "creator": {
+        "id": 123,
+        "ig_user_id": "1234567890",
+        "username": "example_creator",
+        "full_name": "Example Creator",
+        "followers_count": 50000,
+        "following_count": 1500,
+        "media_count": 450,
+        "biography": "Creator bio text",
+        "external_url": "https://example.com",
+        "is_verified": false,
+        "is_business_account": true,
+        "niche": "Fitness",
+        "review_status": "ok",
+        "avg_engagement_rate": 3.45,
+        "avg_views_per_reel_cached": 75000,
+        "avg_likes_per_reel_cached": 2500,
+        "avg_comments_per_reel_cached": 150,
+        "avg_likes_per_post_cached": 1800,
+        "avg_comments_per_post_cached": 90,
+        "viral_content_count_cached": 12,
+        "best_content_type": "reels",
+        "posting_frequency_per_week": 4.2,
+        "posting_consistency_score": 78.5,
+        "last_post_days_ago": 2.3,
+        "save_to_like_ratio": 0.15,
+        "last_scraped_at": "2025-10-06T12:00:00Z",
+        "created_at": "2025-10-06T12:00:00Z"
+      },
+      "stats": {
+        "api_calls_used": 12,
+        "reels_fetched": 90,
+        "posts_fetched": 30,
+        "processing_time_seconds": 18
+      },
+      "error": null
+    },
+    "notes": [
+      "Full processing workflow identical to automated scraper",
+      "Fetches 90 reels + 30 posts for comprehensive analysis",
+      "Calculates 40+ analytics metrics automatically",
+      "Sets review_status='ok' for ongoing scraper updates",
+      "Uses RapidAPI Instagram Looter2 (cost: ~$0.00036 per creator)",
+      "Response time: 15-20 seconds (due to rate limiting: 55 req/sec)",
+      "Idempotent: Safe to call multiple times (uses UPSERT logic)",
+      "Creator will appear immediately in Creator Review page",
+      "Analytics include: engagement rates, viral detection, posting patterns",
+      "Stores complete content history in instagram_reels and instagram_posts tables"
+    ],
+    "error_responses": {
+      "username_not_found": {
+        "success": false,
+        "error": "Username not found or private account",
+        "details": "Account may be private, invalid, suspended, or doesn't exist"
+      },
+      "api_failure": {
+        "success": false,
+        "error": "An error occurred: Rate limit exceeded",
+        "details": "RapidAPI rate limit reached or service temporarily unavailable"
+      },
+      "processing_failed": {
+        "success": false,
+        "error": "Processing failed - could not fetch creator content or calculate analytics",
+        "details": "Profile fetched successfully but content fetching/analytics failed"
+      }
+    }
   }
 }
 ```

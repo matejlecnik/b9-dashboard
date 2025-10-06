@@ -72,6 +72,13 @@ except ImportError:
     INSTAGRAM_RELATED_ROUTES_AVAILABLE = False
     instagram_related_router = None
 
+try:
+    from app.api.instagram.creators import router as instagram_creators_router
+    INSTAGRAM_CREATORS_ROUTES_AVAILABLE = True
+except ImportError:
+    INSTAGRAM_CREATORS_ROUTES_AVAILABLE = False
+    instagram_creators_router = None
+
 # Reddit scraper route imports
 try:
     from app.api.reddit.scraper import router as reddit_scraper_router
@@ -207,6 +214,12 @@ if INSTAGRAM_RELATED_ROUTES_AVAILABLE:
     logger.info("✅ Instagram related creators routes registered")
 else:
     logger.warning("⚠️ Instagram related creators routes not available")
+
+if INSTAGRAM_CREATORS_ROUTES_AVAILABLE:
+    app.include_router(instagram_creators_router)
+    logger.info("✅ Instagram creator addition routes registered")
+else:
+    logger.warning("⚠️ Instagram creator addition routes not available")
 
 # Include Reddit scraper routes if available
 if REDDIT_SCRAPER_ROUTES_AVAILABLE:
