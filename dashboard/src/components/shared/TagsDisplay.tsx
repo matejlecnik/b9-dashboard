@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import {
   getTagLabel,
   searchTags,
@@ -45,35 +46,38 @@ const CATEGORY_EMOJIS: { [key: string]: string } = {
   'default': '🏷️'
 }
 
-// Brand-aligned color schemes for the 11 categories
+/**
+ * Brand-aligned color schemes for the 11 categories
+ * Migrated to Design Token System v2.0 where applicable
+ */
 const CATEGORY_COLORS: { [key: string]: { bg: string; text: string; border: string } } = {
   'niche': {
-    bg: 'from-purple-50 to-pink-50',
-    text: 'text-purple-700',
-    border: 'border-purple-200/50'
+    bg: 'from-secondary/10 to-primary/10',
+    text: 'text-secondary-pressed',
+    border: 'border-secondary/30'
   },
   'focus': {
-    bg: 'from-pink-50 to-rose-50',
-    text: 'text-pink-700',
-    border: 'border-pink-200/50'
+    bg: 'from-primary/10 to-rose-50',
+    text: 'text-primary-pressed',
+    border: 'border-primary/30'
   },
   'body': {
-    bg: 'from-fuchsia-50 to-purple-50',
+    bg: 'from-fuchsia-50 to-secondary/10',
     text: 'text-fuchsia-700',
     border: 'border-fuchsia-200/50'
   },
   'ass': {
-    bg: 'from-rose-50 to-pink-50',
+    bg: 'from-rose-50 to-primary/10',
     text: 'text-rose-700',
     border: 'border-rose-200/50'
   },
   'breasts': {
-    bg: 'from-pink-50 to-fuchsia-50',
-    text: 'text-pink-700',
-    border: 'border-pink-200/50'
+    bg: 'from-primary/10 to-fuchsia-50',
+    text: 'text-primary-pressed',
+    border: 'border-primary/30'
   },
   'age': {
-    bg: 'from-indigo-50 to-purple-50',
+    bg: 'from-indigo-50 to-secondary/10',
     text: 'text-indigo-700',
     border: 'border-indigo-200/50'
   },
@@ -83,7 +87,7 @@ const CATEGORY_COLORS: { [key: string]: { bg: string; text: string; border: stri
     border: 'border-blue-200/50'
   },
   'style': {
-    bg: 'from-violet-50 to-purple-50',
+    bg: 'from-violet-50 to-secondary/10',
     text: 'text-violet-700',
     border: 'border-violet-200/50'
   },
@@ -104,8 +108,8 @@ const CATEGORY_COLORS: { [key: string]: { bg: string; text: string; border: stri
   },
   'default': {
     bg: 'from-gray-50 to-slate-50',
-    text: 'text-gray-600',
-    border: 'border-gray-200/50'
+    text: designSystem.typography.color.tertiary,
+    border: 'border-default/50'
   }
 }
 
@@ -209,30 +213,30 @@ function TagEditDropdown({
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[150px] z-50"
+          className="fixed bg-white {designSystem.borders.radius.sm} shadow-lg border border-default py-1 min-w-[150px] z-50"
           style={{ top: position.top, left: position.left }}
         >
           {isEditing ? (
             <div className="w-80">
               {/* Search input */}
-              <div className="p-2 border-b border-gray-100">
+              <div className="p-2 border-b border-light">
                 {/* Show which category is being edited */}
                 {tagCategory && (
                   <div className="mb-2">
-                    <div className="text-[10px] font-semibold text-gray-500">
+                    <div className={cn("text-[10px] font-semibold", designSystem.typography.color.subtle)}>
                       Editing: {(() => {
                         const category = TAG_CATEGORIES.find((c: TagCategory) => c.name === tagCategory)
                         return category?.label || tagCategory.replace(/_/g, ' ')
                       })()}
                     </div>
-                    <div className="text-[9px] text-gray-400 mt-0.5">
+                    <div className={cn("text-[9px] mt-0.5", designSystem.typography.color.disabled)}>
                       You can only change to other options within this category
                     </div>
                   </div>
                 )}
 
                 <div className="relative">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                  <Search className={cn("absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3", designSystem.typography.color.disabled)} />
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -246,7 +250,7 @@ function TagEditDropdown({
                       }
                     }}
                     placeholder={`Search ${tagCategory} options...`}
-                    className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -254,7 +258,7 @@ function TagEditDropdown({
               {/* Tags list */}
               <div className="max-h-64 overflow-y-auto p-2">
                 {filteredTags.length === 0 ? (
-                  <div className="text-xs text-gray-500 text-center py-4">
+                  <div className={cn("text-xs text-center py-4", designSystem.typography.color.subtle)}>
                     No other options available in this category
                   </div>
                 ) : (
@@ -264,16 +268,17 @@ function TagEditDropdown({
                         key={tagOption.value}
                         onClick={() => handleSelectTag(tagOption.value)}
                         className={cn(
-                          "w-full flex items-center gap-2 px-2 py-1 text-xs text-left rounded hover:bg-gray-50",
-                          tagOption.value === tag && "bg-pink-50"
+                          "w-full flex items-center gap-2 px-2 py-1 text-xs text-left rounded",
+                          designSystem.background.hover.subtle,
+                          tagOption.value === tag && "bg-primary/10"
                         )}
                       >
                         {tagOption.value === tag && (
-                          <Check className="w-3 h-3 text-pink-500 flex-shrink-0" />
+                          <Check className="w-3 h-3 text-primary flex-shrink-0" />
                         )}
                         <span className="truncate">{tagOption.label}</span>
                         {tagOption.value === tag && (
-                          <span className="text-[9px] text-gray-400 ml-auto flex-shrink-0">
+                          <span className={cn("text-[9px] ml-auto flex-shrink-0", designSystem.typography.color.disabled)}>
                             Current
                           </span>
                         )}
@@ -284,14 +289,14 @@ function TagEditDropdown({
               </div>
 
               {/* Cancel button */}
-              <div className="p-2 border-t border-gray-100">
+              <div className="p-2 border-t border-light">
                 <button
                   onClick={() => {
                     setIsEditing(false)
                     setSearchQuery('')
                     setSelectedCategory(null)
                   }}
-                  className="w-full px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                  className={cn("w-full px-2 py-1 text-xs rounded", designSystem.background.surface.light, designSystem.background.hover.neutral, designSystem.typography.color.tertiary)}
                 >
                   Cancel
                 </button>
@@ -301,7 +306,7 @@ function TagEditDropdown({
             <>
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-gray-50 text-left"
+                className={cn("flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left", designSystem.background.hover.subtle)}
               >
                 <Edit2 className="w-3 h-3" />
                 Edit tag
@@ -406,12 +411,13 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center p-0.5 rounded-md",
+          "inline-flex items-center p-0.5 {designSystem.borders.radius.sm}",
           "text-[9px] font-medium transition-all duration-200",
           "hover:shadow-sm cursor-pointer",
           "bg-gradient-to-r border",
-          "from-gray-50 to-slate-50 text-gray-600 border-gray-200/50",
-          "hover:from-pink-50 hover:to-rose-50 hover:text-pink-600 hover:border-pink-200/50"
+          "from-gray-50 to-slate-50 border-light",
+          designSystem.typography.color.tertiary,
+          "hover:from-primary/10 hover:to-rose-50 hover:text-primary-hover hover:border-primary/30"
         )}
         title="Add Tag"
       >
@@ -421,13 +427,13 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed bg-white rounded-lg shadow-lg border border-gray-200 z-50 w-80"
+          className="fixed bg-white {designSystem.borders.radius.sm} shadow-lg border border-default z-50 w-80"
           style={{ top: position.top, left: position.left }}
         >
           {/* Search input */}
-          <div className="p-2 border-b border-gray-100">
+          <div className="p-2 border-b border-light">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+              <Search className={cn("absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3", designSystem.typography.color.disabled)} />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -441,7 +447,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                   }
                 }}
                 placeholder="Search tags to add..."
-                className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-500"
+                className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -452,8 +458,8 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                 className={cn(
                   "px-2 py-0.5 text-[10px] rounded",
                   selectedCategory === null
-                    ? "bg-pink-500 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-primary text-white"
+                    : cn(designSystem.background.surface.light, designSystem.background.hover.neutral, designSystem.typography.color.tertiary)
                 )}
               >
                 All
@@ -465,8 +471,8 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                   className={cn(
                     "px-2 py-0.5 text-[10px] rounded",
                     selectedCategory === cat.name
-                      ? "bg-pink-500 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-primary text-white"
+                      : cn(designSystem.background.surface.light, designSystem.background.hover.neutral, designSystem.typography.color.tertiary)
                   )}
                 >
                   {cat.label}
@@ -478,7 +484,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
           {/* Tags list */}
           <div className="max-h-64 overflow-y-auto p-2">
             {Object.keys(groupedTags).length === 0 ? (
-              <div className="text-xs text-gray-500 text-center py-4">
+              <div className={cn("text-xs text-center py-4", designSystem.typography.color.subtle)}>
                 {existingTags.length === getAllTags().length
                   ? "All tags already added"
                   : "No matching tags found"}
@@ -488,7 +494,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                 const categoryInfo = TAG_CATEGORIES.find((c: TagCategory) => c.name === category)
                 return (
                   <div key={category} className="mb-3">
-                    <div className="text-[10px] font-semibold text-gray-500 mb-1">
+                    <div className={cn("text-[10px] font-semibold mb-1", designSystem.typography.color.subtle)}>
                       {categoryInfo?.label || category}
                     </div>
                     <div className="space-y-0.5">
@@ -496,11 +502,11 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                         <button
                           key={tagOption.value}
                           onClick={() => handleSelectTag(tagOption.value)}
-                          className="w-full flex items-center gap-2 px-2 py-1 text-xs text-left rounded hover:bg-gray-50"
+                          className={cn("w-full flex items-center gap-2 px-2 py-1 text-xs text-left rounded", designSystem.background.hover.subtle)}
                         >
-                          <Plus className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                          <Plus className={cn("w-3 h-3 flex-shrink-0", designSystem.typography.color.disabled)} />
                           <span className="truncate">{tagOption.label}</span>
-                          <span className="text-[9px] text-gray-400 ml-auto flex-shrink-0">
+                          <span className={cn("text-[9px] ml-auto flex-shrink-0", designSystem.typography.color.disabled)}>
                             {categoryInfo?.label || tagOption.category}
                           </span>
                         </button>
@@ -548,7 +554,7 @@ export function TagsDisplay({
     return (
       <div className="flex items-center gap-1.5">
         <span className="text-[11px]">🏷️</span>
-        <span className="text-[10px] text-gray-400 italic">No tags</span>
+        <span className={cn("text-[10px] italic", designSystem.typography.color.disabled)}>No tags</span>
       </div>
     )
   }
@@ -563,7 +569,7 @@ export function TagsDisplay({
           <div
             key={`${tag.full}-${index}`}
             className={cn(
-              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md",
+              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 {designSystem.borders.radius.sm}",
               "text-[9px] font-medium transition-all duration-200",
               "hover:shadow-sm cursor-default",
               "bg-gradient-to-r border",

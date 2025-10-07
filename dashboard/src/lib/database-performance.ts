@@ -555,11 +555,11 @@ export function useOptimizedQuery<T = unknown>(
 
   const fetchData = useCallback(async () => {
     const client = getOptimizedDatabaseClient()
-    
+
     try {
       setLoading(true)
       setError(null)
-      
+
       const result = await client.query<T>(
         tableName,
         queryBuilder,
@@ -568,7 +568,7 @@ export function useOptimizedQuery<T = unknown>(
           cacheTTL: options.cacheTTL
         }
       )
-      
+
       setData(result)
     } catch (err) {
       setError(err as Error)
@@ -576,7 +576,8 @@ export function useOptimizedQuery<T = unknown>(
     } finally {
       setLoading(false)
     }
-  }, [tableName, ...dependencies])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableName, queryBuilder, options.cache, options.cacheTTL, ...dependencies])
 
   useEffect(() => {
     if (options.enabled !== false) {

@@ -5,15 +5,19 @@ Endpoint for retrieving comprehensive system statistics
 
 import logging
 from datetime import datetime
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
+
 from app.services.ai_categorizer import TagCategorizationService
+
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["stats"])
 
 # Global service reference (set during startup)
-tag_categorization_service: TagCategorizationService = None
+tag_categorization_service: Optional[TagCategorizationService] = None
 
 
 def set_categorization_service(service: TagCategorizationService):
@@ -44,4 +48,4 @@ async def get_system_stats():
         return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

@@ -356,13 +356,13 @@ export const createReviewColumns = (): TableColumn<Record<string, unknown>>[] =>
             src={item.icon_img as string}
             alt=""
             fill
-            className="rounded-full object-cover"
+            className={`${designSystem.borders.radius.full} object-cover`}
             onError={(e) => {
               e.currentTarget.style.display = 'none'
             }}
           />
         ) : (
-          <div className="w-8 h-8 bg-gray-200 rounded-full" />
+          <div className={`w-8 h-8 bg-gray-200 ${designSystem.borders.radius.full}`} />
         )}
       </div>
     )
@@ -443,7 +443,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
     className: 'text-center',
     headerClassName: 'text-center',
     render: (item) => (
-      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+      <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 ${designSystem.borders.radius.full}`}>
         {(item.post_count as number) || 0}
       </span>
     )
@@ -471,7 +471,7 @@ export const createPostingColumns = (): TableColumn<Record<string, unknown>>[] =
 
       return (
         <span className={cn(
-          'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+          `inline-flex items-center px-2 py-0.5 ${designSystem.borders.radius.full} text-xs font-medium`,
           statusColors[status as keyof typeof statusColors]
         )}>
           {status as React.ReactNode}

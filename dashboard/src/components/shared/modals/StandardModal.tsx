@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
+import { designSystem } from '@/lib/design-system'
 
 export interface StandardModalProps {
   isOpen: boolean
@@ -56,7 +57,7 @@ const StandardModal = memo(function StandardModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            'relative w-full overflow-hidden rounded-3xl',
+            `relative w-full overflow-hidden ${designSystem.borders.radius.xl}`,
             widthClasses[maxWidth],
             className
           )}
@@ -75,7 +76,7 @@ const StandardModal = memo(function StandardModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 {icon && (
-                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
+                  <div className={`p-1.5 ${designSystem.borders.radius.sm} bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm`}>
                     {icon}
                   </div>
                 )}
@@ -90,7 +91,7 @@ const StandardModal = memo(function StandardModal({
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg hover:bg-pink-100/50 transition-colors"
+                className={`p-1 ${designSystem.borders.radius.sm} hover:bg-pink-100/50 transition-colors`}
                 disabled={loading}
               >
                 <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />

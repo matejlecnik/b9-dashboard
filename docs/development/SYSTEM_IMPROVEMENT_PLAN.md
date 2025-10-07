@@ -17,7 +17,7 @@
   ],
   "related": [
     {"path": "../../CLAUDE.md", "desc": "Mission control", "status": "ACTIVE"},
-    {"path": "DOCUMENTATION_MAP.md", "desc": "Doc network", "status": "REFERENCE"}
+    {"path": "../INDEX.md", "desc": "Doc network", "status": "REFERENCE"}
   ]
 }
 ```

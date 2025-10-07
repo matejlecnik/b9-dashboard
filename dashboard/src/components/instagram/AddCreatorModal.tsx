@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { StandardModal } from '@/components/shared/modals/StandardModal'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 interface AddCreatorModalProps {
   isOpen: boolean
@@ -100,7 +102,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-xs h-8 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+            className={`text-xs h-8 px-3 border-strong hover:${designSystem.background.hover.subtle} hover:border-strong`}
           >
             Cancel
           </Button>
@@ -128,7 +130,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
       <div className="space-y-4">
         {/* Username Input */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className={cn("block text-sm font-medium", designSystem.typography.color.secondary)}>
             Instagram Username <span className="text-primary">*</span>
           </label>
           <Input
@@ -136,7 +138,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
             placeholder="e.g., @username or username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="h-9 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-9 border-strong focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={isSubmitting}
             onKeyPress={(e) => {
               if (e.key === 'Enter' && username.trim()) {
@@ -149,15 +151,15 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
 
         {/* Niche Input */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Niche <span className="text-gray-400 text-xs">(optional)</span>
+          <label className={cn("block text-sm font-medium", designSystem.typography.color.secondary)}>
+            Niche <span className={cn("text-xs", designSystem.typography.color.disabled)}>(optional)</span>
           </label>
           <Input
             type="text"
             placeholder="e.g., Fitness, Beauty, Fashion..."
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
-            className="h-9 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-9 border-strong focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={isSubmitting}
             onKeyPress={(e) => {
               if (e.key === 'Enter' && username.trim()) {
@@ -169,7 +171,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
 
         {/* Info Message */}
         <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
-          <p className="text-xs text-gray-800">
+          <p className={cn("text-xs", designSystem.typography.color.secondary)}>
             💡 The creator will be added to your tracking list. You can assign a niche now or update it later from the Niching page.
           </p>
         </div>

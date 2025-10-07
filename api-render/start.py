@@ -4,13 +4,14 @@ Startup script for B9 Dashboard API
 Runs the API server and optionally starts the scraper if enabled in database
 """
 
-import os
-import sys
-import subprocess
-import signal
-import logging
 import asyncio
+import logging
+import os
+import signal
+import subprocess
+import sys
 from datetime import datetime, timezone
+
 
 # Configure logging
 logging.basicConfig(
@@ -42,7 +43,7 @@ async def check_and_start_scrapers():
 
                 # Open log file for Reddit scraper output
                 try:
-                    reddit_log = open('/tmp/reddit_scraper.log', 'w')
+                    reddit_log = open('/tmp/reddit_scraper.log', 'w')  # noqa: SIM115 - Must stay open for subprocess
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
@@ -71,7 +72,7 @@ async def check_and_start_scrapers():
                     else:
                         # Process died immediately, read error from log
                         reddit_log.close()
-                        with open('/tmp/reddit_scraper.log', 'r') as f:
+                        with open('/tmp/reddit_scraper.log') as f:
                             error_output = f.read()
                         logger.error(f"❌ Reddit scraper died immediately. Error: {error_output}")
 
@@ -100,7 +101,7 @@ async def check_and_start_scrapers():
 
                 # Open log file for Instagram scraper output
                 try:
-                    instagram_log = open('/tmp/instagram_scraper.log', 'w')
+                    instagram_log = open('/tmp/instagram_scraper.log', 'w')  # noqa: SIM115 - Must stay open for subprocess
 
                     # Start with output to log file so we can see errors
                     instagram_process = subprocess.Popen(
@@ -129,7 +130,7 @@ async def check_and_start_scrapers():
                     else:
                         # Process died immediately, read error from log
                         instagram_log.close()
-                        with open('/tmp/instagram_scraper.log', 'r') as f:
+                        with open('/tmp/instagram_scraper.log') as f:
                             error_output = f.read()
                         logger.error(f"❌ Instagram scraper died immediately. Error: {error_output}")
 
@@ -162,8 +163,9 @@ def run_api():
         os.environ['PYTHONPATH'] = '/app'
 
         # Import and run the app directly instead of using subprocess
-        from main import app
         import uvicorn
+
+        from main import app
 
         uvicorn.run(app, host="0.0.0.0", port=int(port))
     except Exception as e:

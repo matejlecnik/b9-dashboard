@@ -3,8 +3,9 @@ Centralized Configuration Manager
 Fetches configuration from database with fallback defaults
 """
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime, timezone
+from typing import Any, ClassVar, Dict
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class ConfigManager:
     """
 
     # Default configuration values
-    DEFAULTS = {
+    DEFAULTS: ClassVar[Dict[str, Any]] = {
         "batch_size": 50,
         "user_batch_size": 30,
         "posts_per_subreddit": 30,

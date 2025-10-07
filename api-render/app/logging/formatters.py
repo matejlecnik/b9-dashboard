@@ -3,10 +3,10 @@ Log Formatters
 Standardized log formatting for console, file, and Supabase
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 
 class StandardFormatter(logging.Formatter):
@@ -60,14 +60,14 @@ class JSONFormatter(logging.Formatter):
 def format_for_supabase(
     level: str,
     message: str,
-    source: str = None,
-    script_name: str = None,
-    action: str = None,
-    context: Dict[str, Any] = None,
-    duration_ms: int = None
+    source: Optional[str] = None,
+    script_name: Optional[str] = None,
+    action: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None,
+    duration_ms: Optional[int] = None
 ) -> Dict[str, Any]:
     """Format log data for Supabase insertion"""
-    log_entry = {
+    log_entry: Dict[str, Any] = {
         'timestamp': datetime.utcnow().isoformat(),
         'level': level.lower(),
         'message': message,

@@ -3,6 +3,8 @@
 import React, { ReactNode, useCallback, Profiler } from 'react'
 import type { ProfilerOnRenderCallback } from 'react'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 /**
  * React DevTools Profiler Integration
@@ -218,7 +220,7 @@ export function DevPerformancePanel() {
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-full shadow-lg hover:bg-gray-800 transition-colors"
+        className={cn("fixed bottom-4 left-4 z-50 text-white p-2 rounded-full shadow-lg transition-colors", designSystem.background.surface.inverse, `hover:${designSystem.background.surface.darkest}`)}
         title="Toggle Performance Panel"
       >
         🚀
@@ -226,12 +228,12 @@ export function DevPerformancePanel() {
 
       {/* Performance panel */}
       {isOpen && metrics && (
-        <div className="fixed bottom-16 left-4 z-50 bg-white dark:bg-gray-900 rounded-lg shadow-xl border p-4 w-96 max-h-[600px] overflow-auto">
+        <div className={cn("fixed bottom-16 left-4 z-50 bg-white rounded-lg shadow-xl border p-4 w-96 max-h-[600px] overflow-auto", `dark:${designSystem.background.surface.inverse}`)}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-lg">Performance Monitor</h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-gray-500 hover:text-gray-700"
+              className={`${designSystem.typography.color.subtle} hover:${designSystem.typography.color.secondary}`}
             >
               ×
             </button>
@@ -301,7 +303,7 @@ export function DevPerformancePanel() {
             </button>
             <button
               onClick={() => performanceMonitor.clear()}
-              className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+              className={cn("px-3 py-1 text-xs text-white rounded", designSystem.background.surface.dark, `hover:${designSystem.background.surface.darker}`)}
             >
               Clear
             </button>
@@ -319,7 +321,7 @@ export function DevPerformancePanel() {
 }
 
 function getMetricColor(value: number | null, bad: number, good: number): string {
-  if (!value) return 'text-gray-400'
+  if (!value) return designSystem.typography.color.disabled
   if (value <= good) return 'text-green-600 font-semibold'
   if (value <= bad) return 'text-yellow-600 font-semibold'
   return 'text-red-600 font-semibold'

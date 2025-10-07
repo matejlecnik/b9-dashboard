@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Filter, ChevronDown, Check } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { createPortal } from 'react-dom'
 
 interface NicheFilterDropdownProps {
@@ -87,7 +89,7 @@ export function NicheFilterDropdown({
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
-        className="h-8 px-3 text-xs font-medium border-gray-200 hover:bg-gray-50 flex items-center gap-2"
+        className={cn("h-8 px-3 text-xs font-medium border-default flex items-center gap-2", designSystem.background.hover.subtle)}
       >
         <Filter className="h-3.5 w-3.5" />
         <span>{displayText}</span>
@@ -97,25 +99,25 @@ export function NicheFilterDropdown({
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
+          className="fixed w-64 bg-white rounded-lg shadow-lg border border-default z-[9999]"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`
           }}
         >
-          <div className="p-2 border-b border-gray-100">
+          <div className="p-2 border-b border-light">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-700">Filter Niches</span>
+              <span className={cn("text-xs font-semibold", designSystem.typography.color.secondary)}>Filter Niches</span>
               <div className="flex gap-1">
                 <button
                   onClick={handleSelectAll}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 hover:bg-blue-50 rounded"
+                  className="text-xs text-primary hover:text-primary-hover font-medium px-2 py-0.5 hover:bg-primary/10 rounded"
                 >
                   Select All
                 </button>
                 <button
                   onClick={handleClearAll}
-                  className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-0.5 hover:bg-gray-50 rounded"
+                  className={cn("text-xs font-medium px-2 py-0.5 rounded", designSystem.background.hover.subtle, designSystem.typography.color.tertiary, `hover:${designSystem.typography.color.secondary}`)}
                 >
                   Clear
                 </button>
@@ -123,7 +125,7 @@ export function NicheFilterDropdown({
             </div>
 
             {/* Show un-niched option */}
-            <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+            <label className={cn("flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer", designSystem.background.hover.subtle)}>
               <div className="relative flex items-center justify-center w-4 h-4">
                 <input
                   type="checkbox"
@@ -133,15 +135,15 @@ export function NicheFilterDropdown({
                 />
                 <div className={`w-4 h-4 rounded border ${
                   isShowingUnniched
-                    ? 'bg-pink-500 border-pink-500'
-                    : 'bg-white border-gray-300'
+                    ? 'bg-primary border-primary'
+                    : 'bg-white border-strong'
                 }`}>
                   {isShowingUnniched && (
                     <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
                   )}
                 </div>
               </div>
-              <span className="text-xs text-gray-700 flex-1">
+              <span className={cn("text-xs flex-1", designSystem.typography.color.secondary)}>
                 Show Un-niched
               </span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -159,7 +161,7 @@ export function NicheFilterDropdown({
               return (
                 <label
                   key={niche}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                  className={cn("flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer", designSystem.background.hover.subtle)}
                 >
                   <div className="relative flex items-center justify-center w-4 h-4">
                     <input
@@ -170,15 +172,15 @@ export function NicheFilterDropdown({
                     />
                     <div className={`w-4 h-4 rounded border ${
                       isSelected
-                        ? 'bg-pink-500 border-pink-500'
-                        : 'bg-white border-gray-300'
+                        ? 'bg-primary border-primary'
+                        : 'bg-white border-strong'
                     }`}>
                       {isSelected && (
                         <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
                       )}
                     </div>
                   </div>
-                  <span className="text-xs text-gray-700 flex-1 truncate">
+                  <span className={cn("text-xs flex-1 truncate", designSystem.typography.color.secondary)}>
                     {niche}
                   </span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -190,8 +192,8 @@ export function NicheFilterDropdown({
           </div>
 
           {/* Total count */}
-          <div className="p-2 border-t border-gray-100">
-            <div className="text-xs text-gray-500 text-center">
+          <div className="p-2 border-t border-light">
+            <div className={cn("text-xs text-center", designSystem.typography.color.subtle)}>
               Total: {formatNumber(nichedCount + unnichedCount)} creators
             </div>
           </div>

@@ -6,4 +6,5 @@ Production-ready middleware for logging, security, and monitoring
 
 from app.middleware.monitoring import configure_middleware
 
+
 __all__ = ["configure_middleware"]

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Plus, X, AlertCircle, Loader2 } from 'lucide-react'
+import { designSystem } from '@/lib/design-system'
 import {
   Select,
   SelectContent,
@@ -128,7 +129,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl"
+          className={`relative w-full max-w-md max-h-[70vh] overflow-hidden ${designSystem.borders.radius.xl}`}
           style={{
             background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 246, 0.92))',
             backdropFilter: 'blur(24px) saturate(180%)',
@@ -142,7 +143,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
           <div className="relative px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
+                <div className={`p-1.5 ${designSystem.borders.radius.sm} bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm`}>
                   <Plus className="h-4 w-4 text-pink-500" />
                 </div>
                 <div>
@@ -154,7 +155,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg hover:bg-pink-100/50 transition-colors"
+                className={`p-1 ${designSystem.borders.radius.sm} hover:bg-pink-100/50 transition-colors`}
                 disabled={loading}
               >
                 <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
@@ -213,7 +214,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 border border-red-200">
+                <div className={`flex items-start gap-2 p-2.5 ${designSystem.borders.radius.sm} bg-gradient-to-r from-red-50 to-pink-50 border border-red-200`}>
                   <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-red-600">{error}</p>
                 </div>
@@ -221,7 +222,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
 
               {/* Loading State */}
               {loading && (
-                <div className="p-3 rounded-lg bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border border-pink-200/50">
+                <div className={`p-3 ${designSystem.borders.radius.sm} bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border border-pink-200/50`}>
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-pink-500" />
                     <p className="text-xs font-medium bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
@@ -251,7 +252,7 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
+                    <div className={`animate-spin ${designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5`} />
                     Adding...
                   </>
                 ) : (

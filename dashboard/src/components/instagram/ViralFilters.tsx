@@ -10,6 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { TrendingUp, SortAsc, Calendar } from 'lucide-react'
+import { InstagramCard } from './InstagramCard'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 import type { ViralReelsFilters } from '@/lib/supabase/viral-reels'
 
 interface ViralFiltersProps {
@@ -82,9 +85,9 @@ export function ViralFilters({
   }
 
   return (
-    <div className="rounded-2xl transition-all duration-300 ease-out bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
+    <InstagramCard hover className="space-y-4">
+      <div className={cn(designSystem.layout.flex.rowBetween)}>
+        <h3 className={cn("text-sm font-semibold", designSystem.typography.color.primary)}>Filters</h3>
         {onReset && (
           <Button
             variant="ghost"
@@ -171,24 +174,24 @@ export function ViralFilters({
       {/* Quick Stats */}
       <div className="pt-2 border-t grid grid-cols-3 gap-2 text-xs">
         <div className="text-center">
-          <p className="text-gray-500">Threshold</p>
-          <p className="font-semibold text-purple-600">
+          <p className={designSystem.typography.color.subtle}>Threshold</p>
+          <p className="font-semibold text-secondary">
             {filters.minViews ? `${(filters.minViews / 1000).toFixed(0)}K+` : '50K+'}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-gray-500">Sorting</p>
-          <p className="font-semibold text-purple-600 capitalize">
+          <p className={designSystem.typography.color.subtle}>Sorting</p>
+          <p className="font-semibold text-secondary capitalize">
             {filters.sortBy || 'Views'}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-gray-500">Order</p>
-          <p className="font-semibold text-purple-600">
+          <p className={designSystem.typography.color.subtle}>Order</p>
+          <p className="font-semibold text-secondary">
             {filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
           </p>
         </div>
       </div>
-    </div>
+    </InstagramCard>
   )
 }

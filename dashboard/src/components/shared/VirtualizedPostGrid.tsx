@@ -3,17 +3,19 @@
 import { useRef, useState, useEffect } from 'react'
 import { Post } from '@/types/post'
 import { PostGalleryCard } from '@/components/shared/PostGalleryCard'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 // Simple skeleton card component
 function SkeletonCard({ variant = 'default' }: { variant?: 'default' | 'compact' | 'wide' }) {
   const height = variant === 'compact' ? 'h-48' : variant === 'wide' ? 'h-64' : 'h-56'
 
   return (
-    <div className={`${height} bg-gray-200 animate-pulse rounded-lg`}>
+    <div className={cn(`${height} animate-pulse rounded-lg`, designSystem.background.surface.neutral)}>
       <div className="p-4 space-y-3">
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-3 bg-gray-300 rounded"></div>
-        <div className="h-3 bg-gray-300 rounded w-5/6"></div>
+        <div className={cn("h-4 rounded w-3/4", designSystem.background.surface.medium)}></div>
+        <div className={cn("h-3 rounded", designSystem.background.surface.medium)}></div>
+        <div className={cn("h-3 rounded w-5/6", designSystem.background.surface.medium)}></div>
       </div>
     </div>
   )
@@ -144,20 +146,20 @@ export function VirtualizedPostGrid({
 
       {/* Load More Trigger */}
       {hasMore && !loading && (
-        <div 
-          ref={loadMoreRef} 
+        <div
+          ref={loadMoreRef}
           className="h-20 flex items-center justify-center"
         >
-          <div className="text-gray-400">Loading more posts...</div>
+          <div className={designSystem.typography.color.disabled}>Loading more posts...</div>
         </div>
       )}
 
       {/* End Message */}
       {!hasMore && posts.length > 0 && (
         <div className="text-center py-16">
-          <div className="text-gray-400 text-6xl mb-4">🎉</div>
-          <div className="text-gray-500 text-xl mb-2">You&apos;ve seen it all!</div>
-          <div className="text-gray-400 text-sm">
+          <div className={cn("text-6xl mb-4", designSystem.typography.color.disabled)}>🎉</div>
+          <div className={cn("text-xl mb-2", designSystem.typography.color.subtle)}>You&apos;ve seen it all!</div>
+          <div className={cn("text-sm", designSystem.typography.color.disabled)}>
             Showing all {posts.length} posts from approved subreddits
           </div>
         </div>
@@ -165,10 +167,10 @@ export function VirtualizedPostGrid({
 
       {/* No Results */}
       {posts.length === 0 && !loading && (
-        <div className="text-center py-24 bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50">
-          <div className="text-gray-300 text-8xl mb-6">📱</div>
-          <div className="text-gray-500 text-2xl mb-3 font-medium">No posts found</div>
-          <div className="text-gray-400 max-w-md mx-auto">
+        <div className="text-center py-24 bg-white/70 backdrop-blur-sm rounded-xl border border-light">
+          <div className={cn("text-8xl mb-6", designSystem.typography.color.disabled)}>📱</div>
+          <div className={cn("text-2xl mb-3 font-medium", designSystem.typography.color.subtle)}>No posts found</div>
+          <div className={cn("max-w-md mx-auto", designSystem.typography.color.disabled)}>
             Try adjusting your search terms or category filters to discover more content
           </div>
         </div>

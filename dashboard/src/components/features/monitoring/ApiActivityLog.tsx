@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
-import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import { LogTerminalBase } from './LogTerminalBase'
 // Type definitions
 interface ApiActivityDetails {
   [key: string]: unknown
@@ -61,6 +63,7 @@ interface ApiActivityLogProps {
   height?: string
   maxLogs?: number
   useSystemLogs?: boolean
+  fadeHeight?: string
 }
 
 export function ApiActivityLog({
@@ -68,7 +71,8 @@ export function ApiActivityLog({
   endpoint,
   height = '120px',
   maxLogs = 20,
-  useSystemLogs = true
+  useSystemLogs = true,
+  fadeHeight = '2%'
 }: ApiActivityLogProps) {
   const [activities, setActivities] = useState<ApiActivity[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -281,44 +285,43 @@ export function ApiActivityLog({
       case 'success': return 'text-green-600'
       case 'error': return 'text-red-600'
       case 'pending': return 'text-yellow-600'
-      default: return 'text-gray-600'
+      default: return designSystem.typography.color.tertiary
     }
   }
 
   return (
-    <Card className="border-gray-200/50 bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl">
-      <div className="px-2 py-1 border-b border-gray-200/30">
-        <h3 className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{title}</h3>
-      </div>
-      <CardContent className="p-0">
-        <div
-          ref={scrollAreaRef}
-          className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
-          style={{ height }}
-        >
-          {activities.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-[9px] text-gray-400">
-              No recent activity
-            </div>
-          ) : (
-            <div className="space-y-0.5 p-1">
-              {activities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-1 px-1 py-0.5 hover:bg-gray-100/50 rounded transition-colors">
-                  <span className={`text-[8px] ${getStatusColor(activity.status)} mt-0.5`}>●</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] text-gray-700 truncate">
-                      {activity.message || activity.title}
-                    </p>
-                    <p className="text-[8px] text-gray-400">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                    </p>
-                  </div>
+    <LogTerminalBase
+      title={title}
+      height={height}
+      fadeHeight={fadeHeight}
+    >
+      {/* Scroll container - extends to full height */}
+      <div
+        ref={scrollAreaRef}
+        className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+      >
+        {activities.length === 0 ? (
+          <div className={cn("flex items-center justify-center h-full text-[9px]", designSystem.typography.color.disabled)}>
+            No recent activity
+          </div>
+        ) : (
+          <div className="space-y-0 pb-1 px-1">
+            {activities.map((activity) => (
+              <div key={activity.id} className={`flex items-start gap-1 px-1 hover:${designSystem.background.hover.light}/50 rounded transition-colors`}>
+                <span className={`text-[8px] ${getStatusColor(activity.status)} mt-0.5`}>●</span>
+                <div className="flex-1 min-w-0">
+                  <p className={cn("text-[9px] truncate", designSystem.typography.color.primary)}>
+                    {activity.message || activity.title}
+                  </p>
+                  <p className={cn("text-[8px]", designSystem.typography.color.tertiary)}>
+                    {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </LogTerminalBase>
   )
 }

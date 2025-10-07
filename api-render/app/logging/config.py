@@ -5,7 +5,6 @@ Centralized configuration for all logging operations
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass

@@ -2,16 +2,18 @@
 Thread-Safe API Pool for Reddit Scraper
 Creates and manages dedicated API instances for each thread to prevent contention
 """
-import threading
-import logging
-import time
-import requests
-from typing import Dict, Optional, Any, Tuple
-from fake_useragent import UserAgent
 import random
-from datetime import datetime, timezone
+import threading
+import time
+from typing import Any, Dict, Optional, Tuple
+
+import requests
+from fake_useragent import UserAgent
+from requests import Session
+
 # Use unified logging system
 from app.logging import get_logger
+
 
 logger = get_logger(__name__)
 # Backward compatibility: logger_helper points to unified logger
@@ -36,7 +38,7 @@ class PublicRedditAPI:
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.thread_id = thread_id
-        self.session = None  # Store session directly instead of thread-local
+        self.session: Optional[Session] = None  # Store session directly instead of thread-local
         self._request_count = 0  # Track requests for connection recycling
 
         # Initialize user agent generator
@@ -68,14 +70,14 @@ class PublicRedditAPI:
             try:
                 # Use fake-useragent 80% of the time
                 agent_type = random.choice(['chrome', 'firefox', 'safari', 'edge'])
-                if agent_type == 'chrome':
-                    return self.ua_generator.chrome
+                if agent_type == 'chrome':  # noqa: SIM116
+                    return self.ua_generator.chrome  # type: ignore[no-any-return]
                 elif agent_type == 'firefox':
-                    return self.ua_generator.firefox
+                    return self.ua_generator.firefox  # type: ignore[no-any-return]
                 elif agent_type == 'safari':
-                    return self.ua_generator.safari
+                    return self.ua_generator.safari  # type: ignore[no-any-return]
                 else:
-                    return self.ua_generator.edge
+                    return self.ua_generator.edge  # type: ignore[no-any-return]
             except Exception:
                 pass
 
@@ -140,7 +142,7 @@ class PublicRedditAPI:
                 response = self.session.get(
                     url,
                     headers={'User-agent': self.generate_user_agent()},
-                    proxies=proxies,
+                    proxies=proxies,  # type: ignore[arg-type]
                     timeout=30
                 )
 
@@ -201,7 +203,7 @@ class PublicRedditAPI:
                 logger.debug(f"Request successful: {url} - {response.status_code} in {response_time_ms}ms")
 
                 # Log slow requests
-                if response_time_ms > 5000:
+                if response_time_ms > 5000:  # noqa: SIM102
                     if logger_helper:
                         logger_helper.warning(
                             f'Slow API request: {response_time_ms}ms',
@@ -214,7 +216,7 @@ class PublicRedditAPI:
                             duration_ms=response_time_ms
                         )
 
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
 
             except requests.RequestException as e:
                 retries += 1
@@ -374,7 +376,7 @@ class ThreadSafeAPIPool:
             logger.warning(f"No API instance for thread {thread_id}. Available threads: {list(self.apis.keys())}")
             return None
 
-        return self.apis[thread_id]
+        return self.apis[thread_id]  # type: ignore[no-any-return]
 
     def get_api_with_proxy(self, thread_id: int) -> Tuple[Optional[PublicRedditAPI], Optional[Dict]]:
         """
@@ -481,7 +483,7 @@ class ThreadSafeAPIPool:
         Returns:
             Dictionary of statistics
         """
-        stats = {
+        stats: Dict[str, Any] = {
             'total_instances': len(self.apis),
             'thread_assignments': len(self.thread_to_api),
             'active_threads': threading.active_count(),

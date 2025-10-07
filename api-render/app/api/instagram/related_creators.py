@@ -5,18 +5,19 @@ Discovers related creators for approved Instagram accounts
 """
 
 import os
-import json
-import requests
 import time
-from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+import requests
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from pydantic import BaseModel
 from supabase import Client
 
 # Import database singleton and unified logger
 from app.core.database import get_db
 from app.logging import get_logger
+
 
 # Note: system_logger and log_api_call moved to unified logging system
 system_logger = None
@@ -48,7 +49,7 @@ class RelatedCreatorsStartRequest(BaseModel):
 
 
 # Global processing state
-processing_state = {
+processing_state: dict[str, Any] = {
     "is_running": False,
     "should_stop": False,
     "current_creator": None,
@@ -101,7 +102,7 @@ def get_related_profiles(user_id: str, supabase=None) -> Optional[List[Dict]]:
                 'source': 'instagram_related_creators',
                 'script_name': 'instagram_related_creators_routes',
                 'level': 'error',
-                'message': f'Exception getting related profiles: {str(e)}',
+                'message': f'Exception getting related profiles: {e!s}',
                 'context': {
                     'action': 'api_exception',
                     'endpoint': 'related-profiles',
@@ -126,7 +127,7 @@ def get_user_profile(username: str, supabase=None) -> Optional[Dict]:
         if response.status_code == 200:
             data = response.json()
             if data and "status" in data and data["status"]:
-                return data
+                return data  # type: ignore[no-any-return]
         else:
             # Log API error
             if supabase:
@@ -153,7 +154,7 @@ def get_user_profile(username: str, supabase=None) -> Optional[Dict]:
                 'source': 'instagram_related_creators',
                 'script_name': 'instagram_related_creators_routes',
                 'level': 'error',
-                'message': f'Exception getting user profile: {str(e)}',
+                'message': f'Exception getting user profile: {e!s}',
                 'context': {
                     'action': 'api_exception',
                     'endpoint': 'profile',
@@ -292,7 +293,7 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
                     if username:
                         # Get full profile info
                         full_profile = get_user_profile(username, supabase)
-                        if full_profile:
+                        if full_profile:  # noqa: SIM102
                             # Save to database
                             if save_creator_to_db(supabase, full_profile):
                                 processing_state["new_creators_found"] += 1
@@ -372,7 +373,7 @@ def process_related_creators_batch(supabase, batch_size: int = 10, delay_seconds
             'source': 'instagram_related_creators',
             'script_name': 'instagram_related_creators_routes',
             'level': 'error',
-            'message': f'Error in batch processing: {str(e)}',
+            'message': f'Error in batch processing: {e!s}',
             'context': {
                 'action': 'process_error',
                 'error': str(e),
@@ -411,12 +412,12 @@ def start_related_creators_discovery(
         }
 
         # Get count of unprocessed approved creators
-        count_result = supabase.table("instagram_creators") \
-            .select("id", count="exact") \
-            .eq("review_status", "ok") \
-            .eq("related_creators_processed", False) \
-            .limit(1) \
-            .execute()
+        count_result = (supabase.table("instagram_creators")
+            .select("id", count="exact")  # type: ignore[arg-type]
+            .eq("review_status", "ok")
+            .eq("related_creators_processed", False)
+            .limit(1)
+            .execute())
 
         total_to_process = count_result.count or 0
 
@@ -427,8 +428,8 @@ def start_related_creators_discovery(
         background_tasks.add_task(
             process_related_creators_batch,
             supabase,
-            params.batch_size,
-            params.delay_seconds
+            params.batch_size or 10,
+            params.delay_seconds or 2
         )
 
         # Log API call
@@ -451,7 +452,7 @@ def start_related_creators_discovery(
         raise
     except Exception as e:
         logger.error(f"Error starting related creators discovery: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/unprocessed-count")
@@ -461,12 +462,12 @@ def get_unprocessed_count(request: Request):
         supabase = get_supabase()
 
         # Get count of unprocessed approved creators
-        result = supabase.table("instagram_creators") \
-            .select("id", count="exact") \
-            .eq("review_status", "ok") \
-            .eq("related_creators_processed", False) \
-            .limit(1) \
-            .execute()
+        result = (supabase.table("instagram_creators")
+            .select("id", count="exact")  # type: ignore[arg-type]
+            .eq("review_status", "ok")
+            .eq("related_creators_processed", False)
+            .limit(1)
+            .execute())
 
         count = result.count or 0
 
@@ -484,7 +485,7 @@ def get_unprocessed_count(request: Request):
 
     except Exception as e:
         logger.error(f"Error getting unprocessed count: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/status")
@@ -517,7 +518,7 @@ def get_related_creators_status(request: Request):
 
     except Exception as e:
         logger.error(f"Error getting status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/stop")

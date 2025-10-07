@@ -11,7 +11,7 @@
   "parent": "DOCUMENTATION_STANDARDS.md",
   "current": "DOCUMENTATION_TEMPLATE.md",
   "related": [
-    {"path": "DOCUMENTATION_MAP.md", "desc": "Full navigation", "use": "REFERENCE"},
+    {"path": "../INDEX.md", "desc": "Full navigation", "use": "REFERENCE"},
     {"path": "../../CLAUDE.md", "desc": "Central hub", "use": "START_HERE"}
   ]
 }
@@ -254,4 +254,4 @@ Complete: [████████████████████] 100%
 ---
 
 _Template Version: 2.0.0 | Style: Terminal + JSON | Mandatory: YES_
-_Navigate: [← DOCUMENTATION_STANDARDS.md](DOCUMENTATION_STANDARDS.md) | [→ DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md)_
+_Navigate: [← DOCUMENTATION_STANDARDS.md](DOCUMENTATION_STANDARDS.md) | [→ INDEX.md](../INDEX.md)_

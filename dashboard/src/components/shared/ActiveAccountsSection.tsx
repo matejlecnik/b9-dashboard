@@ -6,7 +6,8 @@ import { StandardActionButton } from '@/components/shared/buttons/StandardAction
 import { Sparkles, UserPlus, AlertCircle, X } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface Creator {
   id: number
@@ -60,8 +61,8 @@ export function ActiveAccountsSection({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <CardTitle className="text-lg text-gray-900">Posting Accounts</CardTitle>
-            <Badge variant="outline" className="text-xs bg-pink-50 border-pink-200">
+            <CardTitle className={cn("text-lg", designSystem.typography.color.primary)}>Posting Accounts</CardTitle>
+            <Badge variant="outline" className="text-xs bg-primary/10 border-primary/30">
               {creators.length} {creators.length === 1 ? 'account' : 'accounts'}
             </Badge>
           </div>
@@ -79,12 +80,12 @@ export function ActiveAccountsSection({
         {loadingCreators ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
+              <div key={i} className={cn("{designSystem.borders.radius.sm} p-4 animate-pulse", designSystem.background.surface.light)}>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                  <div className={cn("w-12 h-12 {designSystem.borders.radius.full}", designSystem.background.surface.neutral)}></div>
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className={cn("h-4 rounded w-3/4", designSystem.background.surface.neutral)}></div>
+                    <div className={cn("h-3 rounded w-1/2", designSystem.background.surface.neutral)}></div>
                   </div>
                 </div>
               </div>
@@ -92,19 +93,19 @@ export function ActiveAccountsSection({
           </div>
         ) : creators.length === 0 ? (
           <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium mb-2">No active posting accounts</p>
-            <p className="text-sm text-gray-500 mb-4">Add active Reddit accounts linked to models</p>
+            <AlertCircle className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
+            <p className={cn("font-medium mb-2", designSystem.typography.color.tertiary)}>No active posting accounts</p>
+            <p className={cn("text-sm mb-4", designSystem.typography.color.subtle)}>Add active Reddit accounts linked to models</p>
             {showAddButton && onAddUser && (
               <button
                 onClick={onAddUser}
-                className="group relative px-4 py-2.5 overflow-hidden rounded-md transition-all duration-300 hover:scale-[1.02] inline-flex items-center justify-center text-sm font-medium"
+                className="group relative px-4 py-2.5 overflow-hidden {designSystem.borders.radius.sm} transition-all duration-300 hover:scale-[1.02] inline-flex items-center justify-center text-sm font-medium"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
+                  background: 'linear-gradient(135deg, var(--fuchsia-500-alpha-10), var(--purple-500-alpha-10), var(--blue-500-alpha-10))',
                   backdropFilter: 'blur(10px)',
                   WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px 0 rgba(236, 72, 153, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)'
+                  border: '1px solid var(--white-alpha-20)',
+                  boxShadow: '0 8px 32px 0 var(--fuchsia-500-alpha-15), inset 0 1px 0 0 var(--white-alpha-20)'
                 }}
               >
                 {/* Gradient overlay on hover */}
@@ -115,7 +116,7 @@ export function ActiveAccountsSection({
 
                 {/* Content */}
                 <div className="relative flex items-center">
-                  <UserPlus className="h-4 w-4 mr-2 text-pink-500" />
+                  <UserPlus className="h-4 w-4 mr-2 text-primary" />
                   <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent font-semibold">
                     Add Your First Account
                   </span>
@@ -137,10 +138,10 @@ export function ActiveAccountsSection({
               return (
                 <div
                   key={creator.id}
-                  className={`relative bg-white rounded-md border-2 shadow-sm hover:shadow-md transition-all group cursor-pointer ${
+                  className={`relative bg-white {designSystem.borders.radius.sm} border-2 shadow-sm hover:shadow-md transition-all group cursor-pointer ${
                     isSelected
-                      ? 'border-pink-500 bg-pink-50'
-                      : 'border-gray-200 hover:border-pink-300'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-default hover:border-primary/60'
                   }`}
                   onClick={(e) => {
                     // Don't select if clicking on remove button, avatar or username
@@ -153,12 +154,12 @@ export function ActiveAccountsSection({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="no-select absolute -top-1.5 -right-1.5 h-4 w-4 p-0 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      className={cn("no-select absolute -top-1.5 -right-1.5 h-4 w-4 p-0 bg-white {designSystem.borders.radius.full} shadow-md hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10", designSystem.typography.color.disabled)}
                       onClick={() => onRemoveCreator(creator.id, false, creator.username)}
                       disabled={removingCreator === creator.id}
                     >
                       {removingCreator === creator.id ? (
-                        <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-gray-400" />
+                        <div className="animate-spin {designSystem.borders.radius.full} h-2.5 w-2.5 border-b border-strong" />
                       ) : (
                         <X className="h-2.5 w-2.5" />
                       )}
@@ -182,11 +183,11 @@ export function ActiveAccountsSection({
                             alt={`${creator.username} avatar`}
                             width={32}
                             height={32}
-                            className="w-8 h-8 rounded-full object-cover border border-gray-200 hover:border-pink-500 transition-colors"
+                            className="w-8 h-8 {designSystem.borders.radius.full} object-cover border border-default hover:border-primary transition-colors"
                             unoptimized
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 flex items-center justify-center text-white font-bold text-[10px] shadow-sm">
+                          <div className="w-8 h-8 {designSystem.borders.radius.full} bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 flex items-center justify-center text-white font-bold text-[10px] shadow-sm">
                             {creator.username.substring(0, 2).toUpperCase()}
                           </div>
                         )}
@@ -195,11 +196,11 @@ export function ActiveAccountsSection({
                         href={getRedditProfileUrl(creator.username)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="no-select hover:text-pink-500"
+                        className="no-select hover:text-primary"
                         title={`u/${creator.username}`}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="text-[10px] font-semibold text-gray-900 hover:text-pink-500 truncate block max-w-[60px]">
+                        <span className={cn("text-[10px] font-semibold hover:text-primary truncate block max-w-[60px]", designSystem.typography.color.primary)}>
                           {creator.username}
                         </span>
                       </a>
@@ -213,7 +214,7 @@ export function ActiveAccountsSection({
 
                       {/* Minimal badges */}
                       <div className="flex items-center gap-0.5 mt-0.5">
-                        <span className="text-[9px] px-1 py-0 bg-gray-100 text-gray-600 rounded">
+                        <span className={cn("text-[9px] px-1 py-0 rounded", designSystem.background.surface.light, designSystem.typography.color.tertiary)}>
                           {accountAge}
                         </span>
                         {creator.verified && (
@@ -224,11 +225,11 @@ export function ActiveAccountsSection({
 
                     {/* Compact Karma */}
                     <div className="mt-1.5 text-center space-y-0.5">
-                      <div className="text-[9px] text-gray-600">
-                        <span className="text-gray-500">PK</span> <span className="font-medium">{creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(0)}k` : creator.link_karma}</span>
+                      <div className={cn("text-[9px]", designSystem.typography.color.tertiary)}>
+                        <span className={cn(designSystem.typography.color.subtle)}>PK</span> <span className="font-medium">{creator.link_karma > 1000 ? `${(creator.link_karma / 1000).toFixed(0)}k` : creator.link_karma}</span>
                       </div>
-                      <div className="text-[9px] text-gray-600">
-                        <span className="text-gray-500">CK</span> <span className="font-medium">{creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(0)}k` : creator.comment_karma}</span>
+                      <div className={cn("text-[9px]", designSystem.typography.color.tertiary)}>
+                        <span className={cn(designSystem.typography.color.subtle)}>CK</span> <span className="font-medium">{creator.comment_karma > 1000 ? `${(creator.comment_karma / 1000).toFixed(0)}k` : creator.comment_karma}</span>
                       </div>
                     </div>
                   </div>

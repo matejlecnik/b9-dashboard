@@ -11,7 +11,7 @@
   "parent": "../../CLAUDE.md",
   "current": "QUICK_CODES.md",
   "siblings": [
-    {"path": "DOCUMENTATION_MAP.md", "desc": "Full navigation", "status": "UPDATED"},
+    {"path": "../INDEX.md", "desc": "Full navigation", "status": "UPDATED"},
     {"path": "SESSION_LOG.md", "desc": "History", "status": "UPDATED"},
     {"path": "DOCUMENTATION_STANDARDS.md", "desc": "Rules", "status": "ENFORCED"}
   ]

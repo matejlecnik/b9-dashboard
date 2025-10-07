@@ -1,0 +1,48 @@
+# Core ML/AI
+torch==2.2.0
+torchvision==0.17.0
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Object Detection
+ultralytics==8.1.0
+
+# Pose/Face Landmarks
+mediapipe==0.10.9
+
+# Image Processing
+opencv-python==4.9.0.80
+pillow==10.1.0
+numpy==1.24.3
+scipy==1.11.4
+
+# Segmentation
+paddlepaddle-gpu==2.6.0  # or paddlepaddle if CPU only
+paddleseg==2.9.0
+
+# Embeddings (Vision-Language Models)
+open-clip-torch==2.23.0
+transformers==4.35.0
+sentence-transformers==2.2.2
+
+# Database
+supabase==2.3.0
+psycopg[binary]==3.1.16
+
+# Utils
+imagehash==4.3.1
+tqdm==4.66.1
+click==8.1.7
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Optional: Human Parsing (escalations)
+# mmcv-full==1.7.1
+# mmsegmentation==0.30.0
+
+# UI
+streamlit==1.29.0
+plotly==5.18.0
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { Button } from '@/components/ui/button'
 import { Filter, ChevronDown, Check } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { getCategoryStyles } from '@/lib/categoryColors'
+import { getCategoryStyles } from '@/lib/colors'
 
 
 interface PostingCategoryFilterProps {
@@ -88,36 +90,36 @@ export function PostingCategoryFilter({
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
-        className="h-8 px-3 text-xs font-medium border-gray-200 hover:bg-gray-50 flex items-center gap-2"
+        className={cn('h-8 px-3 border-default flex items-center', designSystem.background.hover.subtle, designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.spacing.gap.default)}
       >
         <Filter className="h-3.5 w-3.5" />
         <span>{displayText}</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={cn('h-3.5 w-3.5', designSystem.animation.transition.default, isOpen && 'rotate-180')} />
       </Button>
 
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
+          className={cn('fixed bg-white border border-default z-[9999]', designSystem.borders.radius.lg, designSystem.shadows.lg)}
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`
           }}
         >
-          <div className="p-2 border-b border-gray-100">
+          <div className="p-2 border-b border-light">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-700">Filter Categories</span>
-              <div className="flex gap-1">
+              <span className={cn(designSystem.typography.size.xs, designSystem.typography.weight.semibold, designSystem.typography.color.secondary)}>Filter Categories</span>
+              <div className={cn('flex', designSystem.spacing.gap.tight)}>
                 <button
                   onClick={handleSelectAll}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 hover:bg-blue-50 rounded"
+                  className={cn('text-blue-600 hover:text-blue-700 px-2 py-0.5 hover:bg-blue-50', designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.borders.radius.sm)}
                 >
                   Select All
                 </button>
                 <button
                   onClick={handleClearAll}
-                  className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-0.5 hover:bg-gray-50 rounded"
+                  className={cn('px-2 py-0.5', designSystem.background.hover.subtle, `hover:${designSystem.typography.color.secondary}`, designSystem.typography.color.tertiary, designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.borders.radius.sm)}
                 >
                   Clear
                 </button>
@@ -126,13 +128,13 @@ export function PostingCategoryFilter({
           </div>
 
           <div className="max-h-64 overflow-y-auto p-2">
-            <div className="text-xs font-medium text-gray-500 px-2 py-1">Categories</div>
+            <div className={cn('px-2 py-1', designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.typography.color.subtle)}>Categories</div>
             {availableCategories.map(category => {
               const styles = getCategoryStyles(category)
               return (
                 <label
                   key={category}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer group"
+                  className={cn('flex items-center px-2 py-1.5 cursor-pointer group', designSystem.background.hover.subtle, designSystem.spacing.gap.default, designSystem.borders.radius.sm)}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="relative flex items-center justify-center w-4 h-4">
@@ -143,18 +145,14 @@ export function PostingCategoryFilter({
                       onClick={(e) => e.stopPropagation()}
                       className="sr-only"
                     />
-                    <div className={`w-4 h-4 rounded border ${
-                      selectedCategories.includes(category) 
-                        ? 'bg-pink-500 border-pink-500' 
-                        : 'bg-white border-gray-300'
-                    }`}>
+                    <div className={cn('w-4 h-4 border', designSystem.borders.radius.sm, selectedCategories.includes(category) ? 'bg-primary border-primary' : 'bg-white border-strong')}>
                       {selectedCategories.includes(category) && (
                         <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
                       )}
                     </div>
                   </div>
-                  <span 
-                    className="text-xs flex-1 truncate px-2 py-0.5 rounded-md transition-all"
+                  <span
+                    className={cn('flex-1 truncate px-2 py-0.5', designSystem.typography.size.xs, designSystem.borders.radius.lg, designSystem.animation.transition.default)}
                     style={{
                       backgroundColor: styles.backgroundColor,
                       color: styles.color,
@@ -168,8 +166,8 @@ export function PostingCategoryFilter({
             })}
           </div>
 
-          <div className="p-2 border-t border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-600">
+          <div className={cn("p-2 border-t border-light", designSystem.background.surface.subtle)}>
+            <div className={cn(designSystem.typography.size.xs, designSystem.typography.color.tertiary)}>
               {selectedCategories.length} of {availableCategories.length} selected
             </div>
           </div>

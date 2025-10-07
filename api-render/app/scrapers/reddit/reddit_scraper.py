@@ -7,15 +7,16 @@ Main scraper implementation - handles all data collection, logging, and metrics
 import asyncio
 import logging
 import os
-import random
 import queue
+import random
 import sys
 import threading
 import time
 
 # ThreadPoolExecutor no longer needed - v3.3.0 uses simple loop for username-only saving
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Set
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set
+
 
 # Handle imports for both standalone and module execution
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,15 +34,17 @@ except ImportError:
 
     proxy_path = os.path.join(current_dir, "proxy_manager.py")
     spec = importlib.util.spec_from_file_location("proxy_manager", proxy_path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    ProxyManager = module.ProxyManager
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    ProxyManager = module.ProxyManager  # type: ignore[misc]
 
     api_path = os.path.join(current_dir, "public_reddit_api.py")
     spec = importlib.util.spec_from_file_location("public_reddit_api", api_path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    PublicRedditAPI = module.PublicRedditAPI
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    PublicRedditAPI = module.PublicRedditAPI  # type: ignore[misc]
 
 # Note: Supabase logging now handled by unified logging system (app/logging/)
 
@@ -56,9 +59,13 @@ logging.basicConfig(
 )
 
 # Use unified logger with Supabase support
-from app.logging import get_logger
+from typing import cast  # noqa: E402
+
+from app.logging import UnifiedLogger, get_logger  # noqa: E402
+
+
 # Note: logger will be initialized in __init__ with Supabase client
-logger = None
+logger: UnifiedLogger = cast(UnifiedLogger, None)  # Initialized in __init__ before use
 
 # Reduce noise from external libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -78,12 +85,10 @@ class RedditScraper:
         self.logger = logger
 
         self.proxy_manager = ProxyManager(supabase)
-        self.api = (
-            None  # Async API for subreddit processing (will be initialized in run())
-        )
+        self.api: PublicRedditAPI = cast(PublicRedditAPI, None)  # Initialized in run()
 
         # Threading structures
-        self.subreddit_queue = queue.Queue()
+        self.subreddit_queue: queue.Queue[str] = queue.Queue()
         self.cache_lock = threading.Lock()  # Protects all caches
 
         # Cache for Non Related subreddits (refreshed periodically)
@@ -312,7 +317,7 @@ class RedditScraper:
         Returns:
             List of subreddit dictionaries
         """
-        all_data = []
+        all_data: list[dict[str, Any]] = []
         offset = 0
         max_page_size = None  # Will be detected from first response
         iteration = 0
@@ -469,7 +474,7 @@ class RedditScraper:
             # Load NULL review subreddits (already discovered, awaiting manual review - skip during discovery)
             # Note: Cannot use _fetch_subreddits_paginated() as it uses .eq() which doesn't work for NULL
             # Must use .is_('review', 'null') for NULL filtering
-            null_review_data = []
+            null_review_data: list[dict[str, Any]] = []
             offset = 0
             max_page_size = None
             iteration = 0
@@ -494,7 +499,7 @@ class RedditScraper:
                 )
 
                 if not response.data:
-                    logger.info(f"📄 [NULL] BREAK: No data (empty response)")
+                    logger.info("📄 [NULL] BREAK: No data (empty response)")
                     break
 
                 # First page: detect Supabase's actual max page size
@@ -896,7 +901,7 @@ class RedditScraper:
                     logger.info(
                         f"         [{idx}/{len(hot_authors_list)}] {username}: ❌ error: {str(e)[:50]}"
                     )
-                    user_posts_results.append(None)
+                    user_posts_results.append([])
 
                 # Minimal delay between each user (10-50ms)
                 if idx < len(hot_authors_list):
@@ -923,7 +928,7 @@ class RedditScraper:
                 )
             elif len(discovered_subreddits) > 10:
                 logger.info(
-                    f"         First 10: {', '.join(sorted(list(discovered_subreddits))[:10])}..."
+                    f"         First 10: {', '.join(sorted(discovered_subreddits)[:10])}..."
                 )
 
             # Filter using cache only (no database query)
@@ -937,7 +942,7 @@ class RedditScraper:
                 filtered_null_review = discovered_subreddits & self.null_review_cache
                 filtered_session = discovered_subreddits & self.session_processed
 
-                logger.info(f"      🚫 Filtering breakdown:")
+                logger.info("      🚫 Filtering breakdown:")
                 if filtered_non_related:
                     logger.info(f"         - {len(filtered_non_related)} Non Related")
                 if filtered_user_feed:
@@ -975,7 +980,7 @@ class RedditScraper:
                     f"   ✅ Discovered {len(discovered_subreddits)} NEW subreddits: {', '.join(sorted(discovered_subreddits))}"
                 )
             else:
-                logger.info(f"   ✅ Discovered 0 new subreddits (all filtered)")
+                logger.info("   ✅ Discovered 0 new subreddits (all filtered)")
 
         # 7. Save usernames in batch (all authors)
         self.save_users_batch(all_authors)
@@ -1008,7 +1013,7 @@ class RedditScraper:
         info: dict,
         rules: list,
         top_weekly: list,
-        auto_review: str = None,
+        auto_review: Optional[str] = None,
     ):
         """Save/update subreddit in database with calculated metrics
 
@@ -1020,8 +1025,8 @@ class RedditScraper:
             auto_review: Optional auto-categorized review status ('Non Related', etc.)
         """
         try:
-            import math
             import json
+            import math
 
             # Extract Reddit API fields
             subscribers = info.get("subscribers", 0) or 0
@@ -1082,19 +1087,19 @@ class RedditScraper:
             )
 
             # subreddit_score = sqrt(engagement * avg_upvotes * 1000)
-            subreddit_score = 0
+            subreddit_score = 0.0
             if engagement > 0 and avg_upvotes > 0:
                 subreddit_score = round(math.sqrt(engagement * avg_upvotes * 1000), 2)
 
             # Detect verification requirement
-            verification_required = self.detect_verification(rules, description)
+            verification_required = self.detect_verification(rules, description or "")
 
             # Get cached metadata (preserved fields)
             cached = self.subreddit_metadata_cache.get(name, {})
             # Only use auto_review for NEW subreddits (NULL review)
             # ALWAYS preserve existing manual classifications
             cached_review = cached.get("review")
-            if cached_review is None:
+            if cached_review is None:  # noqa: SIM108
                 # New discovery - apply auto-categorization
                 review = auto_review
             else:
@@ -1207,7 +1212,7 @@ class RedditScraper:
         verification_keywords = ["verification", "verified", "verify"]
         return any(keyword in search_text.lower() for keyword in verification_keywords)
 
-    def analyze_rules_for_review(self, rules_text: str, description: str = None) -> str:
+    def analyze_rules_for_review(self, rules_text: str, description: Optional[str] = None) -> Optional[str]:
         """Analyze rules/description for automatic 'Non Related' classification
 
         Uses comprehensive keyword detection across multiple categories to identify
@@ -1351,7 +1356,7 @@ class RedditScraper:
         # No match - leave for manual review
         return None
 
-    def save_posts(self, posts: list, subreddit_name: str = None):
+    def save_posts(self, posts: list, subreddit_name: Optional[str] = None):
         """Save posts to database with denormalized subreddit fields
 
         Args:
@@ -1420,7 +1425,7 @@ class RedditScraper:
                                 "tags": [],
                             }
                             logger.debug(
-                                f"   ℹ️  Subreddit r/{post_subreddit} already exists (added to cache)"
+                                f"   i Subreddit r/{post_subreddit} already exists (added to cache)"
                             )
                         else:
                             logger.debug(
@@ -1535,9 +1540,9 @@ class RedditScraper:
                             )
                         else:
                             # Extract unique subreddits from user posts
-                            unique_subs = set(
+                            unique_subs = {
                                 p["subreddit_name"] for p in post_payloads
-                            )
+                            }
                             logger.info(
                                 f"   💾 SUPABASE SAVE [reddit_posts]: {len(post_payloads)} user posts across {len(unique_subs)} subreddits"
                             )

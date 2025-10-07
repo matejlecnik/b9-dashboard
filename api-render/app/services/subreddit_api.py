@@ -10,17 +10,18 @@ Enhanced to match reddit_scraper.py processing:
 """
 
 import json
-import random
-import time
-import logging
 import math
 import os
+import random
 import sys
-import requests
+import time
 from datetime import datetime, timezone
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
+import requests
 from fake_useragent import UserAgent
 from supabase import Client
+
 
 # Add parent directories to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,8 +29,9 @@ api_root = os.path.join(current_dir, "..", "..")
 sys.path.insert(0, api_root)
 
 # Import database singleton and unified logger
-from app.core.database import get_db
-from app.logging import get_logger
+from app.core.database import get_db  # noqa: E402
+from app.logging import get_logger  # noqa: E402
+
 
 # Import ProxyManager from scraper
 try:
@@ -39,9 +41,10 @@ except ImportError:
     import importlib.util
     proxy_path = os.path.join(api_root, "app", "scrapers", "reddit", "proxy_manager.py")
     spec = importlib.util.spec_from_file_location("proxy_manager", proxy_path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    ProxyManager = module.ProxyManager
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    ProxyManager = module.ProxyManager  # type: ignore[misc]
 
 # Use unified logger
 logger = get_logger(__name__)
@@ -113,7 +116,7 @@ class PublicRedditAPI:
                     ua = self.ua_generator.opera
                     logger.debug(f"Generated OPERA user agent: {ua[:60]}...")
 
-                return ua
+                return ua  # type: ignore[no-any-return]
             except Exception as e:
                 logger.debug(f"fake-useragent failed ({e}), using fallback pool")
 
@@ -172,7 +175,7 @@ class PublicRedditAPI:
 
                 # Success
                 logger.info(f"✅ Success: {url.split('/')[-2]} - {response.status_code} in {response_time_ms}ms")
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
 
             except requests.RequestException as e:
                 retries += 1
@@ -194,7 +197,7 @@ class PublicRedditAPI:
         response = self.request_with_retry(url, proxy_config)
 
         if response and 'data' in response:
-            return response['data']
+            return response['data']  # type: ignore[no-any-return]
         elif response and 'error' in response:
             return response
         return None
@@ -214,7 +217,7 @@ class PublicRedditAPI:
         response = self.request_with_retry(url, proxy_config)
 
         if response and 'rules' in response:
-            return response['rules']
+            return response['rules']  # type: ignore[no-any-return]
         return []
 
     def get_subreddit_top_posts(self, subreddit_name: str, limit: int = 10, timeframe: str = 'week', proxy_config: Optional[Dict] = None) -> List[Dict]:
@@ -271,7 +274,7 @@ class SubredditFetcher:
         verification_keywords = ['verification', 'verified', 'verify']
         return any(keyword in search_text.lower() for keyword in verification_keywords)
 
-    def analyze_rules_for_review(self, rules_text: str, description: str = None) -> str:
+    def analyze_rules_for_review(self, rules_text: str, description: Optional[str] = None) -> Optional[str]:
         """Analyze rules/description for automatic 'Non Related' classification
 
         Uses comprehensive keyword detection across multiple categories to identify
@@ -501,7 +504,7 @@ class SubredditFetcher:
 
             for attempt in range(max_retries):
                 try:
-                    result = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
+                    _result = self.supabase.table('reddit_subreddits').upsert(payload, on_conflict='name').execute()
                     logger.info(f"   💾 SUPABASE SAVE: r/{name} | subs={subscribers:,} | avg_upvotes={avg_upvotes:.1f} | score={subreddit_score:.1f} | review={review}")
                     break  # Success - exit retry loop
                 except Exception as db_error:

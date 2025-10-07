@@ -4,22 +4,25 @@ B9 Dashboard API - Error Handling Middleware
 Comprehensive error handling and logging for production deployment
 """
 
-import logging
+import json
 import traceback
 import uuid
-from typing import Dict, Any, Optional
 from datetime import datetime, timezone
-from fastapi import Request, HTTPException
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import ValidationError, RequestValidationError
+from pydantic import ValidationError as PydanticValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import ValidationError as PydanticValidationError
-import json
+
+from app.core.config.scraper_config import get_scraper_config
+from app.core.database.supabase_client import get_supabase_client
 
 # Use unified logging system
 from app.logging import get_logger
-from app.core.database import get_db
+
 
 logger = get_logger(__name__)
 SUPABASE_AVAILABLE = True  # Using unified logging with Supabase support
@@ -34,9 +37,7 @@ def filter_sensitive_headers(headers: dict) -> dict:
 
     filtered = {}
     for key, value in headers.items():
-        if key.lower() in sensitive_keys:
-            filtered[key] = '[REDACTED]'
-        elif 'token' in key.lower() or 'secret' in key.lower() or 'key' in key.lower():
+        if key.lower() in sensitive_keys or 'token' in key.lower() or 'secret' in key.lower() or 'key' in key.lower():
             filtered[key] = '[REDACTED]'
         else:
             filtered[key] = value
@@ -47,24 +48,24 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     Comprehensive error handling middleware
     Catches all exceptions and returns structured error responses
     """
-    
+
     async def dispatch(self, request: Request, call_next):
         try:
             response = await call_next(request)
             return response
-            
+
         except HTTPException as e:
             return await self.handle_http_exception(request, e)
-            
+
         except StarletteHTTPException as e:
             return await self.handle_starlette_exception(request, e)
-            
-        except (RequestValidationError, ValidationError, PydanticValidationError) as e:
+
+        except (RequestValidationError, PydanticValidationError) as e:
             return await self.handle_validation_error(request, e)
-            
+
         except Exception as e:
             return await self.handle_generic_exception(request, e)
-    
+
     async def handle_http_exception(self, request: Request, exc: HTTPException) -> JSONResponse:
         """Handle FastAPI HTTP exceptions"""
         error_data = {
@@ -75,19 +76,19 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             "path": str(request.url),
             "method": request.method
         }
-        
+
         # Log error for monitoring
         if exc.status_code >= 500:
             logger.error(f"HTTP {exc.status_code}: {exc.detail} at {request.url}")
         else:
             logger.warning(f"HTTP {exc.status_code}: {exc.detail} at {request.url}")
-        
+
         return JSONResponse(
             status_code=exc.status_code,
             content=error_data,
             headers=getattr(exc, 'headers', None)
         )
-    
+
     async def handle_starlette_exception(self, request: Request, exc: StarletteHTTPException) -> JSONResponse:
         """Handle Starlette HTTP exceptions"""
         error_data = {
@@ -98,18 +99,18 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             "path": str(request.url),
             "method": request.method
         }
-        
+
         logger.warning(f"Starlette HTTP {exc.status_code}: {exc.detail} at {request.url}")
-        
+
         return JSONResponse(
             status_code=exc.status_code,
             content=error_data
         )
-    
+
     async def handle_validation_error(self, request: Request, exc) -> JSONResponse:
         """Handle validation errors"""
         error_details = []
-        
+
         if hasattr(exc, 'errors'):
             for error in exc.errors():
                 error_details.append({
@@ -118,7 +119,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                     "type": error.get("type", ""),
                     "input": error.get("input")
                 })
-        
+
         error_data = {
             "error": "Validation Error",
             "status_code": 422,
@@ -128,25 +129,25 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             "path": str(request.url),
             "method": request.method
         }
-        
+
         logger.warning(f"Validation error at {request.url}: {error_details}")
-        
+
         return JSONResponse(
             status_code=422,
             content=error_data
         )
-    
+
     async def handle_generic_exception(self, request: Request, exc: Exception) -> JSONResponse:
         """Handle all other exceptions"""
         error_id = f"error_{uuid.uuid4().hex[:8]}_{int(datetime.now().timestamp())}"
-        
+
         # Get error details
         error_type = type(exc).__name__
         error_message = str(exc)
-        
+
         # Get traceback for logging (not for user response)
         tb_str = traceback.format_exc()
-        
+
         error_data = {
             "error": "Internal Server Error",
             "status_code": 500,
@@ -156,51 +157,52 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             "path": str(request.url),
             "method": request.method
         }
-        
+
         # Log detailed error information
         logger.error(f"Unhandled exception {error_id} at {request.url}:")
         logger.error(f"  Type: {error_type}")
         logger.error(f"  Message: {error_message}")
         logger.error(f"  Traceback: {tb_str}")
-        
+
         # Try to log to database if available
         try:
             await self.log_error_to_database(error_id, request, exc, tb_str)
         except Exception as log_exc:
             logger.error(f"Failed to log error to database: {log_exc}")
-        
+
         return JSONResponse(
             status_code=500,
             content=error_data
         )
-    
+
     async def log_error_to_database(self, error_id: str, request: Request, exception: Exception, traceback_str: str):
         """Log error to Supabase system_logs table"""
         try:
             if SUPABASE_AVAILABLE:
                 supabase = get_supabase_client()
 
-                # Prepare error log for Supabase
-                error_log = {
-                    "source": "api_errors",
-                    "level": "ERROR",
-                    "message": f"[{error_id}] {type(exception).__name__}: {str(exception)[:500]}",
-                    "metadata": {
-                        "error_id": error_id,
-                        "request_method": request.method,
-                        "request_url": str(request.url),
-                        "request_headers": filter_sensitive_headers(dict(request.headers)),
-                        "error_type": type(exception).__name__,
-                        "traceback": traceback_str[:2000],  # Limit traceback size
-                        "user_agent": request.headers.get("user-agent"),
-                        "client_ip": request.client.host if request.client else None
-                    },
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
+                if supabase is not None:
+                    # Prepare error log for Supabase
+                    error_log = {
+                        "source": "api_errors",
+                        "level": "ERROR",
+                        "message": f"[{error_id}] {type(exception).__name__}: {str(exception)[:500]}",
+                        "metadata": {
+                            "error_id": error_id,
+                            "request_method": request.method,
+                            "request_url": str(request.url),
+                            "request_headers": filter_sensitive_headers(dict(request.headers)),
+                            "error_type": type(exception).__name__,
+                            "traceback": traceback_str[:2000],  # Limit traceback size
+                            "user_agent": request.headers.get("user-agent"),
+                            "client_ip": request.client.host if request.client else None
+                        },
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
 
-                # Save to system_logs table
-                result = supabase.table('system_logs').insert(error_log).execute()
-                logger.info(f"Error {error_id} logged to Supabase")
+                    # Save to system_logs table
+                    _result = supabase.table('system_logs').insert(error_log).execute()
+                    logger.info(f"Error {error_id} logged to Supabase")
 
             else:
                 # Fallback to local logging if Supabase not available
@@ -213,8 +215,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                     "error_type": type(exception).__name__,
                     "error_message": str(exception),
                     "traceback": traceback_str[:1000],
-                    "user_agent": request.headers.get("user-agent"),
-                    "client_ip": request.client.host if request.client else None
+                    "user_agent": request.headers.get("user-agent") or "unknown",
+                    "client_ip": request.client.host if request.client else "unknown"
                 }
                 logger.info(f"Structured error log (Supabase unavailable): {json.dumps(error_log, indent=2)}")
 
@@ -225,7 +227,7 @@ class CustomExceptionHandler:
     """
     Custom exception handlers for specific error types
     """
-    
+
     @staticmethod
     def database_error_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle database connection errors"""
@@ -255,12 +257,12 @@ class CustomExceptionHandler:
                 "Retry-After": str(retry_seconds)
             }
         )
-    
+
     @staticmethod
     def external_api_error_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle external API errors (OpenAI, Reddit, etc.)"""
         logger.error(f"External API error at {request.url}: {exc}")
-        
+
         return JSONResponse(
             status_code=502,
             content={
@@ -336,7 +338,7 @@ def add_error_handlers(app):
                 ]
             }
         )
-    
+
     @app.exception_handler(405)
     async def method_not_allowed_handler(request: Request, exc: HTTPException):
         return JSONResponse(
@@ -351,7 +353,7 @@ def add_error_handlers(app):
                 "allowed_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
             }
         )
-    
+
     return app
 
 # Utility functions for error handling
@@ -364,21 +366,21 @@ def create_error_response(
     request: Optional[Request] = None
 ) -> JSONResponse:
     """Create a standardized error response"""
-    
+
     error_data = {
         "error": error_type,
         "status_code": status_code,
         "message": message,
         "timestamp": datetime.now().isoformat()
     }
-    
+
     if details:
         error_data["details"] = details
-    
+
     if request:
         error_data["path"] = str(request.url)
         error_data["method"] = request.method
-    
+
     return JSONResponse(
         status_code=status_code,
         content=error_data
@@ -392,11 +394,11 @@ def log_and_raise_error(
     log_level: str = "error"
 ) -> None:
     """Log an error and raise HTTP exception"""
-    
+
     log_message = f"{error_type}: {message}"
     if details:
         log_message += f" Details: {details}"
-    
+
     # Log based on level
     if log_level == "error":
         logger.error(log_message)
@@ -404,7 +406,7 @@ def log_and_raise_error(
         logger.warning(log_message)
     else:
         logger.info(log_message)
-    
+
     # Raise HTTP exception
     raise HTTPException(
         status_code=status_code,

@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { designSystem } from '@/lib/design-system'
 
 /**
  * Mock sync status hook
@@ -40,19 +41,19 @@ export function SyncStatusIndicator() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <div className={`px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 ${
+      <div className={`px-4 py-2 ${designSystem.borders.radius.sm} shadow-lg flex items-center gap-2 ${
         isOnline ? 'bg-white' : 'bg-yellow-100'
       }`}>
         {!isOnline && (
           <>
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+            <div className={`w-2 h-2 bg-yellow-500 ${designSystem.borders.radius.full} animate-pulse`} />
             <span className="text-sm text-yellow-700">Offline mode</span>
           </>
         )}
 
         {isSyncing && (
           <>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            <div className={`w-2 h-2 bg-blue-500 ${designSystem.borders.radius.full} animate-pulse`} />
             <span className="text-sm text-blue-700">Syncing...</span>
           </>
         )}

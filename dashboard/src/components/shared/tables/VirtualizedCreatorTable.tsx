@@ -3,6 +3,8 @@
 import React, { memo, useCallback, useRef, useEffect, useState } from 'react'
 import { UniversalCreatorTable } from './UniversalCreatorTable'
 import type { InstagramCreator } from './UniversalCreatorTable'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface VirtualizedCreatorTableProps {
   creators: InstagramCreator[]
@@ -135,7 +137,7 @@ const VirtualizedCreatorTable = memo(function VirtualizedCreatorTable({
 
       {/* Loading indicator */}
       {loadingMore && (
-        <div className="p-4 text-center text-gray-500">
+        <div className={cn("p-4 text-center", designSystem.typography.color.subtle)}>
           Loading more...
         </div>
       )}

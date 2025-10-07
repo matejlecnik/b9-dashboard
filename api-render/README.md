@@ -27,8 +27,9 @@
     "last_deployment": "2025-10-03T16:24:00Z"
   },
   "data": {
-    "reddit_users": 303889,
-    "subreddits": 13843,
+    "reddit_users": 309608,
+    "reddit_posts": 1830000,
+    "subreddits": 34682,
     "instagram_creators": 1247,
     "database_size": "8.4GB",
     "fields_optimized": 85,
@@ -37,6 +38,19 @@
 }
 ```
 
+## 💾 Media Storage (Cloudflare R2)
+
+Permanent storage for Instagram photos and videos with automatic compression:
+
+**Features:**
+- ✅ Automatic compression (photos: 300KB, videos: 1.5MB @ 720p)
+- ✅ H.264 video codec (QuickTime & Safari compatible)
+- ✅ Deduplication (skip upload if already in R2)
+- ✅ Zero egress fees (unlimited bandwidth)
+- ✅ Cost: ~$1,590/year for 10K creators (17.6TB)
+
+**Setup:** See [docs/R2_STORAGE_SETUP.md](docs/R2_STORAGE_SETUP.md)
+
 ## Navigation
 
 ```json
@@ -44,11 +58,12 @@
   "parent": "../CLAUDE.md",
   "current": "api-render/README.md",
   "documentation": {
-    "docs/ARCHITECTURE.md": {"desc": "System design", "status": "STABLE"},
-    "docs/API.md": {"desc": "Endpoint reference", "status": "COMPLETE"},
-    "docs/DEPLOYMENT.md": {"desc": "Deploy guide", "status": "ACTIVE"},
-    "docs/MONITORING.md": {"desc": "Health monitoring", "status": "OPERATIONAL"},
-    "docs/logging.md": {"desc": "Logging system", "status": "ENFORCED"}
+    "../docs/backend/ARCHITECTURE.md": {"desc": "System design", "status": "STABLE"},
+    "../docs/backend/API.md": {"desc": "Endpoint reference", "status": "COMPLETE"},
+    "../docs/backend/RENDER_API_DEPLOYMENT.md": {"desc": "Deploy guide", "status": "ACTIVE"},
+    "../docs/backend/MONITORING.md": {"desc": "Health monitoring", "status": "OPERATIONAL"},
+    "../docs/backend/logging.md": {"desc": "Logging system", "status": "ENFORCED"},
+    "docs/R2_STORAGE_SETUP.md": {"desc": "Cloudflare R2 media storage", "status": "ACTIVE"}
   },
   "modules": {
     "app/core/": {"desc": "Infrastructure", "status": "STABLE"},
@@ -256,7 +271,7 @@ api-render/
 │   └── /utils/          # Utilities
 ├── /scripts/            # Standalone scripts
 ├── /tests/              # Test suite
-├── /docs/               # Documentation
+├── /migrations/         # Database migrations
 ├── main.py              # Entry point
 ├── Makefile            # Commands
 └── requirements.txt     # Dependencies
@@ -340,5 +355,5 @@ pytest --cov=app --cov-report=html
 
 ---
 
-_API Version: 3.7.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-03_
-_Navigate: [→ ARCHITECTURE.md](docs/ARCHITECTURE.md) | [→ API.md](docs/API.md) | [→ DEPLOYMENT.md](docs/DEPLOYMENT.md)_
+_API Version: 3.7.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-07_
+_Navigate: [→ ARCHITECTURE.md](../docs/backend/ARCHITECTURE.md) | [→ API.md](../docs/backend/API.md) | [→ DEPLOYMENT.md](../docs/backend/RENDER_API_DEPLOYMENT.md)_

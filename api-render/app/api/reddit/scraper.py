@@ -5,21 +5,20 @@ Manages Reddit scraper via system_control table and subprocess
 """
 
 # Version tracking
-from app.version import REDDIT_SCRAPER_VERSION as API_VERSION
-
 import os
-import sys
 import signal
 import subprocess
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
-from datetime import datetime, timezone, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Request
 from supabase import Client
 
 # Import database singleton and unified logger
 from app.core.database import get_db
 from app.logging import get_logger
+from app.version import REDDIT_SCRAPER_VERSION as API_VERSION
+
 
 # Note: system_logger and log_api_call moved to unified logging system
 system_logger = None
@@ -211,11 +210,11 @@ async def get_reddit_scraper_status_detailed(request: Request):
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
             # Count logs for today
-            result = supabase.table('system_logs')\
-                .select('id', count='exact')\
-                .eq('source', 'reddit_scraper')\
-                .gte('timestamp', today.isoformat())\
-                .execute()
+            result = (supabase.table('system_logs')
+                .select('id', count='exact')  # type: ignore[arg-type]
+                .eq('source', 'reddit_scraper')
+                .gte('timestamp', today.isoformat())
+                .execute())
 
             if result.count:
                 stats['daily_api_calls'] = result.count
@@ -396,11 +395,11 @@ async def get_reddit_api_stats():
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Count API calls from logs
-        api_calls = supabase.table('system_logs')\
-            .select('id', count='exact')\
-            .eq('source', 'reddit_scraper')\
-            .gte('timestamp', today.isoformat())\
-            .execute()
+        api_calls = (supabase.table('system_logs')
+            .select('id', count='exact')  # type: ignore[arg-type]
+            .eq('source', 'reddit_scraper')
+            .gte('timestamp', today.isoformat())
+            .execute())
 
         return {
             "daily_calls": api_calls.count if api_calls.count else 0,
@@ -530,10 +529,10 @@ async def start_reddit_scraper(request: Request):
         try:
             # Open log file for Reddit scraper output
             log_file_path = '/tmp/reddit_scraper.log'
-            log_file = open(log_file_path, 'a')
+            log_file = open(log_file_path, 'a')  # noqa: SIM115 - Must stay open for subprocess
             log_file.write(f"\n\n{'='*60}\n")
             log_file.write(f"Starting Reddit scraper v{API_VERSION} at {datetime.now(timezone.utc).isoformat()}\n")
-            log_file.write(f"Started via API endpoint\n")
+            log_file.write("Started via API endpoint\n")
             log_file.write(f"{'='*60}\n")
             log_file.flush()
 
@@ -596,7 +595,7 @@ async def start_reddit_scraper(request: Request):
             else:
                 # Process died immediately - read the error
                 log_file.close()
-                with open(log_file_path, 'r') as f:
+                with open(log_file_path) as f:
                     error_output = f.read()
                     last_lines = error_output.split('\n')[-20:]  # Get last 20 lines
                     error_msg = '\n'.join(last_lines)
@@ -627,13 +626,13 @@ async def start_reddit_scraper(request: Request):
             supabase.table('system_control').update({
                 'enabled': False,
                 'status': 'error',
-                'last_error': f"Failed to start subprocess: {str(subprocess_error)}",
+                'last_error': f"Failed to start subprocess: {subprocess_error!s}",
                 'last_error_at': datetime.now(timezone.utc).isoformat()
             }).eq('script_name', 'reddit_scraper').execute()
 
             return {
                 "success": False,
-                "message": f"Failed to start subprocess: {str(subprocess_error)}",
+                "message": f"Failed to start subprocess: {subprocess_error!s}",
                 "status": "error"
             }
 
@@ -649,7 +648,7 @@ async def start_reddit_scraper(request: Request):
             )
         return {
             "success": False,
-            "message": f"Failed to start Reddit scraper: {str(e)}",
+            "message": f"Failed to start Reddit scraper: {e!s}",
             "status": "error"
         }
 
@@ -736,6 +735,6 @@ async def stop_reddit_scraper(request: Request):
             )
         return {
             "success": False,
-            "message": f"Failed to stop Reddit scraper: {str(e)}",
+            "message": f"Failed to stop Reddit scraper: {e!s}",
             "status": "error"
         }

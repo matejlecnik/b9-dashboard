@@ -3,8 +3,8 @@ Logging Setup and Configuration
 Configures Python's standard logging for the application
 """
 
-import os
 import logging
+import os
 
 
 def setup_logging() -> logging.Logger:

@@ -28,6 +28,8 @@ import { StandardActionButton } from '@/components/shared/buttons/StandardAction
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { Plus, Check, UserX, X } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 // Dynamic imports for heavy components
 const UniversalTable = dynamic(
@@ -411,12 +413,12 @@ export default function SubredditReviewPage() {
             onClick={handleCloseRules}
           >
             <div
-              className="bg-white/95 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
+              className="bg-white/95 {designSystem.borders.radius.lg} max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-default">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-b9-pink text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 {designSystem.borders.radius.full} bg-b9-pink text-white flex items-center justify-center font-bold">
                     {(() => {
                       const dp = rulesModal.subreddit.display_name_prefixed || 'r/'
                       const idx = dp.startsWith('r/') || dp.startsWith('u/') ? 2 : 0
@@ -428,12 +430,12 @@ export default function SubredditReviewPage() {
                     <h2 className="text-xl font-bold text-black">
                       {rulesModal.subreddit.display_name_prefixed} Rules
                     </h2>
-                    <p className="text-sm text-gray-600">{rulesModal.subreddit.title}</p>
+                    <p className={cn("text-sm", designSystem.typography.color.tertiary)}>{rulesModal.subreddit.title}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleCloseRules}
-                  className="rounded-full p-2 hover:bg-gray-100"
+                  className={cn("{designSystem.borders.radius.full} p-2", designSystem.background.hover.light)}
                   title="Close (Esc)"
                 >
                   ✕
@@ -474,7 +476,7 @@ export default function SubredditReviewPage() {
                       return (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-gray-800">Subreddit Rules</h3>
+                            <h3 className={cn("font-semibold", designSystem.typography.color.secondary)}>Subreddit Rules</h3>
                             <a
                               href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
                               target="_blank"
@@ -486,22 +488,22 @@ export default function SubredditReviewPage() {
                           </div>
                           <div className="space-y-3">
                             {rules.map((rule, index: number) => (
-                              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                              <div key={index} className={cn("p-3 {designSystem.borders.radius.sm}", designSystem.background.surface.subtle)}>
                                 <div className="flex items-start gap-3">
-                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold {designSystem.borders.radius.full} flex items-center justify-center">
                                     {index + 1}
                                   </div>
                                   <div className="flex-1">
-                                    <h4 className="font-medium text-gray-900 mb-1">
+                                    <h4 className={cn("font-medium mb-1", designSystem.typography.color.primary)}>
                                       {rule.short_name || rule.title || `Rule ${index + 1}`}
                                     </h4>
                                     {rule.description && (
-                                      <p className="text-sm text-gray-600 leading-relaxed">
+                                      <p className={cn("text-sm leading-relaxed", designSystem.typography.color.tertiary)}>
                                         {rule.description}
                                       </p>
                                     )}
                                     {rule.violation_reason && rule.violation_reason !== rule.short_name && (
-                                      <p className="text-xs text-gray-500 mt-1 italic">
+                                      <p className={cn("text-xs mt-1 italic", designSystem.typography.color.subtle)}>
                                         Violation: {rule.violation_reason}
                                       </p>
                                     )}
@@ -516,11 +518,11 @@ export default function SubredditReviewPage() {
                       return (
                         <div className="text-center py-8">
                           <div className="mb-4">
-                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                              <span className="text-2xl text-gray-400">📋</span>
+                            <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
+                              <span className={cn("text-2xl", designSystem.typography.color.disabled)}>📋</span>
                             </div>
-                            <p className="text-gray-600">No rules data available for this subreddit.</p>
-                            <p className="text-sm text-gray-500 mt-1">Rules may not have been scraped yet or the subreddit has no posted rules.</p>
+                            <p className={cn(designSystem.typography.color.tertiary)}>No rules data available for this subreddit.</p>
+                            <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>Rules may not have been scraped yet or the subreddit has no posted rules.</p>
                           </div>
                           <a
                             href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
@@ -538,11 +540,11 @@ export default function SubredditReviewPage() {
                     return (
                       <div className="text-center py-8">
                         <div className="mb-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <span className="text-2xl text-gray-700">⚠️</span>
+                          <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
+                            <span className={cn("text-2xl", designSystem.typography.color.secondary)}>⚠️</span>
                           </div>
-                          <p className="text-gray-600">Error loading rules data.</p>
-                          <p className="text-sm text-gray-500 mt-1">The rules data may be malformed or corrupted.</p>
+                          <p className={cn(designSystem.typography.color.tertiary)}>Error loading rules data.</p>
+                          <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>The rules data may be malformed or corrupted.</p>
                         </div>
                         <a
                           href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}

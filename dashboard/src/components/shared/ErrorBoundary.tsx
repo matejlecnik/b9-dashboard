@@ -6,6 +6,8 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Component, ReactNode, ErrorInfo } from 'react'
 import { memoryTracker } from '@/lib/memory-management'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -111,7 +113,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               {showDetails && this.state.errorInfo && (
                 <details className="text-xs">
                   <summary className="cursor-pointer font-medium">Error details</summary>
-                  <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded overflow-auto">
+                  <pre className={`mt-2 p-2 ${designSystem.background.surface.light} dark:${designSystem.background.surface.darkest} rounded overflow-auto`}>
                     {this.state.errorInfo.componentStack}
                   </pre>
                 </details>
@@ -123,7 +125,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </Button>
 
               {this.state.errorCount < 2 && (
-                <p className="text-xs text-gray-500">Auto-retry in 5 seconds...</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Auto-retry in 5 seconds...</p>
               )}
             </CardContent>
           </Card>

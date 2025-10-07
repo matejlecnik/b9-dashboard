@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UNIFIED_TOOLBAR_STYLES, TOOLBAR_DIMENSIONS, B9_GRADIENTS } from '@/lib/toolbarStyles'
 import { formatNumber } from '@/lib/formatters'
+import { designSystem } from '@/lib/design-system'
 
 // Unified Search Input Component
 interface ToolbarSearchProps {
@@ -77,7 +78,7 @@ export function ToolbarSearch({
       {value && (
         <button
           onClick={handleClear}
-          className={`absolute right-3 top-1/2 transform -translate-y-1/2 z-10 p-1 rounded-full transition-all duration-200 hover:bg-gray-100/60 ${
+          className={`absolute right-3 top-1/2 transform -translate-y-1/2 z-10 p-1 ${designSystem.borders.radius.full} transition-all duration-200 hover:bg-gray-100/60 ${
             isFocused ? 'text-b9-pink' : 'text-gray-400'
           }`}
           aria-label="Clear search"
@@ -175,14 +176,14 @@ export function ToolbarBadge({
   return (
     <Badge 
       variant="secondary" 
-      className={`ml-2 border-0 text-xs font-bold px-2 py-0.5 rounded-full transition-all duration-300 group-hover:scale-105 ${className}`}
+      className={`ml-2 border-0 text-xs font-bold px-2 py-0.5 ${designSystem.borders.radius.full} transition-all duration-300 group-hover:scale-105 ${className}`}
       style={{
         ...UNIFIED_TOOLBAR_STYLES.badge.base,
         ...(isActive ? UNIFIED_TOOLBAR_STYLES.badge.active : UNIFIED_TOOLBAR_STYLES.badge.inactive)
       }}
     >
       {disabled ? (
-        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+        <div className={`w-3 h-3 border border-current border-t-transparent ${designSystem.borders.radius.full} animate-spin`} />
       ) : (
         typeof count === 'number' ? formatNumber(count) : count
       )}

@@ -54,18 +54,18 @@ export interface StandardPlaceholderProps {
 
 const colorSchemes = {
   pink: {
-    gradient: 'from-pink-50 via-purple-50 to-pink-50',
-    iconBg: 'bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700',
+    gradient: 'from-primary/10 via-secondary/10 to-primary/10',
+    iconBg: 'bg-gradient-to-br from-primary-hover via-primary to-primary-pressed',
     iconText: 'text-white',
     statColor: 'pink' as const,
-    button: 'text-gray-700 hover:bg-gray-100'
+    button: `${designSystem.typography.color.secondary} ${designSystem.background.hover.light}`
   },
   blue: {
     gradient: 'from-cyan-50 via-blue-50 to-cyan-50',
     iconBg: 'bg-cyan-600',
     iconText: 'text-white',
     statColor: 'blue' as const,
-    button: 'text-gray-700 hover:bg-gray-100'
+    button: `${designSystem.typography.color.secondary} ${designSystem.background.hover.light}`
   },
   black: {
     gradient: 'from-black via-gray-900 to-black',
@@ -73,9 +73,9 @@ const colorSchemes = {
     iconText: 'text-white',
     statColor: 'gray' as const,
     button: 'text-white border-white hover:bg-white hover:text-black',
-    cardBg: 'bg-gray-900/50 border-gray-800',
+    cardBg: `${designSystem.background.surface.inverse}/50 border-gray-800`,
     textColor: 'text-white',
-    subtitleColor: 'text-gray-400',
+    subtitleColor: designSystem.typography.color.disabled,
     statBg: 'bg-black/50'
   },
   green: {
@@ -83,21 +83,21 @@ const colorSchemes = {
     iconBg: 'bg-green-600',
     iconText: 'text-white',
     statColor: 'green' as const,
-    button: 'text-gray-700 hover:bg-gray-100'
+    button: `${designSystem.typography.color.secondary} ${designSystem.background.hover.light}`
   },
   purple: {
-    gradient: 'from-purple-50 via-indigo-50 to-purple-50',
-    iconBg: 'bg-purple-600',
+    gradient: 'from-secondary/10 via-indigo-50 to-secondary/10',
+    iconBg: 'bg-secondary-hover',
     iconText: 'text-white',
     statColor: 'purple' as const,
-    button: 'text-gray-700 hover:bg-gray-100'
+    button: `${designSystem.typography.color.secondary} ${designSystem.background.hover.light}`
   },
   orange: {
     gradient: 'from-orange-50 via-amber-50 to-orange-50',
     iconBg: 'bg-orange-600',
     iconText: 'text-white',
     statColor: 'orange' as const,
-    button: 'text-gray-700 hover:bg-gray-100'
+    button: `${designSystem.typography.color.secondary} ${designSystem.background.hover.light}`
   }
 }
 
@@ -175,7 +175,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
                 <p className={cn(
                   designSystem.text.subtitle,
                   'mt-1',
-                  isDark ? 'text-gray-400' : ''
+                  isDark ? designSystem.typography.color.disabled : ''
                 )}>
                   {subtitle}
                 </p>
@@ -242,7 +242,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
                       )}
                     >
                       <p className="text-2xl font-bold text-white">{stat.value}</p>
-                      <p className="text-sm text-gray-400">{stat.subtitle || stat.label}</p>
+                      <p className={cn("text-sm", designSystem.typography.color.disabled)}>{stat.subtitle || stat.label}</p>
                     </div>
                   ) : (
                     <StatCard

@@ -2,8 +2,10 @@
 Configuration module for Instagram Scraper - High Performance Version
 """
 import os
-from typing import Dict, Any
+from typing import Any, Dict, Optional
+
 from dotenv import load_dotenv
+
 
 # Load environment variables
 load_dotenv()
@@ -94,7 +96,7 @@ class Config:
         return True
 
     @classmethod
-    def get_headers(cls) -> Dict[str, str]:
+    def get_headers(cls) -> Dict[str, Optional[str]]:
         """Get API headers for RapidAPI"""
         return {
             "x-rapidapi-key": cls.RAPIDAPI_KEY,

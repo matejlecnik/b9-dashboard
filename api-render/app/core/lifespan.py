@@ -5,14 +5,16 @@ Handles FastAPI startup and shutdown logic with service initialization
 
 import os
 import time
-import logging
 from contextlib import asynccontextmanager
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from fastapi import FastAPI
-from app.services.ai_categorizer import TagCategorizationService
-from app.utils import health_monitor
+
 from app.core.database import get_db
 from app.logging import get_logger
+from app.services.ai_categorizer import TagCategorizationService
+from app.utils import health_monitor
+
 
 logger = get_logger(__name__)
 
@@ -55,10 +57,6 @@ def create_lifespan_manager(
             if missing_vars:
                 raise Exception(f"Missing required environment variables: {missing_vars}")
 
-            supabase_url = os.getenv("SUPABASE_URL")
-            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            openai_key = os.getenv("OPENAI_API_KEY")
-
             # Initialize Supabase client with error handling (using singleton)
             try:
                 supabase_ref['instance'] = get_db()
@@ -73,6 +71,8 @@ def create_lifespan_manager(
             # Initialize services
             logger.info("⚙️  Initializing services...")
 
+            openai_key = os.getenv("OPENAI_API_KEY")
+            assert openai_key is not None, "OPENAI_API_KEY required"
             tag_categorization_service_ref['instance'] = TagCategorizationService(
                 supabase_ref['instance'],
                 openai_key
@@ -94,7 +94,7 @@ def create_lifespan_manager(
             startup_time = time.time() - startup_start
             logger.info(f"🎯 B9 Dashboard API ready in {startup_time:.2f}s")
             logger.info(
-                f"API startup complete",
+                "API startup complete",
                 duration_ms=int(startup_time * 1000),
                 context={
                     "cache_enabled": False,
@@ -105,7 +105,7 @@ def create_lifespan_manager(
             )
 
             # Log startup
-            logger.info(f"Services initialized: categorization, user")
+            logger.info("Services initialized: categorization, user")
             logger.info("Cache disabled, Rate limiting disabled")
 
         except Exception as e:

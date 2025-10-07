@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   Play,
-  Square
+  Square,
+  TrendingUp,
+  Clock
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { LogViewerSupabase } from '@/components/features/monitoring/LogViewerSupabase'
@@ -12,10 +14,15 @@ import { ApiActivityLog } from '@/components/features/monitoring/ApiActivityLog'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 export default function RedditMonitor() {
-  // API URL configuration - must be at component top level for client components
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+  // API URL configuration - memoized to satisfy ESLint exhaustive-deps
+  const API_URL = useMemo(
+    () => process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com',
+    []
+  )
 
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
@@ -356,45 +363,102 @@ export default function RedditMonitor() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Main Content Area */}
+        {/* Main Content Area - Responsive Layout */}
         <div className="flex flex-col gap-4">
-          {/* Top Row - Controls, Logs */}
-          <div className="flex gap-4">
-            {/* Left Column - Button and Success Rate */}
-            <div className="flex flex-col gap-3 flex-shrink-0">
-              {/* Start/Stop Scraper Button */}
-              <StandardActionButton
-                onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
-                label={isRunning ? 'Stop Scraper' : 'Start Scraper'}
-                icon={isRunning ? Square : Play}
-                variant={isRunning ? 'danger' : 'primary'}
-                disabled={loading}
-                size="large"
-                className="w-[140px]"
-              />
+          {/* Top Row - Controls, Logs - Stacks on mobile, side-by-side on md+ */}
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            {/* Left Column - Button and Metrics - Full width on mobile, fixed width on md+ */}
+            <div className="flex flex-col gap-4 flex-shrink-0 w-full md:w-[220px] mt-[18px]">
+              {/* Start/Stop Scraper Button with Enhanced Status Indicator */}
+              <div className="relative">
+                {/* Enhanced status indicator - larger with pulsing animation */}
+                <div className={cn(
+                  `absolute -top-2 -right-2 w-4 h-4 ${designSystem.borders.radius.full} z-20`,
+                  "border-2 border-white shadow-lg",
+                  isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                )} />
+                <StandardActionButton
+                  onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
+                  label={isRunning ? 'Stop' : 'Start'}
+                  icon={isRunning ? Square : Play}
+                  variant={isRunning ? 'danger' : 'reddit'}
+                  disabled={loading}
+                  size="large"
+                  className="w-full"
+                />
+              </div>
 
-              {/* Success Rate Card */}
-              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
-                <div className="text-[10px] text-gray-500 mb-0.5">Success Rate (Today)</div>
-                <div className="text-xl font-bold text-gray-900">
-                  {successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
+              {/* Success Rate Card - Enhanced with Icon */}
+              <div className={cn(
+                "relative overflow-hidden group cursor-default",
+                "bg-gradient-to-br from-[var(--reddit-primary)]/12 via-white/95 to-[var(--reddit-secondary)]/10",
+                "backdrop-blur-[16px] backdrop-saturate-[180%]",
+                designSystem.radius.lg,
+                "shadow-lg",
+                "border border-[var(--reddit-primary)]/30",
+                "p-5",
+                "hover:scale-[1.02] hover:shadow-2xl hover:border-[var(--reddit-primary)]/40",
+                "transition-all duration-300 ease-out"
+              )}>
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--reddit-primary)]/15 to-transparent opacity-60 pointer-events-none" />
+
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className={cn("text-xs font-semibold uppercase tracking-wide font-mac-text", designSystem.typography.color.secondary)}>
+                    Success Rate
+                  </div>
+                  <TrendingUp className="h-4 w-4 text-[var(--reddit-primary)] opacity-70" />
+                </div>
+                <div className="relative">
+                  <div className="text-3xl font-bold text-[var(--reddit-primary)] font-mac-display mb-1">
+                    {successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
+                  </div>
+                  {successRate && (
+                    <div className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.tertiary)}>
+                      {successRate.successful}/{successRate.total} requests
+                    </div>
+                  )}
+                  <div className={cn("text-[9px] mt-3 font-mac-text", designSystem.typography.color.disabled)}>
+                    Updated {new Date().toLocaleTimeString()}
+                  </div>
                 </div>
               </div>
 
-              {/* Cycle Length Card */}
-              <div className="bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl rounded-lg p-3 w-[150px]">
-                <div className="text-[10px] text-gray-500 mb-0.5">Current Cycle</div>
-                <div className="text-xl font-bold text-gray-900">
-                  {cycleData?.elapsed_formatted || 'Not Active'}
+              {/* Cycle Length Card - Enhanced with Icon */}
+              <div className={cn(
+                "relative overflow-hidden group cursor-default",
+                "bg-gradient-to-br from-[var(--reddit-secondary)]/10 via-white/95 to-white/98",
+                "backdrop-blur-[16px] backdrop-saturate-[180%]",
+                designSystem.radius.lg,
+                "shadow-lg",
+                "border border-[var(--reddit-secondary)]/30",
+                "p-5",
+                "hover:scale-[1.02] hover:shadow-2xl hover:border-[var(--reddit-secondary)]/40",
+                "transition-all duration-300 ease-out"
+              )}>
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--reddit-secondary)]/12 to-transparent opacity-50 pointer-events-none" />
+
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className={cn("text-xs font-semibold uppercase tracking-wide font-mac-text", designSystem.typography.color.secondary)}>
+                    Current Cycle
+                  </div>
+                  <Clock className="h-4 w-4 text-[var(--reddit-secondary)] opacity-70" />
                 </div>
-                <div className="text-[10px] text-gray-600 mt-0.5">
-                  {cycleData?.elapsed_formatted === 'Not Active'
-                    ? 'Scraper Disabled'
-                    : cycleData?.elapsed_formatted === 'Unknown'
-                    ? 'No Start Log Found'
-                    : cycleData?.elapsed_formatted
-                    ? 'Scraper Active'
-                    : 'Loading...'}
+                <div className="relative">
+                  <div className="text-3xl font-bold text-[var(--reddit-secondary)] font-mac-display mb-1">
+                    {cycleData?.elapsed_formatted || 'Not Active'}
+                  </div>
+                  <div className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.tertiary)}>
+                    {cycleData?.elapsed_formatted === 'Not Active'
+                      ? 'Scraper Disabled'
+                      : cycleData?.elapsed_formatted === 'Unknown'
+                      ? 'No Start Log Found'
+                      : cycleData?.elapsed_formatted
+                      ? 'Scraper Active'
+                      : 'Loading...'}
+                  </div>
+                  <div className={cn("text-[9px] mt-3 font-mac-text", designSystem.typography.color.disabled)}>
+                    Updated {new Date().toLocaleTimeString()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -405,23 +469,24 @@ export default function RedditMonitor() {
               <div>
                 <LogViewerSupabase
                   title="Reddit Scraper Activity"
-                  height="300px"
+                  height="calc((100vh - 264px) / 2)"
                   autoScroll={true}
                   refreshInterval={5000}
-                  maxLogs={500}
+                  maxLogs={30}
+                  minLogsToShow={30}
                   useSystemLogs={true}
                   sourceFilter="reddit_scraper"
                 />
               </div>
 
-              {/* API Activity Logs Row */}
-              <div className="flex gap-4">
+              {/* API Activity Logs Row - Side-by-side layout */}
+              <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <ApiActivityLog
                     title="User Activity"
                     endpoint="users"
-                    height="120px"
-                    maxLogs={20}
+                    height="calc((100vh - 264px) / 2)"
+                    maxLogs={30}
                     useSystemLogs={true}
                   />
                 </div>
@@ -429,8 +494,8 @@ export default function RedditMonitor() {
                   <ApiActivityLog
                     title="AI Categorization"
                     endpoint="categorization"
-                    height="120px"
-                    maxLogs={20}
+                    height="calc((100vh - 264px) / 2)"
+                    maxLogs={30}
                     useSystemLogs={true}
                   />
                 </div>

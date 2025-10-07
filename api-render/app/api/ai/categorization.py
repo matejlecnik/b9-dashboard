@@ -1,14 +1,16 @@
 """
 AI Categorization Routes - Tag-based subreddit categorization API endpoints
 """
+import os
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
-import os
 
-from app.services.ai_categorizer import TagCategorizationService
 from app.core.database import get_db
 from app.logging import get_logger
+from app.services.ai_categorizer import TagCategorizationService
+
 
 logger = get_logger(__name__)
 
@@ -103,7 +105,7 @@ async def tag_subreddits(request: Request, body: TagSubredditsRequest):
 
         # Run categorization
         result = await service.tag_all_uncategorized(
-            batch_size=body.batch_size,
+            batch_size=body.batch_size or 50,
             limit=body.limit,
             subreddit_ids=body.subreddit_ids
         )
@@ -125,7 +127,7 @@ async def tag_subreddits(request: Request, body: TagSubredditsRequest):
 
     except Exception as e:
         logger.error(f"❌ Error in tag_subreddits: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/stats", response_model=StatsResponse)
@@ -157,7 +159,7 @@ async def get_stats(request: Request):
 
     except Exception as e:
         logger.error(f"❌ Error in get_stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/tags")
@@ -205,7 +207,7 @@ async def get_tags(request: Request):
 
     except Exception as e:
         logger.error(f"❌ Error in get_tags: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/health")
@@ -238,4 +240,4 @@ async def health_check(request: Request):
 
     except Exception as e:
         logger.error(f"❌ Error in health_check: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

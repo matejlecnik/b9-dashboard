@@ -2,6 +2,7 @@
 
 import { memo, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -151,15 +152,17 @@ const StandardToolbar = memo(function StandardToolbar({
     return (
       <div
         className={cn(
-          'flex items-center justify-between gap-3 p-3 rounded-xl',
-          'bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]',
-          'border border-gray-200 shadow-[0_8px_32px_rgba(0,0,0,0.1)]',
+          'flex items-center justify-between p-3',
+          designSystem.spacing.gap.default,
+          designSystem.borders.radius.xl,
+          'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
+          'border border-default shadow-[0_8px_32px_var(--black-alpha-10)]',
           'animate-in slide-in-from-top-2 duration-200',
           className
         )}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-900">
+        <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
+          <span className={cn(designSystem.typography.size.sm, designSystem.typography.weight.semibold, designSystem.typography.color.primary)}>
             {selectedCount} selected
           </span>
           {bulkActions.map((action) => {
@@ -193,12 +196,12 @@ const StandardToolbar = memo(function StandardToolbar({
 
   return (
     <div
-      className={cn('flex flex-col lg:flex-row gap-3 justify-between', className)}
+      className={cn('flex flex-col lg:flex-row justify-between', designSystem.spacing.gap.default, className)}
       suppressHydrationWarning
     >
       {/* Left Section - Search Bar */}
       <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none z-10" />
+        <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10", designSystem.typography.color.subtle)} />
         <Input
           type="text"
           placeholder=""
@@ -207,18 +210,19 @@ const StandardToolbar = memo(function StandardToolbar({
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setSearchFocused(false)}
           className={cn(
-            'pl-9 pr-9 h-9 rounded-lg w-full max-w-md',
-            'bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]',
-            'border border-gray-200 shadow-[0_4px_16px_rgba(0,0,0,0.05)]',
-            'transition-all duration-200',
-            searchFocused && 'ring-2 ring-pink-200/50'
+            'pl-9 pr-9 h-9 w-full max-w-md',
+            designSystem.borders.radius.lg,
+            'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
+            'border border-default shadow-[0_4px_16px_var(--black-alpha-05)]',
+            designSystem.animation.transition.default,
+            searchFocused && 'ring-2 ring-primary/30'
           )}
           disabled={loading}
         />
         {searchValue && (
           <button
             onClick={handleClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className={cn("absolute right-3 top-1/2 -translate-y-1/2", designSystem.typography.color.disabled, `hover:${designSystem.typography.color.tertiary}`)}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -226,10 +230,10 @@ const StandardToolbar = memo(function StandardToolbar({
       </div>
 
       {/* Right Section - Filter Pills, Sort, Actions */}
-      <div className="flex items-center gap-3">
+      <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
         {/* Filter Pills */}
         {filters && filters.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className={cn('flex items-center flex-wrap', designSystem.spacing.gap.tight)}>
         {filters.map((filter) => {
           const isActive = currentFilter === filter.id
           return (
@@ -238,29 +242,35 @@ const StandardToolbar = memo(function StandardToolbar({
               onClick={() => onFilterChange?.(filter.id)}
               disabled={loading}
               className={cn(
-                'group relative px-3 py-1.5 rounded-lg text-xs font-medium overflow-hidden',
-                'transition-all duration-300 hover:scale-[1.02]',
-                'flex items-center gap-1.5',
-                isActive ? 'text-white' : 'text-gray-700'
+                'group relative px-3 py-1.5 overflow-hidden',
+                designSystem.borders.radius.lg,
+                designSystem.typography.size.xs,
+                designSystem.typography.weight.medium,
+                designSystem.animation.transition.default,
+                'hover:scale-[1.02]',
+                'flex items-center',
+                designSystem.spacing.gap.tight,
+                isActive ? 'text-white' : designSystem.typography.color.secondary
               )}
               style={{
                 background: isActive
-                  ? 'linear-gradient(135deg, rgba(255, 182, 193, 0.9), rgba(255, 105, 135, 0.9))'
-                  : 'linear-gradient(135deg, rgba(255, 182, 193, 0.08), rgba(255, 192, 203, 0.08))',
+                  ? 'linear-gradient(135deg, var(--pink-300-alpha-90), var(--pink-custom-alpha-90))'
+                  : 'linear-gradient(135deg, var(--pink-200-alpha-08), var(--pink-200-alpha-08))',
                 backdropFilter: 'blur(16px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(16px) saturate(180%)',
                 boxShadow: isActive
-                  ? '0 8px 20px rgba(255, 105, 135, 0.4), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4)'
-                  : '0 2px 8px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)',
-                border: '1px solid rgba(0, 0, 0, 0.1)'
+                  ? '0 8px 20px var(--pink-custom-alpha-40), inset 0 2px 2px 0 var(--white-alpha-40)'
+                  : '0 2px 8px var(--black-alpha-05), inset 0 1px 1px 0 var(--white-alpha-30)',
+                border: '1px solid var(--black-alpha-10)'
               }}
             >
               {/* Gradient overlay on hover */}
               <div className={cn(
-                "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                "absolute inset-0 opacity-0 group-hover:opacity-100",
+                designSystem.animation.transition.default,
                 isActive
-                  ? "bg-gradient-to-br from-pink-300/30 via-pink-400/30 to-pink-500/30"
-                  : "bg-gradient-to-br from-pink-200/20 via-pink-300/20 to-pink-400/20"
+                  ? "bg-gradient-to-br from-primary/30 via-primary/30 to-primary-hover/30"
+                  : "bg-gradient-to-br from-primary/20 via-primary/20 to-primary/20"
               )} />
 
               {/* Shine effect */}
@@ -268,15 +278,15 @@ const StandardToolbar = memo(function StandardToolbar({
 
               {/* Glow effect for active state */}
               {isActive && (
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-pink-400/20 to-pink-500/20 blur-xl" />
+                <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100", designSystem.animation.transition.slow)}>
+                  <div className={cn("absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-hover/20 blur-xl", designSystem.borders.radius.lg)} />
                 </div>
               )}
 
               {/* Content */}
-              <div className="relative z-10 flex items-center gap-1.5">
+              <div className={cn('relative z-10 flex items-center', designSystem.spacing.gap.tight)}>
                 <span className={cn(
-                  isActive && "bg-gradient-to-r from-pink-100 to-white bg-clip-text text-transparent font-semibold"
+                  isActive && "bg-gradient-to-r from-primary/50 to-white bg-clip-text text-transparent font-semibold"
                 )}>
                   {filter.label}
                 </span>
@@ -287,7 +297,7 @@ const StandardToolbar = memo(function StandardToolbar({
                       'h-5 px-1.5 min-w-[20px] text-[10px] font-medium',
                       isActive
                         ? 'bg-white/20 text-white border-white/30'
-                        : 'bg-pink-50/50 text-pink-700 border-pink-200/30'
+                        : 'bg-primary/10 text-primary-pressed border-primary/30'
                     )}
                   >
                     {loading ? '...' : filter.count.toLocaleString('en-US')}
@@ -302,7 +312,7 @@ const StandardToolbar = memo(function StandardToolbar({
 
         {/* Checkbox Filters */}
         {checkboxLabel && onCheckboxChange && (
-          <div className="flex items-center gap-2">
+          <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
             <Checkbox
               id="toolbar-checkbox"
               checked={checkboxChecked || false}
@@ -311,7 +321,7 @@ const StandardToolbar = memo(function StandardToolbar({
             />
             <label
               htmlFor="toolbar-checkbox"
-              className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+              className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, designSystem.typography.color.secondary, 'cursor-pointer select-none')}
             >
               {checkboxLabel}
             </label>
@@ -319,7 +329,7 @@ const StandardToolbar = memo(function StandardToolbar({
         )}
 
         {checkboxLabel2 && onCheckboxChange2 && (
-          <div className="flex items-center gap-2">
+          <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
             <Checkbox
               id="toolbar-checkbox-2"
               checked={checkboxChecked2 || false}
@@ -328,7 +338,7 @@ const StandardToolbar = memo(function StandardToolbar({
             />
             <label
               htmlFor="toolbar-checkbox-2"
-              className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+              className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, designSystem.typography.color.secondary, 'cursor-pointer select-none')}
             >
               {checkboxLabel2}
             </label>
@@ -337,7 +347,7 @@ const StandardToolbar = memo(function StandardToolbar({
 
         {/* Slider Filter */}
         {sliderLabel && onSliderChange && (
-          <div className="flex items-center gap-2">
+          <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
             <div className="w-40">
               <Slider
                 min={sliderMin}
@@ -350,7 +360,7 @@ const StandardToolbar = memo(function StandardToolbar({
                 className="cursor-pointer"
               />
             </div>
-            <span className="text-sm font-semibold text-pink-600 min-w-[3rem]">
+            <span className={cn(designSystem.typography.size.sm, designSystem.typography.weight.semibold, 'text-primary min-w-[3rem]')}>
               {sliderFormatValue ? sliderFormatValue(sliderValue || sliderMin) : (sliderValue || sliderMin)}
             </span>
           </div>
@@ -364,9 +374,10 @@ const StandardToolbar = memo(function StandardToolbar({
               variant="outline"
               size="sm"
               className={cn(
-                'h-9 gap-2',
-                'bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]',
-                'border border-gray-200 shadow-[0_4px_16px_rgba(0,0,0,0.05)]'
+                'h-9',
+                designSystem.spacing.gap.default,
+                'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
+                'border border-default shadow-[0_4px_16px_var(--black-alpha-05)]'
               )}
               disabled={loading}
             >
@@ -379,7 +390,7 @@ const StandardToolbar = memo(function StandardToolbar({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-48 bg-white border border-gray-200 shadow-lg backdrop-blur-[15px]"
+            className={cn('w-48 bg-white border border-default backdrop-blur-[15px]', designSystem.shadows.lg)}
           >
             {sortOptions.map((option) => {
               const Icon = option.icon
@@ -389,12 +400,12 @@ const StandardToolbar = memo(function StandardToolbar({
                   onClick={() => onSortChange?.(option.id)}
                   className="flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
                     {Icon && <Icon className="h-3.5 w-3.5" />}
                     {option.label}
                   </div>
                   {currentSort === option.id && (
-                    <Check className="h-3.5 w-3.5 text-pink-500" />
+                    <Check className="h-3.5 w-3.5 text-primary" />
                   )}
                 </DropdownMenuItem>
               )
@@ -405,7 +416,7 @@ const StandardToolbar = memo(function StandardToolbar({
 
         {/* Action Buttons */}
         {actionButtons && actionButtons.length > 0 && (
-          <div className="flex gap-2">
+          <div className={cn('flex', designSystem.spacing.gap.default)}>
             {actionButtons.map((button) => {
               const Icon = button.icon
               return (

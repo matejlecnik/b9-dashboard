@@ -3,6 +3,8 @@
 import React, { ReactNode } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 // import { UnifiedSidebar } from '@/components/shared/layouts/UnifiedSidebar'
 
 interface DashboardTemplateProps {
@@ -50,10 +52,10 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   const defaultErrorFallback = (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className={cn("text-2xl font-bold mb-2", designSystem.typography.color.primary)}>
           Something went wrong
         </h2>
-        <p className="text-gray-600">
+        <p className={cn(designSystem.typography.color.tertiary)}>
           Please refresh the page or try again later.
         </p>
         <button

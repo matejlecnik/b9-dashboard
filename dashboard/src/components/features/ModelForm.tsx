@@ -10,6 +10,8 @@ import { Plus, X, ChevronDown, ChevronUp, Info, Loader2, AlertCircle } from 'luc
 import { TAG_CATEGORIES } from '@/lib/tagCategories'
 import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface ModelFormProps {
   model?: {
@@ -194,7 +196,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>
                 Stage Name <span className="text-red-500">*</span>
               </label>
               <Input
@@ -209,11 +211,11 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">Status</label>
+              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'onboarding' })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-default {designSystem.borders.radius.sm} focus:outline-none focus:ring-2 focus:ring-secondary"
               >
                 <option value="inactive">Inactive</option>
                 <option value="onboarding">Onboarding</option>
@@ -224,7 +226,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Commission Rate (%)</label>
+              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Commission Rate (%)</label>
               <Input
                 type="number"
                 min="0"
@@ -240,11 +242,11 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">Payment Type</label>
+              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Payment Type</label>
               <select
                 value={formData.payment_type}
                 onChange={(e) => setFormData({ ...formData, payment_type: e.target.value as 'bank' | 'crypto' })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-default {designSystem.borders.radius.sm} focus:outline-none focus:ring-2 focus:ring-secondary"
               >
                 <option value="bank">Bank Transfer</option>
                 <option value="crypto">Cryptocurrency</option>
@@ -261,7 +263,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Connected Reddit Accounts</label>
+            <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Connected Reddit Accounts</label>
             <div className="flex gap-2">
               <Input
                 value={newRedditAccount}
@@ -297,7 +299,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-1">
+            <p className={cn("text-xs mt-1", designSystem.typography.color.subtle)}>
               Adding a username will connect it to an existing Reddit account or create a new one
             </p>
           </div>
@@ -311,22 +313,22 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
             <CardTitle>Content Tags</CardTitle>
             <div className="flex items-center gap-2">
               {/* Tag count indicator */}
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
-                formData.assigned_tags.length === 0 ? 'bg-gray-100 text-gray-500' :
+              <div className={cn("flex items-center gap-1.5 px-2 py-1 {designSystem.borders.radius.sm} text-xs font-medium",
+                formData.assigned_tags.length === 0 ? `${designSystem.background.surface.light} ${designSystem.typography.color.subtle}` :
                 formData.assigned_tags.length <= 3 ? 'bg-green-100 text-green-700' :
                 formData.assigned_tags.length <= 5 ? 'bg-yellow-100 text-yellow-700' :
                 'bg-red-100 text-red-700'
-              }`}>
+              )}>
                 <span>{formData.assigned_tags.length}</span>
                 <span className="text-[10px]">tag{formData.assigned_tags.length !== 1 ? 's' : ''}</span>
               </div>
 
               {/* Info tooltip */}
               <div className="group relative">
-                <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                <div className="absolute right-0 top-6 w-64 p-3 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <h4 className="text-xs font-semibold text-gray-700 mb-1">Tag Guidelines</h4>
-                  <ul className="text-[10px] text-gray-600 space-y-1">
+                <Info className={cn("w-4 h-4 cursor-help", `hover:${designSystem.typography.color.tertiary}`, designSystem.typography.color.disabled)} />
+                <div className="absolute right-0 top-6 w-64 p-3 bg-white {designSystem.borders.radius.sm} shadow-lg border border-default opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <h4 className={cn("text-xs font-semibold mb-1", designSystem.typography.color.secondary)}>Tag Guidelines</h4>
+                  <ul className={cn("text-[10px] space-y-1", designSystem.typography.color.tertiary)}>
                     <li className="flex items-start gap-1">
                       <span className="text-green-500 mt-0.5">✓</span>
                       <span><strong>Optimal: 1-3 tags</strong> - Better matching with precise tags</span>
@@ -339,7 +341,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                       <span className="text-red-500 mt-0.5">✗</span>
                       <span><strong>Too many: 6+ tags</strong> - Reduces precision significantly</span>
                     </li>
-                    <li className="mt-2 pt-2 border-t border-gray-100">
+                    <li className="mt-2 pt-2 border-t border-light">
                       <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model&apos;s content
                     </li>
                   </ul>
@@ -351,12 +353,12 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
         <CardContent>
           <div className="space-y-4">
             {TAG_CATEGORIES.map(category => (
-              <div key={category.name} className="border rounded-lg p-4">
+              <div key={category.name} className="border {designSystem.borders.radius.sm} p-4">
                 <div className="flex items-center justify-between mb-2">
                   <button
                     type="button"
                     onClick={() => toggleCategory(category.name)}
-                    className="flex items-center gap-2 text-sm font-medium hover:text-purple-600"
+                    className="flex items-center gap-2 text-sm font-medium hover:text-secondary-hover"
                   >
                     {expandedCategories.has(category.name) ? (
                       <ChevronUp className="h-4 w-4" />
@@ -368,7 +370,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                   <button
                     type="button"
                     onClick={() => selectAllInCategory(category.name)}
-                    className="text-xs text-purple-600 hover:text-purple-700"
+                    className="text-xs text-secondary-hover hover:text-secondary-pressed"
                   >
                     Toggle All
                   </button>
@@ -383,7 +385,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                           <Badge
                             key={tag.value}
                             variant={isSelected ? "default" : "outline"}
-                            className={`cursor-pointer justify-start ${isSelected ? 'bg-purple-500 hover:bg-purple-600' : ''}`}
+                            className={`cursor-pointer justify-start ${isSelected ? 'bg-secondary hover:bg-secondary-hover' : ''}`}
                             onClick={() => toggleTag(tag.value)}
                           >
                             {tag.label}
@@ -399,9 +401,9 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
 
           {formData.assigned_tags.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-purple-50 rounded-lg">
+              <div className="p-3 bg-secondary/10 {designSystem.borders.radius.sm}">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-purple-700">
+                  <p className="text-sm font-medium text-secondary-pressed">
                     Selected Tags ({formData.assigned_tags.length})
                   </p>
                   {formData.assigned_tags.length > 5 && (
@@ -426,7 +428,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
                       <Badge
                         key={tag}
                         variant="default"
-                        className="bg-purple-500"
+                        className="bg-secondary"
                       >
                         {tagLabel}
                       </Badge>
@@ -436,7 +438,7 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
               </div>
 
               {/* Matching subreddits preview */}
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="p-3 bg-blue-50 {designSystem.borders.radius.sm} border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-blue-700">Matching Subreddits</p>

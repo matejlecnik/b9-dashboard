@@ -5,6 +5,8 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ViralReelCard } from './ViralReelCard'
 import type { ViralReel } from '@/lib/supabase/viral-reels'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface ViralReelsGridProps {
   reels: ViralReel[]
@@ -24,7 +26,7 @@ export function ViralReelsGrid({
   if (loading && reels.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
       </div>
     )
   }
@@ -32,8 +34,8 @@ export function ViralReelsGrid({
   if (!loading && reels.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No viral reels found matching your criteria.</p>
-        <p className="text-sm text-gray-500 mt-2">Try adjusting your filters.</p>
+        <p className={cn(designSystem.typography.color.tertiary)}>No viral reels found matching your criteria.</p>
+        <p className={cn("text-sm mt-2", designSystem.typography.color.subtle)}>Try adjusting your filters.</p>
       </div>
     )
   }

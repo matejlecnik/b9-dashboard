@@ -877,3 +877,268 @@ export function useTopCreators(filters: ViralReelsFilters = {}, limit = 5) {
     }
   )
 }
+
+// ============================================================================
+// NICHING HOOKS
+// ============================================================================
+
+export interface NichingStats {
+  total: number
+  niched: number
+  unniched: number
+  nicheBreakdown: Record<string, number>
+  availableNiches: string[]
+}
+
+export interface NichingFilters {
+  search?: string
+  niches?: string[] | null // null = unniched, [] = all, ['niche1'] = specific niches
+  orderBy?: 'followers' | 'username' | 'discovery_date'
+  order?: 'asc' | 'desc'
+}
+
+/**
+ * Hook for fetching niching statistics
+ */
+export function useNichingStats() {
+  return useSupabaseQuery<NichingStats>(
+    queryKeys.instagram.nichingStats(),
+    async () => {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      // Run all counts in parallel
+      const [totalResult, nichedResult, unnichedResult, nichesResult] = await Promise.all([
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok'),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok').not('niche', 'is', null),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok').is('niche', null),
+        supabase.from('instagram_creators').select('niche').eq('review_status', 'ok').not('niche', 'is', null)
+      ])
+
+      const total = totalResult.count || 0
+      const niched = nichedResult.count || 0
+      const unniched = unnichedResult.count || 0
+
+      // Count occurrences of each niche
+      const nicheBreakdown: Record<string, number> = {}
+      const uniqueNiches = new Set<string>()
+
+      if (nichesResult.data) {
+        nichesResult.data.forEach(({ niche }) => {
+          if (niche) {
+            uniqueNiches.add(niche)
+            nicheBreakdown[niche] = (nicheBreakdown[niche] || 0) + 1
+          }
+        })
+      }
+
+      return {
+        total,
+        niched,
+        unniched,
+        nicheBreakdown,
+        availableNiches: Array.from(uniqueNiches).sort()
+      }
+    },
+    {
+      staleTime: 30 * 1000, // 30 seconds
+      refetchInterval: 60 * 1000, // Refetch every minute
+    }
+  )
+}
+
+/**
+ * Hook for fetching creators for niching page with infinite scroll
+ */
+export function useNichingCreators(filters: NichingFilters = {}) {
+  return useInfiniteSupabaseQuery<Creator[]>(
+    queryKeys.instagram.nichingCreators(filters),
+    async ({ pageParam = 0 }) => {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      let query = supabase
+        .from('instagram_creators')
+        .select('*')
+        .eq('review_status', 'ok')
+        .range(pageParam, pageParam + PAGE_SIZE - 1)
+
+      // Apply niche filter
+      if (filters.niches === null) {
+        // Show only unniched creators
+        query = query.is('niche', null)
+      } else if (filters.niches && filters.niches.length > 0) {
+        // Filter by specific niches
+        query = query.in('niche', filters.niches)
+      }
+      // If niches is undefined or empty array, show all
+
+      // Apply search
+      if (filters.search) {
+        query = query.ilike('username', `%${filters.search}%`)
+      }
+
+      // Apply sorting
+      const orderBy = filters.orderBy || 'followers'
+      const order = filters.order || 'desc'
+      query = query.order(orderBy, { ascending: order === 'asc' })
+
+      const { data, error } = await query
+
+      if (error) {
+        logger.error('Failed to fetch niching creators', error)
+        throw error
+      }
+
+      return data || []
+    },
+    {
+      pageSize: PAGE_SIZE,
+      staleTime: 60 * 1000, // 1 minute
+      gcTime: 5 * 60 * 1000, // 5 minutes
+    }
+  )
+}
+
+/**
+ * Mutation for updating a single creator's niche
+ */
+export function useUpdateCreatorNiche() {
+  const queryClient = useQueryClient()
+  const { addToast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({
+      creatorId,
+      niche,
+    }: {
+      creatorId: number
+      niche: string | null
+    }) => {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data, error } = await supabase
+        .from('instagram_creators')
+        .update({ niche })
+        .eq('id', creatorId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onMutate: async ({ creatorId, niche }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.instagram.all() })
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(queryKeys.instagram.nichingCreators())
+
+      // Optimistically update
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.instagram.nichingCreators() },
+        (old) => {
+          if (!old) return old
+
+          // Handle infinite query structure
+          const data = old as { pages?: Creator[][]; pageParams?: unknown[] }
+          if (data.pages) {
+            return {
+              ...data,
+              pages: data.pages.map((page: Creator[]) =>
+                page.map((creator) =>
+                  creator.id === creatorId
+                    ? { ...creator, niche }
+                    : creator
+                )
+              ),
+            }
+          }
+
+          return old
+        }
+      )
+
+      return { previousData }
+    },
+    onError: (_, __, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKeys.instagram.nichingCreators(), context.previousData)
+      }
+
+      addToast({
+        type: 'error',
+        title: 'Failed to update niche',
+      })
+    },
+    onSuccess: () => {
+      // Invalidate stats to update counts
+      queryClient.invalidateQueries({ queryKey: queryKeys.instagram.nichingStats() })
+
+      addToast({
+        type: 'success',
+        title: 'Niche updated',
+      })
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: queryKeys.instagram.nichingCreators() })
+    },
+  })
+}
+
+/**
+ * Mutation for bulk updating creator niches
+ */
+export function useBulkUpdateCreatorNiche() {
+  const queryClient = useQueryClient()
+  const { addToast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({
+      creatorIds,
+      niche,
+    }: {
+      creatorIds: number[]
+      niche: string | null
+    }) => {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      const { data, error } = await supabase
+        .from('instagram_creators')
+        .update({ niche })
+        .in('id', creatorIds)
+        .select()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate all niching queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.instagram.nichingCreators() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.instagram.nichingStats() })
+
+      addToast({
+        type: 'success',
+        title: `Updated ${variables.creatorIds.length} creators`,
+      })
+    },
+    onError: () => {
+      addToast({
+        type: 'error',
+        title: 'Failed to update creators',
+      })
+    },
+  })
+}

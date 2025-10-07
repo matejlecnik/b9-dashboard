@@ -5,11 +5,12 @@ Handlers for different logging destinations (Supabase, File, Console)
 
 import logging
 import os
-from logging.handlers import RotatingFileHandler
-from typing import Optional, Dict, Any
 from datetime import datetime
-from app.logging.formatters import StandardFormatter, JSONFormatter, format_for_supabase
+from logging.handlers import RotatingFileHandler
+from typing import Any, Optional
+
 from app.logging.config import config
+from app.logging.formatters import JSONFormatter, StandardFormatter, format_for_supabase
 
 
 class SupabaseHandler(logging.Handler):
@@ -22,7 +23,7 @@ class SupabaseHandler(logging.Handler):
         super().__init__()
         self.supabase = supabase_client
         self.table_name = table_name
-        self.batch = []
+        self.batch: list[dict[str, Any]] = []
         self.batch_size = config.supabase_batch_size
         self.last_flush = datetime.now()
 
@@ -49,7 +50,7 @@ class SupabaseHandler(logging.Handler):
             if len(self.batch) >= self.batch_size:
                 self.flush()
 
-        except Exception as e:
+        except Exception:
             # Don't let logging errors crash the app
             self.handleError(record)
 
@@ -62,7 +63,7 @@ class SupabaseHandler(logging.Handler):
             self.supabase.table(self.table_name).insert(self.batch).execute()
             self.batch = []
             self.last_flush = datetime.now()
-        except Exception as e:
+        except Exception:
             # Silent fail - logging should never crash the app
             pass
 

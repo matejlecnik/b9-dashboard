@@ -7,6 +7,7 @@ import { BookOpen, BadgeCheck, Lock, Briefcase, ExternalLink } from 'lucide-reac
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { useLRUSet } from '@/lib/lru-cache'
 import { logger } from '@/lib/logger'
 import { formatNumber } from '@/lib/formatters'
@@ -36,10 +37,10 @@ function useMemoryOptimizedData<T>(data: ReadonlyArray<T>, maxItems: number): { 
 const UniversalTableSkeleton = () => (
   <div className="animate-pulse">
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex items-center px-4 py-3 border-b border-gray-100">
-        <div className="h-4 bg-gray-200 rounded w-1/4 mr-4"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/3 mr-4"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+      <div key={i} className="flex items-center px-4 py-3 border-b border-light">
+        <div className={cn("h-4 rounded w-1/4 mr-4", designSystem.background.surface.neutral)}></div>
+        <div className={cn("h-4 rounded w-1/3 mr-4", designSystem.background.surface.neutral)}></div>
+        <div className={cn("h-4 rounded w-1/4", designSystem.background.surface.neutral)}></div>
       </div>
     ))}
   </div>
@@ -445,9 +446,10 @@ export const UniversalTable = memo(function UniversalTable({
     return (
       <div
         className={cn(
-          "flex items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50/50 transition-all duration-300",
-          isHighlighted && "bg-pink-50 border-pink-200",
-          isSelected && "bg-pink-50/50",
+          "flex items-center px-4 py-2 border-b border-light transition-all duration-300",
+          `hover:${designSystem.background.surface.subtle}/50`,
+          isHighlighted && "bg-primary/10 border-primary/30",
+          isSelected && "bg-primary/5",
           compactMode && "py-1",
           isRemoving && "opacity-0 scale-95 pointer-events-none"
         )}
@@ -499,38 +501,43 @@ export const UniversalTable = memo(function UniversalTable({
 
                 return (
                   <div className={cn(
-                    "relative overflow-hidden rounded-full border border-gray-200",
+                    "relative overflow-hidden {designSystem.borders.radius.full} border border-default",
                     platform === 'instagram'
                       ? (compactMode ? "w-8 h-8" : "w-10 h-10")
                       : (compactMode ? "w-6 h-6" : "w-8 h-8")
                   )}>
                     {platform === 'instagram' ? (
-                      // Instagram: Proxy through /api/img to bypass CORS restrictions
-                      <img
-                        src={`/api/img?url=${encodeURIComponent(optimizedUrl)}`}
-                        alt={`${subreddit.name || safeDisplayName} icon`}
-                        className="object-cover w-full h-full"
-                        onError={() => handleIconErrorInternal(subreddit.id)}
-                        loading="lazy"
-                      />
+                      <>
+                        {/* Instagram: Proxy through /api/img to bypass CORS restrictions */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/img?url=${encodeURIComponent(optimizedUrl)}`}
+                          alt={`${subreddit.name || safeDisplayName} icon`}
+                          className="object-cover w-full h-full"
+                          onError={() => handleIconErrorInternal(subreddit.id)}
+                          loading="lazy"
+                        />
+                      </>
                     ) : (
-                      // Reddit: Keep using Next.js Image optimization (works fine for Reddit)
-                      <Image
-                        src={optimizedUrl}
-                        alt={`${subreddit.name || safeDisplayName} icon`}
-                        fill
-                        className="object-cover"
-                        sizes={imageSize}
-                        onError={() => handleIconErrorInternal(subreddit.id)}
-                        loading="lazy"
-                      />
+                      <>
+                        {/* Reddit: Keep using Next.js Image optimization (works fine for Reddit) */}
+                        <Image
+                          src={optimizedUrl}
+                          alt={`${subreddit.name || safeDisplayName} icon`}
+                          fill
+                          className="object-cover"
+                          sizes={imageSize}
+                          onError={() => handleIconErrorInternal(subreddit.id)}
+                          loading="lazy"
+                        />
+                      </>
                     )}
                   </div>
                 )
               })()
             ) : (
               <div className={cn(
-                "rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white font-bold border border-pink-500",
+                "{designSystem.borders.radius.full} bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white font-bold border border-primary-pressed",
                 platform === 'instagram'
                   ? (compactMode ? "w-8 h-8 text-sm" : "w-10 h-10 text-base")
                   : (compactMode ? "w-6 h-6 text-xs" : "w-8 h-8 text-xs")
@@ -555,7 +562,8 @@ export const UniversalTable = memo(function UniversalTable({
             // Instagram: Show full name prominently with username underneath
             <div className="flex flex-col gap-0.5">
               <div className={cn(
-                "font-bold text-gray-900 truncate flex items-center gap-1.5",
+                "font-bold truncate flex items-center gap-1.5",
+                designSystem.typography.color.primary,
                 compactMode ? "text-sm" : "text-base"
               )}>
                 {safeTitle || safeDisplayName}
@@ -569,18 +577,19 @@ export const UniversalTable = memo(function UniversalTable({
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(subreddit as any).is_business_account && (
                   <span title="Business Account">
-                    <Briefcase className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                    <Briefcase className="h-3.5 w-3.5 text-secondary flex-shrink-0" />
                   </span>
                 )}
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(subreddit as any).is_private && (
                   <span title="Private Account">
-                    <Lock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <Lock className={cn("h-3.5 w-3.5 flex-shrink-0", designSystem.typography.color.disabled)} />
                   </span>
                 )}
               </div>
               <div className={cn(
-                "text-gray-500 truncate font-normal",
+                "truncate font-normal",
+                designSystem.typography.color.subtle,
                 compactMode ? "text-xs" : "text-sm"
               )}>
                 {safeDisplayName}
@@ -590,7 +599,8 @@ export const UniversalTable = memo(function UniversalTable({
             // Reddit: Original layout
             <>
               <div className={cn(
-                "font-semibold text-gray-900 truncate flex items-center gap-2",
+                "font-semibold truncate flex items-center gap-2",
+                designSystem.typography.color.primary,
                 compactMode ? "text-xs" : "text-sm"
               )}>
                 {safeDisplayName}
@@ -608,7 +618,7 @@ export const UniversalTable = memo(function UniversalTable({
                   if (typeof nsfwFlag !== 'boolean') return null
                   return (
                   <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                    "inline-flex items-center px-2 py-0.5 {designSystem.borders.radius.full} text-xs font-medium",
                     nsfwFlag
                       ? "bg-red-100 text-red-800 border border-red-200"
                       : "bg-green-100 text-green-800 border border-green-200",
@@ -620,14 +630,17 @@ export const UniversalTable = memo(function UniversalTable({
                 })()}
               </div>
               {safeTitle && !compactMode && (
-                <div className="text-xs text-gray-600 line-clamp-2">
+                <div className={cn(
+                  "text-xs line-clamp-2",
+                  designSystem.typography.color.tertiary
+                )}>
                   {safeTitle}
                 </div>
               )}
             </>
           )}
         </a>
-        
+
         {/* Rules button - only for Reddit */}
         {platform === 'reddit' && (
           <div className="w-14 flex justify-center">
@@ -661,14 +674,15 @@ export const UniversalTable = memo(function UniversalTable({
                     }
                   }}
                   className={cn(
-                    "p-0 hover:bg-gray-100",
+                    "p-0",
+                    designSystem.background.hover.light,
                     compactMode ? "h-6 w-6" : "h-8 w-8"
                   )}
                   aria-label={`View rules for ${safeDisplayName}`}
                 >
                   <BookOpen className={cn(
-                    hasRulesData ? "text-gray-500" : "text-gray-300",
-                    compactMode ? "h-3 w-3" : "h-4 w-4"
+                    compactMode ? "h-3 w-3" : "h-4 w-4",
+                    hasRulesData ? designSystem.typography.color.subtle : designSystem.typography.color.disabled
                   )} />
                 </Button>
               )
@@ -680,7 +694,8 @@ export const UniversalTable = memo(function UniversalTable({
         {platform === 'instagram' && mode === 'review' && (
           <div className="w-28 text-center">
             <div className={cn(
-              "font-medium text-gray-700",
+              "font-medium",
+              designSystem.typography.color.secondary,
               compactMode ? "text-xs" : "text-sm"
             )}>
               {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
@@ -692,11 +707,12 @@ export const UniversalTable = memo(function UniversalTable({
         {platform === 'instagram' && mode === 'review' && (
           <div className="w-80 min-w-0 px-3">
             <div className={cn(
-              "text-gray-700 line-clamp-2",
+              "line-clamp-2",
+              designSystem.typography.color.secondary,
               compactMode ? "text-xs" : "text-sm"
             )}>
               {subreddit.description || subreddit.public_description || (
-                <span className="text-gray-400 italic">No bio</span>
+                <span className={cn("italic", designSystem.typography.color.disabled)}>No bio</span>
               )}
             </div>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -706,7 +722,7 @@ export const UniversalTable = memo(function UniversalTable({
                 href={(subreddit as any).external_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 mt-1 text-pink-600 hover:text-pink-700 transition-colors"
+                className="flex items-center gap-1 mt-1 text-primary hover:text-primary-hover transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
                 <ExternalLink className="h-3 w-3 flex-shrink-0" />
@@ -734,7 +750,8 @@ export const UniversalTable = memo(function UniversalTable({
         {!(platform === 'instagram' && mode === 'review') && (
           <div className="w-24 text-center">
             <div className={cn(
-              "font-medium text-gray-700",
+              "font-medium",
+              designSystem.typography.color.secondary,
               compactMode ? "text-xs" : "text-sm"
             )}>
               {typeof subreddit.subscribers === 'number' ? formatNumber(subreddit.subscribers) : '—'}
@@ -749,13 +766,13 @@ export const UniversalTable = memo(function UniversalTable({
               <span className={cn(
                 "font-medium",
                 compactMode ? "text-xs" : "text-sm",
-                subreddit.engagement > 0.15 ? 'text-pink-600' :
-                subreddit.engagement > 0.05 ? 'text-gray-700' : 'text-gray-500'
+                subreddit.engagement > 0.15 ? 'text-primary' :
+                subreddit.engagement > 0.05 ? designSystem.typography.color.secondary : designSystem.typography.color.subtle
               )}>
                 {(subreddit.engagement * 100).toFixed(1)}%
               </span>
             ) : (
-              <span className="text-gray-400">—</span>
+              <span className={designSystem.typography.color.disabled}>—</span>
             )}
           </div>
         )}
@@ -764,7 +781,8 @@ export const UniversalTable = memo(function UniversalTable({
         {!(platform === 'instagram' && mode === 'review') && (
           <div className="w-16 text-center">
             <div className={cn(
-              "font-medium text-gray-700",
+              "font-medium",
+              designSystem.typography.color.secondary,
               compactMode ? "text-xs" : "text-sm"
             )}>
               {typeof subreddit.avg_upvotes_per_post === 'number' ? formatNumber(Math.round(subreddit.avg_upvotes_per_post)) : '—'}
@@ -782,13 +800,13 @@ export const UniversalTable = memo(function UniversalTable({
                 const niche = (subreddit as any).niche as string | null
                 return niche ? (
                   <div className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200",
+                    "inline-flex items-center px-2 py-0.5 {designSystem.borders.radius.full} text-xs font-medium bg-secondary/20 text-secondary-pressed border border-secondary/30",
                     compactMode && "px-1.5 py-0 text-[10px]"
                   )}>
                     {niche}
                   </div>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className={cn("text-xs", designSystem.typography.color.disabled)}>—</span>
                 )
               })()}
             </div>
@@ -802,7 +820,7 @@ export const UniversalTable = memo(function UniversalTable({
                   <div className={cn(
                     "font-medium",
                     compactMode ? "text-xs" : "text-sm",
-                    viralCount > 0 ? "text-pink-600" : "text-gray-400"
+                    viralCount > 0 ? "text-primary" : designSystem.typography.color.disabled
                   )}>
                     {viralCount > 0 ? viralCount : '—'}
                   </div>
@@ -817,7 +835,8 @@ export const UniversalTable = memo(function UniversalTable({
                 const avgViews = (subreddit as any).avg_views_per_reel as number || 0
                 return (
                   <div className={cn(
-                    "font-medium text-gray-700",
+                    "font-medium",
+                    designSystem.typography.color.secondary,
                     compactMode ? "text-xs" : "text-sm"
                   )}>
                     {avgViews > 0 ? formatNumber(avgViews) : '—'}
@@ -836,12 +855,12 @@ export const UniversalTable = memo(function UniversalTable({
                     "font-medium",
                     compactMode ? "text-xs" : "text-sm",
                     frequency > 7 ? "text-green-600" :
-                    frequency > 3 ? "text-gray-700" : "text-orange-600"
+                    frequency > 3 ? designSystem.typography.color.secondary : "text-orange-600"
                   )}>
                     {frequency.toFixed(1)}/wk
                   </div>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className={cn("text-xs", designSystem.typography.color.disabled)}>—</span>
                 )
               })()}
             </div>
@@ -860,7 +879,7 @@ export const UniversalTable = memo(function UniversalTable({
                     {growthRate > 0 ? '↑' : '↓'} {Math.abs(growthRate).toFixed(1)}%
                   </div>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className={cn("text-xs", designSystem.typography.color.disabled)}>—</span>
                 )
               })()}
             </div>
@@ -875,12 +894,12 @@ export const UniversalTable = memo(function UniversalTable({
                     "font-medium",
                     compactMode ? "text-xs" : "text-sm",
                     saveRatio > 0.1 ? "text-green-600" :
-                    saveRatio > 0.05 ? "text-yellow-600" : "text-gray-600"
+                    saveRatio > 0.05 ? "text-yellow-600" : designSystem.typography.color.tertiary
                   )}>
                     {(saveRatio * 100).toFixed(1)}%
                   </div>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className={cn("text-xs", designSystem.typography.color.disabled)}>—</span>
                 )
               })()}
             </div>
@@ -896,14 +915,14 @@ export const UniversalTable = memo(function UniversalTable({
                     compactMode ? "text-xs" : "text-sm",
                     daysAgo > 30 ? "text-red-600" :
                     daysAgo > 14 ? "text-orange-600" :
-                    daysAgo > 7 ? "text-yellow-600" : "text-gray-700"
+                    daysAgo > 7 ? "text-yellow-600" : designSystem.typography.color.secondary
                   )}>
                     {daysAgo < 1 ? 'Today' :
                      daysAgo === 1 ? 'Yesterday' :
                      `${Math.round(daysAgo)}d ago`}
                   </div>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className={cn("text-xs", designSystem.typography.color.disabled)}>—</span>
                 )
               })()}
             </div>
@@ -934,7 +953,7 @@ export const UniversalTable = memo(function UniversalTable({
                     className={cn(
                       "text-xs",
                       compactMode ? "h-6 px-1" : "h-7 px-2",
-                      currentReviewLabel === option && "bg-pink-500 hover:bg-pink-600 text-white"
+                      currentReviewLabel === option && "bg-primary hover:bg-primary-hover text-white"
                     )}
                     title={`Mark as ${option}`}
                   >
@@ -987,8 +1006,8 @@ export const UniversalTable = memo(function UniversalTable({
   if (loading && processedSubreddits.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-        <span className="ml-2 text-gray-500">
+        <div className="animate-spin {designSystem.borders.radius.full} h-8 w-8 border-b-2 border-primary"></div>
+        <span className={cn("ml-2", designSystem.typography.color.subtle)}>
           {platform === 'instagram' ? 'Loading creators...' : 'Loading subreddits...'}
         </span>
       </div>
@@ -999,7 +1018,7 @@ export const UniversalTable = memo(function UniversalTable({
     <div
         ref={containerRef}
         className={cn(
-          "flex flex-col h-full rounded-2xl border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden",
+          "flex flex-col h-full {designSystem.borders.radius.lg} border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden",
           className
         )}
         role="table"
@@ -1009,7 +1028,11 @@ export const UniversalTable = memo(function UniversalTable({
       {/* Header */}
       {showHeader && (
         <div
-          className="flex items-center px-4 py-3 bg-gray-50/80 border-b border-gray-200/50 font-medium text-gray-700 text-sm sticky top-0 z-10"
+          className={cn(
+            "flex items-center px-4 py-3 border-b border-light font-medium text-sm sticky top-0 z-10",
+            `${designSystem.background.surface.subtle}/80`,
+            designSystem.typography.color.secondary
+          )}
           role="row"
           aria-label="Table header"
         >
@@ -1030,7 +1053,7 @@ export const UniversalTable = memo(function UniversalTable({
           )}
           {showIcons && (
             <div className={cn(
-              "flex justify-center font-medium text-gray-700 pr-3",
+              "flex justify-center font-medium pr-3",
               platform === 'instagram' ? "w-16" : "w-14"
             )} role="columnheader">
               Icon
@@ -1043,54 +1066,54 @@ export const UniversalTable = memo(function UniversalTable({
             {platform === 'instagram' ? 'Creator' : 'Subreddit'}
           </div>
           {platform === 'reddit' && (
-            <div className="w-14 flex justify-center font-medium text-gray-700 pr-3" role="columnheader">Rules</div>
+            <div className="w-14 flex justify-center font-medium pr-3" role="columnheader">Rules</div>
           )}
           {/* Followers header - Instagram review mode only (moved after Creator) */}
           {platform === 'instagram' && mode === 'review' && (
-            <div className="w-28 text-center font-medium text-gray-700 pr-3" role="columnheader">
+            <div className="w-28 text-center font-medium pr-3" role="columnheader">
               Followers
             </div>
           )}
           {/* Bio + Link header - Instagram review mode only */}
           {platform === 'instagram' && mode === 'review' && (
-            <div className="w-80 px-3 font-medium text-gray-700" role="columnheader">
+            <div className="w-80 px-3 font-medium" role="columnheader">
               Bio + Link
             </div>
           )}
           {/* Members header - Reddit only */}
           {!(platform === 'instagram' && mode === 'review') && (
-            <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">
+            <div className="w-24 text-center font-medium pr-3" role="columnheader">
               Members
             </div>
           )}
           {/* Engagement - Hidden for Instagram review mode */}
           {!(platform === 'instagram' && mode === 'review') && (
-            <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Engagement</div>
+            <div className="w-24 text-center font-medium pr-3" role="columnheader">Engagement</div>
           )}
           {/* Avg Likes/Upvotes - Hidden for Instagram review mode */}
           {!(platform === 'instagram' && mode === 'review') && (
-            <div className="w-16 text-center font-medium text-gray-700 pr-3" role="columnheader">
+            <div className="w-16 text-center font-medium pr-3" role="columnheader">
               {platform === 'instagram' ? 'Avg Likes' : 'Avg Upvotes'}
             </div>
           )}
           {/* Instagram-specific metric headers - Hidden in review mode */}
           {platform === 'instagram' && mode !== 'review' && (
             <>
-              <div className="w-28 px-2 font-medium text-gray-700" role="columnheader">Niche</div>
-              <div className="w-20 text-center font-medium text-gray-700 pr-3" role="columnheader">Viral</div>
-              <div className="w-24 text-center font-medium text-gray-700 pr-3" role="columnheader">Avg Views</div>
+              <div className="w-28 px-2 font-medium" role="columnheader">Niche</div>
+              <div className="w-20 text-center font-medium pr-3" role="columnheader">Viral</div>
+              <div className="w-24 text-center font-medium pr-3" role="columnheader">Avg Views</div>
             </>
           )}
-          <div className="w-52 px-2 font-medium text-gray-700" role="columnheader">
+          <div className="w-52 px-2 font-medium" role="columnheader">
             {mode === 'review' ? 'Review' : 'Review'}
           </div>
           {mode === 'category' && (
-            <div className="flex-1 px-2 font-medium text-gray-700" role="columnheader">
+            <div className="flex-1 px-2 font-medium" role="columnheader">
               Tags
             </div>
           )}
           <div className="flex-1 flex justify-end pr-4">
-            <span className="text-xs text-gray-400" aria-label="Row count">
+            <span className={cn("text-xs", designSystem.typography.color.disabled)} aria-label="Row count">
               {processedSubreddits.length.toLocaleString()} results
             </span>
           </div>
@@ -1102,7 +1125,10 @@ export const UniversalTable = memo(function UniversalTable({
         {loading ? (
           <UniversalTableSkeleton />
         ) : processedSubreddits.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-gray-500">
+          <div className={cn(
+            "flex items-center justify-center py-12",
+            designSystem.typography.color.subtle
+          )}>
             {platform === 'instagram' ? 'No creators found' : 'No subreddits found'}
             {searchQuery && (
               <span className="ml-1">for &quot;{searchQuery}&quot;</span>
@@ -1121,11 +1147,11 @@ export const UniversalTable = memo(function UniversalTable({
               <div ref={sentinelRef} className="h-20 flex items-center justify-center">
                 {loadingMore ? (
                   <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
-                    <span className="ml-2 text-gray-500">Loading more...</span>
+                    <div className="animate-spin {designSystem.borders.radius.full} h-6 w-6 border-b-2 border-primary"></div>
+                    <span className={cn("ml-2", designSystem.typography.color.subtle)}>Loading more...</span>
                   </>
                 ) : (
-                  <div className="text-gray-400">Scroll to load more</div>
+                  <div className={designSystem.typography.color.disabled}>Scroll to load more</div>
                 )}
               </div>
             )}

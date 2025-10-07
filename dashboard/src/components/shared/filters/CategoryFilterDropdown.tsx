@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Filter, ChevronDown, Check } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
-import { getCategoryStyles } from '@/lib/categoryColors'
+import { getCategoryStyles } from '@/lib/colors'
 import { createPortal } from 'react-dom'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface CategoryFilterDropdownProps {
   availableCategories: string[]
@@ -88,11 +90,18 @@ export function CategoryFilterDropdown({
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
-        className="h-8 px-3 text-xs font-medium border-gray-200 hover:bg-gray-50 flex items-center gap-2"
+        className={cn(
+          'h-8 px-3 flex items-center',
+          designSystem.spacing.gap.tight,
+          designSystem.typography.size.xs,
+          designSystem.typography.weight.medium,
+          'border-default',
+          designSystem.background.hover.subtle
+        )}
       >
         <Filter className="h-3.5 w-3.5" />
         <span>{displayText}</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={cn('h-3.5 w-3.5', designSystem.animation.transition.default, isOpen && 'rotate-180')} />
       </Button>
 
       {isOpen && typeof window !== 'undefined' && createPortal(
@@ -104,21 +113,21 @@ export function CategoryFilterDropdown({
             left: `${dropdownPosition.left}px`,
             zIndex: 9999
           }}
-          className="w-64 bg-white rounded-lg shadow-lg border border-gray-200"
+          className={cn('w-64 bg-white border border-default', designSystem.borders.radius.sm, designSystem.shadows.lg)}
         >
-          <div className="p-2 border-b border-gray-100">
+          <div className={cn('p-2 border-b', designSystem.borders.color.light)}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-700">Filter Categories</span>
-              <div className="flex gap-1">
+              <span className={cn(designSystem.typography.size.xs, designSystem.typography.weight.semibold, designSystem.typography.color.secondary)}>Filter Categories</span>
+              <div className={cn('flex', designSystem.spacing.gap.tight)}>
                 <button
                   onClick={handleSelectAll}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 hover:bg-blue-50 rounded"
+                  className={cn(designSystem.typography.size.xs, designSystem.typography.weight.medium, 'text-blue-600 hover:text-blue-700 px-2 py-0.5 hover:bg-blue-50', designSystem.borders.radius.xs)}
                 >
                   Select All
                 </button>
                 <button
                   onClick={handleClearAll}
-                  className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-0.5 hover:bg-gray-50 rounded"
+                  className={cn(designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.typography.color.tertiary, `hover:${designSystem.typography.color.secondary}`, 'px-2 py-0.5', designSystem.background.hover.subtle, designSystem.borders.radius.xs)}
                 >
                   Clear
                 </button>
@@ -126,7 +135,7 @@ export function CategoryFilterDropdown({
             </div>
 
             {/* Show uncategorized option */}
-            <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+            <label className={cn('flex items-center px-2 py-1.5 cursor-pointer', designSystem.background.hover.subtle, designSystem.spacing.gap.tight, designSystem.borders.radius.xs)}>
               <div className="relative flex items-center justify-center w-4 h-4">
                 <input
                   type="checkbox"
@@ -134,17 +143,13 @@ export function CategoryFilterDropdown({
                   onChange={() => handleClearAll()}
                   className="sr-only"
                 />
-                <div className={`w-4 h-4 rounded border ${
-                  isShowingUncategorized
-                    ? 'bg-pink-500 border-pink-500'
-                    : 'bg-white border-gray-300'
-                }`}>
+                <div className={cn('w-4 h-4 border', designSystem.borders.radius.xs, isShowingUncategorized ? 'bg-primary border-primary' : 'bg-white border-strong')}>
                   {isShowingUncategorized && (
                     <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
                   )}
                 </div>
               </div>
-              <span className="text-xs text-gray-700 flex-1">
+              <span className={cn(designSystem.typography.size.xs, designSystem.typography.color.secondary, 'flex-1')}>
                 Show Uncategorized
               </span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -154,13 +159,13 @@ export function CategoryFilterDropdown({
           </div>
 
           <div className="max-h-64 overflow-y-auto p-2">
-            <div className="text-xs font-medium text-gray-500 px-2 py-1">Categories</div>
+            <div className={cn(designSystem.typography.size.xs, designSystem.typography.weight.medium, designSystem.typography.color.subtle, 'px-2 py-1')}>Categories</div>
             {availableCategories.map(category => {
               const styles = getCategoryStyles(category)
               return (
                 <label
                   key={category}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer group"
+                  className={cn('flex items-center px-2 py-1.5 cursor-pointer group', designSystem.background.hover.subtle, designSystem.spacing.gap.tight, designSystem.borders.radius.xs)}
                 >
                   <div className="relative flex items-center justify-center w-4 h-4">
                     <input
@@ -169,18 +174,14 @@ export function CategoryFilterDropdown({
                       onChange={() => handleToggleCategory(category)}
                       className="sr-only"
                     />
-                    <div className={`w-4 h-4 rounded border ${
-                      selectedCategories.includes(category)
-                        ? 'bg-pink-500 border-pink-500'
-                        : 'bg-white border-gray-300'
-                    }`}>
+                    <div className={cn('w-4 h-4 border', designSystem.borders.radius.xs, selectedCategories.includes(category) ? 'bg-primary border-primary' : 'bg-white border-strong')}>
                       {selectedCategories.includes(category) && (
                         <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" />
                       )}
                     </div>
                   </div>
                   <span
-                    className="text-xs flex-1 truncate px-2 py-0.5 rounded-md transition-all"
+                    className={cn(designSystem.typography.size.xs, 'flex-1 truncate px-2 py-0.5', designSystem.borders.radius.sm, designSystem.animation.transition.default)}
                     style={{
                       backgroundColor: styles.backgroundColor,
                       color: styles.color,

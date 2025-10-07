@@ -142,7 +142,7 @@
   "documentation": {
     "standards": "docs/development/DOCUMENTATION_STANDARDS.md (296 lines)",
     "template": "docs/development/DOCUMENTATION_TEMPLATE.md (263 lines)",
-    "map": "docs/frontend/DOCUMENTATION_MAP.md (273 lines)"
+    "map": "docs/INDEX.md (Master navigation hub)"
   },
   "session": {
     "log": "docs/development/SESSION_LOG.md (416 lines)"
@@ -241,7 +241,7 @@ b9_dashboard/
     "overview": "api-render/README.md",
     "architecture": "docs/backend/ARCHITECTURE.md",
     "api_reference": "docs/backend/API.md",
-    "deployment": "docs/backend/DEPLOYMENT.md",
+    "deployment": "docs/backend/RENDER_API_DEPLOYMENT.md",
     "monitoring": "docs/backend/MONITORING.md"
   },
   "scrapers": {

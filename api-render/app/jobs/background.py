@@ -3,17 +3,20 @@ Background Job Management API
 Endpoints for managing background jobs (replaces Celery functionality)
 """
 
-import time
 import json
+import time
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.models.requests import BackgroundJobRequest
 from app.core.database import get_db
 
 # Use unified logger
 from app.logging import get_logger
+from app.models.requests import BackgroundJobRequest
+
+
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -55,7 +58,7 @@ async def start_background_job(
 
     except Exception as e:
         logger.error(f"Failed to start background job: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{job_id}")
@@ -72,10 +75,9 @@ async def get_job_status(job_id: str, db: Client = Depends(get_db)):
         # Parse result if it's JSON string
         result = job_data.get('result')
         if isinstance(result, str):
-            try:
+            from contextlib import suppress
+            with suppress(json.JSONDecodeError):
                 result = json.loads(result)
-            except json.JSONDecodeError:
-                pass
 
         return {
             'job_id': job_id,
@@ -92,4 +94,4 @@ async def get_job_status(job_id: str, db: Client = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Failed to get job status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

@@ -75,6 +75,9 @@ sqlalchemy[asyncio]>=2.0.0,<3.0.0  # ORM support
 
 # File Processing & Storage
 aiofiles>=23.2.1,<24.0.0  # Async file operations
+boto3>=1.34.0,<2.0.0  # AWS S3 / Cloudflare R2 client
+Pillow>=10.0.0,<11.0.0  # Image processing and compression
+ffmpeg-python>=0.2.0,<1.0.0  # Video compression
 
 # Type Checking & Validation (Production)
 types-requests>=2.31.0

@@ -23,6 +23,8 @@ import { useAvailableTags } from '@/hooks/queries/useRedditCategorization'
 import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
 import type { SubredditWithPosts } from '@/components/features/DiscoveryTable'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface Creator {
   id: number
@@ -78,7 +80,7 @@ const DiscoveryTable = dynamic<DiscoveryTableProps>(
   () => import('@/components/features/DiscoveryTable').then(mod => ({ default: mod.DiscoveryTable })),
   {
     ssr: false,
-    loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
+    loading: () => <div className={`animate-pulse h-96 ${designSystem.background.surface.light} ${designSystem.borders.radius.sm}`} />
   }
 )
 
@@ -707,9 +709,9 @@ export default function PostingPage() {
         {/* Confirmation Dialog */}
         {confirmRemove && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove Account</h3>
-              <p className="text-sm text-gray-600 mb-4">
+            <div className={`bg-white ${designSystem.borders.radius.sm} p-6 max-w-sm w-full mx-4 shadow-xl`}>
+              <h3 className={cn("text-lg font-semibold mb-2", designSystem.typography.color.primary)}>Remove Account</h3>
+              <p className={cn("text-sm mb-4", designSystem.typography.color.tertiary)}>
                 Are you sure you want to remove <strong>u/{confirmRemove.username}</strong> from posting accounts?
               </p>
               <div className="flex justify-end space-x-2">
@@ -764,7 +766,7 @@ export default function PostingPage() {
                   disabled={removingCreator === confirmRemove.id}
                 >
                   {removingCreator === confirmRemove.id ? (
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                    <div className={`animate-spin ${designSystem.borders.radius.full} h-3 w-3 border-b-2 border-white`} />
                   ) : (
                     'Remove'
                   )}
@@ -846,17 +848,17 @@ export default function PostingPage() {
         {!selectedAccount ? (
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
             <CardContent className="py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium mb-2">Select a posting account</p>
-              <p className="text-sm text-gray-500">Click on an account above to see matching subreddits</p>
+              <AlertCircle className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
+              <p className={cn("font-medium mb-2", designSystem.typography.color.tertiary)}>Select a posting account</p>
+              <p className={cn("text-sm", designSystem.typography.color.subtle)}>Click on an account above to see matching subreddits</p>
             </CardContent>
           </Card>
         ) : sortedSubreddits.length === 0 ? (
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
             <CardContent className="py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium mb-2">No matching subreddits</p>
-              <p className="text-sm text-gray-500">
+              <AlertCircle className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
+              <p className={cn("font-medium mb-2", designSystem.typography.color.tertiary)}>No matching subreddits</p>
+              <p className={cn("text-sm", designSystem.typography.color.subtle)}>
                 {selectedAccount?.model?.assigned_tags && selectedAccount.model.assigned_tags.length > 0
                   ? "No approved subreddits match this account's tags. Try adjusting your filters."
                   : "No approved subreddits found. Try adjusting your filters."}
@@ -888,8 +890,8 @@ export default function PostingPage() {
             {/* Loading indicator for infinite scroll */}
             {loading && currentPage > 0 && (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-b9-pink"></div>
-                <span className="ml-3 text-gray-600">Loading more subreddits...</span>
+                <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-b9-pink`}></div>
+                <span className={cn("ml-3", designSystem.typography.color.tertiary)}>Loading more subreddits...</span>
               </div>
             )}
           </>

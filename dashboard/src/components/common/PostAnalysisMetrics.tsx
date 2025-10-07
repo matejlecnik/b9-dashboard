@@ -8,6 +8,7 @@ import {
   Tags,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { designSystem } from '@/lib/design-system'
 import { Badge } from '@/components/ui/badge'
 
 interface PostMetrics {
@@ -43,14 +44,14 @@ export const PostAnalysisMetrics = memo(function PostAnalysisMetrics({
         {[...Array(4)].map((_, index) => (
           <div
             key={index}
-            className="rounded-2xl p-4 h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
+            className={`${designSystem.borders.radius.lg} p-4 h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]`}
             style={{
               animationDelay: `${index * 100}ms`,
               animation: 'fadeInUp 0.6s ease-out forwards'
             }}
           >
             <div className="animate-pulse space-y-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+              <div className={`w-8 h-8 bg-gray-200 ${designSystem.borders.radius.sm}`}></div>
               <div className="space-y-2">
                 <div className="w-16 h-4 bg-gray-200 rounded"></div>
                 <div className="w-24 h-6 bg-gray-200 rounded"></div>
@@ -109,7 +110,7 @@ export const PostAnalysisMetrics = memo(function PostAnalysisMetrics({
               className="p-4 h-full min-h-[100px] bg-white/50 backdrop-blur-md shadow-lg"
             >
               <div className="flex flex-col h-full">
-                <div className={`w-10 h-10 rounded-xl ${metric.bgColor} ${metric.borderColor} border flex items-center justify-center mb-3`}>
+                <div className={`w-10 h-10 ${designSystem.borders.radius.md} ${metric.bgColor} ${metric.borderColor} border flex items-center justify-center mb-3`}>
                   <Icon className={`w-5 h-5 ${metric.color}`} />
                 </div>
                 <div className="flex-1">

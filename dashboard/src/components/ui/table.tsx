@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { designSystem } from "@/lib/design-system"
 
 const Table = React.forwardRef<
   HTMLTableElement,
@@ -67,7 +68,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-gray-100/50 transition-all duration-200 hover:bg-white/60 hover:shadow-sm",
+      "border-b border-light transition-all duration-200 hover:bg-white/60 hover:shadow-sm",
       "data-[state=selected]:bg-b9-pink/5 data-[state=selected]:border-b9-pink/20",
       selected && "bg-b9-pink/5 border-b9-pink/20",
       className
@@ -88,7 +89,8 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-gray-900 [&:has([role=checkbox])]:pr-0",
+      "h-12 px-4 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0",
+      designSystem.typography.color.primary,
       "bg-transparent text-xs sm:text-sm",
       sortable && "cursor-pointer select-none hover:text-b9-pink transition-colors",
       className
@@ -140,7 +142,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn("mt-4 text-sm text-gray-500", className)}
+    className={cn("mt-4 text-sm", designSystem.typography.color.subtle, className)}
     {...props}
   />
 ))

@@ -4,9 +4,12 @@ Endpoints for fetching individual subreddit data from Reddit
 """
 
 import logging
+
 from fastapi import APIRouter, HTTPException
+
 from app.models.requests import SingleSubredditRequest
 from app.services.subreddit_api import fetch_subreddit
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,5 +48,5 @@ async def fetch_single_subreddit(payload: SingleSubredditRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to fetch subreddit: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to fetch subreddit: {str(e)}")
+        logger.error(f"❌ Failed to fetch subreddit: {e!s}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch subreddit: {e!s}") from e

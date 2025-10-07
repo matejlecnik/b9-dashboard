@@ -1,26 +1,31 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+/**
+ * Card Component - Migrated to Design Token System v2.0
+ *
+ * Now uses design system glassmorphism and shadow tokens.
+ * All hardcoded rgba values replaced with Tailwind classes.
+ */
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        // Apple-style frosted glass background - Option B styling
-        "bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]",
+        // Glassmorphism background using design tokens
+        "bg-white/70 backdrop-blur-glass-md",
         "border border-white/20",
-        // Enhanced Apple shadows and depth
-        "shadow-[0_8px_32px_rgba(0,0,0,0.1)]",
-        "hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]",
-        // Smooth Apple-style transitions
+        // Enhanced shadows using design tokens
+        "shadow-lg hover:shadow-xl",
+        // Smooth transitions
         "transition-all duration-300 ease-out",
         // Rounded corners
-        "rounded-2xl",
+        designSystem.borders.radius.lg,
         // Content structure
         "flex flex-col gap-6 py-6",
-        // Hover effects with Apple-style lift
-        "hover:bg-[rgba(248,250,252,0.8)] hover:scale-[1.02] hover:-translate-y-1",
+        // Hover effects with subtle lift
+        "hover:bg-white/80 hover:scale-[1.02] hover:-translate-y-1",
         className
       )}
       {...props}

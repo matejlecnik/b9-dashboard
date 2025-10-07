@@ -5,6 +5,8 @@ import { Search, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PostingCategoryFilter } from '@/components/shared/PostingCategoryFilter'
 import { formatNumber } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import React from 'react'
 
 export type PostSortField = 'score' | 'comments'
@@ -71,13 +73,13 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white/95 backdrop-blur-sm {designSystem.borders.radius.md} border border-default shadow-sm overflow-hidden">
       {/* Main Toolbar */}
       <div className="flex items-center gap-3 p-3">
         {/* Search Section - Enhanced */}
         <div className={`relative flex-1 max-w-md transition-all duration-200 ${isSearchFocused ? 'max-w-lg' : ''}`}>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-            <Search className={`h-4 w-4 transition-colors ${isSearchFocused ? 'text-pink-500' : 'text-gray-400'}`} />
+            <Search className={cn("h-4 w-4 transition-colors", isSearchFocused ? 'text-primary' : designSystem.typography.color.disabled)} />
           </div>
           <input
             type="text"
@@ -89,11 +91,11 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
             onBlur={() => setIsSearchFocused(false)}
             disabled={loading}
             className={`
-              w-full pl-9 pr-9 py-2 text-sm border rounded-lg
+              w-full pl-9 pr-9 py-2 text-sm border {designSystem.borders.radius.sm}
               bg-white focus:outline-none transition-all duration-200
               ${isSearchFocused
-                ? 'border-pink-500 ring-2 ring-pink-500/20'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-primary ring-2 ring-primary/20'
+                : 'border-default hover:border-strong'
               }
               ${loading ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -101,7 +103,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              className={cn("absolute inset-y-0 right-0 pr-3 flex items-center transition-colors", designSystem.typography.color.disabled, `hover:${designSystem.typography.color.tertiary}`)}
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -112,7 +114,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
         {/* Filters Section */}
         <div className="flex items-center gap-2">
           {/* SFW Filter Checkbox - Copied from Posting */}
-          <label className="flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+          <label className={cn("flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-default {designSystem.borders.radius.sm} transition-colors cursor-pointer", designSystem.background.hover.subtle)}>
             <div className="relative">
               <input
                 type="checkbox"
@@ -123,8 +125,8 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
               <div className={`
                 w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center
                 ${sfwOnly
-                  ? 'bg-pink-500 border-pink-500'
-                  : 'bg-white border-gray-300 hover:border-pink-500'
+                  ? 'bg-primary border-primary'
+                  : 'bg-white border-strong hover:border-primary'
                 }
               `}>
                 {sfwOnly && (
@@ -134,11 +136,11 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
                 )}
               </div>
             </div>
-            <span className="text-sm font-medium text-gray-700">
+            <span className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>
               SFW
             </span>
             {sfwOnly && sfwCount > 0 && (
-              <span className="text-xs text-pink-500 font-semibold">
+              <span className="text-xs text-primary font-semibold">
                 ({formatNumber(sfwCount)})
               </span>
             )}
@@ -153,16 +155,17 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
           />
 
           {/* Age Filter */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-white border border-default {designSystem.borders.radius.sm} p-1">
             {(['24h', '7d', '30d', 'all'] as AgeFilter[]).map((age) => (
               <button
                 key={age}
                 onClick={() => onAgeFilterChange(age)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={cn(
+                  "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
                   ageFilter === age
-                    ? 'bg-pink-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                    ? 'bg-primary text-white'
+                    : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)
+                )}
                 disabled={loading}
               >
                 {age === 'all' ? 'All Time' : age}
@@ -171,25 +174,27 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
           </div>
 
           {/* Sort Options */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-white border border-default {designSystem.borders.radius.sm} p-1">
             <button
               onClick={() => onSortChange('score')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={cn(
+                "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
                 sortBy === 'score'
-                  ? 'bg-pink-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                  ? 'bg-primary text-white'
+                  : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)
+              )}
               disabled={loading}
             >
               Most Upvotes
             </button>
             <button
               onClick={() => onSortChange('comments')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={cn(
+                "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
                 sortBy === 'comments'
-                  ? 'bg-pink-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                  ? 'bg-primary text-white'
+                  : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)
+              )}
               disabled={loading}
             >
               Most Comments
@@ -213,7 +218,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
         {/* Stats & Actions */}
         <div className="flex items-center gap-3 ml-auto">
           {/* Result Count */}
-          <div className="text-xs text-gray-600 font-medium">
+          <div className={cn("text-xs font-medium", designSystem.typography.color.tertiary)}>
             {loading ? (
               <span>Loading...</span>
             ) : (

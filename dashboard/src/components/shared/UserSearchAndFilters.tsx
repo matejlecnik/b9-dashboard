@@ -4,12 +4,14 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Star, Crown, AlertCircle } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
 import { UniversalToolbar } from '@/components/shared/UniversalToolbar'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 // B9 Agency brand gradients
 const B9_GRADIENTS = {
-  primary: 'linear-gradient(135deg, #FF8395, #FF7A85)',
-  primaryLight: 'linear-gradient(135deg, #FFB3C1, #FF99A9)',
-  neutral: 'linear-gradient(135deg, #9CA3AF, #6B7280)'
+  primary: 'linear-gradient(135deg, var(--pink-500), var(--pink-600))',
+  primaryLight: 'linear-gradient(135deg, var(--pink-300), var(--pink-400))',
+  neutral: 'linear-gradient(135deg, var(--gray-400), var(--gray-500))'
 }
 
 type QualityFilter = 'all' | 'high' | 'our_creators' | 'low'
@@ -57,15 +59,15 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
       label: 'All Users',
       icon: Users,
       activeBg: B9_GRADIENTS.primaryLight, // Primary B9 pink gradient
-      activeTextColor: '#ffffff',
+      activeTextColor: 'white',
       getCount: (counts) => counts.total_users
     },
     {
       id: 'high',
       label: 'High Quality',
       icon: Star,
-      activeBg: 'linear-gradient(135deg, #FF99A9, #FFB3C1)', // Light pink for high quality
-      activeTextColor: '#ffffff',
+      activeBg: 'linear-gradient(135deg, var(--pink-400), var(--pink-300))', // Light pink for high quality
+      activeTextColor: 'white',
       getCount: (counts) => counts.high_quality_users
     },
     {
@@ -73,7 +75,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
       label: 'Our Creators',
       icon: Crown,
       activeBg: B9_GRADIENTS.primary, // Secondary B9 pink
-      activeTextColor: '#ffffff',
+      activeTextColor: 'white',
       getCount: (counts) => counts.our_creators
     },
     {
@@ -81,7 +83,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
       label: 'Low Quality',
       icon: AlertCircle,
       activeBg: B9_GRADIENTS.neutral, // Neutral gray
-      activeTextColor: '#ffffff',
+      activeTextColor: 'white',
       getCount: (counts) => counts.low_quality_users
     }
   ], [])
@@ -108,7 +110,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
           disabled={loading}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          className="px-4 py-2 border rounded-md lg:max-w-[60%] w-full"
+          className="px-4 py-2 border rounded-lg lg:max-w-[60%] w-full"
         />
 
         {/* Filter Pills (40% on larger screens) */}
@@ -124,8 +126,8 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
                 id={`user-filter-${filter.id}`}
                 onClick={() => onFilterChange(filter.id)}
                 disabled={loading}
-                className={`px-3 py-1.5 rounded-md flex items-center gap-2 ${
-                  isActive ? 'bg-blue-500 text-white' : 'bg-gray-100'
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 ${
+                  isActive ? 'bg-blue-500 text-white' : designSystem.background.surface.light
                 }`}
               >
                 <filter.icon className="w-4 h-4" />
@@ -149,7 +151,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
       {/* Active Search Indicator */}
       {searchQuery.trim() && (
         <div className="mt-3 text-center">
-          <p className="text-sm text-gray-600">
+          <p className={cn("text-sm", designSystem.typography.color.tertiary)}>
             {loading ? (
               'Searching users...'
             ) : (

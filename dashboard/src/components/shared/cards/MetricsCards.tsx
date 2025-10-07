@@ -1,6 +1,8 @@
 'use client'
 
 import { memo, useMemo } from 'react'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 
 interface MetricsCardsProps {
@@ -142,59 +144,52 @@ const MetricsCards = memo(function MetricsCards({
 
 
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5 ${className}`} data-testid={`${platform}-metrics-cards`}>
+    <div className={cn('grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5', className)} data-testid={`${platform}-metrics-cards`}>
       {metrics.map((metric, index) => {
         return (
           <div
             key={index}
             data-testid={metric.testId}
-            className={`
-              rounded-xl p-3 transition-all duration-300 ease-out h-full min-h-[80px]
-              bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-              border ${platform === 'instagram' ? 'border-white/20' : 'border-gray-200'}
-              shadow-[0_8px_32px_rgba(0,0,0,0.1)]
-              hover:bg-[rgba(248,250,252,0.8)]
-              hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
-              hover:scale-[1.02] hover:-translate-y-1
-              ${metric.isHighlight ? 'ring-2 ring-pink-200/30' : ''}
-            `}
+            className={cn(
+              designSystem.borders.radius.md,
+              'p-3 h-full min-h-[80px]',
+              designSystem.animation.transition.default,
+              'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
+              'border', platform === 'instagram' ? 'border-white/20' : 'border-default',
+              'shadow-[0_8px_32px_var(--black-alpha-10)]',
+              'hover:bg-[var(--slate-50-alpha-80)]',
+              'hover:shadow-[0_12px_40px_var(--black-alpha-15)]',
+              'hover:scale-[1.02] hover:-translate-y-1',
+              metric.isHighlight && 'ring-2 ring-primary/30'
+            )}
           >
             <div className="space-y-1">
-              <div
-                className="text-xl font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
-                style={{
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                }}
-              >
+              <div className={cn(designSystem.typography.size.xl, designSystem.typography.weight.bold, designSystem.typography.color.primary, 'font-mac-display text-shadow-subtle')}>
                 {metric.value}
               </div>
-              <div
-                className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]"
-              >
+              <div className={cn(designSystem.typography.size.xs, designSystem.typography.weight.semibold, designSystem.typography.color.secondary, 'font-mac-text')}>
                 {metric.title}
               </div>
-              <div
-                className="text-[11px] text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]"
-              >
+              <div className={cn("text-[11px]", designSystem.typography.color.tertiary, 'font-mac-text')}>
                 {metric.subtitle}
               </div>
             </div>
-            
+
             {/* Progress bar for completion */}
             {metric.showProgress && !loading && (
               <div className="mt-2">
                 <div
-                  className="w-full rounded-full h-1"
+                  className={cn('w-full h-1', designSystem.borders.radius.full)}
                   style={{
-                    background: 'rgba(0, 0, 0, 0.06)',
+                    background: 'var(--black-alpha-06)',
                   }}
                 >
                   <div
-                    className="h-1 rounded-full transition-all duration-500 ease-out"
+                    className={cn('h-1', designSystem.borders.radius.full, designSystem.animation.transition.slow)}
                     style={{
                       width: `${metric.percentage}%`,
-                      background: 'linear-gradient(135deg, #FF8395, #FF7A85)',
-                      boxShadow: '0 1px 2px rgba(255, 131, 149, 0.2)',
+                      background: 'linear-gradient(135deg, var(--pink-500), var(--pink-600))',
+                      boxShadow: '0 1px 2px var(--pink-alpha-20)',
                     }}
                   ></div>
                 </div>

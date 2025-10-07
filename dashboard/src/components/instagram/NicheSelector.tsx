@@ -12,6 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { designSystem } from '@/lib/design-system'
 
 interface NicheSelectorProps {
   creatorId: number
@@ -94,10 +95,10 @@ export function NicheSelector({
           variant="outline"
           role="combobox"
           aria-expanded={isOpen}
-          className="h-8 w-full justify-between text-xs font-medium border-gray-200 hover:bg-gray-50"
+          className={cn("h-8 w-full justify-between text-xs font-medium border-default", designSystem.background.hover.subtle)}
           disabled={disabled || isUpdating}
         >
-          <span className={cn(!localNiche && "text-gray-400")}>
+          <span className={cn(!localNiche && designSystem.typography.color.disabled)}>
             {localNiche || "Un-niched"}
           </span>
           <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
@@ -107,18 +108,18 @@ export function NicheSelector({
         <div className="max-h-[300px] overflow-auto">
           {/* Clear option */}
           <button
-            className="relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none hover:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+            className={cn("relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50", designSystem.background.hover.light)}
             onClick={() => handleNicheChange(null)}
           >
             {!localNiche ? <Check className="mr-2 h-3 w-3" /> : <span className="mr-2 h-3 w-3" />}
-            <span className="text-gray-400">Clear Niche</span>
+            <span className={cn(designSystem.typography.color.disabled)}>Clear Niche</span>
           </button>
 
           {/* Existing niches */}
           {availableNiches.map((niche) => (
             <button
               key={niche}
-              className="relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none hover:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+              className={cn("relative flex w-full cursor-pointer select-none items-center px-2 py-1.5 text-xs outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50", designSystem.background.hover.light)}
               onClick={() => handleNicheChange(niche)}
             >
               {localNiche === niche ? <Check className="mr-2 h-3 w-3" /> : <span className="mr-2 h-3 w-3" />}
@@ -127,7 +128,7 @@ export function NicheSelector({
           ))}
 
           {/* Divider */}
-          <div className="border-t border-gray-200 my-1" />
+          <div className="border-t border-default my-1" />
 
           {/* Add new niche input */}
           <div className="p-2">

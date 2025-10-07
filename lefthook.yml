@@ -117,6 +117,19 @@ pre-push:
         echo "✅ Code quality: All checks passed"
       tags: [quality]
 
+    # Design system compliance check (blocks push if violations found)
+    design-system:
+      run: |
+        echo "🎨 Checking design system compliance..."
+        python3 docs/scripts/validation/design-system-check.py
+        if [ $? -ne 0 ]; then
+          echo "❌ Design system violations found. Fix before pushing."
+          echo "   Run: python3 docs/scripts/validation/design-system-check.py"
+          exit 1
+        fi
+        echo "✅ Design system: 100% compliant"
+      tags: [design]
+
     # Full documentation compliance check
     docs-compliance:
       run: |
@@ -244,3 +257,10 @@ manual:
         echo "📊 Generating code quality dashboard..."
         python3 docs/scripts/validation/quality-dashboard.py
       tags: [quality]
+
+    # Design system compliance check
+    design-check:
+      run: |
+        echo "🎨 Checking design system compliance..."
+        python3 docs/scripts/validation/design-system-check.py
+      tags: [design]

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -103,7 +104,7 @@ export function DatabasePerformancePanel() {
   if (!metrics) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-strong" />
       </div>
     )
   }
@@ -148,17 +149,17 @@ export function DatabasePerformancePanel() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-gray-500">Active Connections</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Active Connections</p>
               <p className="text-lg font-semibold">
                 {metrics.pool.activeConnections} / {metrics.pool.totalConnections}
               </p>
-              <Progress 
-                value={(metrics.pool.activeConnections / Math.max(metrics.pool.totalConnections, 1)) * 100} 
+              <Progress
+                value={(metrics.pool.activeConnections / Math.max(metrics.pool.totalConnections, 1)) * 100}
                 className="h-1 mt-1"
               />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Queue</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Queue</p>
               <p className="text-lg font-semibold">{metrics.pool.queuedRequests}</p>
               {metrics.pool.queuedRequests > 0 && (
                 <Badge variant="destructive" className="mt-1">
@@ -167,7 +168,7 @@ export function DatabasePerformancePanel() {
               )}
             </div>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className={cn("text-xs", designSystem.typography.color.subtle)}>
             Total Requests: {metrics.pool.totalRequests.toLocaleString()}
           </div>
         </CardContent>
@@ -194,20 +195,20 @@ export function DatabasePerformancePanel() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-gray-500">Hit Rate</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Hit Rate</p>
               <p className="text-lg font-semibold">{metrics.performance.cacheHitRate}%</p>
               <Progress value={metrics.performance.cacheHitRate} className="h-1 mt-1" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Size</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Size</p>
               <p className="text-lg font-semibold">{metrics.optimization.cacheSize}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Max Size</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Max Size</p>
               <p className="text-lg font-semibold">{metrics.optimization.maxCacheSize}</p>
             </div>
           </div>
-          <div className="flex gap-4 text-xs text-gray-500">
+          <div className={cn("flex gap-4 text-xs", designSystem.typography.color.subtle)}>
             <span>Optimizations: {metrics.optimization.optimizations}</span>
           </div>
         </CardContent>
@@ -225,11 +226,11 @@ export function DatabasePerformancePanel() {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500">Avg Response</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Avg Response</p>
                 <p className="text-lg font-semibold">{metrics.performance.averageResponseTime}ms</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Cache Hit Rate</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Cache Hit Rate</p>
                 <p className="text-lg font-semibold">{metrics.performance.cacheHitRate}%</p>
               </div>
             </div>
@@ -245,7 +246,7 @@ export function DatabasePerformancePanel() {
               </div>
             )}
 
-            <div className="text-xs text-gray-500">
+            <div className={cn("text-xs", designSystem.typography.color.subtle)}>
               Slow queries detected: {metrics.performance.slowQueries}
             </div>
           </CardContent>
@@ -257,25 +258,25 @@ export function DatabasePerformancePanel() {
         <CardContent className="pt-4">
           <div className="grid grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-xs text-gray-500">Efficiency</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Efficiency</p>
               <p className="text-sm font-semibold">
                 {metrics.performance.cacheHitRate > 70 ? '🟢' : metrics.performance.cacheHitRate > 40 ? '🟡' : '🔴'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Pool Health</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Pool Health</p>
               <p className="text-sm font-semibold">
                 {metrics.pool.queuedRequests === 0 ? '🟢' : metrics.pool.queuedRequests < 5 ? '🟡' : '🔴'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Query Speed</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Query Speed</p>
               <p className="text-sm font-semibold">
                 {metrics.performance?.averageResponseTime < 100 ? '🟢' : metrics.performance?.averageResponseTime < 500 ? '🟡' : '🔴'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Overall</p>
+              <p className={cn("text-xs", designSystem.typography.color.subtle)}>Overall</p>
               <p className="text-sm font-semibold">
                 {getOverallHealth(metrics)}
               </p>
@@ -358,20 +359,20 @@ export function DatabaseMetricsBadge() {
   if (!metrics) return null
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-xs">
+    <div className={`flex items-center gap-2 px-3 py-1 ${designSystem.background.surface.light} rounded-full text-xs`}>
       <Database className="h-3 w-3" />
       <span className="font-medium">DB</span>
-      <span className="text-gray-600">
+      <span className={cn(designSystem.typography.color.tertiary)}>
         {metrics.pool?.activeConnections || 0}/{metrics.pool?.totalConnections || 0}
       </span>
-      <span className="text-gray-400">•</span>
-      <span className="text-gray-600">
+      <span className={cn(designSystem.typography.color.disabled)}>•</span>
+      <span className={cn(designSystem.typography.color.tertiary)}>
         {metrics.performance?.cacheHitRate || 0}% hit
       </span>
       {metrics.performance && (
         <>
-          <span className="text-gray-400">•</span>
-          <span className="text-gray-600">
+          <span className={cn(designSystem.typography.color.disabled)}>•</span>
+          <span className={cn(designSystem.typography.color.tertiary)}>
             {metrics.performance.averageResponseTime}ms
           </span>
         </>

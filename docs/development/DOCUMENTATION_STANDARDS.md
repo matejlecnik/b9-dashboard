@@ -8,7 +8,7 @@
 
 ```json
 {
-  "parent": "DOCUMENTATION_MAP.md",
+  "parent": "../INDEX.md",
   "current": "DOCUMENTATION_STANDARDS.md",
   "siblings": [
     {"path": "DOCUMENTATION_AGENT_GUIDE.md", "desc": "Agent usage", "status": "NEW"},
@@ -473,4 +473,4 @@ _Version: X.X.X | Updated: YYYY-MM-DD_
 
 _Standards Version: 2.1.0 | Updated: 2025-10-01 | Mandatory: YES_
 _Changes: v2.1.0 - Added documentation structure rules, anti-patterns, directory guidelines_
-_Navigate: [← DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | [→ DOCUMENTATION_AGENT_GUIDE.md](DOCUMENTATION_AGENT_GUIDE.md) | [→ ROADMAP.md](../../ROADMAP.md)_
+_Navigate: [← INDEX.md](../INDEX.md) | [→ DOCUMENTATION_AGENT_GUIDE.md](DOCUMENTATION_AGENT_GUIDE.md) | [→ ROADMAP.md](../../ROADMAP.md)_

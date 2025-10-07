@@ -53,20 +53,20 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
   const getColorClasses = (color: string, isSelected: boolean) => {
     const colors: Record<string, string> = {
       gray: isSelected
-        ? 'bg-gray-900 text-white border-gray-900'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+        ? `${designSystem.background.surface.inverse} text-white border-${designSystem.background.surface.inverse}`
+        : `bg-white ${designSystem.typography.color.secondary} border-strong ${designSystem.background.hover.subtle}`,
       pink: isSelected
         ? 'bg-b9-pink text-white border-b9-pink'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-pink-50',
+        : `bg-white ${designSystem.typography.color.secondary} border-strong hover:bg-primary/10`,
       green: isSelected
         ? 'bg-green-600 text-white border-green-600'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50',
+        : `bg-white ${designSystem.typography.color.secondary} border-strong hover:bg-green-50`,
       blue: isSelected
         ? 'bg-blue-600 text-white border-blue-600'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50',
+        : `bg-white ${designSystem.typography.color.secondary} border-strong hover:bg-blue-50`,
       red: isSelected
         ? 'bg-red-600 text-white border-red-600'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50'
+        : `bg-white ${designSystem.typography.color.secondary} border-strong hover:bg-red-50`
     }
     return colors[color] || colors.gray
   }
@@ -107,7 +107,7 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
                 'ml-1 px-1.5 py-0.5 text-xs rounded-full',
                 isSelected
                   ? 'bg-white/20 text-white'
-                  : 'bg-gray-100 text-gray-600'
+                  : cn(designSystem.background.surface.light, designSystem.typography.color.tertiary)
               )}>
                 {option.count >= 1000 ? `${(option.count / 1000).toFixed(1)}k` : option.count}
               </span>
@@ -141,23 +141,24 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className={cn(designSystem.text.small, 'text-gray-500')}>
+      <span className={cn(designSystem.text.small, designSystem.typography.color.subtle)}>
         Active filters:
       </span>
       {filters.map((filter) => (
         <div
           key={filter.id}
           className={cn(
-            'inline-flex items-center gap-1 px-2 py-1',
+            'inline-flex items-center gap-1 px-2 py-1 text-sm',
             designSystem.radius.full,
-            'bg-gray-100 text-gray-700 text-sm'
+            designSystem.background.surface.light,
+            designSystem.typography.color.secondary
           )}
         >
           <span className="font-medium">{filter.label}:</span>
           <span>{filter.value}</span>
           <button
             onClick={() => onRemove(filter.id)}
-            className="ml-1 hover:text-gray-900"
+            className={cn("ml-1", `hover:${designSystem.typography.color.primary}`)}
           >
             <X className="h-3 w-3" />
           </button>
@@ -167,7 +168,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         <button
           onClick={onClearAll}
           className={cn(
-            'text-sm text-b9-pink hover:text-pink-700',
+            'text-sm text-b9-pink hover:text-primary-pressed',
             designSystem.animation.fast
           )}
         >
@@ -205,13 +206,14 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
         )}
         onClick={() => collapsible && setIsOpen(!isOpen)}
       >
-        <h3 className={cn(designSystem.text.label, 'text-gray-700')}>
+        <h3 className={cn(designSystem.text.label, designSystem.typography.color.secondary)}>
           {label}
         </h3>
         {collapsible && (
           <svg
             className={cn(
-              'h-4 w-4 text-gray-400 transform',
+              'h-4 w-4 transform',
+              designSystem.typography.color.disabled,
               designSystem.animation.fast,
               isOpen ? 'rotate-180' : ''
             )}

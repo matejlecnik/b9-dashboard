@@ -155,9 +155,9 @@ export const ReviewPageTemplate = <T = unknown,>({
 
   // Get accent color based on platform
   const platformAccentColor = accentColor || {
-    instagram: 'linear-gradient(135deg, #E1306C, #F77737)',
-    reddit: 'linear-gradient(135deg, #FF4500, #FF8717)',
-    models: 'linear-gradient(135deg, #9333EA, #EC4899)'
+    instagram: 'linear-gradient(135deg, var(--instagram-gradient), var(--instagram-secondary))', // Instagram brand colors
+    reddit: 'linear-gradient(135deg, var(--reddit-primary), var(--reddit-secondary))', // Reddit brand colors
+    models: 'linear-gradient(135deg, var(--purple-600), var(--models-accent))' // Purple to pink gradient
   }[platform]
 
   return (

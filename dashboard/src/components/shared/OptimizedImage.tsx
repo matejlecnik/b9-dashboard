@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef, ImgHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { logger } from '@/lib/logger'
 import Image from 'next/image'
 
@@ -89,7 +90,7 @@ export function OptimizedImage({
           {...props}
         />
         {!loaded && !error && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          <div className={cn("absolute inset-0 animate-pulse", designSystem.background.surface.neutral)} />
         )}
       </div>
     )
@@ -196,7 +197,7 @@ export function LazyImage({
   return (
     <div className={cn('relative overflow-hidden', className)}>
       {!loaded && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <div className={cn("absolute inset-0 animate-pulse", designSystem.background.surface.neutral)} />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -206,7 +207,7 @@ export function LazyImage({
         onLoad={handleLoad}
         onError={handleError}
         className={cn(
-          'transition-opacity duration-300',
+          designSystem.animation.transition.default,
           loaded ? 'opacity-100' : 'opacity-0',
           className
         )}
@@ -265,14 +266,14 @@ export function ProgressiveImage({
         src={currentSrc}
         alt={alt}
         className={cn(
-          'transition-all duration-500',
+          designSystem.animation.transition.slow,
           isLowQuality ? 'blur-sm scale-105' : 'blur-0 scale-100',
           className
         )}
         {...props}
       />
       {loading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <div className={cn("absolute inset-0 animate-pulse", designSystem.background.surface.neutral)} />
       )}
     </div>
   )
@@ -314,7 +315,7 @@ export function AvatarImage({
       height={dimension}
       fallback={fallback}
       className={cn(
-        'rounded-full',
+        designSystem.borders.radius.full,
         size === 'sm' && 'w-8 h-8',
         size === 'md' && 'w-10 h-10',
         size === 'lg' && 'w-14 h-14',
@@ -362,7 +363,8 @@ export function SubredditIcon({
       height={dimension}
       fallback={fallback}
       className={cn(
-        'rounded-full border border-gray-200',
+        designSystem.borders.radius.full,
+        'border border-default',
         size === 'sm' && 'w-6 h-6',
         size === 'md' && 'w-8 h-8',
         size === 'lg' && 'w-12 h-12',

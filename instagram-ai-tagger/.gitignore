@@ -1,0 +1,47 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Data & Models
+data/
+logs/
+*.log
+
+# Model weights
+*.pt
+*.pth
+*.onnx
+*.engine
+*.bin
+*.safetensors
+
+# Cache
+*.pkl
+*.cache
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/

@@ -148,6 +148,13 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   const [isExiting, setIsExiting] = useState(false)
 
+  const handleRemove = useCallback(() => {
+    setIsExiting(true)
+    setTimeout(() => {
+      onRemove(toast.id)
+    }, 200) // Match animation duration
+  }, [toast.id, onRemove])
+
   useEffect(() => {
     const duration = toast.duration ?? 5000
 
@@ -158,14 +165,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
 
       return () => clearTimeout(timer)
     }
-  }, [toast.id, toast.duration])
-
-  const handleRemove = () => {
-    setIsExiting(true)
-    setTimeout(() => {
-      onRemove(toast.id)
-    }, 200) // Match animation duration
-  }
+  }, [toast.id, toast.duration, handleRemove])
 
   const typeConfig: Record<ToastType, { icon: LucideIcon; color: string; bg: string }> = {
     success: {
@@ -209,11 +209,11 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
       <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', config.color)} />
 
       <div className="flex-1 min-w-0">
-        <p className={cn('font-medium text-sm text-gray-900')}>
+        <p className={cn('font-medium text-sm', designSystem.typography.color.primary)}>
           {toast.title}
         </p>
         {toast.message && (
-          <p className={cn('mt-1 text-sm text-gray-600')}>
+          <p className={cn('mt-1 text-sm', designSystem.typography.color.tertiary)}>
             {toast.message}
           </p>
         )}
@@ -235,7 +235,8 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
         onClick={handleRemove}
         className={cn(
           'flex-shrink-0 ml-2',
-          'text-gray-400 hover:text-gray-600',
+          designSystem.typography.color.disabled,
+          `hover:${designSystem.typography.color.tertiary}`,
           'focus:outline-none focus:ring-2 focus:ring-b9-pink/50',
           'rounded-lg p-1'
         )}

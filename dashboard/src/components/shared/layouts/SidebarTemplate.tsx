@@ -10,6 +10,8 @@ import { LucideIcon } from 'lucide-react'
 import React from 'react'
 import Link from 'next/link'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 // Type for icon props
 type IconProps = { className?: string }
@@ -17,7 +19,7 @@ type IconProps = { className?: string }
 export interface SidebarNavigationItem {
   href: string
   title: string
-  icon: LucideIcon
+  icon: LucideIcon | React.ComponentType<{ className?: string }>
   badge?: {
     type: 'count' | 'status'
     value: string | number | React.ReactElement
@@ -53,23 +55,23 @@ const MemoizedNavigationItem = React.memo<{
     <Link
       href={item.href}
       {...accessibilityProps}
-      className="focus:outline-none focus:ring-2 focus:ring-b9-pink/50 focus:ring-offset-2 focus:ring-offset-transparent rounded-xl relative group"
+      className="focus:outline-none focus:ring-2 focus:ring-b9-pink/50 focus:ring-offset-2 focus:ring-offset-transparent {designSystem.borders.radius.md} relative group"
     >
-      <div className={`
-        relative flex items-center px-2 py-1.5 rounded-lg cursor-pointer transform
+      <div className={cn(`
+        relative flex items-center px-2 py-1.5 {designSystem.borders.radius.sm} cursor-pointer transform
+        justify-start will-change-auto
         ${isActive
           ? 'bg-b9-pink/15 text-b9-pink shadow-apple transition-colors duration-200'
-          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]'
+          : `${designSystem.typography.color.secondary} hover:bg-white/60 ${designSystem.typography.color.primary} hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`
         }
-        justify-start will-change-auto
-      `}>
+      `)}>
         <div className="flex items-center flex-1">
-          <div className={`
-            p-1.5 rounded-lg flex-shrink-0 mr-2
-            ${isActive ? 'bg-b9-pink text-white' : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'}
+          <div className={cn(`
+            p-1.5 {designSystem.borders.radius.sm} flex-shrink-0 mr-2
             transition-all duration-200 ease-out group-hover:scale-110
-          `}>
-            <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-gray-600'}`} aria-hidden="true" />
+            ${isActive ? 'bg-b9-pink text-white' : `${designSystem.background.surface.light} ${designSystem.typography.color.tertiary} group-hover:${designSystem.background.surface.neutral}`}
+          `)}>
+            <Icon className={cn(`h-3.5 w-3.5 ${isActive ? 'text-white' : designSystem.typography.color.tertiary}`)} aria-hidden="true" />
           </div>
           <div className="flex-1">
             <div className="font-medium text-xs flex items-center gap-2">
@@ -85,13 +87,13 @@ const MemoizedNavigationItem = React.memo<{
               {item.badge.value}
             </div>
           ) : (
-            <div className={`
-              ml-2 px-2 py-0.5 rounded-full text-xs font-medium
+            <div className={cn(`
+              ml-2 px-2 py-0.5 {designSystem.borders.radius.full} text-xs font-medium
               ${item.badge.variant === 'success' ? 'bg-green-100 text-green-700' :
                 item.badge.variant === 'warning' ? 'bg-yellow-100 text-yellow-700' :
                 item.badge.variant === 'error' ? 'bg-red-100 text-red-700' :
-                'bg-gray-100 text-gray-700'}
-            `}>
+                `${designSystem.background.surface.light} ${designSystem.typography.color.secondary}`}
+            `)}>
               {item.badge.value}
             </div>
           )
@@ -150,14 +152,14 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
   return (
     <aside
       ref={sidebarRef}
-      className="glass-sidebar sticky top-3 my-3 ml-3 flex flex-col rounded-xl z-30 w-56 lg:w-60"
+      className="glass-sidebar sticky top-3 my-3 ml-3 flex flex-col {designSystem.borders.radius.md} z-30 w-56 lg:w-60"
       style={{
         height: 'calc(100vh - 1.5rem)',
-        background: 'linear-gradient(180deg, rgba(248,250,252,0.85) 0%, rgba(240,242,247,0.75) 100%)',
+        background: 'linear-gradient(180deg, var(--slate-50-alpha-85) 0%, var(--slate-100-alpha-75) 100%)',
         backdropFilter: 'blur(20px) saturate(140%)',
         WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.35)',
+        boxShadow: '0 20px 50px var(--black-alpha-12), inset 0 1px 0 var(--white-alpha-60), inset 0 -1px 0 var(--black-alpha-02)',
+        border: '1px solid var(--white-alpha-35)',
         contain: 'layout style'
       }}
       aria-label="Main navigation"
@@ -168,7 +170,7 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
         <div className="flex items-center space-x-2">
           {backHref ? (
             <Link href={backHref} className="group">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-105 relative ${
+              <div className={`w-8 h-8 {designSystem.borders.radius.sm} flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-105 relative ${
                 dashboardColor || 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600'
               }`}>
                 {/* Main Icon */}
@@ -186,7 +188,7 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
               </div>
             </Link>
           ) : (
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            <div className={`w-8 h-8 {designSystem.borders.radius.sm} flex items-center justify-center ${
               dashboardColor || 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600'
             }`}>
               {React.isValidElement(icon) ?
@@ -199,11 +201,11 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
             </div>
           )}
           <div>
-            <h1 className="text-base font-semibold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]">
+            <h1 className={cn("text-base font-semibold font-mac-display", designSystem.typography.color.primary)}>
               {title}
             </h1>
             {subtitle && (
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className={cn("text-xs mt-0.5", designSystem.typography.color.tertiary)}>
                 {subtitle}
               </p>
             )}
@@ -239,18 +241,18 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
       {/* Team Section */}
       {showTeamSection && (
         <div className="px-2 py-3 border-t border-black/10">
-          <div className="flex items-center p-2 rounded-lg bg-gradient-to-r from-white/90 to-white/70 ring-1 ring-inset ring-white/50 backdrop-blur-md shadow-lg">
+          <div className="flex items-center p-2 {designSystem.borders.radius.sm} bg-gradient-to-r from-white/90 to-white/70 ring-1 ring-inset ring-white/50 backdrop-blur-md shadow-lg">
             <div className="relative">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#FF8395] to-[#FF6B80] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-2 ring-white/30">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-hover {designSystem.borders.radius.full} flex items-center justify-center flex-shrink-0 shadow-lg ring-2 ring-white/30">
                 <User className="h-4 w-4 text-white" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-gradient-to-br from-[#FF6B80] to-[#FF4D68] rounded-full border-2 border-white shadow-md"></div>
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-gradient-to-br from-primary-hover to-primary-pressed {designSystem.borders.radius.full} border-2 border-white shadow-md"></div>
             </div>
             <div className="ml-2 flex-1">
-              <div className="font-semibold text-xs text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]">
+              <div className={cn("font-semibold text-xs font-mac-display", designSystem.typography.color.primary)}>
                 B9 Agency Team
               </div>
-              <div className="text-[10px] text-gray-600 mt-0.5 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+              <div className={cn("text-[10px] mt-0.5 font-mac-text", designSystem.typography.color.tertiary)}>
                 Premium Account • Online
               </div>
             </div>
@@ -259,7 +261,7 @@ export const SidebarTemplate = React.memo<SidebarTemplateProps>(({
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="ml-2 h-6 w-6 p-0 rounded-lg transition-all duration-300 ease-out hover:bg-white/60 hover:scale-110 active:scale-95 text-gray-700 hover:text-gray-900"
+                className={cn("ml-2 h-6 w-6 p-0 {designSystem.borders.radius.sm} transition-all duration-300 ease-out hover:bg-white/60 hover:scale-110 active:scale-95", `hover:${designSystem.typography.color.primary}`, designSystem.typography.color.secondary)}
                 title="Sign Out"
               >
                 <LogOut className="h-3 w-3" />

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { formatDistanceToNow } from 'date-fns'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 import { LogTerminalBase } from './LogTerminalBase'
 // Type definitions
 interface ApiActivityDetails {
@@ -18,33 +20,6 @@ interface ApiActivity {
   title: string
   message?: string
   details?: ApiActivityDetails
-}
-
-interface RedditCategorizationLog {
-  id: string
-  timestamp: string
-  subreddit_name: string
-  category_assigned?: string
-  success?: boolean
-}
-
-interface RedditScraperLog {
-  id: string
-  timestamp: string
-  message?: string
-  source: string
-  level?: string
-  context?: Record<string, unknown>
-}
-
-interface UserDiscoveryLog {
-  id: string
-  timestamp: string
-  username: string
-  action: string
-  success: boolean
-  details?: Record<string, unknown>
-  error?: string | null
 }
 
 interface SystemLog {
@@ -180,7 +155,7 @@ export function CombinedActivityLog({
       case 'success': return 'text-green-600'
       case 'error': return 'text-red-600'
       case 'pending': return 'text-yellow-600'
-      default: return 'text-gray-600'
+      default: return designSystem.typography.color.tertiary
     }
   }
 
@@ -196,19 +171,19 @@ export function CombinedActivityLog({
         className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
       >
         {activities.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[9px] text-gray-400">
+          <div className={cn("flex items-center justify-center h-full text-[9px]", designSystem.typography.color.disabled)}>
             No recent activity
           </div>
         ) : (
           <div className="space-y-0 pb-1 px-1">
             {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-1 px-1 hover:bg-gray-100/50 rounded transition-colors">
+              <div key={activity.id} className={`flex items-start gap-1 px-1 hover:${designSystem.background.hover.light}/50 rounded transition-colors`}>
                 <span className={`text-[8px] ${getStatusColor(activity.status)} mt-0.5`}>●</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-gray-900 truncate">
+                  <p className={cn("text-[9px] truncate", designSystem.typography.color.primary)}>
                     {activity.message || activity.title}
                   </p>
-                  <p className="text-[8px] text-gray-600">
+                  <p className={cn("text-[8px]", designSystem.typography.color.tertiary)}>
                     {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                   </p>
                 </div>

@@ -5,14 +5,16 @@ Centralized middleware setup for security, CORS, compression, and monitoring
 
 import os
 import time
-import logging
+
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from app.utils import request_timer
+from fastapi.responses import JSONResponse
+
 from app.logging import get_logger
+from app.utils import request_timer
+
 
 logger = get_logger(__name__)
 

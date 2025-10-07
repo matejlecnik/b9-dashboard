@@ -1,5 +1,7 @@
 import { BadgeConfig } from '@/config/navigation'
 import { Badge } from '@/components/ui/badge'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface NavigationBadgeProps {
   config: BadgeConfig
@@ -12,14 +14,16 @@ export const NavigationBadge: React.FC<NavigationBadgeProps> = ({
 }) => {
   if (config.type === 'dot') {
     return (
-      <span 
-        className={`absolute right-2 h-2 w-2 rounded-full ${
-          config.color === 'success' ? 'bg-pink-500' :
-          config.color === 'warning' ? 'bg-gray-500' :
-          config.color === 'error' ? 'bg-gray-900' :
-          config.color === 'info' ? 'bg-gray-600' :
-          'bg-b9-pink'
-        } ${config.pulse ? 'animate-pulse' : ''} ${className || ''}`}
+      <span
+        className={cn(`absolute right-2 h-2 w-2 rounded-full`,
+          config.color === 'success' ? 'bg-primary' :
+          config.color === 'warning' ? designSystem.background.surface.dark :
+          config.color === 'error' ? designSystem.background.surface.inverse :
+          config.color === 'info' ? designSystem.background.surface.darker :
+          'bg-b9-pink',
+          config.pulse ? 'animate-pulse' : '',
+          className || ''
+        )}
         aria-hidden="true"
       />
     )
@@ -27,19 +31,20 @@ export const NavigationBadge: React.FC<NavigationBadgeProps> = ({
 
   if (config.type === 'status') {
     return (
-      <div className={`flex items-center ${className || ''}`}>
-        <span 
-          className={`h-2 w-2 rounded-full mr-2 ${
-            config.color === 'success' ? 'bg-pink-500' :
-            config.color === 'warning' ? 'bg-gray-500' :
-            config.color === 'error' ? 'bg-gray-900' :
-            config.color === 'info' ? 'bg-gray-600' :
-            'bg-gray-400'
-          } ${config.pulse ? 'animate-pulse' : ''}`}
+      <div className={cn(`flex items-center`, className || '')}>
+        <span
+          className={cn(`h-2 w-2 rounded-full mr-2`,
+            config.color === 'success' ? 'bg-primary' :
+            config.color === 'warning' ? designSystem.background.surface.dark :
+            config.color === 'error' ? designSystem.background.surface.inverse :
+            config.color === 'info' ? designSystem.background.surface.darker :
+            designSystem.background.surface.muted,
+            config.pulse ? 'animate-pulse' : ''
+          )}
           aria-hidden="true"
         />
         {config.value && (
-          <span className="text-xs text-gray-600 font-medium">
+          <span className={cn("text-xs font-medium", designSystem.typography.color.tertiary)}>
             {config.value}
           </span>
         )}

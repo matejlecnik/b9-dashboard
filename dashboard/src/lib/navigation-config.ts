@@ -88,7 +88,7 @@ export const instagramDashboard: DashboardConfig = {
   icon: Instagram,
   description: 'Instagram creator discovery and analytics',
   color: 'pink',
-  gradient: 'from-pink-500 to-purple-600',
+  gradient: 'from-primary to-secondary-hover',
   requiresPermission: 'instagram',
   apiNamespace: '/api/instagram',
   navigation: [
@@ -131,7 +131,7 @@ export const modelsDashboard: DashboardConfig = {
   icon: Users,
   description: 'Manage model profiles and preferences',
   color: 'purple',
-  gradient: 'from-purple-500 to-indigo-600',
+  gradient: 'from-secondary to-indigo-600',
   requiresPermission: 'models',
   apiNamespace: '/api/models',
   navigation: [] // Single page dashboard
@@ -141,7 +141,7 @@ export const modelsDashboard: DashboardConfig = {
 export const monitorDashboard: DashboardConfig = {
   id: 'monitor',
   title: 'System Monitor',
-  path: '/monitor',
+  path: '/monitor/reddit',
   icon: Activity,
   description: 'Monitor scraping and system status',
   color: 'green',

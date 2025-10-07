@@ -2,28 +2,44 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
+import { designSystem } from "@/lib/design-system"
 
+/**
+ * Badge Component - Migrated to Design Token System v2.0
+ *
+ * Now uses CSS variables and semantic color tokens.
+ * All hardcoded colors replaced with design system references.
+ */
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  `inline-flex items-center ${designSystem.borders.radius.full} border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2`,
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          // Primary badge using CSS variables
+          "border-transparent bg-primary text-white hover:bg-primary-hover",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          // Secondary badge with subtle styling
+          `border-transparent ${designSystem.background.surface.light} ${designSystem.typography.color.secondary} ${designSystem.background.hover.neutral}`,
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          // Destructive/error badge
+          `border-transparent ${designSystem.background.surface.inverse} text-white hover:${designSystem.background.surface.deepest}`,
+        outline:
+          // Outline badge with border
+          `${designSystem.typography.color.secondary} border-default`,
         success:
-          "border-transparent bg-pink-500 text-white hover:bg-pink-600",
+          // Success badge using primary pink
+          "border-transparent bg-primary text-white hover:bg-primary-hover",
         warning:
-          "border-transparent bg-gray-600 text-white hover:bg-yellow-600",
+          // Warning badge using gray
+          `border-transparent ${designSystem.background.surface.darker} text-white hover:${designSystem.background.surface.darkest}`,
         error:
-          "border-transparent bg-gray-900 text-white hover:bg-gray-900",
+          // Error badge using dark gray
+          `border-transparent ${designSystem.background.surface.inverse} text-white hover:${designSystem.background.surface.deepest}`,
         info:
-          "border-transparent bg-gray-600 text-white hover:bg-gray-700",
+          // Info badge using medium gray
+          `border-transparent ${designSystem.background.surface.darker} text-white hover:${designSystem.background.surface.darkest}`,
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",

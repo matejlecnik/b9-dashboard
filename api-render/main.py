@@ -10,52 +10,39 @@ High-performance FastAPI application optimized for Render deployment with:
 """
 
 import os
-import logging
-import time
-import json
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, Query, Request, Depends
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from contextlib import asynccontextmanager
-from pydantic import BaseModel
+
+import uvicorn
 from dotenv import load_dotenv
+from fastapi import FastAPI
+
 
 # Import Pydantic models
-from app.models.requests import (
-    CategorizationRequest,
-    SingleSubredditRequest,
-    ScrapingRequest,
-    UserDiscoveryRequest,
-    BackgroundJobRequest
-)
-from supabase import create_client
-import uvicorn
+
 
 # Load environment variables first
 load_dotenv()
 
 # Import utilities and services
-from app.utils import health_monitor, request_timer
-from app.logging import get_logger
+from app.logging import get_logger  # noqa: E402
+
 
 # Create logger instance
 logger = get_logger(__name__)
 # Import version
-from app.version import API_VERSION
-# Import services and routes using relative imports
-from app.services.ai_categorizer import TagCategorizationService
-from app.services.subreddit_api import fetch_subreddit
-from app.api.reddit.users import router as user_router
+from app.api.reddit.users import router as user_router  # noqa: E402
+
 # Import lifespan manager
-from app.core.lifespan import create_lifespan_manager
-# Import middleware configuration
-from app.middleware import configure_middleware
+from app.core.lifespan import create_lifespan_manager  # noqa: E402
+
 # Import logging setup
-from app.logging.setup import setup_logging
+from app.logging.setup import setup_logging  # noqa: E402
+
+# Import middleware configuration
+from app.middleware import configure_middleware  # noqa: E402
+
+# Import services and routes using relative imports
+from app.version import API_VERSION  # noqa: E402
+
 
 # Optional Instagram route imports
 try:

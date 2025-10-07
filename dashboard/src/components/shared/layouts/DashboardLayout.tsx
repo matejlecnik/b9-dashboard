@@ -19,8 +19,8 @@ const DashboardLayout = memo(function DashboardLayout({
         className="fixed inset-0 opacity-30 pointer-events-none"
         style={{
           backgroundImage: `
-            radial-gradient(circle at 25% 25%, rgba(255, 131, 149, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(255, 131, 149, 0.05) 0%, transparent 50%)
+            radial-gradient(circle at 25% 25%, var(--pink-alpha-10) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, var(--pink-alpha-05) 0%, transparent 50%)
           `
         }}
       />

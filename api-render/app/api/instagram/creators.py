@@ -13,23 +13,30 @@ Mimics the automated scraper's process_creator() workflow:
 
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 from supabase import Client
 
+
 # Import scraper and config
 try:
-    from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
     from app.scrapers.instagram.services.instagram_config import Config
+    from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
 except ImportError:
     # Fallback for different import paths
-    from api_render.app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
-    from api_render.app.scrapers.instagram.services.instagram_config import Config
+    from api_render.app.scrapers.instagram.services.instagram_config import (  # type: ignore[no-redef]
+        Config,
+    )
+    from api_render.app.scrapers.instagram.services.instagram_scraper import (  # type: ignore[no-redef]
+        InstagramScraperUnified,
+    )
 
 # Import database singleton and unified logger
 from app.core.database import get_db
 from app.logging import get_logger
+
 
 # Initialize router
 router = APIRouter(prefix="/api/instagram/creator", tags=["instagram-creators"])
@@ -77,7 +84,7 @@ def create_scraper_instance() -> InstagramScraperUnified:
 
         # Override should_continue() to always return True for manual additions
         # This prevents the scraper from checking system_control table
-        scraper.should_continue = lambda: True
+        scraper.should_continue = lambda: True  # type: ignore[method-assign]
 
         logger.info("Created standalone scraper instance for manual creator addition")
         return scraper
@@ -87,7 +94,7 @@ def create_scraper_instance() -> InstagramScraperUnified:
 
 
 async def log_creator_addition(username: str, action: str, success: bool,
-                               details: Dict[str, Any] = None, error: str = None):
+                               details: Optional[Dict[str, Any]] = None, error: Optional[str] = None):
     """
     Log creator addition actions to Supabase system_logs
 

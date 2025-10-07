@@ -1,10 +1,12 @@
 /**
  * B9 Dashboard Color System
  * Monochromatic Pink & Grayscale Design System
- * 
+ *
  * This file provides color constants for consistent usage across components.
  * All colors follow the B9 brand identity using only pink variations and grayscale.
  */
+
+import { designSystem } from '@/lib/design-system'
 
 // B9 Brand Colors
 export const BRAND_COLORS = {
@@ -175,20 +177,20 @@ export const CSS_VARIABLES = {
 // Tailwind Class Names for Common Patterns
 export const TAILWIND_CLASSES = {
   // Status badges
-  statusOk: 'bg-pink-50 text-pink-700 border-pink-200',
-  statusNoSeller: 'bg-gray-100 text-gray-700 border-gray-300',
-  statusNonRelated: 'bg-gray-50 text-gray-600 border-gray-200',
-  statusUserFeed: 'bg-white text-pink-300 border-pink-100',
-  
+  statusOk: 'bg-primary/10 text-primary-pressed border-primary/30',
+  statusNoSeller: `${designSystem.background.surface.light} text-gray-700 border-gray-300`,
+  statusNonRelated: `${designSystem.background.surface.subtle} text-gray-600 border-gray-200`,
+  statusUserFeed: 'bg-white text-primary/50 border-primary/20',
+
   // Buttons
-  primaryButton: 'bg-pink-500 hover:bg-pink-600 text-white',
-  secondaryButton: 'bg-white text-pink-500 border-pink-200 hover:bg-pink-50',
-  tertiaryButton: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-  
+  primaryButton: 'bg-primary hover:bg-primary-hover text-white',
+  secondaryButton: 'bg-white text-primary border-primary/30 hover:bg-primary/10',
+  tertiaryButton: `${designSystem.background.surface.light} text-gray-700 hover:${designSystem.background.hover.neutral}`,
+
   // Interactive states
-  focusRing: 'focus:ring-2 focus:ring-pink-300 focus:ring-opacity-50',
-  selectedRow: 'bg-pink-50 ring-2 ring-pink-200',
-  hoverRow: 'hover:bg-gray-50',
+  focusRing: 'focus:ring-2 focus:ring-primary/40 focus:ring-opacity-50',
+  selectedRow: 'bg-primary/10 ring-2 ring-primary/30',
+  hoverRow: `hover:${designSystem.background.hover.subtle}`,
 } as const
 
 export type ReviewStatus = keyof typeof REVIEW_STATUS_COLORS
@@ -207,14 +209,14 @@ export interface CategoryColor {
 const CATEGORY_COLORS: Record<string, CategoryColor> = {
   // Pink shades - body/physical categories
   'Ass & Booty': {
-    bg: 'bg-pink-50/50',
-    text: 'text-pink-700',
-    border: 'border-pink-200'
+    bg: 'bg-primary/10',
+    text: 'text-primary-pressed',
+    border: 'border-primary/30'
   },
   'Boobs & Chest': {
-    bg: 'bg-pink-50/40',
-    text: 'text-pink-600',
-    border: 'border-pink-100'
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    border: 'border-primary/20'
   },
   'Full Body & Nude': {
     bg: 'bg-rose-50/50',
@@ -222,9 +224,9 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
     border: 'border-rose-200'
   },
   'Feet & Foot Fetish': {
-    bg: 'bg-pink-50/30',
-    text: 'text-pink-600',
-    border: 'border-pink-100'
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    border: 'border-primary/20'
   },
   'Specific Body Parts': {
     bg: 'bg-rose-50/40',
@@ -234,14 +236,14 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
 
   // Soft pink shades - appearance/style categories
   'Lingerie & Underwear': {
-    bg: 'bg-pink-100/30',
-    text: 'text-pink-700',
-    border: 'border-pink-200'
+    bg: 'bg-primary/20',
+    text: 'text-primary-pressed',
+    border: 'border-primary/30'
   },
   'Clothed & Dressed': {
-    bg: 'bg-pink-50/60',
-    text: 'text-pink-600',
-    border: 'border-pink-150'
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    border: 'border-primary/25'
   },
   'Cosplay & Fantasy': {
     bg: 'bg-fuchsia-50/40',
@@ -249,19 +251,19 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
     border: 'border-fuchsia-200'
   },
   'Goth & Alternative': {
-    bg: 'bg-purple-50/40',
-    text: 'text-purple-700',
-    border: 'border-purple-200'
+    bg: 'bg-secondary/10',
+    text: 'text-secondary-pressed',
+    border: 'border-secondary/30'
   },
 
   // Grey shades - demographic/lifestyle categories
   'Age Demographics': {
-    bg: 'bg-gray-50',
+    bg: designSystem.background.surface.subtle,
     text: 'text-gray-700',
     border: 'border-gray-200'
   },
   'Body Types & Features': {
-    bg: 'bg-gray-100/50',
+    bg: `${designSystem.background.surface.light}/50`,
     text: 'text-gray-700',
     border: 'border-gray-200'
   },
@@ -271,7 +273,7 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
     border: 'border-slate-200'
   },
   'Lifestyle & Themes': {
-    bg: 'bg-gray-50/70',
+    bg: `${designSystem.background.surface.subtle}/70`,
     text: 'text-gray-600',
     border: 'border-gray-150'
   },
@@ -283,14 +285,14 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
 
   // Special categories - slightly stronger pink
   'OnlyFans Promotion': {
-    bg: 'bg-pink-100/50',
-    text: 'text-pink-800',
-    border: 'border-pink-300'
+    bg: 'bg-primary/20',
+    text: 'text-primary-pressed',
+    border: 'border-primary/40'
   },
   'Selfie & Amateur': {
-    bg: 'bg-pink-50/70',
-    text: 'text-pink-700',
-    border: 'border-pink-200'
+    bg: 'bg-primary/10',
+    text: 'text-primary-pressed',
+    border: 'border-primary/30'
   },
   'Interactive & Personalized': {
     bg: 'bg-rose-100/40',
@@ -300,7 +302,7 @@ const CATEGORY_COLORS: Record<string, CategoryColor> = {
 
   // Default fallback
   default: {
-    bg: 'bg-gray-50/50',
+    bg: `${designSystem.background.surface.subtle}/50`,
     text: 'text-gray-600',
     border: 'border-gray-200'
   }

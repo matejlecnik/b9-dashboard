@@ -7,9 +7,9 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timezone
-from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from openai import AsyncOpenAI
 from supabase import Client
@@ -35,7 +35,7 @@ class TagCategorizationService:
     """AI-powered multi-tag subreddit categorization service"""
 
     # New simplified tag structure (82 tags total - removed duplicates, kept focus:feet)
-    TAG_STRUCTURE = {
+    TAG_STRUCTURE: ClassVar[Dict[str, List[str]]] = {
         "niche": ["cosplay", "gaming", "anime", "fitness", "yoga", "outdoors", "bdsm",
                  "amateur", "verified", "sellers", "cnc", "voyeur",
                  "rating", "general"],
@@ -334,16 +334,16 @@ Tags for r/{name}:"""
                 raise ValueError("OpenAI returned None content")
 
             # Log raw content before stripping
-            self.logger.debug(f"Raw content before strip: [{repr(content)}]")
+            self.logger.debug(f"Raw content before strip: [{content!r}]")
 
             tags_raw = content.strip()
 
             # Log after stripping
-            self.logger.debug(f"Content after strip: [{repr(tags_raw)}]")
+            self.logger.debug(f"Content after strip: [{tags_raw!r}]")
 
             if not tags_raw:
                 self.logger.error(f"❌ OpenAI returned empty content for r/{subreddit_name}")
-                self.logger.error(f"Raw content was: [{repr(content)}]")
+                self.logger.error(f"Raw content was: [{content!r}]")
                 raise ValueError("OpenAI returned empty content")
 
             # Log the raw response for debugging
@@ -614,7 +614,7 @@ Tags for r/{name}:"""
         success_rate = (successful_count / len(all_results)) * 100 if all_results else 0
 
         # Tag distribution
-        tag_distribution = {}
+        tag_distribution: dict[str, int] = {}
         for result in all_results:
             if result.success:
                 for tag in result.tags:
@@ -659,10 +659,10 @@ Tags for r/{name}:"""
         """Get tag usage statistics from database"""
         try:
             # Get total counts
-            total_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').execute()
+            total_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').execute()  # type: ignore[arg-type]
             total_approved = total_response.count or 0
 
-            tagged_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').not_.is_('tags', 'null').execute()
+            tagged_response = self.supabase.table('reddit_subreddits').select('id', count='exact').eq('review', 'Ok').not_.is_('tags', 'null').execute()  # type: ignore[arg-type]
             total_tagged = tagged_response.count or 0
 
             untagged = total_approved - total_tagged
@@ -670,7 +670,7 @@ Tags for r/{name}:"""
             # Get tag distribution (this would need a more complex query in production)
             tags_response = self.supabase.table('reddit_subreddits').select('tags').eq('review', 'Ok').not_.is_('tags', 'null').limit(1000).execute()
 
-            tag_counts = {}
+            tag_counts: dict[str, int] = {}
             for row in tags_response.data:
                 if row.get('tags'):
                     for tag in row['tags']:

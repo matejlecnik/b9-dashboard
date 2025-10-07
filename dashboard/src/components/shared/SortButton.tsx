@@ -2,6 +2,8 @@
 
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 type SortField = 'subscribers' | 'avg_upvotes' | 'engagement' | 'best_hour' | 'moderator_score' | 'health_score'
 type SortDirection = 'asc' | 'desc'
@@ -81,18 +83,25 @@ export function SortButton({
   }
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={cn(designSystem.layout.flex.rowStart, "gap-2", className)}>
       {/* Sort field selector */}
       <div className="relative group">
         <select
           value={sortBy}
           onChange={(e) => handleSortFieldChange(e.target.value as SortField)}
           disabled={loading}
-          className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg px-4 pr-10 py-2 text-sm font-medium text-gray-700 hover:bg-white/90 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-b9-pink/20 focus:border-b9-pink transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)'
-          }}
+          className={cn(
+            "appearance-none rounded-lg px-4 pr-10 py-2 text-sm font-medium cursor-pointer",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            designSystem.glass.light,
+            designSystem.borders.default,
+            "hover:bg-white/90 hover:border-strong",
+            "focus:outline-none focus:ring-2 focus:ring-b9-pink/20 focus:border-b9-pink",
+            designSystem.transitions.default,
+            designSystem.shadows.sm,
+            "font-mac-text",
+            designSystem.typography.color.secondary
+          )}
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.field} value={option.field}>
@@ -103,7 +112,7 @@ export function SortButton({
         
         {/* Custom dropdown arrow */}
         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <ChevronDown className={cn("h-4 w-4", designSystem.typography.color.disabled)} />
         </div>
       </div>
 
@@ -113,22 +122,24 @@ export function SortButton({
         size="sm"
         onClick={handleDirectionToggle}
         disabled={loading}
-        className="h-10 px-3 bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white/90 hover:border-gray-300 hover:scale-105 transition-all duration-200"
-        style={{
-          boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)'
-        }}
+        className={cn(
+          "h-10 px-3 border-default hover:bg-white/90 hover:border-strong hover:scale-105",
+          designSystem.glass.light,
+          designSystem.transitions.default,
+          designSystem.shadows.sm
+        )}
         title={`Sort ${sortDirection === 'desc' ? 'descending (high to low)' : 'ascending (low to high)'}`}
       >
         <span className="flex items-center gap-2">
           {sortDirection === 'desc' ? (
             <>
-              <ChevronDown className="h-4 w-4 text-gray-600" />
-              <span className="text-xs font-medium text-gray-600">High</span>
+              <ChevronDown className={cn("h-4 w-4", designSystem.typography.color.tertiary)} />
+              <span className={cn("text-xs font-medium", designSystem.typography.color.tertiary)}>High</span>
             </>
           ) : (
             <>
-              <ChevronUp className="h-4 w-4 text-gray-600" />
-              <span className="text-xs font-medium text-gray-600">Low</span>
+              <ChevronUp className={cn("h-4 w-4", designSystem.typography.color.tertiary)} />
+              <span className={cn("text-xs font-medium", designSystem.typography.color.tertiary)}>Low</span>
             </>
           )}
         </span>
@@ -168,10 +179,13 @@ export function CompactSortButton({
       variant="outline"
       onClick={cycleSort}
       disabled={loading}
-      className={`h-10 px-4 bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white/90 hover:border-gray-300 transition-all duration-200 ${className}`}
-      style={{
-        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)'
-      }}
+      className={cn(
+        "h-10 px-4 border-default hover:bg-white/90 hover:border-strong",
+        designSystem.glass.light,
+        designSystem.transitions.default,
+        designSystem.shadows.sm,
+        className
+      )}
       title={`Currently sorting by ${currentOption.label} (${sortDirection === 'desc' ? 'high to low' : 'low to high'}). Tap to change.`}
     >
       <span className="flex items-center gap-2 text-sm">

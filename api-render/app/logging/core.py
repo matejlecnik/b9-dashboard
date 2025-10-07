@@ -4,14 +4,11 @@ Consolidates SystemLogger, LoggingHelper, and SupabaseLogHandler into one interf
 """
 
 import logging
-from typing import Optional, Dict, Any
 from functools import lru_cache
+from typing import Any, Dict, Optional
+
 from app.logging.config import config
-from app.logging.handlers import (
-    setup_console_handler,
-    setup_file_handler,
-    setup_supabase_handler
-)
+from app.logging.handlers import setup_console_handler, setup_file_handler, setup_supabase_handler
 
 
 class UnifiedLogger:

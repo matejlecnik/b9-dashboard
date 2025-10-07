@@ -14,7 +14,7 @@
     {"path": "DEPLOYMENT_SECRETS.md", "desc": "Secret management", "status": "SECURE"}
   ],
   "related": [
-    {"path": "../development/DOCUMENTATION_MAP.md", "desc": "Full navigation", "status": "GUIDE"}
+    {"path": "../INDEX.md", "desc": "Full navigation", "status": "GUIDE"}
   ]
 }
 ```

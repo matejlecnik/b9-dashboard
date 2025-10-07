@@ -1,7 +1,8 @@
 # Code Quality Validation Scripts
 
 ┌─ CODE QUALITY ──────────────────────────────────────────┐
-│ ● AUTOMATED   │ TypeScript + ESLint + Ruff + Mypy       │
+│ ● AUTOMATED   │ TypeScript + ESLint + Ruff + Mypy +     │
+│               │ Design System Compliance                 │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -12,7 +13,8 @@
   "current": "validation/README.md",
   "scripts": [
     {"name": "code-quality-check.py", "desc": "Main validation runner"},
-    {"name": "quality-dashboard.py", "desc": "Visual quality dashboard"}
+    {"name": "quality-dashboard.py", "desc": "Visual quality dashboard"},
+    {"name": "design-system-check.py", "desc": "Design system compliance validator"}
   ],
   "configs": [
     {"path": "../../../dashboard/eslint.config.mjs", "desc": "ESLint rules"},
@@ -30,11 +32,12 @@ Automated code quality validation system that checks:
 - **ESLint**: Code style and potential bugs
 - **Ruff**: Python linting (10-100x faster than flake8)
 - **Mypy**: Python static type checking
+- **Design System**: Enforces design token usage (no inline styles)
 
 ## Quick Start
 
 ```bash
-## Run full validation
+## Run full validation (includes design system)
 python3 docs/scripts/validation/code-quality-check.py
 
 ## Quick check (skip slow checks)
@@ -43,13 +46,17 @@ python3 docs/scripts/validation/code-quality-check.py --quick
 ## Check specific files
 python3 docs/scripts/validation/code-quality-check.py --files src/file1.ts api/file2.py
 
+## Check design system only
+python3 docs/scripts/validation/design-system-check.py
+
 ## View dashboard
 python3 docs/scripts/validation/quality-dashboard.py
 
 ## Using lefthook (recommended)
-lefthook run quality-check       # Full check
+lefthook run quality-check       # Full check (inc. design system)
 lefthook run quality-quick       # Quick check
 lefthook run quality-dashboard   # Visual dashboard
+lefthook run design-check        # Design system only
 ```
 
 ## Scripts
@@ -153,6 +160,55 @@ python3 docs/scripts/validation/quality-dashboard.py
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### design-system-check.py
+
+**Purpose:** Enforces design system compliance by detecting inline styles
+
+**Features:**
+- Detects inline `fontFamily` styles
+- Detects inline `textShadow` styles
+- Detects hardcoded hex colors
+- Detects hardcoded rgba values
+- Fast execution (< 2 seconds)
+- Clear violation reports with file/line numbers
+
+**Usage:**
+```bash
+## Check all TypeScript files
+python3 docs/scripts/validation/design-system-check.py
+
+## JSON output
+python3 docs/scripts/validation/design-system-check.py --json
+
+## Via lefthook
+lefthook run design-check
+```
+
+**Output:**
+```
+============================================================
+🎨 DESIGN SYSTEM COMPLIANCE CHECK
+============================================================
+
+📁 Checking 213 TypeScript files...
+
+============================================================
+📊 RESULTS
+============================================================
+
+✅ All checks passed!
+   213 files are 100% design system compliant
+```
+
+**Validation Rules:**
+
+| Rule | ❌ Bad | ✅ Good |
+|------|--------|---------|
+| **Fonts** | `font-[-apple-system,...]` | `font-mac-text` or `font-mac-display` |
+| **Shadows** | `textShadow: '0 1px 2px rgba(...)'` | `className="text-shadow-subtle"` |
+| **Colors** | `color: '#FF8395'` | `text-primary` or `var(--pink-500)` |
+| **Alpha** | `rgba(255, 131, 149, 0.25)` | `bg-primary/25` or `var(--pink-alpha-25)` |
+
 ## Git Hooks Integration
 
 Automatic validation via lefthook:
@@ -166,17 +222,21 @@ Automatic validation via lefthook:
 **Timing:** < 3 seconds
 
 ### Pre-push (Full Validation)
-- Complete code quality check
+- Complete code quality check (TypeScript, ESLint, Ruff, Mypy)
+- Design system compliance check
+- Documentation compliance check
+- Build verification
 - Blocks push if errors found
 - Allows warnings
 
-**Timing:** ~10 seconds
+**Timing:** ~15 seconds
 
 ### Manual Commands
 ```bash
 lefthook run quality-check        # Full validation
 lefthook run quality-quick        # Quick check
 lefthook run quality-dashboard    # Visual dashboard
+lefthook run design-check         # Design system only
 ```
 
 ## Configuration

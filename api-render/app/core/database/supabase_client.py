@@ -2,10 +2,12 @@
 Centralized Supabase Client Manager
 Provides a single, shared Supabase client instance to prevent connection overload
 """
-import os
 import logging
+import os
 from typing import Optional
-from supabase import create_client, Client
+
+from supabase import Client, create_client
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,32 +16,32 @@ class SupabaseClientManager:
     Singleton manager for Supabase client to prevent multiple connections.
     Ensures only one client instance is created and shared across the application.
     """
-    
+
     _instance: Optional['SupabaseClientManager'] = None
     _client: Optional[Client] = None
     _initialized: bool = False
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
-    def get_client(self) -> Client:
+
+    def get_client(self) -> Optional[Client]:
         """
         Get the shared Supabase client instance.
         Creates the client if it doesn't exist.
-        
+
         Returns:
             Supabase client instance
-            
+
         Raises:
             Exception: If Supabase credentials are not configured
         """
         if not self._initialized:
             self._initialize_client()
-        
+
         return self._client
-    
+
     def _initialize_client(self):
         """Initialize the Supabase client with proper configuration"""
         if self._client is not None:
@@ -71,7 +73,7 @@ class SupabaseClientManager:
         # Reinitialize with fresh client
         self._initialize_client()
         logger.info("✅ Supabase client refreshed with cleared schema cache")
-    
+
     def close(self):
         """Close the client connection (for cleanup)"""
         if self._client:
@@ -83,7 +85,7 @@ class SupabaseClientManager:
                 logger.info("🔒 Supabase client connection closed")
             except Exception as e:
                 logger.error(f"Error closing Supabase client: {e}")
-    
+
     def get_connection_info(self) -> dict:
         """Get information about the current connection"""
         return {
@@ -96,11 +98,11 @@ class SupabaseClientManager:
 # Global instance for easy access
 _supabase_manager = SupabaseClientManager()
 
-def get_supabase_client() -> Client:
+def get_supabase_client() -> Optional[Client]:
     """
     Get the shared Supabase client instance.
     This is the main function that should be used throughout the application.
-    
+
     Returns:
         Supabase client instance
     """
@@ -122,43 +124,43 @@ def get_supabase_connection_info() -> dict:
 # Connection health monitoring
 class ConnectionHealthMonitor:
     """Monitor database connection health and implement circuit breaker pattern"""
-    
+
     def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 60):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failure_count = 0
-        self.last_failure_time = 0
+        self.last_failure_time = 0.0
         self.is_circuit_open = False
-        
+
     def record_success(self):
         """Record a successful database operation"""
         self.failure_count = 0
         self.is_circuit_open = False
-        
+
     def record_failure(self):
         """Record a failed database operation"""
         import time
         self.failure_count += 1
         self.last_failure_time = time.time()
-        
+
         if self.failure_count >= self.failure_threshold:
             self.is_circuit_open = True
             logger.warning(f"🚨 Database circuit breaker OPEN after {self.failure_count} failures")
-            
+
     def should_allow_request(self) -> bool:
         """Check if database requests should be allowed"""
         if not self.is_circuit_open:
             return True
-            
+
         # Check if enough time has passed to try again
         import time
         if time.time() - self.last_failure_time > self.recovery_timeout:
             logger.info("🔄 Database circuit breaker attempting recovery")
             self.is_circuit_open = False
             return True
-            
+
         return False
-    
+
     def get_status(self) -> dict:
         """Get current circuit breaker status"""
         return {

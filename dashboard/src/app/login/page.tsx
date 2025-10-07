@@ -6,6 +6,8 @@ import { useActionState } from 'react'
 import Image from 'next/image'
 import { login } from './actions'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 // Submit button component to handle loading state
 function SubmitButton() {
@@ -15,7 +17,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group relative w-full flex justify-center py-4 px-6 border border-transparent rounded-2xl shadow-apple text-white font-semibold text-base tracking-wide transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+      className={`group relative w-full flex justify-center py-4 px-6 border border-transparent ${designSystem.borders.radius.lg} shadow-apple text-white font-semibold text-base tracking-wide transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
       aria-describedby="signin-desc"
       style={{
         background: 'linear-gradient(135deg, #FF8395 0%, #E91E63 30%, #FF8395 60%, #F8BBD9 100%)',
@@ -82,7 +84,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center">
         <div className="animate-pulse">
-          <div className="w-32 h-16 bg-gray-200 rounded-lg"></div>
+          <div className={`w-32 h-16 ${designSystem.background.surface.neutral} ${designSystem.borders.radius.sm}`}></div>
         </div>
       </div>
     )
@@ -93,19 +95,19 @@ export default function LoginPage() {
       {/* Interactive Pink-Themed Background Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Large floating orbs */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-b9-pink/25 to-rose-400/20 rounded-full blur-3xl animate-float-slow"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-300/20 to-rose-500/15 rounded-full blur-3xl animate-float-reverse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-rose-200/15 to-pink-400/10 rounded-full blur-3xl animate-pulse-gentle"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-b9-pink/25 to-rose-400/20 {designSystem.borders.radius.full} blur-3xl animate-float-slow"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-primary/40 to-rose-500/15 {designSystem.borders.radius.full} blur-3xl animate-float-reverse"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-rose-200/15 to-primary/10 {designSystem.borders.radius.full} blur-3xl animate-pulse-gentle"></div>
         
         {/* Medium accent orbs */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-b9-pink/30 to-transparent rounded-full blur-2xl animate-float-medium"></div>
-        <div className="absolute bottom-32 right-24 w-24 h-24 bg-gradient-to-br from-rose-300/25 to-transparent rounded-full blur-xl animate-float-slow-reverse"></div>
-        <div className="absolute top-3/4 left-10 w-20 h-20 bg-gradient-to-br from-pink-200/20 to-transparent rounded-full blur-lg animate-bounce-gentle"></div>
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-b9-pink/30 to-transparent {designSystem.borders.radius.full} blur-2xl animate-float-medium"></div>
+        <div className="absolute bottom-32 right-24 w-24 h-24 bg-gradient-to-br from-rose-300/25 to-transparent {designSystem.borders.radius.full} blur-xl animate-float-slow-reverse"></div>
+        <div className="absolute top-3/4 left-10 w-20 h-20 bg-gradient-to-br from-primary/30 to-transparent {designSystem.borders.radius.full} blur-lg animate-bounce-gentle"></div>
         
         {/* Small sparkle particles */}
-        <div className="absolute top-1/4 right-1/3 w-8 h-8 bg-b9-pink/40 rounded-full blur-sm animate-twinkle"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-6 h-6 bg-pink-300/35 rounded-full blur-sm animate-twinkle-delay"></div>
-        <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-pink-400/30 rounded-full blur-sm animate-float-tiny"></div>
+        <div className="absolute top-1/4 right-1/3 w-8 h-8 bg-b9-pink/40 {designSystem.borders.radius.full} blur-sm animate-twinkle"></div>
+        <div className="absolute bottom-1/3 left-1/4 w-6 h-6 bg-primary/40 {designSystem.borders.radius.full} blur-sm animate-twinkle-delay"></div>
+        <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-primary/30 {designSystem.borders.radius.full} blur-sm animate-float-tiny"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md mx-auto">
@@ -113,7 +115,7 @@ export default function LoginPage() {
         <div className="text-center mb-12">
           <div className="flex justify-center">
             <div className="relative group">
-              <div className="absolute -inset-4 bg-gradient-to-r from-b9-pink/30 via-pink-400/20 to-pink-300/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-b9-pink/30 via-primary/20 to-primary/40 {designSystem.borders.radius.full} blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse"></div>
               <Image
                 src="/logo/logo.png"
                 alt="B9 Agency Logo"
@@ -130,9 +132,9 @@ export default function LoginPage() {
         {/* Pink-Themed Frosted Glass Login Form */}
         <div className="mt-8 w-full">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-b9-pink/30 via-rose-300/25 to-pink-400/20 rounded-2xl blur-xl"></div>
-            <div 
-              className="relative rounded-2xl p-10 shadow-apple-strong border border-pink-200/30 animated-pink-gradient-bg"
+            <div className="absolute inset-0 bg-gradient-to-br from-b9-pink/30 via-rose-300/25 to-primary/20 {designSystem.borders.radius.lg} blur-xl"></div>
+            <div
+              className="relative {designSystem.borders.radius.lg} p-10 shadow-apple-strong border border-primary/30"
               style={{
                 backdropFilter: 'blur(24px)',
                 WebkitBackdropFilter: 'blur(24px)',
@@ -141,7 +143,7 @@ export default function LoginPage() {
             >
               <form className="space-y-7" role="form" aria-labelledby="signin-title" action={safeFormAction}>
                 <div>
-                  <h2 id="signin-title" className="text-center text-xl font-semibold text-gray-800 mb-10 tracking-wide">
+                  <h2 id="signin-title" className={cn("text-center text-xl font-semibold mb-10 tracking-wide", designSystem.typography.color.secondary)}>
                     Sign In
                   </h2>
                 </div>
@@ -149,9 +151,9 @@ export default function LoginPage() {
                 {/* Environment Warning Display */}
                 {envWarning && (
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-100/60 to-yellow-200/40 rounded-xl blur-sm"></div>
-                    <div 
-                      className="relative p-4 rounded-xl border border-yellow-300/50 text-gray-900 text-sm font-medium"
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-100/60 to-yellow-200/40 {designSystem.borders.radius.md} blur-sm"></div>
+                    <div
+                      className={cn("relative p-4 {designSystem.borders.radius.md} border border-yellow-300/50 text-sm font-medium", designSystem.typography.color.primary)}
                       style={{
                         backdropFilter: 'blur(16px)',
                         WebkitBackdropFilter: 'blur(16px)',
@@ -160,7 +162,7 @@ export default function LoginPage() {
                       role="alert"
                     >
                       <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-gray-800" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <svg className={cn("w-4 h-4 mr-2", designSystem.typography.color.secondary)} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         {envWarning}
@@ -172,9 +174,9 @@ export default function LoginPage() {
                 {/* Error Message Display */}
                 {state?.error && (
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-pink-100/60 to-pink-200/40 rounded-xl blur-sm"></div>
-                    <div 
-                      className="relative p-4 rounded-xl border border-gray-300/50 text-gray-900 text-sm font-medium"
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/30 {designSystem.borders.radius.md} blur-sm"></div>
+                    <div
+                      className={cn("relative p-4 {designSystem.borders.radius.md} border border-gray-300/50 text-sm font-medium", designSystem.typography.color.primary)}
                       style={{
                         backdropFilter: 'blur(16px)',
                         WebkitBackdropFilter: 'blur(16px)',
@@ -183,7 +185,7 @@ export default function LoginPage() {
                       role="alert"
                     >
                       <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-gray-800" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <svg className={cn("w-4 h-4 mr-2", designSystem.typography.color.secondary)} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                         </svg>
                         {state.error}
@@ -193,22 +195,22 @@ export default function LoginPage() {
                 )}
 
                 <div className="relative">
-                  <label htmlFor="email" className="block text-sm font-medium text-pink-700/80 mb-3 tracking-wide">
+                  <label htmlFor="email" className="block text-sm font-medium text-primary-pressed/80 mb-3 tracking-wide">
                     Email Address
                   </label>
                   <div className="relative group">
-                    <input 
-                      id="email" 
-                      name="email" 
-                      type="email" 
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
                       autoComplete="email"
-                      required 
+                      required
                       aria-required="true"
                       aria-describedby="email-desc"
-                      className="pink-glass-input w-full px-6 py-4 rounded-2xl placeholder-rose-400/60 focus:outline-none text-gray-800 font-medium transition-all duration-500 group-hover:shadow-pink-glow"
+                      className={cn("pink-glass-input w-full px-6 py-4 {designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow", designSystem.typography.color.secondary)}
                       placeholder="your@email.com"
                     />
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   </div>
                   <div id="email-desc" className="sr-only">
                     Enter your email address to sign in to your B9 Dashboard account
@@ -216,22 +218,22 @@ export default function LoginPage() {
                 </div>
 
                 <div className="relative">
-                  <label htmlFor="password" className="block text-sm font-medium text-pink-700/80 mb-3 tracking-wide">
+                  <label htmlFor="password" className="block text-sm font-medium text-primary-pressed/80 mb-3 tracking-wide">
                     Password
                   </label>
                   <div className="relative group">
-                    <input 
-                      id="password" 
-                      name="password" 
-                      type="password" 
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
                       autoComplete="current-password"
-                      required 
+                      required
                       aria-required="true"
                       aria-describedby="password-desc"
-                      className="pink-glass-input w-full px-6 py-4 rounded-2xl placeholder-rose-400/60 focus:outline-none text-gray-800 font-medium transition-all duration-500 group-hover:shadow-pink-glow"
+                      className={cn("pink-glass-input w-full px-6 py-4 {designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow", designSystem.typography.color.secondary)}
                       placeholder="••••••••••••"
                     />
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   </div>
                   <div id="password-desc" className="sr-only">
                     Enter your account password
@@ -252,12 +254,12 @@ export default function LoginPage() {
                     />
                     <label htmlFor="remember-me-checkbox" className="flex items-center cursor-pointer">
                       <div className="relative mr-3">
-                        <div className={`w-5 h-5 border-2 rounded-md transition-all duration-300 hover:border-b9-pink/80 ${
-                          rememberMe 
-                            ? 'bg-gradient-to-br from-b9-pink to-rose-400 border-b9-pink/80' 
-                            : 'bg-white/60 border-pink-200/60'
+                        <div className={`w-5 h-5 border-2 {designSystem.borders.radius.sm} transition-all duration-300 hover:border-b9-pink/80 ${
+                          rememberMe
+                            ? 'bg-gradient-to-br from-b9-pink to-rose-400 border-b9-pink/80'
+                            : 'bg-white/60 border-primary/30'
                         }`}></div>
-                        <div className={`absolute inset-0 w-5 h-5 bg-gradient-to-br from-b9-pink to-rose-400 rounded-md transition-opacity duration-300 pointer-events-none ${
+                        <div className={`absolute inset-0 w-5 h-5 bg-gradient-to-br from-b9-pink to-rose-400 {designSystem.borders.radius.sm} transition-opacity duration-300 pointer-events-none ${
                           rememberMe ? 'opacity-0' : 'opacity-0 hover:opacity-20'
                         }`}></div>
                         <svg className={`absolute inset-0 w-3 h-3 m-1 text-white transition-opacity duration-200 pointer-events-none ${
@@ -266,7 +268,7 @@ export default function LoginPage() {
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="text-sm text-pink-700/70 font-medium hover:text-pink-600 transition-colors duration-200 select-none">
+                      <span className="text-sm text-primary-pressed/70 font-medium hover:text-primary-hover transition-colors duration-200 select-none">
                         Remember me
                       </span>
                     </label>

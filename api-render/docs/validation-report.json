@@ -1,0 +1,41 @@
+{
+  "summary": {
+    "total_files": 10,
+    "compliant_files": 9,
+    "compliance_rate": "90.0%",
+    "files_needing_update": 1
+  },
+  "metrics": {
+    "terminal_format": "9/10",
+    "navigation_json": "9/10"
+  },
+  "issues_by_severity": {
+    "ERROR": 0,
+    "HIGH": 1,
+    "MEDIUM": 1,
+    "LOW": 1
+  },
+  "files_needing_update": [
+    "api-render/docs/R2_STORAGE_SETUP.md"
+  ],
+  "issues": [
+    {
+      "file": "api-render/docs/R2_STORAGE_SETUP.md",
+      "issue": "Missing terminal-style status box",
+      "severity": "HIGH",
+      "fix": "Add status box with progress bar"
+    },
+    {
+      "file": "api-render/docs/R2_STORAGE_SETUP.md",
+      "issue": "Missing navigation JSON structure",
+      "severity": "MEDIUM",
+      "fix": "Add navigation section with parent/siblings/related"
+    },
+    {
+      "file": "api-render/docs/R2_STORAGE_SETUP.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    }
+  ]
+}

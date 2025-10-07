@@ -4,9 +4,11 @@ All application settings in one place
 """
 
 import os
-from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
 from dotenv import load_dotenv
+
 
 # Load environment variables
 load_dotenv()
@@ -46,7 +48,7 @@ class APIConfig:
     host: str = "0.0.0.0"
     port: int = 8000
     workers: int = 4
-    cors_origins: list = None
+    cors_origins: Optional[list] = None
     debug: bool = False
 
 

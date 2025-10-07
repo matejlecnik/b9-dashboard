@@ -3,9 +3,6 @@
  * Export all standardized components from a single entry point
  */
 
-// Layout components
-export { PageContainer, SimplePageContainer, PageSection } from './PageContainer'
-
 // Card components
 export { Card, CardHeader, CardContent, CardFooter, CardTitle } from './Card'
 

@@ -5,16 +5,21 @@ Checks Supabase control table every 30 seconds and runs scraping when enabled
 Based on Reddit scraper architecture with 4-hour wait between cycles
 """
 import asyncio
+import logging
 import os
 import sys
-import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional, cast
+
 from dotenv import load_dotenv
+from supabase import Client
+
+from app.core.database import get_db
+from app.scrapers.instagram.services.instagram_config import Config
 
 # Use absolute imports from app package
 from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
-from app.core.database import get_db
-from app.scrapers.instagram.services.instagram_config import Config
+
 
 # Note: system_logger moved to unified logging system
 system_logger = None
@@ -41,13 +46,14 @@ class ContinuousInstagramScraper:
     """Manages continuous Instagram scraping with Supabase control (simplified like Reddit)"""
 
     def __init__(self):
-        self.supabase = None
+        self.supabase: Client = cast(Client, None)  # Initialized in initialize_supabase()
         self.scraper = None
         self.is_scraping = False
         self.last_check = None
         self.cycle_count = 0
         self.last_cycle_completed_at = None
         self.next_cycle_at = None
+        self._last_wait_minute: Optional[int] = None
 
     def initialize_supabase(self):
         """Initialize Supabase client from singleton"""
@@ -64,7 +70,7 @@ class ContinuousInstagramScraper:
         except Exception as e:
             logger.error(f"Error updating heartbeat: {e}")
 
-    def _log_to_system(self, level: str, message: str, context: dict = None):
+    def _log_to_system(self, level: str, message: str, context: Optional[Dict[str, Any]] = None):
         """Log to both console and Supabase system_logs"""
         # Console log
         if level == 'error':
@@ -214,7 +220,7 @@ class ContinuousInstagramScraper:
                     'source': 'instagram_scraper',
                     'script_name': 'continuous_instagram_scraper',
                     'level': 'error',
-                    'message': f'❌ Error in Instagram scraping cycle #{self.cycle_count}: {str(e)}',
+                    'message': f'❌ Error in Instagram scraping cycle #{self.cycle_count}: {e!s}',
                     'context': {
                         'cycle': self.cycle_count,
                         'error': str(e),
@@ -250,9 +256,9 @@ class ContinuousInstagramScraper:
                 # Check if scraper should be running
                 check_result = await self.check_scraper_status()
                 if isinstance(check_result, tuple):
-                    enabled, config = check_result
+                    enabled, _config = check_result
                 else:
-                    enabled, config = check_result, {}
+                    enabled, _config = check_result, {}
 
                 if enabled:
                     # Update heartbeat
@@ -347,7 +353,7 @@ async def main():
                     'source': 'instagram_scraper',
                     'script_name': 'continuous_instagram_scraper',
                     'level': 'error',
-                    'message': f'💥 Fatal error in Instagram scraper: {str(e)}',
+                    'message': f'💥 Fatal error in Instagram scraper: {e!s}',
                     'context': {
                         'error': str(e),
                         'error_type': type(e).__name__,

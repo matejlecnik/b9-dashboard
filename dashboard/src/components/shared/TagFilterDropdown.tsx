@@ -7,6 +7,7 @@ import { Filter, ChevronDown, ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 interface TagFilterDropdownProps {
   availableTags: string[]
@@ -148,9 +149,10 @@ export function TagFilterDropdown({
         <Button
           variant="outline"
           className={cn(
-            "min-w-[140px] h-9 px-3 bg-white border-gray-300 hover:bg-gray-50",
+            "min-w-[140px] h-9 px-3 bg-white border-strong",
+            designSystem.background.hover.subtle,
             "flex items-center justify-between gap-2",
-            selectedCount > 0 && "border-pink-400 ring-1 ring-pink-200"
+            selectedCount > 0 && "border-primary ring-1 ring-primary/30"
           )}
           disabled={loading}
         >
@@ -170,17 +172,17 @@ export function TagFilterDropdown({
 
       <DropdownMenuContent className="w-[280px] p-0 bg-white" align="end">
         {/* Header with search and select buttons */}
-        <div className="p-3 border-b bg-gray-50">
+        <div className={cn("p-3 border-b", designSystem.background.surface.subtle)}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold">Filter by Tags</span>
-            <span className="text-xs text-gray-500">
+            <span className={cn("text-xs", designSystem.typography.color.subtle)}>
               {showUntaggedOnly ? 'Untagged' : `${selectedCount}/${totalCount} selected`}
             </span>
           </div>
 
           {/* Show Untagged Only Option */}
           {onShowUntaggedChange && (
-            <div className="mb-2 p-2 bg-white rounded border border-gray-200">
+            <div className="mb-2 p-2 bg-white rounded border border-default">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox
                   checked={showUntaggedOnly}
@@ -193,7 +195,7 @@ export function TagFilterDropdown({
                   }}
                   className="h-4 w-4"
                 />
-                <span className="text-xs font-medium text-gray-700">Show untagged only</span>
+                <span className={cn("text-xs font-medium", designSystem.typography.color.secondary)}>Show untagged only</span>
               </label>
             </div>
           )}
@@ -225,7 +227,7 @@ export function TagFilterDropdown({
             placeholder="Search tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
+            className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
 
@@ -249,7 +251,7 @@ export function TagFilterDropdown({
             return (
               <div key={category} className="border-b last:border-b-0">
                 {/* Category header */}
-                <div className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50">
+                <div className={cn("flex items-center justify-between px-2 py-1.5", designSystem.background.hover.subtle)}>
                   <button
                     onClick={() => toggleCategory(category)}
                     className="flex items-center gap-1.5 flex-1 text-left"
@@ -287,7 +289,7 @@ export function TagFilterDropdown({
                       return (
                         <div
                           key={fullTag}
-                          className="flex items-center justify-between py-0.5 px-1 hover:bg-gray-50 rounded"
+                          className={cn("flex items-center justify-between py-0.5 px-1 rounded", designSystem.background.hover.subtle)}
                         >
                           <label
                             className="flex items-center gap-1.5 flex-1 cursor-pointer"
@@ -300,7 +302,7 @@ export function TagFilterDropdown({
                             />
                             <span className={cn(
                               "text-xs capitalize",
-                              isSelected && "font-medium text-pink-600"
+                              isSelected && "font-medium text-primary-hover"
                             )}>
                               {subcategory.replace(/_/g, ' ')}
                             </span>
@@ -317,16 +319,16 @@ export function TagFilterDropdown({
 
         {/* Footer with selected count */}
         {selectedCount > 0 && (
-          <div className="px-3 py-2 border-t bg-gray-50">
+          <div className={cn("px-3 py-2 border-t", designSystem.background.surface.subtle)}>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600">
+              <span className={cn("text-xs", designSystem.typography.color.tertiary)}>
                 {selectedCount} tag{selectedCount !== 1 ? 's' : ''} selected
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearAll}
-                className="h-6 px-2 text-xs hover:text-pink-600"
+                className="h-6 px-2 text-xs hover:text-primary-hover"
               >
                 Clear
               </Button>

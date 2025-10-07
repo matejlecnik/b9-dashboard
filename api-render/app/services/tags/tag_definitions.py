@@ -4,7 +4,7 @@ Exact mirror of the 82 tags defined in TAG_CATEGORIES.md
 DO NOT MODIFY - This is a direct implementation of the carefully selected tags
 """
 
-from typing import List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 # Tag registry - 82 tags across 11 categories (EXACT copy from TAG_CATEGORIES.md)
@@ -129,7 +129,7 @@ def get_tags_by_category(category: str) -> List[str]:
     return TAG_REGISTRY.get(category, [])
 
 
-def validate_tags(tags: List[str]) -> Dict[str, any]:
+def validate_tags(tags: List[str]) -> Dict[str, Any]:
     """
     Validates tags according to rules:
     - Minimum 1 tag

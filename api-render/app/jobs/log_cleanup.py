@@ -5,11 +5,13 @@ Automated log cleanup to prevent disk overflow
 CRITICAL: Deadline 2025-10-15 | Risk: DISK_OVERFLOW
 """
 
-import os
 import logging
+import os
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
+
 from app.core.database.supabase_client import get_supabase_client
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +43,11 @@ async def cleanup_old_logs(
 
         # Get Supabase client
         db = get_supabase_client()
+        assert db is not None, "Supabase client required for log cleanup"
 
         # Count logs to be deleted (for reporting)
         count_result = (db.table('logs')
-            .select('id', count='exact')
+            .select('id', count='exact')  # type: ignore[arg-type]
             .lt('timestamp', cutoff_iso)
             .execute())
 
@@ -204,5 +207,5 @@ async def full_log_cleanup(
         'status': 'success' if supabase_result['status'] == 'success' and local_result['status'] == 'success' else 'partial'
     }
 
-    logger.info(f"✅ Full log cleanup complete")
+    logger.info("✅ Full log cleanup complete")
     return result

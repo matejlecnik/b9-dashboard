@@ -33,6 +33,8 @@ import {
 } from '@/hooks/useUserAnalytics'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 // Enhanced Avatar component with better fallback handling
 const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, size?: number, username: string }) => {
@@ -71,12 +73,12 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
     }
   }, [src])
   
-  // Generate a consistent color for each user based on their username
+  // Generate a consistent color for each user based on their username - using design tokens
   const getAvatarColor = (username: string) => {
     const colors = [
-      'bg-gray-900', 'bg-gray-600', 'bg-pink-500', 'bg-pink-500', 
-      'bg-pink-500', 'bg-gray-600', 'bg-gray-600', 'bg-gray-700',
-      'bg-gray-600', 'bg-gray-500', 'bg-pink-400', 'bg-pink-300'
+      designSystem.background.surface.inverse, designSystem.background.surface.darker, 'bg-primary', 'bg-primary',
+      'bg-primary', designSystem.background.surface.darker, designSystem.background.surface.darker, designSystem.background.surface.darkest,
+      designSystem.background.surface.darker, designSystem.background.surface.dark, 'bg-primary/80', 'bg-primary/60'
     ]
     const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
     return colors[hash % colors.length]
@@ -84,8 +86,8 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
   
   if (!cleanAvatarUrl || imageError) {
     return (
-      <div 
-        className={`rounded-full flex items-center justify-center text-white font-bold border-2 border-gray-200 ${getAvatarColor(username)} shadow-sm`}
+      <div
+        className={`${designSystem.borders.radius.full} flex items-center justify-center text-white font-bold border-2 border-default ${getAvatarColor(username)} shadow-sm`}
         style={{ width: size, height: size, fontSize: Math.max(size / 3, 12) }}
         title={`${username}'s avatar`}
       >
@@ -101,7 +103,7 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
         alt={alt}
         width={size}
         height={size}
-        className={`rounded-full object-cover border-2 border-gray-200 shadow-sm transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`${designSystem.borders.radius.full} object-cover border-2 border-default shadow-sm transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         style={{ width: size, height: size }}
         onError={(_e) => {
           setImageError(true)
@@ -113,11 +115,11 @@ const Avatar = ({ src, alt, size = 48, username }: { src?: string, alt: string, 
         referrerPolicy="no-referrer" // Prevent referrer issues with Reddit
       />
       {isLoading && (
-        <div 
-          className={`absolute inset-0 rounded-full flex items-center justify-center bg-gray-100 border-2 border-gray-200`}
+        <div
+          className={cn(`absolute inset-0 ${designSystem.borders.radius.full} flex items-center justify-center border-2 border-default`, designSystem.background.surface.light)}
           style={{ width: size, height: size }}
         >
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-b9-pink" />
+          <div className={`animate-spin ${designSystem.borders.radius.full} h-4 w-4 border-2 border-gray-300 border-t-b9-pink`} />
         </div>
       )}
     </div>
@@ -130,8 +132,8 @@ const SafeImage = ({ src, alt, width, height, className }: { src: string, alt: s
   
   if (imageError) {
     return (
-      <div 
-        className={`flex items-center justify-center bg-gray-100 text-gray-400 ${className}`}
+      <div
+        className={cn("flex items-center justify-center", designSystem.background.surface.light, designSystem.typography.color.disabled, className)}
         style={{ width, height }}
       >
         <span className="text-sm">Image unavailable</span>
@@ -346,53 +348,40 @@ export default function UserAnalysisPage() {
           {statsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+                <div key={i} className={cn(`h-28 ${designSystem.borders.radius.lg} animate-pulse`, designSystem.background.surface.light)} />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
               {/* Total Users Card */}
-              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
-                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-                border border-white/20
-                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
-                hover:bg-[rgba(248,250,252,0.8)]
-                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
-                hover:scale-[1.02] hover:-translate-y-1">
+              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
                     <Users className="h-4 w-4" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
-                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
                     {formatNumber(stats?.total_users)}
                   </div>
-                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
                     Total Users
                   </div>
-                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
                     In Database
                   </div>
                 </div>
               </div>
 
               {/* Active Users Card */}
-              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
-                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-                border border-white/20
-                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
-                hover:bg-[rgba(248,250,252,0.8)]
-                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
-                hover:scale-[1.02] hover:-translate-y-1">
+              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
                     <Activity className="h-4 w-4" />
                   </div>
                   {stats?.users_active_last_30_days && stats.users_active_last_30_days > 0 && (
-                    <div className="w-1 h-1 rounded-full"
+                    <div className={`w-1 h-1 ${designSystem.borders.radius.full}`}
                       style={{
                         background: 'linear-gradient(135deg, #FFB3C1, #FF99A9)',
                         boxShadow: '0 1px 2px rgba(255, 179, 193, 0.2)',
@@ -401,61 +390,46 @@ export default function UserAnalysisPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
-                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
                     {formatNumber(stats?.users_active_last_30_days)}
                   </div>
-                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
                     Active Users
                   </div>
-                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
                     Last 30 days
                   </div>
                 </div>
               </div>
 
               {/* High Quality Users Card */}
-              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
-                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-                border border-white/20
-                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
-                hover:bg-[rgba(248,250,252,0.8)]
-                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
-                hover:scale-[1.02] hover:-translate-y-1">
+              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-xl text-gray-700 bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
                     <Star className="h-4 w-4" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
-                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
                     {formatNumber(stats?.high_quality_users)}
                   </div>
-                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
                     High Quality
                   </div>
-                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
                     Score ≥ 7.0
                   </div>
                 </div>
               </div>
 
               {/* Our Creators Card with Pink Accent */}
-              <div className="rounded-2xl p-4 transition-all duration-300 ease-out h-full min-h-[100px]
-                bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]
-                border border-white/20
-                shadow-[0_8px_32px_rgba(0,0,0,0.1)]
-                hover:bg-[rgba(248,250,252,0.8)]
-                hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]
-                hover:scale-[1.02] hover:-translate-y-1
-                ring-2 ring-pink-200/30">
+              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1 ring-2 ring-primary/20`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-xl text-[#FF8395] bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20">
+                  <div className={`p-2 ${designSystem.borders.radius.md} text-primary bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`}>
                     <Crown className="h-4 w-4" />
                   </div>
-                  <div className="w-1.5 h-1.5 rounded-full"
+                  <div className={`w-1.5 h-1.5 ${designSystem.borders.radius.full}`}
                     style={{
                       background: 'linear-gradient(135deg, #FF8395, #FF7A85)',
                       boxShadow: '0 1px 2px rgba(255, 131, 149, 0.25)',
@@ -463,14 +437,13 @@ export default function UserAnalysisPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="text-lg font-bold text-gray-900 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Helvetica_Neue',sans-serif]"
-                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
                     {formatNumber(stats?.our_creators)}
                   </div>
-                  <div className="text-xs font-semibold text-gray-800 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
                     Our Creators
                   </div>
-                  <div className="text-xs text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
+                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
                     {stats?.our_creators && stats?.our_creators > 0 ? 'Manually marked' : 'None yet'}
                   </div>
                 </div>
@@ -481,12 +454,12 @@ export default function UserAnalysisPage() {
 
 
         {/* Combined Toolbar: Search on left, Filters on right - Slim Design matching subreddit review */}
-        <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+        <div className={`flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm ${designSystem.borders.radius.sm} border border-default shadow-sm`}>
           {/* Search Section - Left Side - Compact */}
           <div className="flex items-center flex-1 min-w-0 max-w-xs">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={cn("h-4 w-4", designSystem.typography.color.subtle)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -497,12 +470,12 @@ export default function UserAnalysisPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 disabled={usersLoading || isFetchingNextPage}
-                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent transition-all duration-200 h-8 relative"
+                className={`w-full pl-8 pr-8 py-1.5 text-sm border border-default ${designSystem.borders.radius.sm} bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all duration-200 h-8 relative`}
               />
               {searchInput && (
                 <button
                   onClick={() => setSearchInput('')}
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
+                  className={cn("absolute inset-y-0 right-0 pr-2 flex items-center", designSystem.typography.color.disabled, "hover:text-gray-600")}
                   aria-label="Clear search"
                 >
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -535,8 +508,8 @@ export default function UserAnalysisPage() {
 
         {/* Bulk Actions Toolbar (only when items selected) */}
         {selectedUserIds.size > 0 && (
-          <div className="p-3 bg-white/70 backdrop-blur-md border border-pink-100 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-200 mb-3">
-            <div className="text-sm font-medium text-gray-700">
+          <div className={`p-3 bg-white/70 backdrop-blur-md border border-primary/20 ${designSystem.borders.radius.md} flex items-center gap-3 animate-in slide-in-from-top-2 duration-200 mb-3`}>
+            <div className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>
               {formatNumber(selectedUserIds.size)} selected
             </div>
             <div className="flex gap-2 flex-1">
@@ -544,7 +517,7 @@ export default function UserAnalysisPage() {
                 onClick={handleBulkToggleCreator}
                 disabled={bulkActionLoading}
                 size="sm"
-                className="bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600"
+                className="bg-gradient-to-r from-primary via-primary-hover to-secondary text-white hover:from-primary-hover hover:to-secondary-hover"
               >
                 {bulkActionLoading ? (
                   <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -576,14 +549,14 @@ export default function UserAnalysisPage() {
 
         {/* Main User List - Flex grow to fill remaining space (matching subreddit review) */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 flex-1 flex flex-col overflow-hidden">
+          <div className={`bg-white/95 backdrop-blur-sm ${designSystem.borders.radius.md} shadow-sm border border-gray-200/50 flex-1 flex flex-col overflow-hidden`}>
             <div className="px-6 py-4 border-b border-gray-200/50 bg-gradient-to-r from-white/60 to-gray-50/60">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  <h3 className={cn("text-lg font-semibold bg-gradient-to-r bg-clip-text text-transparent", "from-gray-900 to-gray-700")}>
                     Users ({formatNumber(allUsers.length)}{hasNextPage ? '+' : ''})
                   </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className={cn("text-sm mt-0.5", designSystem.typography.color.subtle)}>
                     {usersLoading && allUsers.length === 0 ? 'Loading users...' :
                      debouncedSearchTerm.trim() ? `Showing search results for "${debouncedSearchTerm}"` :
                      `Showing ${allUsers.length} users${hasNextPage ? ' (scroll for more)' : ''}`}
@@ -594,7 +567,7 @@ export default function UserAnalysisPage() {
                     onClick={selectedUserIds.size === allUsers.length ? handleSelectNone : handleSelectAll}
                     size="sm"
                     variant="outline"
-                    className="border-gray-300 hover:border-pink-300 hover:bg-pink-50/50"
+                    className="border-strong hover:border-primary/40 hover:bg-primary/10"
                   >
                     <CheckSquare className="h-3 w-3 mr-1" />
                     {selectedUserIds.size === allUsers.length ? 'Deselect All' : 'Select All'}
@@ -603,18 +576,18 @@ export default function UserAnalysisPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50/30">
+            <div className={cn("flex-1 overflow-y-auto px-4 py-3", `${designSystem.background.surface.subtle}/30`)}>
             {usersError ? (
               <div className="text-center py-8">
-                <p className="text-gray-800">Error loading users. Please try again.</p>
+                <p className={cn(designSystem.typography.color.secondary)}>Error loading users. Please try again.</p>
                 <Button onClick={() => window.location.reload()} className="mt-2">
                   Retry
                 </Button>
               </div>
             ) : usersLoading && allUsers.length === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
-                <span className="ml-2 text-gray-600">Loading users...</span>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className={cn("ml-2", designSystem.typography.color.tertiary)}>Loading users...</span>
               </div>
             ) : isLoading && allUsers.length === 0 ? (
               <UserListSkeleton />
@@ -626,10 +599,10 @@ export default function UserAnalysisPage() {
                     <div
                       key={user.id}
                       className={`
-                        group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer
+                        group relative p-4 ${designSystem.borders.radius.md} border transition-all duration-200 cursor-pointer
                         ${isSelected
-                          ? 'bg-gradient-to-r from-pink-50/80 to-purple-50/80 border-pink-300 shadow-md ring-1 ring-pink-200/30'
-                          : 'bg-white/80 backdrop-blur-sm border-gray-200/70 hover:bg-white/95 hover:border-gray-300 hover:shadow-lg hover:scale-[1.01]'
+                          ? 'bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/40 shadow-md ring-1 ring-primary/20'
+                          : 'bg-white/80 backdrop-blur-sm border-gray-200/70 hover:bg-white/95 hover:border-strong hover:shadow-lg hover:scale-[1.01]'
                         }
                       `}
                     >
@@ -651,7 +624,7 @@ export default function UserAnalysisPage() {
                                 return next
                               })
                             }}
-                            className="h-4 w-4 text-pink-500 border-gray-300 rounded focus:ring-pink-500"
+                            className="h-4 w-4 text-primary border-strong rounded focus:ring-primary"
                           />
 
                           {/* Avatar */}
@@ -665,9 +638,9 @@ export default function UserAnalysisPage() {
                           {/* User Info */}
                           <div onClick={() => handleUserClick(user)} className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">u/{user.username}</span>
+                              <span className={cn("font-medium", designSystem.typography.color.primary)}>u/{user.username}</span>
                               {user.our_creator && (
-                                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs">
+                                <Badge className="bg-gradient-to-r from-primary to-secondary text-white text-xs">
                                   <Crown className="h-2.5 w-2.5 mr-0.5" />
                                   Creator
                                 </Badge>
@@ -678,7 +651,7 @@ export default function UserAnalysisPage() {
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                            <div className={cn("flex items-center gap-4 mt-1 text-xs", designSystem.typography.color.subtle)}>
                               <span>Score: {formatScore(user.overall_user_score)}</span>
                               <span>Karma: {formatNumber(user.total_karma)}</span>
                               <span>Posts: {user.total_posts_analyzed || 0}</span>
@@ -708,17 +681,17 @@ export default function UserAnalysisPage() {
                 {/* Load More Indicator */}
                 {isFetchingNextPage && (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-pink-500 mr-2" />
-                    <span className="text-sm text-gray-600">Loading more users...</span>
+                    <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+                    <span className={cn("text-sm", designSystem.typography.color.tertiary)}>Loading more users...</span>
                   </div>
                 )}
 
                 {/* Empty State */}
                 {!usersLoading && allUsers.length === 0 && (
                   <div className="text-center py-12">
-                    <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600 font-medium">No users found</p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <Users className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
+                    <p className={cn("font-medium", designSystem.typography.color.tertiary)}>No users found</p>
+                    <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>
                       {debouncedSearchTerm ? 'Try adjusting your search' : 'Add users to get started'}
                     </p>
                   </div>
@@ -741,7 +714,7 @@ export default function UserAnalysisPage() {
             onClick={() => setSelectedUser(null)}
           >
             <div
-              className="bg-white/95 backdrop-blur-xl rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl ring-1 ring-black/5"
+              className={`bg-white/95 backdrop-blur-xl ${designSystem.borders.radius.lg} max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl ring-1 ring-black/5`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative">
@@ -763,7 +736,7 @@ export default function UserAnalysisPage() {
                 <div className="absolute top-4 right-4">
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className="rounded-full p-2 bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors"
+                    className={`${designSystem.borders.radius.full} p-2 bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors`}
                   >
                     <X className="h-5 w-5 text-white" />
                   </button>
@@ -776,7 +749,7 @@ export default function UserAnalysisPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left Column - Basic Info with Glass Cards */}
                   <div className="space-y-4">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                    <div className={`bg-white/60 backdrop-blur-sm ${designSystem.borders.radius.md} p-4 border border-gray-200/50`}>
                       <div className="flex items-start space-x-4">
                         <Avatar
                           src={selectedUser.user.icon_img || undefined}
@@ -788,25 +761,25 @@ export default function UserAnalysisPage() {
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h3 className="text-xl font-semibold">u/{selectedUser.user.username}</h3>
                             {selectedUser.user.our_creator && (
-                              <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white">
+                              <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
                                 <Crown className="h-3 w-3 mr-1" />
                                 Our Creator
                               </Badge>
                             )}
                             {selectedUser.user.verified && (
-                              <Badge variant="outline" className="border-green-500 text-green-700">
+                              <Badge variant="outline" className="border-success text-success-pressed">
                                 <MailCheck className="h-3 w-3 mr-1" />
                                 Verified
                               </Badge>
                             )}
                             {selectedUser.user.is_gold && (
-                              <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+                              <Badge variant="outline" className="border-warning text-warning-pressed">
                                 <Crown className="h-3 w-3 mr-1" />
                                 Gold
                               </Badge>
                             )}
                             {selectedUser.user.is_mod && (
-                              <Badge variant="outline" className="border-pink-500 text-pink-700">
+                              <Badge variant="outline" className="border-primary text-primary-pressed">
                                 <Shield className="h-3 w-3 mr-1" />
                                 Mod
                               </Badge>
@@ -834,14 +807,14 @@ export default function UserAnalysisPage() {
                         </div>
 
                           {selectedUser.user.bio && (
-                            <div className="bg-gray-50/50 backdrop-blur-sm p-3 rounded-lg mt-3">
-                              <p className="text-sm text-gray-700">{selectedUser.user.bio}</p>
+                            <div className={cn(`backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} mt-3`, `${designSystem.background.surface.subtle}/50`)}>
+                              <p className={cn("text-sm", designSystem.typography.color.secondary)}>{selectedUser.user.bio}</p>
                               {selectedUser.user.bio_url && (
                                 <a
                                   href={selectedUser.user.bio_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-pink-600 hover:text-pink-700 hover:underline text-sm mt-1 inline-block"
+                                  className="text-primary hover:text-primary-hover hover:underline text-sm mt-1 inline-block"
                                 >
                                   {selectedUser.user.bio_url}
                                 </a>
@@ -855,45 +828,45 @@ export default function UserAnalysisPage() {
 
                   {/* Middle Column - Detailed Stats with Glass Cards */}
                   <div className="space-y-4">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                    <div className={`bg-white/60 backdrop-blur-sm ${designSystem.borders.radius.md} p-4 border border-gray-200/50`}>
                       <h4 className="font-semibold text-lg mb-4">Statistics</h4>
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-gradient-to-br from-pink-50/50 to-white/50 backdrop-blur-sm p-3 rounded-lg border border-pink-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Quality Score</p>
-                          <p className="text-lg font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                        <div className={`bg-gradient-to-br from-primary/10 to-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-primary/20`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Quality Score</p>
+                          <p className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                             {formatScore(selectedUser.user.overall_user_score)}
                           </p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Total Karma</p>
-                          <p className="text-lg font-bold text-gray-900">{formatNumber(selectedUser.user.total_karma)}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Total Karma</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{formatNumber(selectedUser.user.total_karma)}</p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Link Karma</p>
-                          <p className="text-lg font-bold text-gray-900">{formatNumber(selectedUser.user.link_karma)}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Link Karma</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{formatNumber(selectedUser.user.link_karma)}</p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Comment Karma</p>
-                          <p className="text-lg font-bold text-gray-900">{formatNumber(selectedUser.user.comment_karma)}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Comment Karma</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{formatNumber(selectedUser.user.comment_karma)}</p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Account Age</p>
-                          <p className="text-lg font-bold text-gray-900">
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Account Age</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>
                             {selectedUser.user.account_age_days ? Math.round((selectedUser.user.account_age_days / 365) * 10) / 10 : 0}y
                           </p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Karma/Day</p>
-                          <p className="text-lg font-bold text-gray-900">{formatScore(selectedUser.user.karma_per_day)}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Karma/Day</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{formatScore(selectedUser.user.karma_per_day)}</p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Posts Analyzed</p>
-                          <p className="text-lg font-bold text-gray-900">{selectedUser.user.total_posts_analyzed || 0}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Posts Analyzed</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{selectedUser.user.total_posts_analyzed || 0}</p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-gray-200/30">
-                          <p className="font-medium text-gray-600 text-xs">Avg Post Score</p>
-                          <p className="text-lg font-bold text-gray-900">{formatNumber(selectedUser.user.avg_post_score)}</p>
+                        <div className={`bg-white/50 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-gray-200/30`}>
+                          <p className={cn("font-medium text-xs", designSystem.typography.color.tertiary)}>Avg Post Score</p>
+                          <p className={cn("text-lg font-bold", designSystem.typography.color.primary)}>{formatNumber(selectedUser.user.avg_post_score)}</p>
                         </div>
                       </div>
                     </div>
@@ -922,12 +895,12 @@ export default function UserAnalysisPage() {
 
                     {/* Subreddit Info */}
                     {selectedUser.user.subreddit_title && (
-                      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                      <div className={`bg-white/60 backdrop-blur-sm ${designSystem.borders.radius.md} p-4 border border-gray-200/50`}>
                         <h5 className="font-medium mb-2">User Subreddit</h5>
-                        <div className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 backdrop-blur-sm p-3 rounded-lg border border-purple-200/30">
-                          <p className="font-medium text-gray-900">{selectedUser.user.subreddit_title}</p>
+                        <div className={`bg-gradient-to-br from-secondary/10 to-primary/10 backdrop-blur-sm p-3 ${designSystem.borders.radius.sm} border border-secondary/20`}>
+                          <p className={cn("font-medium", designSystem.typography.color.primary)}>{selectedUser.user.subreddit_title}</p>
                           {selectedUser.user.subreddit_subscribers && (
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className={cn("text-sm mt-1", designSystem.typography.color.tertiary)}>
                               {formatNumber(selectedUser.user.subreddit_subscribers)} subscribers
                             </p>
                           )}
@@ -938,36 +911,36 @@ export default function UserAnalysisPage() {
 
                   {/* Right Column - Recent Posts with Glass Cards */}
                   <div className="space-y-4">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                    <div className={`bg-white/60 backdrop-blur-sm ${designSystem.borders.radius.md} p-4 border border-gray-200/50`}>
                       <h4 className="font-semibold text-lg mb-4">Recent Posts</h4>
                       <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                         {selectedUser.recent_posts.length > 0 ? (
                           selectedUser.recent_posts.map((post) => (
                             <div
                               key={post.id}
-                              className="p-3 bg-white/50 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/70 hover:shadow-sm transition-all duration-200"
+                              className={`p-3 bg-white/50 backdrop-blur-sm border border-gray-200/50 ${designSystem.borders.radius.sm} hover:bg-white/70 hover:shadow-sm transition-all duration-200`}
                             >
-                              <p className="font-medium text-sm mb-2 line-clamp-2 text-gray-900">{post.title}</p>
-                              <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
-                                <span className="bg-gradient-to-r from-pink-100 to-purple-100 px-2 py-1 rounded text-gray-700">
+                              <p className={cn("font-medium text-sm mb-2 line-clamp-2", designSystem.typography.color.primary)}>{post.title}</p>
+                              <div className={cn("flex items-center space-x-2 text-xs mb-2", designSystem.typography.color.subtle)}>
+                                <span className={cn("bg-gradient-to-r from-primary/20 to-secondary/20 px-2 py-1 rounded", designSystem.typography.color.secondary)}>
                                   r/{post.subreddit_name}
                                 </span>
                                 <span>{post.score} points</span>
                                 <span>{post.num_comments} comments</span>
                               </div>
                               <div className="flex items-center space-x-2 text-xs">
-                                <Badge variant="outline" className="text-xs border-gray-300">
+                                <Badge variant="outline" className="text-xs border-strong">
                                   {getContentTypeIcon(post.content_type)} {post.content_type}
                                 </Badge>
-                                <span className="text-gray-400">
+                                <span className={cn(designSystem.typography.color.disabled)}>
                                   {new Date(post.created_utc).toISOString().split('T')[0]}
                                 </span>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <div className="text-center py-8 text-gray-500">
-                            <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <div className={cn("text-center py-8", designSystem.typography.color.subtle)}>
+                            <MessageCircle className={cn("h-8 w-8 mx-auto mb-2", designSystem.typography.color.disabled)} />
                             <p className="text-sm">No recent posts available</p>
                           </div>
                         )}

@@ -3,11 +3,14 @@
 Public Reddit JSON API Client
 Handles all Reddit API requests with retry logic, proxy support, and error handling
 """
+import asyncio
 import logging
 import time
-import asyncio
-import aiohttp
 from typing import Dict, List, Optional
+
+import aiohttp
+from aiohttp import ClientSession
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,7 @@ class PublicRedditAPI:
         self.proxy_manager = proxy_manager
         self.max_retries = max_retries
         self.base_delay = base_delay
-        self.session = None  # Will be created in async context
+        self.session: Optional[ClientSession] = None  # Will be created in async context
 
     async def __aenter__(self):
         """Async context manager entry - creates aiohttp session"""
@@ -57,7 +60,7 @@ class PublicRedditAPI:
                 trust_env=False  # Force per-request proxy usage
             )
 
-    async def _request_with_retry(self, url: str, proxy_config: Dict) -> Optional[Dict]:
+    async def _request_with_retry(self, url: str, proxy_config: Optional[Dict]) -> Optional[Dict]:
         """Make HTTP request with retry logic and error handling (ASYNC)
         Creates a fresh session for each request to avoid tracking
 
@@ -68,6 +71,10 @@ class PublicRedditAPI:
         Returns:
             JSON response dict or error dict {'error': 'type', 'status': code}
         """
+        # Validate proxy_config
+        if proxy_config is None:
+            return {'error': 'no_proxy', 'status': 500}
+
         # Configure proxy (auth embedded in proxy string)
         proxy_str = proxy_config['proxy']
         proxy_url = f"http://{proxy_str}"
@@ -137,7 +144,7 @@ class PublicRedditAPI:
                         # Update proxy stats (success)
                         self.proxy_manager.update_proxy_stats(proxy_config, True)
 
-                        return await response.json()
+                        return await response.json()  # type: ignore[no-any-return]
 
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     retries += 1
@@ -170,7 +177,7 @@ class PublicRedditAPI:
         response = await self._request_with_retry(url, proxy_config)
 
         if response and 'data' in response:
-            return response['data']
+            return response['data']  # type: ignore[no-any-return]
         elif response and 'error' in response:
             return response  # Return error info
         return None
@@ -189,14 +196,14 @@ class PublicRedditAPI:
         response = await self._request_with_retry(url, proxy_config)
 
         if response and 'rules' in response:
-            return response['rules']
+            return response['rules']  # type: ignore[no-any-return]
         return []
 
     async def get_subreddit_hot_posts(
         self,
         subreddit_name: str,
         limit: int = 30,
-        proxy_config: Dict = None
+        proxy_config: Optional[Dict] = None
     ) -> List[Dict]:
         """Get hot/trending posts from subreddit
 
@@ -220,7 +227,7 @@ class PublicRedditAPI:
         subreddit_name: str,
         time_filter: str = 'year',
         limit: int = 100,
-        proxy_config: Dict = None
+        proxy_config: Optional[Dict] = None
     ) -> List[Dict]:
         """Get top posts from subreddit
 
@@ -254,7 +261,7 @@ class PublicRedditAPI:
         response = await self._request_with_retry(url, proxy_config)
 
         if response and 'data' in response:
-            return response['data']
+            return response['data']  # type: ignore[no-any-return]
         elif response and 'error' in response:
             return response  # Return error info for suspended users
         return None
@@ -263,7 +270,7 @@ class PublicRedditAPI:
         self,
         username: str,
         limit: int = 30,
-        proxy_config: Dict = None
+        proxy_config: Optional[Dict] = None
     ) -> List[Dict]:
         """Get user submitted posts
 

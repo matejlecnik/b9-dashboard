@@ -59,7 +59,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   const variants = {
     default: cn(
-      'bg-white border border-gray-300',
+      'bg-white border border-strong',
       'focus-within:border-b9-pink focus-within:ring-2 focus-within:ring-b9-pink/20'
     ),
     glass: cn(
@@ -67,7 +67,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       'focus-within:bg-white/80 focus-within:border-b9-pink/30'
     ),
     outline: cn(
-      'bg-transparent border-2 border-gray-300',
+      'bg-transparent border-2 border-strong',
       'focus-within:border-b9-pink'
     )
   }
@@ -98,7 +98,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {showIcon && (
         <Search className={cn(
           iconSizes[size],
-          'absolute left-3 text-gray-400 pointer-events-none'
+          'absolute left-3 pointer-events-none',
+          designSystem.typography.color.disabled
         )} />
       )}
 
@@ -116,7 +117,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           sizes[size],
           showIcon && 'pl-10',
           showClear && internalValue && 'pr-10',
-          'placeholder:text-gray-400'
+          `placeholder:${designSystem.typography.color.disabled}`
         )}
       />
 
@@ -124,7 +125,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <button
           onClick={handleClear}
           className={cn(
-            'absolute right-3 text-gray-400 hover:text-gray-600',
+            'absolute right-3',
+            `hover:${designSystem.typography.color.tertiary}`,
+            designSystem.typography.color.disabled,
             designSystem.animation.fast
           )}
           type="button"
@@ -185,7 +188,7 @@ export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
           'max-h-60 overflow-auto'
         )}>
           {!searchProps.value && showRecent && (
-            <div className="px-3 py-2 text-xs text-gray-500 font-semibold">
+            <div className={cn("px-3 py-2 text-xs font-semibold", designSystem.typography.color.subtle)}>
               Recent Searches
             </div>
           )}
@@ -194,9 +197,10 @@ export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
               key={item}
               onClick={() => handleSelectSuggestion(item)}
               className={cn(
-                'w-full text-left px-3 py-2 hover:bg-gray-50',
+                'w-full text-left px-3 py-2',
+                designSystem.background.hover.subtle,
                 designSystem.animation.fast,
-                selectedIndex === index && 'bg-gray-50'
+                selectedIndex === index && designSystem.background.surface.subtle
               )}
             >
               {item}

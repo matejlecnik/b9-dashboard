@@ -5,8 +5,11 @@ import { useToast } from '@/components/ui/toast'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { X, Sparkles, Info } from 'lucide-react'
+import { Sparkles, Info } from 'lucide-react'
 import { LogViewerSupabase } from '@/components/features/monitoring/LogViewerSupabase'
+import { StandardModal } from '@/components/shared/modals/StandardModal'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface AICategorizationModalProps {
   isOpen: boolean
@@ -105,70 +108,62 @@ export function AICategorizationModal({
   }, [settings, onStart, addToast, uncategorizedCount])
   
   
-  if (!isOpen) return null
-  
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-gray-900/20 backdrop-blur-md z-50 transition-opacity duration-300"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div 
-          className="relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl"
-          style={{
-            background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.98), rgba(229, 231, 235, 0.95), rgba(209, 213, 219, 0.92))',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
-            boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="relative px-5 py-3 border-b border-pink-200/30 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm">
-                  <Sparkles className="h-4 w-4 text-pink-500" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    AI Categorization
-                  </h2>
-                  <p className="text-[10px] text-gray-500">Automated categorization</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-lg hover:bg-pink-100/50 transition-colors"
-                disabled={isProcessing}
-              >
-                <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Content */}
-          <div className="px-5 py-3 overflow-y-auto max-h-[calc(70vh-140px)]">
-            <div className="space-y-4">
-              {/* Simple Settings */}
-              <div className="space-y-3">
+    <StandardModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="AI Categorization"
+      subtitle="Automated categorization"
+      icon={<Sparkles className="h-4 w-4" />}
+      variant="default"
+      loading={isProcessing}
+      maxWidth="md"
+      maxHeight="70vh"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isProcessing}
+            className={cn("text-xs h-7 px-3 border-strong hover:border-strong", designSystem.background.hover.subtle)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isProcessing || uncategorizedCount === 0}
+            className="text-xs h-7 px-3 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? (
+              <>
+                <div className="animate-spin {designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3 mr-1.5" />
+                Start Categorization
+              </>
+            )}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Simple Settings */}
+        <div className="space-y-3">
                 
                 {/* Max Items - Only setting user can change */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium text-gray-700">
+                    <Label className={cn("text-xs font-medium", designSystem.typography.color.secondary)}>
                       Items to Process
                     </Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                      <span className="text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                         {settings.limit}
                       </span>
-                      <span className="text-[10px] text-gray-500">
+                      <span className={cn("text-[10px]", designSystem.typography.color.subtle)}>
                         / {uncategorizedCount} available
                       </span>
                     </div>
@@ -181,7 +176,7 @@ export function AICategorizationModal({
                       min={1}
                       max={Math.min(1000, uncategorizedCount)}
                       step={10}
-                      className="w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-pink-500 [&_[role=slider]]:to-purple-500 [&_[role=slider]]:border-0 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-pink-500/20 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[data-orientation]]:bg-gray-200 [&_[data-orientation]_span]:bg-gradient-to-r [&_[data-orientation]_span]:from-pink-500 [&_[data-orientation]_span]:to-purple-500"
+                      className={cn("w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-primary [&_[role=slider]]:to-secondary [&_[role=slider]]:border-0 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-primary/20 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[data-orientation]_span]:bg-gradient-to-r [&_[data-orientation]_span]:from-primary [&_[data-orientation]_span]:to-secondary", `[&_[data-orientation]]:${designSystem.background.surface.neutral}`)}
                     />
                   </div>
 
@@ -190,35 +185,35 @@ export function AICategorizationModal({
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(50, uncategorizedCount) }))}
-                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       50
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(100, uncategorizedCount) }))}
-                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       100
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(250, uncategorizedCount) }))}
-                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       250
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(500, uncategorizedCount) }))}
-                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       500
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: uncategorizedCount }))}
-                      className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 hover:bg-pink-50 hover:text-pink-600 rounded-md transition-colors"
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       All
                     </button>
@@ -227,17 +222,17 @@ export function AICategorizationModal({
               </div>
               
               {/* Cost Estimation with brand colors */}
-              <div className="p-3 rounded-lg bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border border-pink-200/50">
+              <div className="p-3 {designSystem.borders.radius.sm} bg-gradient-to-br from-primary/10 via-secondary/10 to-blue-50 border border-primary/30">
                 <div className="flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 text-pink-500 mt-0.5" />
+                  <Info className="h-3.5 w-3.5 text-primary mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-xs font-medium bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    <p className="text-xs font-medium bg-gradient-to-r from-primary-hover to-secondary-hover bg-clip-text text-transparent">
                       Estimated Cost
                     </p>
-                    <p className="text-[10px] text-gray-600">
+                    <p className={cn("text-[10px]", designSystem.typography.color.tertiary)}>
                       {Math.min(settings.limit, uncategorizedCount)} items
                     </p>
-                    <p className="text-sm font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                    <p className="text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                       ${estimatedCost.toFixed(2)}
                     </p>
                   </div>
@@ -259,12 +254,12 @@ export function AICategorizationModal({
 
                   {/* Show local logs as fallback if any exist */}
                   {logs.length > 0 && (
-                    <div className="text-[10px] text-gray-500 px-2">
+                    <div className={cn("text-[10px] px-2", designSystem.typography.color.subtle)}>
                       <details>
-                        <summary className="cursor-pointer hover:text-gray-700">Local logs ({logs.length})</summary>
+                        <summary className={cn("cursor-pointer", `hover:${designSystem.typography.color.secondary}`)}>Local logs ({logs.length})</summary>
                         <div className="mt-1 space-y-0.5 max-h-20 overflow-y-auto">
                           {logs.map((log, index) => (
-                            <div key={index} className="text-gray-600 font-mono">
+                            <div key={index} className={cn("font-mono", designSystem.typography.color.tertiary)}>
                               {log}
                             </div>
                           ))}
@@ -274,41 +269,7 @@ export function AICategorizationModal({
                   )}
                 </div>
               )}
-            </div>
           </div>
-          
-          {/* Footer */}
-          <div className="px-5 py-3 border-t border-pink-200/30 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={isProcessing}
-                className="text-xs h-7 px-3 border-pink-200 hover:bg-pink-50 hover:border-pink-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={isProcessing || uncategorizedCount === 0}
-                className="text-xs h-7 px-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3 w-3 mr-1.5" />
-                    Start Categorization
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
+      </StandardModal>
+    )
+  }

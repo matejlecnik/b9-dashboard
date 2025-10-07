@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { useJob, useJobQueue, type Job, type JobStatus, type JobPriority } from '@/lib/job-queue'
+import { designSystem } from '@/lib/design-system'
 /**
  * Job Queue Dashboard
  * Real-time monitoring and management of background jobs
@@ -37,7 +38,7 @@ function JobCard({ jobId }: JobCardProps) {
     running: <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />,
     completed: <CheckCircle className="h-4 w-4 text-green-500" />,
     failed: <XCircle className="h-4 w-4 text-red-500" />,
-    cancelled: <X className="h-4 w-4 text-gray-500" />
+    cancelled: <X className={cn("h-4 w-4", designSystem.typography.color.subtle)} />
   }[job.status as JobStatus]
 
   const statusColor = {
@@ -45,11 +46,11 @@ function JobCard({ jobId }: JobCardProps) {
     running: 'bg-blue-100 text-blue-800',
     completed: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-100 text-gray-800'
+    cancelled: cn(designSystem.background.surface.light, designSystem.typography.color.secondary)
   }[job.status as JobStatus]
 
   const priorityColor = {
-    low: 'bg-gray-100 text-gray-600',
+    low: cn(designSystem.background.surface.light, designSystem.typography.color.tertiary),
     normal: 'bg-blue-100 text-blue-600',
     high: 'bg-orange-100 text-orange-600',
     critical: 'bg-red-100 text-red-600'
@@ -62,7 +63,7 @@ function JobCard({ jobId }: JobCardProps) {
           {statusIcon}
           <div>
             <h4 className="font-medium text-sm">{job.type}</h4>
-            <p className="text-xs text-gray-500">ID: {job.id.substring(0, 12)}...</p>
+            <p className={cn("text-xs", designSystem.typography.color.subtle)}>ID: {job.id.substring(0, 12)}...</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -86,13 +87,13 @@ function JobCard({ jobId }: JobCardProps) {
       {job.status === 'running' && (
         <div className="space-y-2">
           <Progress value={job.progress} className="h-2" />
-          <p className="text-xs text-gray-600">
+          <p className={cn("text-xs", designSystem.typography.color.tertiary)}>
             {job.message || `Processing... ${job.progress}%`}
           </p>
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className={cn("flex items-center justify-between text-xs", designSystem.typography.color.subtle)}>
         <span>Created: {new Date(job.createdAt).toLocaleTimeString()}</span>
         <Badge className={cn("text-xs", statusColor)}>
           {job.status}
@@ -104,7 +105,7 @@ function JobCard({ jobId }: JobCardProps) {
           <RefreshCw className="h-3 w-3" />
           <span>Retry {job.attempts}/{job.maxAttempts}</span>
           {job.nextRetryAt && (
-            <span className="text-gray-500">
+            <span className={cn(designSystem.typography.color.subtle)}>
               at {new Date(job.nextRetryAt).toLocaleTimeString()}
             </span>
           )}
@@ -209,48 +210,48 @@ export function JobQueueDashboard() {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Active</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Active</p>
                 <p className="text-2xl font-bold">{metrics.activeJobs}</p>
               </div>
               <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Queued</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Queued</p>
                 <p className="text-2xl font-bold">{metrics.queueLength}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Success Rate</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Success Rate</p>
                 <p className="text-2xl font-bold">{metrics.successRate}%</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Avg Time</p>
+                <p className={cn("text-xs", designSystem.typography.color.subtle)}>Avg Time</p>
                 <p className="text-2xl font-bold">
                   {Math.round(metrics.averageProcessingTime / 1000)}s
                 </p>
               </div>
-              <Zap className="h-8 w-8 text-purple-500" />
+              <Zap className="h-8 w-8 text-secondary" />
             </div>
           </CardContent>
         </Card>
@@ -267,12 +268,12 @@ export function JobQueueDashboard() {
               "border-b-2 -mb-[2px]",
               filter === status
                 ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                : cn("border-transparent", designSystem.typography.color.tertiary, `hover:${designSystem.typography.color.primary}`)
             )}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
             {status !== 'all' && (
-              <span className="ml-2 text-xs text-gray-400">
+              <span className={cn("ml-2 text-xs", designSystem.typography.color.disabled)}>
                 ({jobs.filter((j: Job) => j.status === status).length})
               </span>
             )}
@@ -283,8 +284,8 @@ export function JobQueueDashboard() {
       {/* Jobs List */}
       <div className="space-y-3 max-h-[600px] overflow-y-auto">
         {filteredJobs.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <Briefcase className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <div className={cn("text-center py-12", designSystem.typography.color.subtle)}>
+            <Briefcase className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
             <p>No jobs in queue</p>
             {showDemo && (
               <p className="text-sm mt-2">Add demo jobs to test the system</p>
@@ -298,27 +299,27 @@ export function JobQueueDashboard() {
       </div>
 
       {/* Summary Stats */}
-      <Card className="bg-gray-50">
+      <Card className={designSystem.background.surface.subtle}>
         <CardContent className="pt-4">
           <div className="grid grid-cols-5 gap-4 text-center text-xs">
             <div>
-              <p className="text-gray-500">Total</p>
+              <p className={cn(designSystem.typography.color.subtle)}>Total</p>
               <p className="font-semibold">{metrics.totalJobs}</p>
             </div>
             <div>
-              <p className="text-gray-500">Completed</p>
+              <p className={cn(designSystem.typography.color.subtle)}>Completed</p>
               <p className="font-semibold text-green-600">{metrics.completedJobs}</p>
             </div>
             <div>
-              <p className="text-gray-500">Failed</p>
+              <p className={cn(designSystem.typography.color.subtle)}>Failed</p>
               <p className="font-semibold text-red-600">{metrics.failedJobs}</p>
             </div>
             <div>
-              <p className="text-gray-500">Cancelled</p>
-              <p className="font-semibold text-gray-600">{metrics.cancelledJobs}</p>
+              <p className={cn(designSystem.typography.color.subtle)}>Cancelled</p>
+              <p className={cn("font-semibold", designSystem.typography.color.tertiary)}>{metrics.cancelledJobs}</p>
             </div>
             <div>
-              <p className="text-gray-500">Active</p>
+              <p className={cn(designSystem.typography.color.subtle)}>Active</p>
               <p className="font-semibold text-blue-600">{metrics.activeJobs}</p>
             </div>
           </div>
@@ -351,8 +352,8 @@ export function JobQueueIndicator() {
       )}
       {metrics.queueLength > 0 && (
         <>
-          <span className="text-gray-400">•</span>
-          <span className="text-xs text-gray-600">
+          <span className={cn(designSystem.typography.color.disabled)}>•</span>
+          <span className={cn("text-xs", designSystem.typography.color.tertiary)}>
             {metrics.queueLength} queued
           </span>
         </>

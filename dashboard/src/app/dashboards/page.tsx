@@ -4,10 +4,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  Instagram,
-  Users,
-  Activity,
-  Monitor,
   Lock,
   Loader2,
   Search,
@@ -20,23 +16,22 @@ import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { getUserDashboardsClient, DashboardInfo } from '@/lib/permissions'
 import { useDashboardTracking, DashboardWithTracking } from '@/hooks/useDashboardTracking'
-
-
-// Reddit Icon Component
-const RedditIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
-  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z"/>
-  </svg>
-)
+import { RedditIcon, InstagramIcon, UsersIcon, ActivityIcon, MonitorIcon } from '@/components/shared/icons/DashboardIcons'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   reddit: RedditIcon,
-  instagram: Instagram,
-  models: Users,
-  tracking: Activity,
-  monitor: Monitor
+  instagram: InstagramIcon,
+  models: UsersIcon,
+  tracking: ActivityIcon,
+  monitor: MonitorIcon
 }
 
+/**
+ * Dashboard Colors - Migrated to Design Token System v2.0
+ * Using semantic tokens and platform-specific colors
+ */
 const dashboardColors: Record<string, { color: string; bgColor: string; accent: string }> = {
   reddit: {
     color: 'text-orange-500',
@@ -44,24 +39,24 @@ const dashboardColors: Record<string, { color: string; bgColor: string; accent: 
     accent: 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 text-white'
   },
   instagram: {
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-50',
-    accent: 'bg-gradient-to-br from-pink-600 via-pink-500 to-pink-700 text-white'
+    color: 'text-fuchsia-600',
+    bgColor: 'bg-fuchsia-50',
+    accent: 'bg-gradient-to-br from-fuchsia-600 via-pink-500 to-purple-600 text-white'
   },
   models: {
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-50',
-    accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600 text-white'
+    color: 'text-secondary',
+    bgColor: 'bg-secondary/10',
+    accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-fuchsia-500 text-white'
   },
   tracking: {
-    color: 'text-green-500',
-    bgColor: 'bg-green-50',
-    accent: 'bg-purple-600 text-white'
+    color: 'text-rose-700',
+    bgColor: 'bg-rose-50',
+    accent: 'bg-gradient-to-br from-rose-700 via-rose-500 to-pink-600 text-white'
   },
   monitor: {
-    color: 'text-purple-500',
+    color: 'text-purple-700',
     bgColor: 'bg-purple-50',
-    accent: 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white'
+    accent: 'bg-gradient-to-br from-purple-700 via-purple-600 to-purple-500 text-white'
   }
 }
 
@@ -158,7 +153,7 @@ export default function DashboardsPage() {
     return sortDashboardsByRecent(filtered as DashboardWithTracking[])
   }, [searchQuery, dashboards, sortDashboardsByRecent])
 
-  // Highlight search matches
+  // Highlight search matches - using design tokens
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text
 
@@ -167,14 +162,14 @@ export default function DashboardsPage() {
 
     return parts.map((part, i) =>
       regex.test(part) ?
-        <span key={i} className="bg-yellow-200 font-medium">{part}</span> :
+        <span key={i} className={cn("bg-warning/20 font-medium", designSystem.typography.color.primary)}>{part}</span> :
         part
     )
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className={cn("min-h-screen", designSystem.background.surface.subtle)}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -185,11 +180,11 @@ export default function DashboardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={cn("min-h-screen", designSystem.background.surface.subtle)}>
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-8 pb-6 border-b border-default">
           <div className="flex items-center space-x-4">
             <Image
               src="/logo/logo.png"
@@ -200,7 +195,7 @@ export default function DashboardsPage() {
               priority
             />
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+              <h1 className={cn("text-2xl font-semibold tracking-tight", designSystem.typography.color.primary)}>
                 B9 Dashboard
               </h1>
             </div>
@@ -209,7 +204,7 @@ export default function DashboardsPage() {
             onClick={handleLogout}
             variant="outline"
             size="sm"
-            className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+            className={cn("bg-white border-strong", designSystem.background.hover.subtle, designSystem.typography.color.secondary)}
           >
             <LogOut className="w-3 h-3 mr-1.5" />
             <span className="text-xs">Sign Out</span>
@@ -219,7 +214,7 @@ export default function DashboardsPage() {
         {/* Search Bar */}
         <div className="mb-8 flex justify-center">
           <div className="relative w-full max-w-sm">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10">
+            <div className={cn("absolute left-3 top-1/2 transform -translate-y-1/2 z-10", designSystem.typography.color.disabled)}>
               <Search className="h-4 w-4" />
             </div>
             <Input
@@ -230,7 +225,7 @@ export default function DashboardsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              className="w-full pl-10 pr-4 py-3 border-2 rounded-xl backdrop-blur-sm transition-all duration-300"
+              className={`w-full pl-10 pr-4 py-3 border-2 ${designSystem.borders.radius.md} backdrop-blur-sm transition-all duration-300`}
             />
           </div>
         </div>
@@ -239,9 +234,9 @@ export default function DashboardsPage() {
         {dashboards.length === 0 && !loading && (
           <div className="text-center py-12">
             <Card className="max-w-md mx-auto p-8">
-              <Lock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <Lock className={cn("w-12 h-12 mx-auto mb-4", designSystem.typography.color.disabled)} />
               <h2 className="text-xl font-semibold mb-2">No Dashboards Available</h2>
-              <p className="text-gray-500">
+              <p className={cn(designSystem.typography.color.subtle)}>
                 You don&apos;t have access to any dashboards yet. Please contact your administrator.
               </p>
             </Card>
@@ -251,9 +246,9 @@ export default function DashboardsPage() {
         {/* Empty State - No Search Results */}
         {searchQuery.trim() && filteredDashboards.length === 0 && dashboards.length > 0 && (
           <div className="text-center py-12">
-            <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No dashboards found</h3>
-            <p className="text-gray-500">Try searching with different keywords</p>
+            <Search className={cn("h-12 w-12 mx-auto mb-4", designSystem.typography.color.disabled)} />
+            <h3 className={cn("text-lg font-medium mb-2", designSystem.typography.color.primary)}>No dashboards found</h3>
+            <p className={cn(designSystem.typography.color.subtle)}>Try searching with different keywords</p>
             <Button
               variant="outline"
               onClick={() => setSearchQuery('')}
@@ -267,17 +262,17 @@ export default function DashboardsPage() {
         {/* Available Dashboards */}
         {filteredDashboards.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center tracking-tight">
+            <h2 className={cn("text-lg font-semibold mb-4 text-center tracking-tight", designSystem.typography.color.secondary)}>
               Your Available Dashboards
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
               {filteredDashboards.map((dashboard: DashboardWithTracking, index: number) => {
-                const Icon = dashboardIcons[dashboard.dashboard_id] as React.ComponentType<{ className?: string }> || Activity
+                const Icon = dashboardIcons[dashboard.dashboard_id] as React.ComponentType<{ className?: string }> || ActivityIcon
                 const colors = dashboardColors[dashboard.dashboard_id] || {
-                  color: 'text-gray-500',
-                  bgColor: 'bg-gray-50',
-                  accent: 'bg-gray-600 text-white'
+                  color: designSystem.typography.color.subtle,
+                  bgColor: designSystem.background.surface.subtle,
+                  accent: `${designSystem.background.surface.darker} text-white`
                 }
 
                 const handleDashboardClick = () => {
@@ -288,21 +283,21 @@ export default function DashboardsPage() {
                 return (
                   <Card
                     key={dashboard.dashboard_id}
-                    className="group dashboard-card-active transition-all duration-300 cursor-pointer rounded-lg hover:scale-105 hover:-translate-y-1 active:scale-95"
+                    className={`group dashboard-card-active transition-all duration-300 cursor-pointer ${designSystem.borders.radius.sm} hover:scale-105 hover:-translate-y-1 active:scale-95`}
                     onClick={handleDashboardClick}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="p-4">
                       <div className="flex items-start">
-                        <div className={`p-2 rounded-lg flex-shrink-0 ${colors.accent}`}>
+                        <div className={`p-2 ${designSystem.borders.radius.sm} flex-shrink-0 ${colors.accent}`}>
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="ml-3 flex-1">
-                          <CardTitle className="text-sm font-semibold text-gray-900 tracking-tight">
+                          <CardTitle className={cn("text-sm font-semibold tracking-tight", designSystem.typography.color.primary)}>
                             {highlightText(dashboard.name, searchQuery)}
                           </CardTitle>
                           {/* Last Opened Time */}
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className={cn("text-xs mt-0.5", designSystem.typography.color.subtle)}>
                             {getRelativeTime(dashboard.dashboard_id)}
                           </p>
                         </div>
@@ -317,7 +312,7 @@ export default function DashboardsPage() {
 
         {/* Footer */}
         <div className="mt-16 pt-6 text-center">
-          <p className="text-xs text-gray-400">
+          <p className={cn("text-xs", designSystem.typography.color.disabled)}>
             © 2025 B9 Dashboard · {userEmail === 'info@b9agencija.com' && 'Admin Access'}
           </p>
         </div>

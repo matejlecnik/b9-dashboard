@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
-import { 
-  User, 
+import {
+  User,
   LogOut,
   ChevronDown
 } from 'lucide-react'
+import { designSystem } from '@/lib/design-system'
 
 interface HeaderProps {
   title: string
@@ -66,7 +67,7 @@ export function Header({
               className="h-10 px-3 transition-all duration-300 ease-out hover:scale-105"
             >
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-gradient-to-br from-[#FF8395] to-[#FF6B80] rounded-full flex items-center justify-center shadow-sm">
+                <div className={`w-6 h-6 bg-gradient-to-br from-[#FF8395] to-[#FF6B80] ${designSystem.borders.radius.full} flex items-center justify-center shadow-sm`}>
                   <User className="h-3 w-3 text-white" />
                 </div>
                 <span className="text-sm font-medium text-gray-700 hidden md:block font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]">
@@ -78,10 +79,10 @@ export function Header({
 
             {/* Dropdown Menu */}
             {showUserDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-[rgba(248,250,252,0.95)] backdrop-blur-[20px] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] border border-white/30 py-2 z-50 animate-scale-in">
+              <div className={`absolute right-0 mt-2 w-64 bg-[rgba(248,250,252,0.95)] backdrop-blur-[20px] ${designSystem.borders.radius.lg} shadow-[0_12px_40px_rgba(0,0,0,0.15)] border border-white/30 py-2 z-50 animate-scale-in`}>
                 <div className="px-4 py-3 border-b border-white/20">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#FF8395] to-[#FF6B80] rounded-full flex items-center justify-center shadow-lg ring-2 ring-white/20">
+                    <div className={`w-10 h-10 bg-gradient-to-br from-[#FF8395] to-[#FF6B80] ${designSystem.borders.radius.full} flex items-center justify-center shadow-lg ring-2 ring-white/20`}>
                       <User className="h-5 w-5 text-white" />
                     </div>
                     <div>
@@ -100,7 +101,7 @@ export function Header({
                 <div className="border-t border-white/20 py-2">
                   <button 
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-white/50 flex items-center transition-all duration-200 ease-out hover:scale-[1.02] rounded-lg mx-2 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]"
+                    className={`w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-white/50 flex items-center transition-all duration-200 ease-out hover:scale-[1.02] ${designSystem.borders.radius.sm} mx-2 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Helvetica_Neue',sans-serif]`}
                   >
                     <LogOut className="h-4 w-4 mr-3 text-gray-600" />
                     Sign Out

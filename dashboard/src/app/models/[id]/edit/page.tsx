@@ -9,6 +9,8 @@ import { DashboardLayout } from '@/components/shared'
 import { ModelForm } from '@/components/features/ModelForm'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface Model {
   id: number
@@ -121,7 +123,7 @@ export default function EditModelPage({ params }: { params: Promise<{ id: string
         subtitle=""
       >
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <Loader2 className={cn("h-8 w-8 animate-spin", designSystem.typography.color.disabled)} />
         </div>
       </DashboardLayout>
     )

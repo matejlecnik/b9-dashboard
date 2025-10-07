@@ -7,6 +7,8 @@ import { Plus } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 // Lazy load heavy components
 const ModelFormModal = dynamic(
@@ -20,7 +22,7 @@ const ModelsTable = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-gray-900`}></div>
       </div>
     )
   }
@@ -213,12 +215,12 @@ export default function ModelsPage() {
     <DashboardLayout>
       <div className="flex flex-col h-full p-6">
         {/* Combined Toolbar: Search on left, Add button on right - Slim Design */}
-        <div className="flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+        <div className={`flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm ${designSystem.borders.radius.sm} border border-default shadow-sm`}>
           {/* Search Section - Left Side - Compact */}
           <div className="flex items-center flex-1 min-w-0 max-w-xs">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={cn("h-4 w-4", designSystem.typography.color.subtle)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -229,12 +231,12 @@ export default function ModelsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 disabled={loading}
-                className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent transition-all duration-200 h-8 relative"
+                className={`w-full pl-8 pr-8 py-1.5 text-sm border border-default ${designSystem.borders.radius.sm} bg-white focus:outline-none focus:ring-1 focus:ring-secondary focus:border-transparent transition-all duration-200 h-8 relative`}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
+                  className={cn("absolute inset-y-0 right-0 pr-2 flex items-center", designSystem.typography.color.disabled, `hover:${designSystem.typography.color.tertiary}`)}
                   aria-label="Clear search"
                 >
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -249,7 +251,7 @@ export default function ModelsPage() {
           <div className="flex items-center">
             <Button
               onClick={() => handleOpenModal()}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0 h-8 px-3 text-sm"
+              className="bg-gradient-to-r from-secondary to-primary-hover hover:from-secondary-hover hover:to-primary-pressed text-white border-0 h-8 px-3 text-sm"
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Add Model

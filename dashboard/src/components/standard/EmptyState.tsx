@@ -40,7 +40,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     )}>
       {Icon && (
         <div className={cn(
-          'mb-4 p-3 rounded-full',
+          `mb-4 p-3 ${designSystem.borders.radius.full}`,
           'bg-gray-100 text-gray-400'
         )}>
           <Icon className="h-8 w-8" />
@@ -100,7 +100,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
       )}
 
       {showImage && (
-        <div className="h-48 w-full bg-gray-200 rounded-lg mb-4" />
+        <div className={`h-48 w-full bg-gray-200 ${designSystem.borders.radius.sm} mb-4`} />
       )}
 
       <div className="space-y-3">
@@ -225,7 +225,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
     <div className={cn('inline-flex items-center justify-center', className)}>
       <div className={cn(
         sizes[size],
-        'border-2 rounded-full animate-spin',
+        `border-2 ${designSystem.borders.radius.full} animate-spin`,
         colors[color],
         'border-t-transparent'
       )} />

@@ -4,12 +4,14 @@ Local Testing Script for Phase 2b Architecture
 Verifies all refactoring changes work correctly before Render deployment
 """
 
-import sys
 import os
-import time
 import subprocess
-import requests
+import sys
+import time
 from datetime import datetime
+
+import requests
+
 
 # Color codes for terminal output
 GREEN = '\033[92m'
@@ -56,15 +58,12 @@ def test_static_imports():
         print_success("Import: app.core.database")
         results['passed'] += 1
 
-        from app.logging import get_logger
         print_success("Import: app.logging")
         results['passed'] += 1
 
-        from app.middleware import configure_middleware
         print_success("Import: app.middleware")
         results['passed'] += 1
 
-        from app.core.lifespan import create_lifespan_manager
         print_success("Import: app.core.lifespan")
         results['passed'] += 1
 
@@ -107,7 +106,7 @@ def test_static_imports():
     except Exception as e:
         print_error(f"Static checks failed: {e}")
         results['failed'] += 1
-        results['errors'].append(f"Static checks: {str(e)}")
+        results['errors'].append(f"Static checks: {e!s}")
         return False
 
 def test_server_startup():
@@ -147,7 +146,7 @@ def test_server_startup():
     except Exception as e:
         print_error(f"Server startup failed: {e}")
         results['failed'] += 1
-        results['errors'].append(f"Server startup: {str(e)}")
+        results['errors'].append(f"Server startup: {e!s}")
         return None
 
 def test_endpoints(base_url="http://localhost:8001"):
@@ -180,9 +179,9 @@ def test_endpoints(base_url="http://localhost:8001"):
             results['failed'] += 1
             results['errors'].append(f"{method} {path} connection refused")
         except Exception as e:
-            print_error(f"{method} {path}: {str(e)}")
+            print_error(f"{method} {path}: {e!s}")
             results['failed'] += 1
-            results['errors'].append(f"{method} {path}: {str(e)}")
+            results['errors'].append(f"{method} {path}: {e!s}")
 
 def cleanup_server(process):
     """Phase 4: Cleanup - stop server"""

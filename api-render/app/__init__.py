@@ -3,11 +3,12 @@ B9 Dashboard API Application Package
 Central application module containing all business logic
 """
 
-from app.config import config, Config
+from app.config import Config, config
 from app.version import API_VERSION
 
+
 __version__ = API_VERSION
-__all__ = ["config", "Config"]
+__all__ = ["Config", "config"]
 
 # Application metadata
 APP_NAME = "B9 Dashboard API"
@@ -15,13 +16,13 @@ APP_VERSION = __version__
 APP_DESCRIPTION = "Backend API for B9 Dashboard - Reddit and Instagram automation"
 
 # Export commonly used items for easier imports
-from app.config import (
+from app.config import (  # noqa: E402
+    API_VERSION,
     DATABASE_URL,
-    OPENAI_API_KEY,
-    SUPABASE_URL,
-    SUPABASE_SERVICE_KEY,
-    IS_PRODUCTION,
     IS_DEVELOPMENT,
+    IS_PRODUCTION,
     LOG_LEVEL,
-    API_VERSION
+    OPENAI_API_KEY,
+    SUPABASE_SERVICE_KEY,
+    SUPABASE_URL,
 )

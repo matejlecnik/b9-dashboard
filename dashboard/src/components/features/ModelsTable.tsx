@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2, Loader2, Edit, UserCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { ModelsTableSkeleton } from '@/components/shared/SkeletonLoaders'
 
 
@@ -94,8 +95,8 @@ const ModelsTable = memo(function ModelsTable({
   if (models.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <UserCircle2 className="h-12 w-12 text-gray-300 mb-4" />
-        <div className="text-gray-500 mb-4">
+        <UserCircle2 className={cn("h-12 w-12 mb-4", designSystem.typography.color.disabled)} />
+        <div className={cn("mb-4", designSystem.typography.color.subtle)}>
           {searchQuery ? 'No models found matching your search' : 'No models created yet'}
         </div>
         {!searchQuery && onEdit && (
@@ -114,7 +115,7 @@ const ModelsTable = memo(function ModelsTable({
       className
     )}>
       {/* Header */}
-      <div className="flex items-center px-4 py-3 bg-gray-50/80 border-b border-gray-200/50 font-medium text-gray-700 text-sm sticky top-0 z-10">
+      <div className={cn("flex items-center px-4 py-3 border-b border-light font-medium text-sm sticky top-0 z-10", `${designSystem.background.surface.subtle}/80`, designSystem.typography.color.secondary)}>
         {setSelectedModels && (
           <div className="w-10 flex-shrink-0 flex justify-center">
             <Checkbox
@@ -142,8 +143,9 @@ const ModelsTable = memo(function ModelsTable({
             <div
               key={model.id}
               className={cn(
-                "flex items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50/50 transition-all duration-300 cursor-pointer",
-                isSelected && "bg-purple-50/50"
+                "flex items-center px-4 py-2 border-b border-light transition-all duration-300 cursor-pointer",
+                `hover:${designSystem.background.surface.subtle}/50`,
+                isSelected && "bg-secondary/10"
               )}
               onClick={() => onEdit?.(model)}
             >
@@ -160,7 +162,7 @@ const ModelsTable = memo(function ModelsTable({
               {/* Stage Name */}
               <div className="w-48 flex-shrink-0 px-3">
                 <div
-                  className="font-semibold text-gray-900 text-sm truncate"
+                  className={cn("font-semibold text-sm truncate", designSystem.typography.color.primary)}
                   dangerouslySetInnerHTML={{ __html: highlightMatch(model.stage_name) }}
                 />
               </div>
@@ -168,7 +170,7 @@ const ModelsTable = memo(function ModelsTable({
               {/* Description */}
               <div className="w-48 flex-shrink-0 px-3">
                 <div
-                  className="text-sm text-gray-600 truncate"
+                  className={cn("text-sm truncate", designSystem.typography.color.tertiary)}
                   dangerouslySetInnerHTML={{ __html: highlightMatch(model.description || '—') }}
                 />
               </div>
@@ -184,7 +186,7 @@ const ModelsTable = memo(function ModelsTable({
                     Onboarding
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-gray-100">
+                  <Badge variant="outline" className={designSystem.background.surface.light}>
                     Inactive
                   </Badge>
                 )}
@@ -192,7 +194,7 @@ const ModelsTable = memo(function ModelsTable({
 
               {/* Accounts */}
               <div className="w-20 flex-shrink-0 flex justify-center">
-                <span className="text-sm font-medium text-gray-700">
+                <span className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>
                   {Object.values(model.platform_accounts || {}).flat().length}
                 </span>
               </div>
@@ -200,7 +202,7 @@ const ModelsTable = memo(function ModelsTable({
               {/* Tags */}
               <div className="w-48 flex-shrink-0 px-3">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <span className="text-sm text-gray-600 flex-shrink-0">
+                  <span className={cn("text-sm flex-shrink-0", designSystem.typography.color.tertiary)}>
                     {model.assigned_tags.length} tags
                   </span>
                   {tagCategories.length > 0 && (
@@ -209,7 +211,7 @@ const ModelsTable = memo(function ModelsTable({
                         <Badge
                           key={category}
                           variant="secondary"
-                          className="text-xs bg-purple-50 text-purple-700 border-purple-200 flex-shrink-0"
+                          className="text-xs bg-secondary/10 text-secondary-pressed border-secondary/30 flex-shrink-0"
                         >
                           {category}
                         </Badge>
@@ -217,7 +219,7 @@ const ModelsTable = memo(function ModelsTable({
                       {tagCategories.length > 2 && (
                         <Badge
                           variant="secondary"
-                          className="text-xs bg-gray-100 text-gray-600 flex-shrink-0"
+                          className={cn("text-xs flex-shrink-0", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                         >
                           +{tagCategories.length - 2}
                         </Badge>

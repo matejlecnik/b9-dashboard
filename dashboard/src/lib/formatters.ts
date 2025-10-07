@@ -2,6 +2,8 @@
  * Standardized formatting utilities for consistent display across the dashboard
  */
 
+import { designSystem } from '@/lib/design-system'
+
 // ============================================================================
 // NUMBER FORMATTING
 // ============================================================================
@@ -309,8 +311,8 @@ export function getStatusColor(status: string): {
     warning: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
     banned: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
     error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
-    pending: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' },
-    inactive: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' },
+    pending: { bg: designSystem.background.surface.light, text: designSystem.typography.color.secondary, border: 'border-gray-200' },
+    inactive: { bg: designSystem.background.surface.light, text: designSystem.typography.color.secondary, border: 'border-gray-200' },
   }
 
   return statusColors[status.toLowerCase()] || statusColors.inactive

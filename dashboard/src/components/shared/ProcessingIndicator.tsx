@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils'
 import { XCircle, CheckCircle, Loader2, Zap } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import { designSystem } from '@/lib/design-system'
 
 interface ProcessingIndicatorProps {
   isProcessing: boolean
@@ -33,7 +34,7 @@ export function ProcessingIndicator({
   return (
     <div
       className={cn(
-        'fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 min-w-[300px] z-50',
+        `fixed bottom-4 right-4 bg-white ${designSystem.borders.radius.sm} shadow-lg border p-4 min-w-[300px] z-50`,
         'transition-all duration-300 ease-in-out',
         className
       )}
@@ -144,10 +145,10 @@ export function ProcessingOverlay({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full mx-4">
+      <div className={`bg-white ${designSystem.borders.radius.md} shadow-xl p-8 max-w-md w-full mx-4`}>
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-30 animate-pulse" />
+            <div className={`absolute inset-0 bg-blue-500 ${designSystem.borders.radius.full} blur-xl opacity-30 animate-pulse`} />
             <Zap className="h-12 w-12 text-blue-500 relative z-10" />
           </div>
 

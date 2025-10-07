@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
 import { createCategorizationTable } from '@/components/shared/tables/UniversalTable'
 import { queryKeys } from '@/lib/react-query'
@@ -395,29 +397,29 @@ export default function CategorizationPage() {
           <ComponentErrorBoundary>
             {isLoading ? (
               <div className="flex gap-3">
-                <div className="flex-1 h-20 bg-gray-100 rounded-xl animate-pulse" />
-                <div className="w-32 h-20 bg-gray-100 rounded-xl animate-pulse" />
+                <div className={cn("flex-1 h-20 {designSystem.borders.radius.md} animate-pulse", designSystem.background.surface.light)} />
+                <div className={cn("w-32 h-20 {designSystem.borders.radius.md} animate-pulse", designSystem.background.surface.light)} />
               </div>
             ) : (
               <div className="flex gap-3">
                 {/* Progress Bar Card - 80% width */}
-                <div className="flex-1 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex-1 bg-white/80 backdrop-blur-sm border border-default {designSystem.borders.radius.md} p-4 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className={cn("text-sm font-semibold", designSystem.typography.color.primary)}>
                       Categorization Progress
                     </h3>
                     <div className="text-right">
                       {isLoadingCounts ? (
                         <div className="animate-pulse">
-                          <div className="h-6 w-12 bg-gray-200 rounded mb-1"></div>
-                          <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                          <div className={cn("h-6 w-12 rounded mb-1", designSystem.background.surface.neutral)}></div>
+                          <div className={cn("h-3 w-20 rounded", designSystem.background.surface.neutral)}></div>
                         </div>
                       ) : (
                         <>
-                          <span className="text-lg font-bold text-gray-900">
+                          <span className={cn("text-lg font-bold", designSystem.typography.color.primary)}>
                             {tagCounts ? Math.round((tagCounts.tagged / Math.max(1, tagCounts.tagged + tagCounts.untagged)) * 100) : 0}%
                           </span>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className={cn("text-xs mt-0.5", designSystem.typography.color.subtle)}>
                             {formatNumber(tagCounts?.tagged || 0)} / {formatNumber((tagCounts?.tagged || 0) + (tagCounts?.untagged || 0))}
                           </p>
                         </>
@@ -425,7 +427,7 @@ export default function CategorizationPage() {
                     </div>
                   </div>
                   {isLoadingCounts ? (
-                    <div className="h-3 bg-gray-200 rounded animate-pulse" />
+                    <div className={cn("h-3 rounded animate-pulse", designSystem.background.surface.neutral)} />
                   ) : (
                     <Progress
                       value={tagCounts && (tagCounts.tagged + tagCounts.untagged) > 0
@@ -441,7 +443,7 @@ export default function CategorizationPage() {
                 <button
                   onClick={handleCategorizeAll}
                   disabled={isLoading || aiCategorizationMutation.isPending || !tagCounts || tagCounts.untagged === 0}
-                  className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden {designSystem.borders.radius.lg} transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
                     backdropFilter: 'blur(16px) saturate(180%)',
@@ -451,20 +453,20 @@ export default function CategorizationPage() {
                   }}
                 >
                   {/* Gradient overlay on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-pink-400/25 via-purple-400/25 to-blue-400/25" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-primary/25 via-secondary/25 to-blue-400/25" />
 
                   {/* Shine effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
                   {/* Glow effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl" />
+                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl" />
                   </div>
 
                   {/* Content */}
                   <div className="relative z-10 flex flex-col items-center">
-                    <Sparkles className="h-5 w-5 text-pink-500 mb-1 group-hover:text-pink-600 transition-colors" />
-                    <span className="text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent text-center">
+                    <Sparkles className="h-5 w-5 text-primary mb-1 group-hover:text-primary-hover transition-colors" />
+                    <span className="text-xs font-semibold bg-gradient-to-r from-primary-hover to-secondary-hover bg-clip-text text-transparent text-center">
                       {aiCategorizationMutation.isPending
                         ? 'Processing...'
                         : !tagCounts || tagCounts.untagged === 0
@@ -472,7 +474,7 @@ export default function CategorizationPage() {
                         : `AI Tagging`}
                     </span>
                     {!aiCategorizationMutation.isPending && tagCounts && tagCounts.untagged > 0 && (
-                      <span className="text-[10px] text-gray-500 mt-0.5">
+                      <span className={cn("text-[10px] mt-0.5", designSystem.typography.color.subtle)}>
                         {Math.min(tagCounts.untagged, 500)} items
                       </span>
                     )}
@@ -580,12 +582,12 @@ export default function CategorizationPage() {
             onClick={handleCloseRules}
           >
             <div
-              className="bg-white/95 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
+              className="bg-white/95 {designSystem.borders.radius.lg} max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-default">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-b9-pink text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 {designSystem.borders.radius.full} bg-b9-pink text-white flex items-center justify-center font-bold">
                     {(() => {
                       const dp = rulesModal.subreddit.display_name_prefixed || 'r/'
                       const idx = dp.startsWith('r/') || dp.startsWith('u/') ? 2 : 0
@@ -597,12 +599,12 @@ export default function CategorizationPage() {
                     <h2 className="text-xl font-bold text-black">
                       {rulesModal.subreddit.display_name_prefixed} Rules
                     </h2>
-                    <p className="text-sm text-gray-600">{rulesModal.subreddit.title}</p>
+                    <p className={cn("text-sm", designSystem.typography.color.tertiary)}>{rulesModal.subreddit.title}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleCloseRules}
-                  className="rounded-full p-2 hover:bg-gray-100"
+                  className={cn("{designSystem.borders.radius.full} p-2", designSystem.background.hover.light)}
                   title="Close (Esc)"
                 >
                   ✕
@@ -645,7 +647,7 @@ export default function CategorizationPage() {
                       return (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-gray-800">Subreddit Rules</h3>
+                            <h3 className={cn("font-semibold", designSystem.typography.color.secondary)}>Subreddit Rules</h3>
                             <a
                               href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
                               target="_blank"
@@ -657,22 +659,22 @@ export default function CategorizationPage() {
                           </div>
                           <div className="space-y-3">
                             {rules.map((rule, index: number) => (
-                              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                              <div key={index} className={cn("p-3 {designSystem.borders.radius.sm}", designSystem.background.surface.subtle)}>
                                 <div className="flex items-start gap-3">
-                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold {designSystem.borders.radius.full} flex items-center justify-center">
                                     {index + 1}
                                   </div>
                                   <div className="flex-1">
-                                    <h4 className="font-medium text-gray-900 mb-1">
+                                    <h4 className={cn("font-medium mb-1", designSystem.typography.color.primary)}>
                                       {rule.short_name || rule.title || `Rule ${index + 1}`}
                                     </h4>
                                     {rule.description && (
-                                      <p className="text-sm text-gray-600 leading-relaxed">
+                                      <p className={cn("text-sm leading-relaxed", designSystem.typography.color.tertiary)}>
                                         {rule.description}
                                       </p>
                                     )}
                                     {rule.violation_reason && rule.violation_reason !== rule.short_name && (
-                                      <p className="text-xs text-gray-500 mt-1 italic">
+                                      <p className={cn("text-xs mt-1 italic", designSystem.typography.color.subtle)}>
                                         Violation: {rule.violation_reason}
                                       </p>
                                     )}
@@ -687,11 +689,11 @@ export default function CategorizationPage() {
                       return (
                         <div className="text-center py-8">
                           <div className="mb-4">
-                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                              <span className="text-2xl text-gray-400">📋</span>
+                            <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
+                              <span className={cn("text-2xl", designSystem.typography.color.disabled)}>📋</span>
                             </div>
-                            <p className="text-gray-600">No rules data available for this subreddit.</p>
-                            <p className="text-sm text-gray-500 mt-1">Rules may not have been scraped yet or the subreddit has no posted rules.</p>
+                            <p className={cn(designSystem.typography.color.tertiary)}>No rules data available for this subreddit.</p>
+                            <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>Rules may not have been scraped yet or the subreddit has no posted rules.</p>
                           </div>
                           <a
                             href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
@@ -709,11 +711,11 @@ export default function CategorizationPage() {
                     return (
                       <div className="text-center py-8">
                         <div className="mb-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <span className="text-2xl text-gray-700">⚠️</span>
+                          <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
+                            <span className={cn("text-2xl", designSystem.typography.color.secondary)}>⚠️</span>
                           </div>
-                          <p className="text-gray-600">Error loading rules data.</p>
-                          <p className="text-sm text-gray-500 mt-1">The rules data may be malformed or corrupted.</p>
+                          <p className={cn(designSystem.typography.color.tertiary)}>Error loading rules data.</p>
+                          <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>The rules data may be malformed or corrupted.</p>
                         </div>
                         <a
                           href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}

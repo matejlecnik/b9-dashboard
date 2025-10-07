@@ -14,6 +14,7 @@
     "automation": ["metrics-daemon.py", "session-logger.py", "template-processor.py"],
     "search": ["doc-search.py"],
     "validation": ["validate-docs.py", "fix-headers.py"],
+    "maintenance": ["cleanup-cache.sh"],
     "legacy": ["nav.sh", "generate-docs.py", "setup-hooks.sh"]
   }
 }
@@ -149,6 +150,38 @@ python3 docs/scripts/automation/template-processor.py --create-template CLAUDE.m
 {{GIT_BRANCH}}       - Current git branch
 {{LAST_UPDATE}}      - Timestamp
 ```
+
+### 5. Cache Cleanup Utility
+
+**File:** `cleanup-cache.sh`
+**Purpose:** Removes regenerable cache files and temporary artifacts
+
+```bash
+## Run cleanup (safe to run anytime)
+bash docs/scripts/cleanup-cache.sh
+
+## Or via direct execution
+./docs/scripts/cleanup-cache.sh
+```
+
+**What It Cleans:**
+- Python bytecode (`.pyc` files)
+- Python cache directories (`__pycache__`)
+- Next.js build cache (`dashboard/.next/cache/`)
+- macOS system files (`.DS_Store`)
+- Python validation cache in docs/scripts
+
+**Features:**
+- Shows before/after statistics
+- Safe operation (all files can be regenerated)
+- Zero risk to source code or data
+- Helpful for troubleshooting build issues
+
+**When to Use:**
+- Monthly maintenance routine
+- Before/after major dependency updates
+- When experiencing build errors
+- To reclaim disk space (~MB-GB depending on cache size)
 
 ## 🎯 Git Hooks Integration
 

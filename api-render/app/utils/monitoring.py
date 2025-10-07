@@ -4,7 +4,7 @@ Monitoring utilities - Stub implementation
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -13,7 +13,7 @@ class SystemMetrics:
     cpu_percent: float = 0.0
     memory_percent: float = 0.0
     disk_percent: float = 0.0
-    network_io: Dict[str, int] = None
+    network_io: Optional[Dict[str, int]] = None
 
     def __post_init__(self):
         if self.network_io is None:
@@ -57,7 +57,7 @@ class HealthMonitor:
             "uptime_seconds": uptime,
             "dependencies": {
                 name: {"status": "healthy"}
-                for name in self.dependencies.keys()
+                for name in self.dependencies
             },
             "timestamp": time.time()
         }
@@ -104,11 +104,9 @@ health_monitor = HealthMonitor()
 @asynccontextmanager
 async def request_timer():
     """Context manager for timing requests"""
-    start = time.time()
     try:
         yield
     finally:
-        duration = time.time() - start
         health_monitor.increment_request()
 
 

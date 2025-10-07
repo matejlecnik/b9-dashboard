@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import type { IconType } from 'react-icons'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 /**
 
  * Dynamic Icon Loader
@@ -226,7 +228,7 @@ export const DynamicIcon: React.FC<DynamicIconProps> = ({
   if (loading) {
     return (
       <div
-        className={`inline-block animate-pulse bg-gray-200 rounded ${className}`}
+        className={`inline-block animate-pulse ${designSystem.background.surface.neutral} rounded ${className}`}
         style={{ width: size, height: size }}
       />
     )
@@ -238,7 +240,7 @@ export const DynamicIcon: React.FC<DynamicIconProps> = ({
     }
     return (
       <div
-        className={`inline-flex items-center justify-center text-gray-400 ${className}`}
+        className={cn(`inline-flex items-center justify-center ${designSystem.typography.color.disabled}`, className)}
         style={{ width: size, height: size }}
       >
         ?

@@ -1,6 +1,8 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface LogTerminalBaseProps {
   title?: string
@@ -43,7 +45,7 @@ export function LogTerminalBase({
     <div className="flex flex-col gap-1">
       {/* Header outside the box */}
       {title && (
-        <h3 className="text-[10px] font-medium text-gray-600 whitespace-nowrap px-2">
+        <h3 className={cn("text-[10px] font-medium whitespace-nowrap px-2", designSystem.typography.color.tertiary)}>
           {title}
         </h3>
       )}

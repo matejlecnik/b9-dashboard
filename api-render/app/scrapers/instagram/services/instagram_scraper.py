@@ -8,8 +8,9 @@ SCRAPER_VERSION = "4.0.0-NO-BATCH"  # Removed batch processing - process all cre
 DEPLOYMENT_DATE = "2025-09-18"
 
 # Early logging before any imports that might fail
-import sys
-import logging
+import logging  # noqa: E402
+import sys  # noqa: E402
+
 
 # Configure logging FIRST before any imports
 logging.basicConfig(
@@ -24,25 +25,23 @@ logger.info(f"Instagram Unified Scraper v{SCRAPER_VERSION} - Module Loading")
 logger.info(f"Deployment Date: {DEPLOYMENT_DATE}")
 logger.info("=" * 60)
 
-import os
-import time
-import json
-import re
-import threading
-import asyncio
-import aiohttp
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from collections import Counter
+import asyncio  # noqa: E402
+
 # Removed concurrent.futures - using raw threading.Thread like Reddit scraper
-from queue import Queue
-import random
+import random  # noqa: E402
+import re  # noqa: E402
+import threading  # noqa: E402
+import time  # noqa: E402
+from collections import Counter  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+from typing import Any, Dict, List, Optional, Tuple  # noqa: E402
+
 
 try:
     import requests
-    from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-    from supabase import Client
     from dotenv import load_dotenv
+    from supabase import Client
+    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
     logger.info("✅ All external dependencies loaded successfully")
 except ImportError as e:
     logger.error(f"❌ Failed to import dependency: {e}")
@@ -54,6 +53,22 @@ try:
 except ImportError as e:
     logger.error(f"❌ Failed to import Config: {e}")
     raise
+
+try:
+    from app.core.config.r2_config import r2_config
+    from app.utils.media_storage import (
+        MediaStorageError,
+        process_and_upload_image,
+        process_and_upload_profile_picture,
+        process_and_upload_video,
+    )
+    logger.info("✅ R2 media storage loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ R2 media storage not available: {e}")
+    process_and_upload_image = None
+    process_and_upload_video = None
+    r2_config = None
+    MediaStorageError = Exception
 
 # Load environment
 load_dotenv()
@@ -73,7 +88,7 @@ class RateLimitError(APIError):
 class InstagramScraperUnified:
     """Main scraper class with high-performance concurrency"""
 
-    def _log_to_system(self, level: str, message: str, context: Dict = None):
+    def _log_to_system(self, level: str, message: str, context: Optional[Dict] = None):
         """Log to both console and Supabase system_logs"""
         # Console log
         if level == 'error':
@@ -109,7 +124,7 @@ class InstagramScraperUnified:
         # Note: Using raw threading.Thread like Reddit scraper, not ThreadPoolExecutor
 
         # Simple rate limiting with time.sleep()
-        self.last_request_time = 0
+        self.last_request_time = 0.0
 
         # Tracking
         self.api_calls_made = 0
@@ -143,7 +158,7 @@ class InstagramScraperUnified:
                 should_run = result.data.get("enabled", False) or result.data.get("status") == "running"
                 if not should_run:
                     logger.info("Scraper stop signal received from control table")
-                return should_run
+                return should_run  # type: ignore[no-any-return]
             else:
                 # No control record, default to stop
                 logger.warning("No control record found in system_control, stopping scraper")
@@ -164,7 +179,7 @@ class InstagramScraperUnified:
         from app.core.database import get_db
         return get_db()
 
-    def _identify_external_url_type(self, url: str) -> str:
+    def _identify_external_url_type(self, url: str) -> Optional[str]:
         """Identify the type of external URL (OnlyFans, Linktree, etc.)"""
         if not url:
             return None
@@ -251,8 +266,8 @@ class InstagramScraperUnified:
     def _format_analytics_summary(self, analytics: Dict[str, Any]) -> str:
         """Format analytics into readable summary"""
         summary = []
-        summary.append(f"📊 Analytics Summary")
-        summary.append(f"━━━━━━━━━━━━━━━━━━")
+        summary.append("📊 Analytics Summary")
+        summary.append("━━━━━━━━━━━━━━━━━━")
         summary.append(f"Total Content: {analytics.get('total_content_analyzed', 0)}")
         summary.append(f"Engagement Rate: {analytics.get('engagement_rate', 0):.2f}%")
         summary.append(f"Avg Views: {analytics.get('avg_reel_views', 0):,.0f}")
@@ -328,18 +343,18 @@ class InstagramScraperUnified:
                 "items_count": len(data.get('items', [])) if isinstance(data, dict) else 0
             })
 
-            return data
+            return data  # type: ignore[no-any-return]
 
         except requests.exceptions.Timeout as e:
             self.api_calls_made += 1
             self.failed_calls += 1  # Track failed calls
             logger.error(f"API request timed out after {Config.REQUEST_TIMEOUT}s: {e}")
-            raise APIError(f"Request timed out: {e}")
+            raise APIError(f"Request timed out: {e}") from e
         except requests.exceptions.RequestException as e:
             self.api_calls_made += 1
             self.failed_calls += 1  # Track failed calls
             logger.error(f"API request failed: {e}")
-            raise APIError(f"Request failed: {e}")
+            raise APIError(f"Request failed: {e}") from e
 
     def _fetch_profile(self, username: str) -> Optional[Dict[str, Any]]:
         """Fetch Instagram profile data"""
@@ -375,7 +390,7 @@ class InstagramScraperUnified:
 
     def _fetch_reels(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
         """Fetch Instagram reels with retry logic for empty responses"""
-        reels = []
+        reels: list[dict[str, Any]] = []
         max_id = None
         total_to_fetch = count
         empty_retries = 0
@@ -429,7 +444,7 @@ class InstagramScraperUnified:
 
     def _fetch_posts(self, user_id: str, count: int = 12) -> List[Dict[str, Any]]:
         """Fetch Instagram posts with retry logic for empty responses"""
-        posts = []
+        posts: list[dict[str, Any]] = []
         max_id = None
         total_to_fetch = count
         empty_retries = 0
@@ -477,17 +492,17 @@ class InstagramScraperUnified:
         """Get existing content counts for a creator"""
         try:
             # Get reels count
-            reels_result = self.supabase.table("instagram_reels")\
-                .select("media_pk", count='exact')\
-                .eq("creator_id", creator_id)\
-                .execute()
+            reels_result = (self.supabase.table("instagram_reels")
+                .select("media_pk", count='exact')  # type: ignore[arg-type]
+                .eq("creator_id", creator_id)
+                .execute())
             reels_count = int(getattr(reels_result, 'count', 0) or 0)
 
             # Get posts count
-            posts_result = self.supabase.table("instagram_posts")\
-                .select("media_pk", count='exact')\
-                .eq("creator_id", creator_id)\
-                .execute()
+            posts_result = (self.supabase.table("instagram_posts")
+                .select("media_pk", count='exact')  # type: ignore[arg-type]
+                .eq("creator_id", creator_id)
+                .execute())
             posts_count = int(getattr(posts_result, 'count', 0) or 0)
 
             return reels_count, posts_count
@@ -586,11 +601,16 @@ class InstagramScraperUnified:
                     saves = reel.get("save_count", 0) or 0
                     shares = reel.get("share_count", 0) or 0
 
-                    if views: reel_views.append(views)
-                    if likes: reel_likes.append(likes)
-                    if comments: reel_comments.append(comments)
-                    if saves: reel_saves.append(saves)
-                    if shares: reel_shares.append(shares)
+                    if views:
+                        reel_views.append(views)
+                    if likes:
+                        reel_likes.append(likes)
+                    if comments:
+                        reel_comments.append(comments)
+                    if saves:
+                        reel_saves.append(saves)
+                    if shares:
+                        reel_shares.append(shares)
 
                 if reel_views:
                     analytics["avg_reel_views"] = sum(reel_views) / len(reel_views)
@@ -598,7 +618,7 @@ class InstagramScraperUnified:
 
                     # Content reach rate
                     if followers_count > 0:
-                        analytics["content_reach_rate"] = (analytics["avg_reel_views"] / followers_count) * 100
+                        analytics["content_reach_rate"] = (analytics["avg_reel_views"] / followers_count) * 100 # type: ignore[operator]
 
                 if reel_likes:
                     analytics["avg_reel_likes"] = sum(reel_likes) / len(reel_likes)
@@ -613,12 +633,12 @@ class InstagramScraperUnified:
                 if reel_saves:
                     analytics["avg_reel_saves"] = sum(reel_saves) / len(reel_saves)
                     analytics["avg_saves_per_reel_cached"] = analytics["avg_reel_saves"]  # Cache the value
-                    analytics["total_saves"] += sum(reel_saves)
+                    analytics["total_saves"] += sum(reel_saves) # type: ignore[operator]
 
                 if reel_shares:
                     analytics["avg_reel_shares"] = sum(reel_shares) / len(reel_shares)
                     analytics["avg_shares_per_reel_cached"] = analytics["avg_reel_shares"]  # Cache the value
-                    analytics["total_shares"] += sum(reel_shares)
+                    analytics["total_shares"] += sum(reel_shares) # type: ignore[operator]
 
                 # Calculate reel engagement rate
                 if followers_count > 0 and reel_likes:
@@ -627,9 +647,9 @@ class InstagramScraperUnified:
 
                 # Viral detection for reels
                 if Config.ENABLE_VIRAL_DETECTION and reel_views:
-                    viral_count = sum(1 for v in reel_views
+                    viral_count = sum(1 for v in reel_views  # type: ignore[misc]
                                     if v >= Config.VIRAL_MIN_VIEWS and
-                                    v >= analytics["avg_reel_views"] * Config.VIRAL_MULTIPLIER)
+                                    v >= analytics["avg_reel_views"] * Config.VIRAL_MULTIPLIER) # type: ignore[operator]
                     analytics["viral_content_count"] = viral_count
                     analytics["viral_content_rate"] = (viral_count / len(reel_views)) * 100
 
@@ -650,11 +670,16 @@ class InstagramScraperUnified:
                     shares = post.get("share_count", 0) or 0
                     engagement = likes + comments
 
-                    if likes: post_likes.append(likes)
-                    if comments: post_comments.append(comments)
-                    if saves: post_saves.append(saves)
-                    if shares: post_shares.append(shares)
-                    if engagement: post_engagements.append(engagement)
+                    if likes:
+                        post_likes.append(likes)
+                    if comments:
+                        post_comments.append(comments)
+                    if saves:
+                        post_saves.append(saves)
+                    if shares:
+                        post_shares.append(shares)
+                    if engagement:
+                        post_engagements.append(engagement)
 
                     # Caption analysis
                     caption = post.get("caption", {})
@@ -681,12 +706,12 @@ class InstagramScraperUnified:
                 if post_saves:
                     analytics["avg_post_saves"] = sum(post_saves) / len(post_saves)
                     analytics["avg_saves_per_post_cached"] = analytics["avg_post_saves"]  # Cache the value
-                    analytics["total_saves"] += sum(post_saves)
+                    analytics["total_saves"] += sum(post_saves) # type: ignore[operator]
 
                 if post_shares:
                     analytics["avg_post_shares"] = sum(post_shares) / len(post_shares)
                     analytics["avg_shares_per_post_cached"] = analytics["avg_post_shares"]  # Cache the value
-                    analytics["total_shares"] += sum(post_shares)
+                    analytics["total_shares"] += sum(post_shares) # type: ignore[operator]
 
                 if post_engagements:
                     analytics["avg_post_engagement"] = sum(post_engagements) / len(post_engagements)
@@ -697,10 +722,10 @@ class InstagramScraperUnified:
                     analytics["post_engagement_rate"] = (sum(post_engagements) / len(posts) / followers_count) * 100
 
                 # Check for viral posts (2x average engagement)
-                if Config.ENABLE_VIRAL_DETECTION and post_engagements and analytics["avg_post_engagement"] > 0:
-                    viral_posts = sum(1 for e in post_engagements
-                                    if e >= analytics["avg_post_engagement"] * Config.VIRAL_MULTIPLIER)
-                    analytics["viral_content_count"] += viral_posts
+                if Config.ENABLE_VIRAL_DETECTION and post_engagements and analytics["avg_post_engagement"] > 0: # type: ignore[operator]
+                    viral_posts = sum(1 for e in post_engagements  # type: ignore[misc]
+                                    if e >= analytics["avg_post_engagement"] * Config.VIRAL_MULTIPLIER) # type: ignore[operator]
+                    analytics["viral_content_count"] += viral_posts # type: ignore[operator]
 
                 if caption_lengths:
                     analytics["avg_caption_length"] = sum(caption_lengths) / len(caption_lengths)
@@ -711,45 +736,45 @@ class InstagramScraperUnified:
 
             # Calculate combined metrics
             analytics["total_content_analyzed"] = len(reels) + len(posts)
-            analytics["total_engagement"] = analytics["total_likes"] + analytics["total_comments"]
+            analytics["total_engagement"] = analytics["total_likes"] + analytics["total_comments"] # type: ignore[operator]
 
             # Engagement rate calculation (overall)
-            if followers_count > 0 and analytics["total_content_analyzed"] > 0:
-                avg_engagement = analytics["total_engagement"] / analytics["total_content_analyzed"]
+            if followers_count > 0 and analytics["total_content_analyzed"] > 0: # type: ignore[operator]
+                avg_engagement = analytics["total_engagement"] / analytics["total_content_analyzed"] # type: ignore[operator]
                 analytics["engagement_rate"] = (avg_engagement / followers_count) * 100
                 analytics["avg_engagement_rate"] = analytics["engagement_rate"]  # Store in new field
                 analytics["avg_engagement_per_content"] = avg_engagement
 
             # Comment to like ratio
-            if analytics["total_likes"] > 0:
-                analytics["comment_to_like_ratio"] = analytics["total_comments"] / analytics["total_likes"]
+            if analytics["total_likes"] > 0: # type: ignore[operator]
+                analytics["comment_to_like_ratio"] = analytics["total_comments"] / analytics["total_likes"] # type: ignore[operator]
 
             # Save to like ratio (important viral indicator)
-            if analytics["total_likes"] > 0 and analytics["total_saves"] > 0:
-                analytics["save_to_like_ratio"] = analytics["total_saves"] / analytics["total_likes"]
+            if analytics["total_likes"] > 0 and analytics["total_saves"] > 0: # type: ignore[operator]
+                analytics["save_to_like_ratio"] = analytics["total_saves"] / analytics["total_likes"] # type: ignore[operator]
 
             # Reels vs Posts performance
-            if analytics["avg_reel_views"] > 0 and analytics["avg_post_engagement"] > 0:
-                analytics["reels_vs_posts_performance"] = analytics["avg_reel_views"] / analytics["avg_post_engagement"]
+            if analytics["avg_reel_views"] > 0 and analytics["avg_post_engagement"] > 0: # type: ignore[operator]
+                analytics["reels_vs_posts_performance"] = analytics["avg_reel_views"] / analytics["avg_post_engagement"] # type: ignore[operator]
 
             # Determine best performing content type with enhanced logic
-            reel_score = analytics["reel_engagement_rate"] if analytics["reel_engagement_rate"] > 0 else 0
-            post_score = analytics["post_engagement_rate"] if analytics["post_engagement_rate"] > 0 else 0
+            reel_score = analytics["reel_engagement_rate"] if analytics["reel_engagement_rate"] > 0 else 0 # type: ignore[operator]
+            post_score = analytics["post_engagement_rate"] if analytics["post_engagement_rate"] > 0 else 0 # type: ignore[operator]
 
-            if reel_score > post_score * 1.5:  # Reels significantly better
+            if reel_score > post_score * 1.5:  # type: ignore[operator]  # Reels significantly better
                 analytics["best_performing_type"] = "reels"
                 analytics["best_content_type"] = "reels"
-            elif post_score > reel_score * 1.5:  # Posts significantly better
+            elif post_score > reel_score * 1.5:  # type: ignore[operator]  # Posts significantly better
                 analytics["best_performing_type"] = "posts"
                 analytics["best_content_type"] = "posts"
-            elif reel_score > 0 and post_score > 0:  # Both perform similarly
+            elif reel_score > 0 and post_score > 0:  # type: ignore[operator]  # Both perform similarly
                 analytics["best_performing_type"] = "mixed"
                 analytics["best_content_type"] = "mixed"
-            elif analytics["avg_reel_views"] > analytics["avg_post_engagement"]:
+            elif analytics["avg_reel_views"] > analytics["avg_post_engagement"]: # type: ignore[operator]
                 # Fallback to view/engagement comparison
                 analytics["best_performing_type"] = "reels"
                 analytics["best_content_type"] = "reels"
-            elif analytics["avg_post_engagement"] > 0:
+            elif analytics["avg_post_engagement"] > 0: # type: ignore[operator]
                 analytics["best_performing_type"] = "posts"
                 analytics["best_content_type"] = "posts"
 
@@ -807,23 +832,29 @@ class InstagramScraperUnified:
 
         return analytics
 
-    def _store_reels(self, creator_id: str, username: str, reels: List[Dict], creator_niche: str = None) -> tuple[int, int, int]:
+    def _store_reels(self, creator_id: str, username: str, reels: List[Dict], creator_niche: Optional[str] = None) -> tuple[int, int, int]:
         """Store reels in database with comprehensive data extraction and niche information
         Returns: (total_saved, new_count, existing_count)
         """
         if not reels:
             return 0, 0, 0
 
-        # First check which reels already exist
+        # First check which reels already exist and if they have R2 URLs
         media_pks = [str(reel.get("pk")) for reel in reels if reel.get("pk")]
         existing_pks = set()
+        existing_r2_urls = {}  # media_pk -> video_url mapping for R2 URLs
         if media_pks:
             try:
                 result = self.supabase.table("instagram_reels")\
-                    .select("media_pk")\
+                    .select("media_pk, video_url")\
                     .in_("media_pk", media_pks)\
                     .execute()
-                existing_pks = {row["media_pk"] for row in (result.data or [])}
+                for row in (result.data or []):
+                    existing_pks.add(row["media_pk"])
+                    # Check if video already has R2 URL
+                    if row.get("video_url") and "r2.cloudflarestorage.com" in row["video_url"]:
+                        existing_r2_urls[row["media_pk"]] = row["video_url"]
+                        logger.info(f"🔄 Skipping R2 upload for reel {row['media_pk']} (already in R2)")
             except Exception as e:
                 logger.debug(f"Failed to check existing reels: {e}")
 
@@ -851,6 +882,35 @@ class InstagramScraperUnified:
                 if hasattr(self, 'current_creator_followers') and self.current_creator_followers > 0:
                     engagement_rate = (engagement / self.current_creator_followers) * 100
 
+                # Check if this reel already has R2 URL (deduplication)
+                reel_pk = str(reel.get("pk"))
+                if reel_pk in existing_r2_urls:
+                    # Already in R2, use existing URL
+                    video_url = existing_r2_urls[reel_pk]
+                    logger.info(f"✅ Using existing R2 URL for reel {reel_pk}")
+                else:
+                    # Extract video URL from API response (video_versions array)
+                    video_url = None
+                    video_versions = reel.get("video_versions", [])
+                    if video_versions and len(video_versions) > 0:
+                        video_url = video_versions[0].get("url")  # Highest quality video
+
+                    if r2_config and r2_config.ENABLED and process_and_upload_video and video_url:
+                        try:
+                            r2_video_url = process_and_upload_video(
+                                cdn_url=video_url,
+                                creator_id=str(creator_id),
+                                media_pk=str(reel.get("pk"))
+                            )
+                            if r2_video_url:
+                                video_url = r2_video_url  # Use R2 URL instead of CDN
+                                logger.info(f"✅ Uploaded reel video to R2: {reel.get('pk')}")
+                            else:
+                                logger.warning(f"⚠️ R2 upload returned None for reel {reel.get('pk')}")
+                        except Exception as e:
+                            logger.warning(f"Failed to upload reel video to R2, using CDN URL: {e}")
+                            # Continue with CDN URL on error
+
                 row = {
                     "media_pk": reel.get("pk"),
                     "media_id": reel.get("id"),
@@ -875,7 +935,7 @@ class InstagramScraperUnified:
                     "engagement_rate": round(engagement_rate, 2),
                     "has_audio": reel.get("has_audio"),
                     "video_duration": reel.get("video_duration") or reel.get("media_duration"),
-                    "video_url": reel.get("video_url"),
+                    "video_url": video_url,  # Use R2 URL if uploaded, otherwise CDN URL
                     "thumbnail_url": reel.get("image_versions2", {}).get("candidates", [{}])[0].get("url") if reel.get("image_versions2") else None,
                     "is_paid_partnership": reel.get("is_paid_partnership", False),
                     "has_shared_to_fb": reel.get("has_shared_to_fb", 0),
@@ -909,23 +969,29 @@ class InstagramScraperUnified:
 
         return total_saved, new_count, existing_count
 
-    def _store_posts(self, creator_id: str, username: str, posts: List[Dict], creator_niche: str = None) -> tuple[int, int, int]:
+    def _store_posts(self, creator_id: str, username: str, posts: List[Dict], creator_niche: Optional[str] = None) -> tuple[int, int, int]:
         """Store posts in database with comprehensive data extraction and niche information
         Returns: (total_saved, new_count, existing_count)
         """
         if not posts:
             return 0, 0, 0
 
-        # First check which posts already exist
+        # First check which posts already exist and if they have R2 URLs
         media_pks = [str(post.get("pk")) for post in posts if post.get("pk")]
         existing_pks = set()
+        existing_r2_images = {}  # media_pk -> image_urls mapping for R2 URLs
         if media_pks:
             try:
                 result = self.supabase.table("instagram_posts")\
-                    .select("media_pk")\
+                    .select("media_pk, image_urls")\
                     .in_("media_pk", media_pks)\
                     .execute()
-                existing_pks = {row["media_pk"] for row in (result.data or [])}
+                for row in (result.data or []):
+                    existing_pks.add(row["media_pk"])
+                    # Check if post already has R2 URLs
+                    if row.get("image_urls") and len(row["image_urls"]) > 0 and "r2.cloudflarestorage.com" in row["image_urls"][0]:
+                        existing_r2_images[row["media_pk"]] = row["image_urls"]
+                        logger.info(f"🔄 Skipping R2 upload for post {row['media_pk']} (already in R2)")
             except Exception as e:
                 logger.debug(f"Failed to check existing posts: {e}")
 
@@ -955,9 +1021,65 @@ class InstagramScraperUnified:
 
                 # Determine post type (single image, carousel, video)
                 carousel_media_count = 0
+                image_urls = None
+
                 if post.get("carousel_media"):
                     carousel_media_count = len(post.get("carousel_media", []))
                     post_type = "carousel"
+
+                    # Extract ALL media URLs from carousel (photos and videos)
+                    image_urls = []
+                    for item in post.get("carousel_media", []):
+                        # Check if this carousel item is a photo or video
+                        item_media_type = item.get("media_type", 1)
+
+                        if item_media_type == 1:  # Photo
+                            # Get highest quality image URL (first candidate)
+                            candidates = item.get("image_versions2", {}).get("candidates", [])
+                            if candidates and candidates[0].get("url"):
+                                image_urls.append(candidates[0].get("url"))
+                        elif item_media_type == 2:  # Video in carousel
+                            # Get video thumbnail as fallback
+                            candidates = item.get("image_versions2", {}).get("candidates", [])
+                            if candidates and candidates[0].get("url"):
+                                image_urls.append(candidates[0].get("url"))
+
+                    # Check if this post already has R2 URLs (deduplication)
+                    post_pk = str(post.get("pk"))
+                    if post_pk in existing_r2_images:
+                        # Already in R2, use existing URLs
+                        image_urls = existing_r2_images[post_pk]
+                        logger.info(f"✅ Using existing R2 URLs for post {post_pk} ({len(image_urls)} photos)")
+                    else:
+                        # Only set image_urls if we extracted any
+                        if not image_urls:
+                            image_urls = None
+
+                        # Upload photos to R2 (if enabled) - separate check!
+                        if image_urls and r2_config and r2_config.ENABLED and process_and_upload_image:
+                            r2_image_urls = []
+                            for index, cdn_url in enumerate(image_urls):
+                                try:
+                                    r2_url = process_and_upload_image(
+                                        cdn_url=cdn_url,
+                                        creator_id=str(creator_id),
+                                        media_pk=str(post.get("pk")),
+                                        index=index
+                                    )
+                                    if r2_url:
+                                        r2_image_urls.append(r2_url)
+                                    else:
+                                        r2_image_urls.append(cdn_url)  # Fallback to CDN
+                                except Exception as e:
+                                    logger.warning(f"Failed to upload photo {index} to R2, using CDN URL: {e}")
+                                    r2_image_urls.append(cdn_url)  # Fallback to CDN
+
+                            if r2_image_urls:
+                                image_urls = r2_image_urls
+                                logger.info(f"✅ Uploaded {len(r2_image_urls)} carousel photos to R2: {post.get('pk')}")
+                            else:
+                                logger.warning(f"⚠️ No R2 URLs generated for carousel {post.get('pk')}")
+
                 elif post.get("media_type") == 2 or post.get("product_type") == "clips":
                     post_type = "video"
                 else:
@@ -993,6 +1115,7 @@ class InstagramScraperUnified:
                     "original_height": post.get("original_height"),
                     "accessibility_caption": post.get("accessibility_caption"),
                     "thumbnail_url": post.get("image_versions2", {}).get("candidates", [{}])[0].get("url") if post.get("image_versions2") else None,
+                    "image_urls": image_urls,
                     "video_duration": post.get("video_duration") if post_type == "video" else None,
                     "view_count": post.get("view_count") or post.get("play_count"),
                     "raw_media_json": post,
@@ -1031,7 +1154,7 @@ class InstagramScraperUnified:
         except Exception:
             return None
 
-    def _track_follower_growth(self, creator_id: str, username: str, current_followers: int, current_following: int = None, media_count: int = None):
+    def _track_follower_growth(self, creator_id: str, username: str, current_followers: int, current_following: Optional[int] = None, media_count: Optional[int] = None):
         """Track follower history and calculate growth rates"""
         try:
             # Record current follower count in history table
@@ -1162,7 +1285,7 @@ class InstagramScraperUnified:
         # Handle different key formats
         creator_id = str(creator.get("ig_user_id") or creator.get("instagram_id", ""))
         username = creator.get("username", "")
-        creator_niche = creator.get("niche", None)  # Get the creator's niche
+        creator_niche = creator.get("niche")  # Get the creator's niche
         thread_id = threading.current_thread().name
 
         logger.info(f"[{thread_id}] RAPIDAPI_KEY check: {'SET' if Config.RAPIDAPI_KEY else 'MISSING'}")
@@ -1214,6 +1337,21 @@ class InstagramScraperUnified:
                 # Extract bio links
                 bio_links = self._extract_bio_links(profile_data)
 
+                # Upload profile picture to R2 (if enabled)
+                profile_pic_url = profile_data.get("profile_pic_url")
+                if profile_pic_url and r2_config and r2_config.ENABLED and process_and_upload_profile_picture:
+                    try:
+                        r2_profile_url = process_and_upload_profile_picture(
+                            cdn_url=profile_pic_url,
+                            creator_id=str(creator_id)
+                        )
+                        if r2_profile_url:
+                            profile_pic_url = r2_profile_url
+                            logger.info(f"✅ Profile picture uploaded to R2 for {username}")
+                    except MediaStorageError as e:
+                        logger.warning(f"⚠️ Failed to upload profile picture to R2, using CDN URL: {e}")
+                        # Keep original CDN URL if R2 upload fails
+
                 # Update creator with fresh profile data and growth metrics
                 update_data = {
                     "followers_count": profile_data.get("follower_count"),
@@ -1221,7 +1359,7 @@ class InstagramScraperUnified:
                     "media_count": profile_data.get("media_count"),
                     "biography": profile_data.get("biography"),
                     "is_verified": profile_data.get("is_verified"),
-                    "profile_pic_url": profile_data.get("profile_pic_url"),
+                    "profile_pic_url": profile_pic_url,
                     "is_business_account": profile_data.get("is_business_account"),
                     "is_professional_account": profile_data.get("is_professional_account"),
                     "external_url": external_url,
@@ -1307,9 +1445,7 @@ class InstagramScraperUnified:
             summary = self._format_analytics_summary(analytics)
             logger.info(f"\n{summary}")
 
-            # Create detailed completion message
-            total_fetched = len(reels) + len(posts)
-            # More descriptive logging
+            # Create detailed completion message with descriptive logging
             if reels_saved == 0 and len(reels) > 0:
                 log_msg = f"✅ Processed {username}: Fetched {len(reels)} reels (0 saved), {len(posts)} posts ({posts_saved} saved, {posts_new} new)"
             else:
@@ -1338,7 +1474,7 @@ class InstagramScraperUnified:
         except Exception as e:
             logger.error(f"Failed to process {username}: {e}")
             self.errors.append({"creator": username, "error": str(e)})
-            self._log_to_system("error", f"❌ Failed to process {username}: {str(e)}", {
+            self._log_to_system("error", f"❌ Failed to process {username}: {e!s}", {
                 "username": username,
                 "error": str(e)
             })
@@ -1374,7 +1510,7 @@ class InstagramScraperUnified:
 
     def process_creators_concurrent(self, creators: List[Dict]):
         """Process multiple creators concurrently using simple threading (matches Reddit scraper)"""
-        threads = []
+        threads: list[threading.Thread] = []
         successful_count = 0
         failed_count = 0
 
@@ -1515,13 +1651,13 @@ class InstagramScraperUnified:
                 self.cycle_start_time = datetime.now(timezone.utc)
 
             logger.info(f"\n{'='*60}")
-            logger.info(f"Starting Cycle #{self.cycle_number} at {self.cycle_start_time.isoformat()}")
+            logger.info(f"Starting Cycle #{self.cycle_number} at {self.cycle_start_time.isoformat()}")  # type: ignore[union-attr]
             logger.info(f"{'='*60}")
 
             # Log cycle start
             self._log_to_system("info", f"🔄 Starting Cycle #{self.cycle_number}", {
                 "cycle": self.cycle_number,
-                "start_time": self.cycle_start_time.isoformat(),
+                "start_time": self.cycle_start_time.isoformat(),  # type: ignore[union-attr]
                 "workers": Config.MAX_WORKERS,
                 "target_rps": Config.REQUESTS_PER_SECOND
             })
@@ -1561,11 +1697,10 @@ class InstagramScraperUnified:
                     # Process all creators
                     try:
                         self.process_creators_concurrent(creators)
-                        processed_count = len(creators)
 
                         # Single completion message
                         logger.info(f"✅ Cycle completed: {self.creators_processed} creators processed")
-                        self._log_to_system('success', f'Cycle completed successfully', {
+                        self._log_to_system('success', 'Cycle completed successfully', {
                             'creators_processed': self.creators_processed,
                             'api_calls': self.api_calls_made,
                             'successful_calls': self.successful_calls,
@@ -1574,7 +1709,7 @@ class InstagramScraperUnified:
 
                     except Exception as e:
                         logger.error(f"❌ Processing failed: {e}")
-                        self._log_to_system('error', f'Processing failed: {str(e)}', {
+                        self._log_to_system('error', f'Processing failed: {e!s}', {
                             'error': str(e),
                             'creators_attempted': total_creators
                         })
@@ -1582,14 +1717,14 @@ class InstagramScraperUnified:
 
                     # Log final stats
                     try:
-                        cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds()
+                        cycle_duration = (datetime.now(timezone.utc) - self.cycle_start_time).total_seconds() # type: ignore[operator]
                         logger.info(f"📊 Final stats: {self.creators_processed} creators, {self.api_calls_made} API calls, {cycle_duration:.0f}s duration")
                     except Exception:
                         pass
 
             except Exception as e:
                 logger.error(f"Cycle #{self.cycle_number} failed: {e}")
-                self._log_to_system("error", f"❌ Cycle #{self.cycle_number} failed: {str(e)}", {
+                self._log_to_system("error", f"❌ Cycle #{self.cycle_number} failed: {e!s}", {
                     "cycle": self.cycle_number,
                     "error": str(e)
                 })
@@ -1615,7 +1750,7 @@ class InstagramScraperUnified:
             logger.info(f"🧵 THREAD {thread_id}: Exiting run() method - ensuring return to wrapper")
             # Explicit return to ensure method completes
             logger.info(">>> RETURNING FROM RUN() METHOD <<<")
-            return
+            return  # noqa: B012
 
 
 async def main():

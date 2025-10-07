@@ -5,8 +5,11 @@ Provides service information and API discovery
 
 import os
 from datetime import datetime
+
 from fastapi import APIRouter
+
 from app.version import API_VERSION
+
 
 router = APIRouter(tags=["root"])
 

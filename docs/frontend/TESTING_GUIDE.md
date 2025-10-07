@@ -9,7 +9,7 @@
 ```json
 {
   "hub": "../../CLAUDE.md",
-  "map": "DOCUMENTATION_MAP.md",
+  "map": "../INDEX.md",
   "current": "TESTING_GUIDE.md",
   "sections": [
     {"path": "#test-structure", "desc": "Organization patterns"},

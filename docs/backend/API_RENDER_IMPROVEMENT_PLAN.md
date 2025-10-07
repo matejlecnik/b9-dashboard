@@ -11,8 +11,8 @@
   "parent": "../README.md",
   "current": "API_RENDER_IMPROVEMENT_PLAN.md",
   "siblings": [
-    {"path": "PHASE_1_FIXES_TODO.md", "desc": "Phase 1 implementation", "status": "ACTIVE"},
-    {"path": "PHASE_2B_REFACTORING.md", "desc": "Phase 2B details", "status": "ACTIVE"}
+    {"path": "archive/PHASE_1_FIXES_TODO.md", "desc": "Phase 1 implementation", "status": "COMPLETE"},
+    {"path": "archive/PHASE_2B_REFACTORING.md", "desc": "Phase 2B details", "status": "COMPLETE"}
   ],
   "related": [
     {"path": "../../ROADMAP.md", "desc": "Strategic vision", "status": "ACTIVE"},

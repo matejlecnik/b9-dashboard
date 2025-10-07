@@ -9,7 +9,7 @@
 ```json
 {
   "hub": "../../CLAUDE.md",
-  "map": "DOCUMENTATION_MAP.md",
+  "map": "../INDEX.md",
   "current": "COMPONENT_GUIDE.md",
   "sections": [
     {"path": "#standard-components", "desc": "Core UI patterns"},
@@ -557,4 +557,4 @@ describe('StandardTable', () => {
 ---
 
 _Guide Version: 1.0.0 | Updated: 2025-01-29 | Components: 45+_
-_Navigate: [← Documentation Map](DOCUMENTATION_MAP.md) | [→ API Guide](API_GUIDE.md)_
+_Navigate: [← Documentation Index](../INDEX.md) | [→ API Guide](API_GUIDE.md)_

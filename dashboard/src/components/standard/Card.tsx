@@ -47,7 +47,7 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
         ref={ref}
         className={cn(
           'px-6 py-4',
-          !noBorder && 'border-b border-gray-200',
+          !noBorder && 'border-b border-default',
           className
         )}
       >
@@ -89,7 +89,7 @@ export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
         ref={ref}
         className={cn(
           'px-6 py-4',
-          !noBorder && 'border-t border-gray-200',
+          !noBorder && 'border-t border-default',
           className
         )}
       >

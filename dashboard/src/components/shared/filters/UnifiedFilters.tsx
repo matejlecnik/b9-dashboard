@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { memo } from 'react'
 import React from 'react'
-import { 
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import {
   Sparkles,
   Tag
 } from 'lucide-react'
@@ -77,28 +79,28 @@ const UnifiedFilters = memo(function UnifiedFilters({
       label: 'Unreviewed',
       count: countFor('unreviewed'),
       icon: Sparkles,
-      activeBg: 'linear-gradient(135deg, #FF6B80, #FF8395)' // Secondary B9 pink
+      activeBg: 'linear-gradient(135deg, var(--pink-600), var(--pink-500))' // Secondary B9 pink
     },
     {
       id: 'ok',
       label: 'Ok',
       count: countFor('ok'),
       icon: Tag,
-      activeBg: 'linear-gradient(135deg, #4CAF50, #66BB6A)' // Green for approved
+      activeBg: 'linear-gradient(135deg, var(--green-500), var(--green-400))' // Green for approved
     },
     {
       id: 'no_seller',
       label: 'No Seller',
       count: countFor('no_seller'),
       icon: Tag,
-      activeBg: 'linear-gradient(135deg, #FF99A9, #FFB3C1)' // Light pink for success
+      activeBg: 'linear-gradient(135deg, var(--pink-400), var(--pink-300))' // Light pink for success
     },
     {
       id: 'non_related',
       label: 'Non Related',
       count: countFor('non_related'),
       icon: Tag,
-      activeBg: 'linear-gradient(135deg, #FF8395, #FFB3C1)' // Primary B9 pink gradient
+      activeBg: 'linear-gradient(135deg, var(--pink-500), var(--pink-300))' // Primary B9 pink gradient
     }
   ] : [
     // Categorization Page Filters
@@ -107,21 +109,21 @@ const UnifiedFilters = memo(function UnifiedFilters({
       label: 'Uncategorized',
       count: countFor('uncategorized'),
       icon: Sparkles,
-      activeBg: 'linear-gradient(135deg, #FF6B80, #FF8395)' // Secondary B9 pink
+      activeBg: 'linear-gradient(135deg, var(--pink-600), var(--pink-500))' // Secondary B9 pink
     },
     { 
       id: 'categorized',
       label: 'Categorized',
       count: countFor('categorized'),
       icon: Tag,
-      activeBg: 'linear-gradient(135deg, #FF99A9, #FFB3C1)' // Light pink for success
+      activeBg: 'linear-gradient(135deg, var(--pink-400), var(--pink-300))' // Light pink for success
     }
   ]
   
   return (
     <div data-testid="unified-filters" aria-label="Subreddit filters">
       {/* Dynamic Status Filters (Review context) - Compact inline version */}
-      <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Category filters" data-testid="category-filters">
+      <div className={cn('flex items-center flex-wrap', designSystem.spacing.gap.tight)} role="group" aria-label="Category filters" data-testid="category-filters">
         {allFilters.map((filter) => {
           const IconComponent = filter.icon
           const isActive = currentFilter === filter.id
@@ -132,44 +134,50 @@ const UnifiedFilters = memo(function UnifiedFilters({
               variant="ghost"
               onClick={() => onFilterChange(filter.id)}
               disabled={loading}
-              className="px-2.5 py-1.5 h-8 rounded-md font-medium transition-all duration-200 border-0 focus:outline-none focus:ring-1 focus:ring-b9-pink text-xs"
+              className={cn(
+                'px-2.5 py-1.5 h-8 border-0',
+                designSystem.borders.radius.sm,
+                designSystem.typography.weight.medium,
+                designSystem.animation.transition.default,
+                'focus:outline-none focus:ring-1 focus:ring-b9-pink',
+                designSystem.typography.size.xs,
+                'font-mac-text'
+              )}
               style={{
-                background: isActive 
+                background: isActive
                   ? filter.activeBg
-                  : 'rgba(255, 255, 255, 0.8)',
-                color: isActive ? '#ffffff' : '#374151',
-                border: isActive ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.08)',
-                boxShadow: isActive 
-                  ? '0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                  : '0 1px 4px rgba(0, 0, 0, 0.02)',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  : 'var(--white-alpha-80)',
+                color: isActive ? 'white' : 'var(--gray-700)',
+                border: isActive ? '1px solid var(--white-alpha-10)' : '1px solid var(--black-alpha-08)',
+                boxShadow: isActive
+                  ? '0 2px 8px var(--black-alpha-08), inset 0 1px 0 var(--white-alpha-10)'
+                  : '0 1px 4px var(--black-alpha-02)'
               }}
               aria-pressed={isActive}
               data-testid={`filter-btn-${filter.id}`}
               title={`Filter: ${filter.label}`}
               onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(249, 250, 251, 0.9)';
+                  e.currentTarget.style.background = 'var(--gray-50-alpha-90)';
                 }
               }}
               onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                  e.currentTarget.style.background = 'var(--white-alpha-80)';
                 }
               }}
             >
               {IconComponent && <IconComponent className="h-3 w-3 mr-1.5" />}
-              <span className="text-xs">{filter.label}</span>
-              <Badge 
-                variant="secondary" 
-                className="ml-1.5 border-0 text-xs font-medium"
+              <span className={designSystem.typography.size.xs}>{filter.label}</span>
+              <Badge
+                variant="secondary"
+                className={cn('ml-1.5 border-0', designSystem.typography.size.xs, designSystem.typography.weight.medium, 'font-mac-text')}
                 style={{
-                  background: isActive 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.06)',
-                  color: isActive ? 'white' : 'rgba(0, 0, 0, 0.75)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-                  fontSize: '0.7rem',
+                  background: isActive
+                    ? 'var(--white-alpha-20)'
+                    : 'var(--black-alpha-06)',
+                  color: isActive ? 'white' : 'var(--black-alpha-75)',
+                  fontSize: '0.7rem'
                 }}
               >
                 {loading ? '...' : filter.count.toLocaleString('en-US')}

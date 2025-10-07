@@ -2,6 +2,7 @@
 
 import React, { memo } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 
 // ============================================================================
@@ -59,8 +60,8 @@ const sizeClasses = {
 }
 
 const colorClasses = {
-  pink: 'text-pink-500 border-pink-500',
-  gray: 'text-gray-400 border-gray-400',
+  pink: 'text-primary border-primary',
+  gray: `${designSystem.typography.color.disabled} border-gray-400`,
   white: 'text-white border-white',
   blue: 'text-blue-500 border-blue-500',
   green: 'text-green-500 border-green-500',
@@ -74,9 +75,9 @@ const shimmerKeyframes = `
   .shimmer {
     background: linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.3) 50%,
-      rgba(255, 255, 255, 0) 100%
+      var(--white-alpha-0) 0%,
+      var(--white-alpha-30) 50%,
+      var(--white-alpha-0) 100%
     );
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
@@ -104,7 +105,7 @@ const ShimmerWrapper = memo(function ShimmerWrapper({
         className={`animate-pulse shimmer ${className}`}
         style={{ 
           animationDelay: `${delay}ms`,
-          background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+          background: 'linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%)',
           backgroundSize: '200% 100%'
         }}
       >
@@ -217,13 +218,13 @@ const renderSkeleton = ({
   switch (type) {
     case 'metrics':
       return (
-        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", className)}>
+        <div className={cn("grid grid-cols-1 md:grid-cols-3", designSystem.spacing.gap.default, className)}>
           {[...Array(3)].map((_, i) => (
             <ShimmerWrapper key={i} delay={i * 100}>
-              <div className="glass-card p-6 rounded-2xl">
-                <div className="w-16 h-4 bg-gray-200 rounded mb-3"></div>
-                <div className="w-24 h-8 bg-gray-200 rounded mb-2"></div>
-                <div className="w-20 h-3 bg-gray-200 rounded"></div>
+              <div className={cn("glass-card p-6", designSystem.borders.radius.xl)}>
+                <div className={cn("w-16 h-4 mb-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
+                <div className={cn("w-24 h-8 mb-2", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
+                <div className={cn("w-20 h-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
               </div>
             </ShimmerWrapper>
           ))}
@@ -233,14 +234,14 @@ const renderSkeleton = ({
     case 'table':
       return (
         <div className={cn("space-y-4", className)}>
-          <div className="glass-card rounded-2xl overflow-hidden">
+          <div className={cn("glass-card overflow-hidden", designSystem.borders.radius.xl)}>
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-gray-100/80 bg-white/50">
+                <tr className="border-b border-light bg-white/50">
                   {[...Array(6)].map((_, i) => (
                     <th key={i} className="py-4 px-6">
                       <ShimmerWrapper delay={i * 50}>
-                        <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                        <div className={cn("w-16 h-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
                       </ShimmerWrapper>
                     </th>
                   ))}
@@ -248,11 +249,11 @@ const renderSkeleton = ({
               </thead>
               <tbody>
                 {[...Array(rows)].map((_, rowIndex) => (
-                  <tr key={rowIndex} className="border-b border-gray-50">
+                  <tr key={rowIndex} className="border-b border-light">
                     {[...Array(6)].map((_, colIndex) => (
                       <td key={colIndex} className="py-4 px-6">
                         <ShimmerWrapper delay={rowIndex * 100 + colIndex * 25}>
-                          <div className="w-full h-4 bg-gray-200 rounded"></div>
+                          <div className={cn("w-full h-4", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
                         </ShimmerWrapper>
                       </td>
                     ))}
@@ -269,25 +270,26 @@ const renderSkeleton = ({
         <div className={cn("space-y-3", className)}>
           {[...Array(rows)].map((_, i) => (
             <ShimmerWrapper key={i} delay={i * 100}>
-              <div className="flex items-center p-4 bg-white rounded-lg border border-gray-100">
+              <div className={cn("flex items-center p-4 bg-white border border-light", designSystem.borders.radius.lg)}>
                 {showAvatar && (
-                  <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
+                  <div className={cn("w-10 h-10 {designSystem.borders.radius.full} mr-3", designSystem.background.surface.neutral)}></div>
                 )}
                 <div className="flex-1 space-y-2">
-                  <div className="w-32 h-4 bg-gray-200 rounded"></div>
-                  <div className="w-48 h-3 bg-gray-200 rounded"></div>
+                  <div className={cn("w-32 h-4", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
+                  <div className={cn("w-48 h-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
                 </div>
-                <div className="w-16 h-6 bg-gray-200 rounded"></div>
+                <div className={cn("w-16 h-6", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
               </div>
             </ShimmerWrapper>
           ))}
         </div>
       )
-    
+
     case 'card':
       return (
         <div className={cn(
-          "grid gap-3",
+          "grid",
+          designSystem.spacing.gap.default,
           columns === 1 ? "grid-cols-1" :
           columns === 2 ? "grid-cols-2" :
           columns === 3 ? "grid-cols-3" :
@@ -296,14 +298,14 @@ const renderSkeleton = ({
         )}>
           {[...Array(rows * columns)].map((_, i) => (
             <ShimmerWrapper key={i} delay={i * 50}>
-              <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className={cn("bg-white border border-light overflow-hidden", designSystem.borders.radius.lg)}>
                 {showImage && (
-                  <div className="w-full h-48 bg-gray-200"></div>
+                  <div className={cn("w-full h-48", designSystem.background.surface.neutral)}></div>
                 )}
                 <div className="p-4 space-y-3">
-                  <div className="w-3/4 h-4 bg-gray-200 rounded"></div>
-                  <div className="w-full h-3 bg-gray-200 rounded"></div>
-                  <div className="w-1/2 h-3 bg-gray-200 rounded"></div>
+                  <div className={cn("w-3/4 h-4", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
+                  <div className={cn("w-full h-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
+                  <div className={cn("w-1/2 h-3", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
                 </div>
               </div>
             </ShimmerWrapper>
@@ -316,16 +318,16 @@ const renderSkeleton = ({
         <div className={cn("space-y-2", className)}>
           {[...Array(rows)].map((_, i) => (
             <ShimmerWrapper key={i} delay={i * 50}>
-              <div className="w-full h-4 bg-gray-200 rounded"></div>
+              <div className={cn("w-full h-4", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
             </ShimmerWrapper>
           ))}
         </div>
       )
-    
+
     default:
       return (
         <ShimmerWrapper className={className}>
-          <div className="w-full h-32 bg-gray-200 rounded"></div>
+          <div className={cn("w-full h-32", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
         </ShimmerWrapper>
       )
   }
@@ -339,21 +341,21 @@ const renderProgress = ({
 }: LoadingProgressProps) => (
   <div className={cn("flex flex-col items-center justify-center py-12 space-y-4", className)}>
     <div className="relative">
-      <div className="w-16 h-16 border-4 border-gray-200 rounded-full animate-pulse"></div>
-      <div className="absolute inset-0 w-16 h-16 border-4 border-pink-500 rounded-full animate-spin border-t-transparent"></div>
+      <div className="w-16 h-16 border-4 border-default {designSystem.borders.radius.full} animate-pulse"></div>
+      <div className="absolute inset-0 w-16 h-16 border-4 border-primary {designSystem.borders.radius.full} animate-spin border-t-transparent"></div>
     </div>
-    
+
     <div className="text-center space-y-2">
-      <p className="text-gray-600 font-medium">{message}</p>
+      <p className={cn(designSystem.typography.weight.medium, designSystem.typography.color.tertiary)}>{message}</p>
       {showPercentage && progress > 0 && (
         <>
-          <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-pink-500 to-pink-600 transition-all duration-300 ease-out"
+          <div className={cn("w-48 h-2 {designSystem.borders.radius.full} overflow-hidden", designSystem.background.surface.neutral)}>
+            <div
+              className={cn('h-full bg-gradient-to-r from-primary to-primary-hover', designSystem.animation.transition.default)}
               style={{ width: `${Math.min(progress, 100)}%` }}
             ></div>
           </div>
-          <p className="text-sm text-gray-500">{Math.round(progress)}%</p>
+          <p className={cn(designSystem.typography.size.sm, designSystem.typography.color.subtle)}>{Math.round(progress)}%</p>
         </>
       )}
     </div>
@@ -379,7 +381,7 @@ export const UniversalLoading = memo(function UniversalLoading(props: UniversalL
         <div className={cn("flex items-center justify-center p-4", className)}>
           {renderSpinner(props as LoadingSpinnerProps)}
           {props.message && (
-            <span className="ml-2 text-sm text-gray-500">{props.message}</span>
+            <span className={cn('ml-2', designSystem.typography.size.sm, designSystem.typography.color.subtle)}>{props.message}</span>
           )}
         </div>
       )
@@ -390,7 +392,7 @@ export const UniversalLoading = memo(function UniversalLoading(props: UniversalL
           <div className="flex flex-col items-center space-y-3">
             {renderSpinner(props as LoadingSpinnerProps)}
             {props.message && (
-              <p className="text-gray-600 font-medium">{props.message}</p>
+              <p className={cn(designSystem.typography.weight.medium, designSystem.typography.color.tertiary)}>{props.message}</p>
             )}
           </div>
         </div>

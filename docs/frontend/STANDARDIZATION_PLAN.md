@@ -1,7 +1,9 @@
 # Dashboard Standardization Plan
 
 ┌─ STANDARDIZATION PLAN ──────────────────────────────────┐
-│ ● IN PROGRESS │ ████░░░░░░░░░░░░░░░░ 20% COMPLETE       │
+│ ● DEFERRED    │ ████░░░░░░░░░░░░░░░░ 20% COMPLETE       │
+│ Status: LOW PRIORITY │ Updated: 2025-10-07              │
+│ Note: Design system work (98%) completed Oct 5-7         │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -12,7 +14,8 @@
   "current": "docs/frontend/STANDARDIZATION_PLAN.md",
   "siblings": [
     {"path": "COMPONENT_GUIDE.md", "desc": "Component catalog", "status": "COMPLETE"},
-    {"path": "templates/PAGE_PATTERNS.md", "desc": "Page patterns", "status": "COMPLETE"}
+    {"path": "templates/PAGE_PATTERNS.md", "desc": "Page patterns", "status": "COMPLETE"},
+    {"path": "../archive/2025-10-07_DESIGN_SYSTEM_STANDARDIZATION.md", "desc": "Design system (98% complete)", "status": "ARCHIVED"}
   ],
   "related": [
     {"path": "../../ROADMAP.md", "desc": "v3.7.0 barrel exports", "status": "IN_PROGRESS"}

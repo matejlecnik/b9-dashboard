@@ -2,6 +2,8 @@
 
 import { Shield, Eye, ShieldCheck, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 type SFWFilter = 'all' | 'sfw' | 'nsfw'
 
@@ -25,32 +27,32 @@ export function SFWToggle({
   const totalCount = sfwCount + nsfwCount
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={cn('space-y-3', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-          <Shield className="h-4 w-4 text-gray-600" />
+      <div className={designSystem.layout.flex.rowBetween}>
+        <h4 className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, designSystem.typography.color.secondary, designSystem.layout.flex.rowStart, designSystem.spacing.gap.tight)}>
+          <Shield className={cn("h-4 w-4", designSystem.typography.color.tertiary)} />
           Content Filtering
         </h4>
-        <Badge variant="outline" className="text-xs text-gray-600">
+        <Badge variant="outline" className={cn(designSystem.typography.size.xs, designSystem.typography.color.tertiary)}>
           {loading ? '...' : `${totalCount} total`}
         </Badge>
       </div>
 
       {/* Filter options */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className={cn('grid grid-cols-3', designSystem.spacing.gap.tight)}>
         {/* Show All */}
         <label className="relative group cursor-pointer">
           <div
-            className="flex items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 hover:scale-105"
+            className={cn('flex items-center justify-center p-3', designSystem.borders.radius.md, 'border-2', designSystem.animation.transition.default, 'hover:scale-105')}
             style={{
-              background: sfwFilter === 'all' 
-                ? 'linear-gradient(135deg, #FF8395, #FFB3C1)'
-                : 'rgba(255, 255, 255, 0.8)',
-              border: sfwFilter === 'all' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid rgba(0, 0, 0, 0.08)',
+              background: sfwFilter === 'all'
+                ? 'linear-gradient(135deg, var(--pink-500), var(--pink-300))'
+                : 'var(--white-alpha-80)',
+              border: sfwFilter === 'all' ? '2px solid var(--white-alpha-20)' : '2px solid var(--black-alpha-08)',
               boxShadow: sfwFilter === 'all'
-                ? '0 4px 12px rgba(255, 131, 149, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                : '0 2px 6px rgba(0, 0, 0, 0.04)',
+                ? '0 4px 12px var(--pink-alpha-25), inset 0 1px 0 var(--white-alpha-10)'
+                : '0 2px 6px var(--black-alpha-04)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
             }}
@@ -66,19 +68,19 @@ export function SFWToggle({
             
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <Eye className={`h-5 w-5 ${sfwFilter === 'all' ? 'text-white' : 'text-gray-600'}`} />
+                <Eye className={cn("h-5 w-5", sfwFilter === 'all' ? 'text-white' : designSystem.typography.color.tertiary)} />
               </div>
-              <div className={`text-sm font-medium ${sfwFilter === 'all' ? 'text-white' : 'text-gray-700'}`}>
+              <div className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, sfwFilter === 'all' ? 'text-white' : designSystem.typography.color.secondary)}>
                 Show All
               </div>
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="mt-1 text-xs border-0"
                 style={{
-                  background: sfwFilter === 'all' 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(255, 131, 149, 0.1)',
-                  color: sfwFilter === 'all' ? 'white' : '#FF8395',
+                  background: sfwFilter === 'all'
+                    ? 'var(--white-alpha-20)'
+                    : 'var(--pink-alpha-10)',
+                  color: sfwFilter === 'all' ? 'white' : 'var(--pink-500)',
                 }}
               >
                 {loading ? '...' : totalCount}
@@ -90,15 +92,15 @@ export function SFWToggle({
         {/* SFW Only */}
         <label className="relative group cursor-pointer">
           <div
-            className="flex items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 hover:scale-105"
+            className={cn('flex items-center justify-center p-3', designSystem.borders.radius.md, 'border-2', designSystem.animation.transition.default, 'hover:scale-105')}
             style={{
-              background: sfwFilter === 'sfw' 
-                ? 'linear-gradient(135deg, #FF6B80, #FF8395)'
-                : 'rgba(255, 255, 255, 0.8)',
-              border: sfwFilter === 'sfw' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid rgba(0, 0, 0, 0.08)',
+              background: sfwFilter === 'sfw'
+                ? 'linear-gradient(135deg, var(--pink-600), var(--pink-500))'
+                : 'var(--white-alpha-80)',
+              border: sfwFilter === 'sfw' ? '2px solid var(--white-alpha-20)' : '2px solid var(--black-alpha-08)',
               boxShadow: sfwFilter === 'sfw'
-                ? '0 4px 12px rgba(255, 107, 128, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                : '0 2px 6px rgba(0, 0, 0, 0.04)',
+                ? '0 4px 12px var(--pink-600-alpha-25), inset 0 1px 0 var(--white-alpha-10)'
+                : '0 2px 6px var(--black-alpha-04)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
             }}
@@ -114,19 +116,19 @@ export function SFWToggle({
             
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <ShieldCheck className={`h-5 w-5 ${sfwFilter === 'sfw' ? 'text-white' : 'text-pink-600'}`} />
+                <ShieldCheck className={`h-5 w-5 ${sfwFilter === 'sfw' ? 'text-white' : 'text-primary-hover'}`} />
               </div>
-              <div className={`text-sm font-medium ${sfwFilter === 'sfw' ? 'text-white' : 'text-gray-700'}`}>
+              <div className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, sfwFilter === 'sfw' ? 'text-white' : designSystem.typography.color.secondary)}>
                 SFW Only
               </div>
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="mt-1 text-xs border-0"
                 style={{
-                  background: sfwFilter === 'sfw' 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(255, 107, 128, 0.1)',
-                  color: sfwFilter === 'sfw' ? 'white' : '#FF6B80',
+                  background: sfwFilter === 'sfw'
+                    ? 'var(--white-alpha-20)'
+                    : 'var(--pink-600-alpha-10)',
+                  color: sfwFilter === 'sfw' ? 'white' : 'var(--pink-600)',
                 }}
               >
                 {loading ? '...' : sfwCount}
@@ -138,15 +140,15 @@ export function SFWToggle({
         {/* NSFW Only */}
         <label className="relative group cursor-pointer">
           <div
-            className="flex items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 hover:scale-105"
+            className={cn('flex items-center justify-center p-3', designSystem.borders.radius.md, 'border-2', designSystem.animation.transition.default, 'hover:scale-105')}
             style={{
-              background: sfwFilter === 'nsfw' 
-                ? 'linear-gradient(135deg, #525252, #737373)'
-                : 'rgba(255, 255, 255, 0.8)',
-              border: sfwFilter === 'nsfw' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid rgba(0, 0, 0, 0.08)',
+              background: sfwFilter === 'nsfw'
+                ? 'linear-gradient(135deg, var(--gray-600), var(--gray-500))'
+                : 'var(--white-alpha-80)',
+              border: sfwFilter === 'nsfw' ? '2px solid var(--white-alpha-20)' : '2px solid var(--black-alpha-08)',
               boxShadow: sfwFilter === 'nsfw'
-                ? '0 4px 12px rgba(82, 82, 82, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                : '0 2px 6px rgba(0, 0, 0, 0.04)',
+                ? '0 4px 12px var(--gray-500-alpha-25), inset 0 1px 0 var(--white-alpha-10)'
+                : '0 2px 6px var(--black-alpha-04)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
             }}
@@ -162,19 +164,19 @@ export function SFWToggle({
             
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <EyeOff className={`h-5 w-5 ${sfwFilter === 'nsfw' ? 'text-white' : 'text-gray-800'}`} />
+                <EyeOff className={cn("h-5 w-5", sfwFilter === 'nsfw' ? 'text-white' : designSystem.typography.color.secondary)} />
               </div>
-              <div className={`text-sm font-medium ${sfwFilter === 'nsfw' ? 'text-white' : 'text-gray-700'}`}>
+              <div className={cn(designSystem.typography.size.sm, designSystem.typography.weight.medium, sfwFilter === 'nsfw' ? 'text-white' : designSystem.typography.color.secondary)}>
                 NSFW Only
               </div>
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="mt-1 text-xs border-0"
                 style={{
-                  background: sfwFilter === 'nsfw' 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(82, 82, 82, 0.1)',
-                  color: sfwFilter === 'nsfw' ? 'white' : '#525252',
+                  background: sfwFilter === 'nsfw'
+                    ? 'var(--white-alpha-20)'
+                    : 'var(--gray-500-alpha-10)',
+                  color: sfwFilter === 'nsfw' ? 'white' : 'var(--gray-600)',
                 }}
               >
                 {loading ? '...' : nsfwCount}
@@ -194,7 +196,7 @@ export function SFWToggle({
             onCheckedChange={(checked) => onSFWFilterChange(checked ? 'sfw' : 'all')}
             disabled={loading}
           />
-          <label htmlFor="sfw-only" className="text-sm font-medium text-gray-700 cursor-pointer">
+          <label htmlFor="sfw-only" className={cn("text-sm font-medium cursor-pointer", designSystem.typography.color.secondary)}>
             SFW Only ({loading ? '...' : sfwCount})
           </label>
         </div>

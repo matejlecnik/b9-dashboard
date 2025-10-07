@@ -3,16 +3,18 @@
 Reddit Proxy Manager
 Handles proxy loading from Supabase, testing, rotation, and health tracking
 """
+import logging
 import os
+import random
 import sys
 import time
-import logging
-import random
-import requests
-from typing import Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from fake_useragent import UserAgent
+from typing import Dict
+
+import requests
 from dotenv import load_dotenv
+from fake_useragent import UserAgent
+
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +28,7 @@ if "/app/app/scrapers" in current_dir:
 else:
     api_root = os.path.join(current_dir, "..", "..")
     sys.path.insert(0, api_root)
-    from core.database.supabase_client import get_supabase_client
+    from core.database.supabase_client import get_supabase_client  # type: ignore[no-redef]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -45,6 +47,7 @@ class ProxyManager:
             supabase: Supabase client (optional, will create if not provided)
         """
         self.supabase = supabase or get_supabase_client()
+        assert self.supabase is not None, "Supabase client required"
         self.proxies = []
         self._proxy_index = 0
         self.ua_generator = None
@@ -77,19 +80,19 @@ class ProxyManager:
                 rand = random.random()
                 if rand < 0.50:
                     # Chrome user agent (most common)
-                    return self.ua_generator.chrome
+                    return self.ua_generator.chrome  # type: ignore[no-any-return]
                 elif rand < 0.70:
                     # Firefox user agent
-                    return self.ua_generator.firefox
+                    return self.ua_generator.firefox  # type: ignore[no-any-return]
                 elif rand < 0.85:
                     # Safari user agent
-                    return self.ua_generator.safari
+                    return self.ua_generator.safari  # type: ignore[no-any-return]
                 elif rand < 0.95:
                     # Edge user agent
-                    return self.ua_generator.edge
+                    return self.ua_generator.edge  # type: ignore[no-any-return]
                 else:
                     # Opera user agent
-                    return self.ua_generator.opera
+                    return self.ua_generator.opera  # type: ignore[no-any-return]
             except Exception as e:
                 logger.debug(f"fake-useragent failed: {e}, using fallback")
 
@@ -103,11 +106,11 @@ class ProxyManager:
             int: Number of proxies loaded
         """
         try:
-            result = self.supabase.table("reddit_proxies")\
-                .select("*")\
-                .eq("is_active", True)\
-                .order("priority", desc=True)\
-                .execute()
+            result = (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                .select("*")
+                .eq("is_active", True)
+                .order("priority", desc=True)
+                .execute())
 
             if not result.data:
                 logger.error("❌ No active proxies found in database")
@@ -145,7 +148,7 @@ class ProxyManager:
         config = self.proxies[self._proxy_index]
         self._proxy_index = (self._proxy_index + 1) % len(self.proxies)
 
-        return config
+        return config  # type: ignore[no-any-return]
 
     def test_proxy_fast(self, proxy_config: Dict, attempts: int = 3) -> tuple:
         """Test single proxy with early exit on first success (optimized for speed)
@@ -298,28 +301,28 @@ class ProxyManager:
                     status_parts.append(f"❌ {service_name}")
 
         # Update database stats for all proxies (silently)
-        for service_name, (success, attempt, proxy_config) in results.items():
+        for _service_name, (success, _attempt, proxy_config) in results.items():
             try:
                 proxy_id = proxy_config.get('id')
-                current_data = self.supabase.table("reddit_proxies")\
-                    .select("success_count, error_count")\
-                    .eq("id", proxy_id)\
-                    .execute()
+                current_data = (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                    .select("success_count, error_count")
+                    .eq("id", proxy_id)
+                    .execute())
 
                 if current_data.data and len(current_data.data) > 0:
                     current_success = current_data.data[0].get('success_count', 0) or 0
                     current_error = current_data.data[0].get('error_count', 0) or 0
 
                     if success:
-                        self.supabase.table("reddit_proxies")\
-                            .update({"success_count": current_success + 1})\
-                            .eq("id", proxy_id)\
-                            .execute()
+                        (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                            .update({"success_count": current_success + 1})
+                            .eq("id", proxy_id)
+                            .execute())
                     else:
-                        self.supabase.table("reddit_proxies")\
-                            .update({"error_count": current_error + 1})\
-                            .eq("id", proxy_id)\
-                            .execute()
+                        (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                            .update({"error_count": current_error + 1})
+                            .eq("id", proxy_id)
+                            .execute())
             except Exception:
                 pass  # Silent failure for stats updates
 
@@ -351,17 +354,17 @@ class ProxyManager:
             field = "success_count" if success else "error_count"
 
             # Read current value, increment, write back
-            current_data = self.supabase.table("reddit_proxies")\
-                .select(field)\
-                .eq("id", proxy_id)\
-                .execute()
+            current_data = (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                .select(field)
+                .eq("id", proxy_id)
+                .execute())
 
             if current_data.data and len(current_data.data) > 0:
                 current_value = current_data.data[0].get(field, 0) or 0
-                self.supabase.table("reddit_proxies")\
-                    .update({field: current_value + 1})\
-                    .eq("id", proxy_id)\
-                    .execute()
+                (self.supabase.table("reddit_proxies")  # type: ignore[union-attr]
+                    .update({field: current_value + 1})
+                    .eq("id", proxy_id)
+                    .execute())
 
         except Exception:
             pass  # Silent failure for stats updates

@@ -5,6 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { X, ChevronDown } from 'lucide-react'
 import { getCategoryDisplayOrder } from '@/lib/categories'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 interface MultiSelectCategoryDropdownProps {
   selectedCategories: string[]
@@ -64,11 +66,16 @@ export function MultiSelectCategoryDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
-        className="flex items-center justify-between w-full py-2 px-3 rounded-lg text-sm border border-gray-200 bg-white/80 backdrop-blur-sm hover:bg-white/90 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-b9-pink/20 focus:border-b9-pink transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-          boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)'
-        }}
+        className={cn(
+          "w-full py-2 px-3 rounded-lg text-sm border border-default",
+          "hover:bg-white/90 hover:border-strong",
+          "focus:outline-none focus:ring-2 focus:ring-b9-pink/20 focus:border-b9-pink",
+          "disabled:opacity-50 disabled:cursor-not-allowed font-mac-text",
+          designSystem.layout.flex.rowBetween,
+          designSystem.glass.light,
+          designSystem.transitions.default,
+          designSystem.shadows.sm
+        )}
         aria-label="Filter by categories"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
@@ -81,36 +88,38 @@ export function MultiSelectCategoryDropdown({
                 e.stopPropagation()
                 clearAll()
               }}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className={cn("transition-colors", designSystem.typography.color.disabled, `hover:${designSystem.typography.color.tertiary}`)}
               aria-label="Clear all categories"
             >
               <X className="h-3 w-3" />
             </button>
           )}
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", designSystem.typography.color.disabled, isOpen && 'rotate-180')} />
         </div>
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div 
-          className="absolute z-50 w-80 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
-          style={{
-            backdropFilter: 'blur(10px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(10px) saturate(150%)',
-            background: 'rgba(255, 255, 255, 0.95)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)'
-          }}
+        <div
+          className={cn(
+            "absolute z-50 w-80 mt-1 rounded-lg max-h-80 overflow-y-auto",
+            designSystem.glass.medium,
+            designSystem.borders.default,
+            designSystem.shadows.lg
+          )}
           role="listbox"
           aria-multiselectable="true"
         >
           {/* Header */}
-          <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Select Categories</span>
+          <div className={cn("px-4 py-2 border-b border-light", designSystem.layout.flex.rowBetween)}>
+            <span className={cn("text-sm font-medium font-mac-text", designSystem.typography.color.secondary)}>Select Categories</span>
             {selectedCategories.length > 0 && (
               <button
                 onClick={clearAll}
-                className="text-xs text-b9-pink hover:text-b9-pink/80 transition-colors"
+                className={cn(
+                  "text-xs text-b9-pink hover:text-b9-pink/80 font-mac-text",
+                  designSystem.transitions.default
+                )}
               >
                 Clear All
               </button>
@@ -126,7 +135,11 @@ export function MultiSelectCategoryDropdown({
               return (
                 <label
                   key={category}
-                  className="flex items-center px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors"
+                  className={cn(
+                    `px-4 py-2 text-sm cursor-pointer hover:${designSystem.background.hover.subtle}`,
+                    designSystem.layout.flex.rowStart,
+                    designSystem.transitions.default
+                  )}
                   role="option"
                   aria-selected={isSelected}
                 >
@@ -136,10 +149,10 @@ export function MultiSelectCategoryDropdown({
                     className="mr-3"
                     aria-label={`Toggle ${category} category`}
                   />
-                  <span className="flex-1 text-gray-900">
+                  <span className={cn("flex-1 font-mac-text", designSystem.typography.color.primary)}>
                     {category}
                     {!loading && count > 0 && (
-                      <span className="ml-1 text-gray-500">({count.toLocaleString('en-US')})</span>
+                      <span className={cn("ml-1", designSystem.typography.color.subtle)}>({count.toLocaleString('en-US')})</span>
                     )}
                   </span>
                 </label>
@@ -149,16 +162,16 @@ export function MultiSelectCategoryDropdown({
 
           {/* Selected Categories Summary */}
           {selectedCategories.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-              <div className="text-xs text-gray-600 mb-2">
+            <div className={`px-4 py-3 border-t border-light ${designSystem.background.surface.subtle}/50`}>
+              <div className={cn("text-xs mb-2 font-mac-text", designSystem.typography.color.tertiary)}>
                 Selected ({selectedCategories.length}):
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className={cn(designSystem.layout.flex.rowStart, "flex-wrap gap-1")}>
                 {selectedCategories.map((category) => (
-                  <Badge 
-                    key={category} 
-                    variant="outline" 
-                    className="text-xs bg-b9-pink/10 text-b9-pink border-b9-pink/20"
+                  <Badge
+                    key={category}
+                    variant="outline"
+                    className="text-xs bg-b9-pink/10 text-b9-pink border-b9-pink/20 font-mac-text"
                   >
                     {category}
                     <button
@@ -166,7 +179,7 @@ export function MultiSelectCategoryDropdown({
                         e.stopPropagation()
                         handleCategoryToggle(category)
                       }}
-                      className="ml-1 hover:text-b9-pink/70"
+                      className={cn("ml-1 hover:text-b9-pink/70", designSystem.transitions.default)}
                       aria-label={`Remove ${category} filter`}
                     >
                       <X className="h-3 w-3" />

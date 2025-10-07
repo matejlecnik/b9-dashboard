@@ -12,6 +12,7 @@ import {
   Share2,
   type LucideIcon
 } from 'lucide-react'
+import { designSystem } from '@/lib/design-system'
 
 export interface SidebarItem {
   id: string
@@ -141,8 +142,8 @@ export const monitorSidebarConfig: SidebarConfig = {
         type: 'status',
         value: (
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            <span className={`animate-ping absolute inline-flex h-full w-full ${designSystem.borders.radius.full} bg-orange-400 opacity-75`}></span>
+            <span className={`relative inline-flex ${designSystem.borders.radius.full} h-2 w-2 bg-orange-500`}></span>
           </span>
         ),
         variant: 'custom'
@@ -157,8 +158,8 @@ export const monitorSidebarConfig: SidebarConfig = {
         type: 'status',
         value: (
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+            <span className={`animate-ping absolute inline-flex h-full w-full ${designSystem.borders.radius.full} bg-pink-400 opacity-75`}></span>
+            <span className={`relative inline-flex ${designSystem.borders.radius.full} h-2 w-2 bg-pink-500`}></span>
           </span>
         ),
         variant: 'custom'

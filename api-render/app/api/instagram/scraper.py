@@ -5,21 +5,20 @@ Manages Instagram scraper via system_control table
 """
 
 # Version tracking
-from app.version import INSTAGRAM_SCRAPER_VERSION as API_VERSION
-
 import os
-import sys
 import signal
 import subprocess
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
+import sys
 from datetime import datetime, timezone
+
+from fastapi import APIRouter, Request
 from supabase import Client
 
 # Import database singleton and unified logger
 from app.core.database import get_db
 from app.logging import get_logger
+from app.version import INSTAGRAM_SCRAPER_VERSION as API_VERSION
+
 
 # Note: system_logger and log_api_call moved to unified logging system
 system_logger = None
@@ -243,11 +242,11 @@ async def get_instagram_scraper_status_detailed(request: Request):
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
             # Count logs for today
-            result = supabase.table('system_logs')\
-                .select('id', count='exact')\
-                .eq('source', 'instagram_scraper')\
-                .gte('timestamp', today.isoformat())\
-                .execute()
+            result = (supabase.table('system_logs')
+                .select('id', count='exact')  # type: ignore[arg-type]
+                .eq('source', 'instagram_scraper')
+                .gte('timestamp', today.isoformat())
+                .execute())
 
             if result.count:
                 stats['daily_api_calls'] = result.count
@@ -499,17 +498,17 @@ async def get_instagram_success_rate():
         supabase = get_supabase()
 
         # Query specifically for Instagram API request logs
-        success_result = supabase.table('system_logs')\
-            .select('id', count='exact')\
-            .eq('source', 'instagram_scraper')\
-            .like('message', '✅%')\
-            .execute()
+        success_result = (supabase.table('system_logs')
+            .select('id', count='exact')  # type: ignore[arg-type]
+            .eq('source', 'instagram_scraper')
+            .like('message', '✅%')
+            .execute())
 
-        error_result = supabase.table('system_logs')\
-            .select('id', count='exact')\
-            .eq('source', 'instagram_scraper')\
-            .eq('level', 'error')\
-            .execute()
+        error_result = (supabase.table('system_logs')
+            .select('id', count='exact')  # type: ignore[arg-type]
+            .eq('source', 'instagram_scraper')
+            .eq('level', 'error')
+            .execute())
 
         successful_requests = success_result.count if success_result.count else 0
         failed_requests = error_result.count if error_result.count else 0
@@ -561,12 +560,12 @@ async def get_cost_metrics():
 
         # Count RapidAPI calls made today
         # Look for API Response messages (successful calls to RapidAPI)
-        result = supabase.table('system_logs')\
-            .select('id', count='exact')\
-            .eq('source', 'instagram_scraper')\
-            .like('message', '✅%API Response%')\
-            .gte('timestamp', today_start.isoformat())\
-            .execute()
+        result = (supabase.table('system_logs')
+            .select('id', count='exact')  # type: ignore[arg-type]
+            .eq('source', 'instagram_scraper')
+            .like('message', '✅%API Response%')
+            .gte('timestamp', today_start.isoformat())
+            .execute())
 
         api_calls_today = result.count if result.count else 0
 
@@ -646,7 +645,7 @@ async def start_instagram_scraper(request: Request):
         try:
             # Open log file for Instagram scraper output
             log_file_path = '/tmp/instagram_scraper.log'
-            log_file = open(log_file_path, 'a')
+            log_file = open(log_file_path, 'a')  # noqa: SIM115 - Must stay open for subprocess
             log_file.write(f"\n\n{'='*60}\n")
             log_file.write(f"Starting Instagram scraper at {datetime.now(timezone.utc).isoformat()}\n")
             log_file.write(f"{'='*60}\n")
@@ -686,7 +685,7 @@ async def start_instagram_scraper(request: Request):
             else:
                 # Process died immediately - read the error
                 log_file.close()
-                with open(log_file_path, 'r') as f:
+                with open(log_file_path) as f:
                     error_output = f.read()
                     last_lines = error_output.split('\n')[-20:]  # Get last 20 lines
                     error_msg = '\n'.join(last_lines)
@@ -739,7 +738,7 @@ async def start_instagram_scraper(request: Request):
             )
         return {
             "success": False,
-            "message": f"Failed to start Instagram scraper: {str(e)}",
+            "message": f"Failed to start Instagram scraper: {e!s}",
             "status": "error"
         }
 
@@ -830,7 +829,7 @@ async def stop_instagram_scraper(request: Request):
             )
         return {
             "success": False,
-            "message": f"Failed to stop Instagram scraper: {str(e)}",
+            "message": f"Failed to stop Instagram scraper: {e!s}",
             "status": "error"
         }
 

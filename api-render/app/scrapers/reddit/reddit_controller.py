@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Reddit Scraper Controller - Process supervisor for scraper lifecycle"""
 import asyncio
+import logging
 import os
 import sys
-import logging
 from datetime import datetime, timezone
+from typing import Any
+
 from dotenv import load_dotenv
+
 
 # Load environment variables
 load_dotenv()
@@ -19,7 +22,7 @@ if "/app/app/scrapers" in current_dir:
 else:
     api_root = os.path.join(current_dir, "..", "..")
     sys.path.insert(0, api_root)
-    from core.database.supabase_client import get_supabase_client
+    from core.database.supabase_client import get_supabase_client  # type: ignore[no-redef]
 
 CONTROLLER_VERSION = "2.1.0"
 CHECK_INTERVAL = 30  # seconds
@@ -33,6 +36,7 @@ class RedditController:
 
     def __init__(self):
         self.supabase = get_supabase_client()
+        assert self.supabase is not None, "Supabase client required"
         self.scraper = None
         self.scraper_task = None
         logger.info(f"🎛️  Reddit Controller v{CONTROLLER_VERSION} initialized")
@@ -40,10 +44,10 @@ class RedditController:
     async def is_enabled(self):
         """Check if scraping is enabled in database"""
         try:
-            result = self.supabase.table("system_control")\
-                .select("enabled")\
-                .eq("script_name", "reddit_scraper")\
-                .execute()
+            result = (self.supabase.table("system_control")  # type: ignore[union-attr]
+                .select("enabled")
+                .eq("script_name", "reddit_scraper")
+                .execute())
 
             if result.data and len(result.data) > 0:
                 return result.data[0].get("enabled", False)
@@ -55,11 +59,11 @@ class RedditController:
     async def update_heartbeat(self):
         """Update heartbeat in database for monitoring"""
         try:
-            self.supabase.table("system_control").update({
+            (self.supabase.table("system_control").update({  # type: ignore[union-attr]
                 "last_heartbeat": datetime.now(timezone.utc).isoformat(),
                 "pid": os.getpid(),
                 "status": "running" if self.scraper else "stopped"
-            }).eq("script_name", "reddit_scraper").execute()
+            }).eq("script_name", "reddit_scraper").execute())
         except Exception as e:
             logger.error(f"Failed to update heartbeat: {e}")
 
@@ -70,12 +74,12 @@ class RedditController:
 
         try:
             # Get last log timestamp from system_logs
-            result = self.supabase.table("system_logs")\
-                .select("timestamp")\
-                .eq("source", "reddit_scraper")\
-                .order("timestamp", desc=True)\
-                .limit(1)\
-                .execute()
+            result = (self.supabase.table("system_logs")  # type: ignore[union-attr]
+                .select("timestamp")
+                .eq("source", "reddit_scraper")
+                .order("timestamp", desc=True)
+                .limit(1)
+                .execute())
 
             if result.data and len(result.data) > 0:
                 last_log_time = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
@@ -85,7 +89,7 @@ class RedditController:
                 # If no logs for 10 minutes, scraper is likely hung
                 if idle_duration > 600:  # 10 minutes
                     logger.warning(f"⚠️  Scraper hung detected: no logs for {int(idle_duration/60)} minutes")
-                    logger.warning(f"🔄 Auto-restarting hung scraper...")
+                    logger.warning("🔄 Auto-restarting hung scraper...")
 
                     # Force restart
                     await self.stop_scraper()
@@ -108,6 +112,7 @@ class RedditController:
         """Start the scraper"""
         logger.info("🚀 Starting scraper...")
 
+        RedditScraper: Any = None  # noqa: N806  # Declare as variable to avoid type assignment error
         try:
             # Import using absolute path for standalone execution
             if "/app/app/scrapers" in current_dir:
@@ -120,9 +125,10 @@ class RedditController:
                     import importlib.util
                     scraper_path = os.path.join(current_dir, "reddit_scraper.py")
                     spec = importlib.util.spec_from_file_location("reddit_scraper", scraper_path)
+                    assert spec is not None
                     module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    RedditScraper = module.RedditScraper
+                    spec.loader.exec_module(module)  # type: ignore[union-attr]
+                    RedditScraper = module.RedditScraper  # noqa: N806
 
             self.scraper = RedditScraper(self.supabase)
             self.scraper_task = asyncio.create_task(self.scraper.run())
@@ -133,11 +139,11 @@ class RedditController:
 
             # Update database with error status
             try:
-                self.supabase.table("system_control").update({
+                (self.supabase.table("system_control").update({  # type: ignore[union-attr]
                     "status": "error",
                     "last_error": str(e)[:500],
                     "stopped_at": datetime.now(timezone.utc).isoformat()
-                }).eq("script_name", "reddit_scraper").execute()
+                }).eq("script_name", "reddit_scraper").execute())
             except Exception as db_error:
                 logger.error(f"Failed to update error status: {db_error}")
 
@@ -150,10 +156,9 @@ class RedditController:
 
         if self.scraper_task:
             self.scraper_task.cancel()
-            try:
+            from contextlib import suppress
+            with suppress(asyncio.CancelledError):
                 await self.scraper_task
-            except asyncio.CancelledError:
-                pass
 
         if self.scraper and hasattr(self.scraper, 'stop'):
             await self.scraper.stop()
@@ -199,11 +204,11 @@ class RedditController:
 
             # Update final status
             try:
-                self.supabase.table("system_control").update({
+                (self.supabase.table("system_control").update({  # type: ignore[union-attr]
                     "status": "stopped",
                     "pid": None,
                     "stopped_at": datetime.now(timezone.utc).isoformat()
-                }).eq("script_name", "reddit_scraper").execute()
+                }).eq("script_name", "reddit_scraper").execute())
             except Exception as e:
                 logger.error(f"Failed to update shutdown status: {e}")
 

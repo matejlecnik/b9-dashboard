@@ -242,7 +242,7 @@ export const StandardError: React.FC<StandardErrorProps> = ({
         <div className="flex flex-col items-center text-center">
           {showIcon && (
             <div className={cn(
-              'mb-4 p-3 rounded-full',
+              `mb-4 p-3 ${designSystem.borders.radius.full}`,
               config.bg
             )}>
               <Icon className={cn('h-8 w-8', config.color)} />
@@ -257,7 +257,7 @@ export const StandardError: React.FC<StandardErrorProps> = ({
             {message}
           </p>
           {errorDetails && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg w-full max-w-md">
+            <div className={`mt-4 p-3 bg-gray-50 ${designSystem.borders.radius.sm} w-full max-w-md`}>
               <p className="text-xs text-gray-600 font-mono text-left">
                 {errorDetails}
               </p>
@@ -305,7 +305,7 @@ export const StandardError: React.FC<StandardErrorProps> = ({
       <div className="text-center max-w-md">
         {showIcon && (
           <div className={cn(
-            'mx-auto mb-6 p-4 rounded-full inline-block',
+            `mx-auto mb-6 p-4 ${designSystem.borders.radius.full} inline-block`,
             config.bg
           )}>
             <Icon className={cn('h-12 w-12', config.color)} />
@@ -320,7 +320,7 @@ export const StandardError: React.FC<StandardErrorProps> = ({
           {message}
         </p>
         {errorDetails && (
-          <div className="mb-8 p-4 bg-gray-50 rounded-lg text-left">
+          <div className={`mb-8 p-4 bg-gray-50 ${designSystem.borders.radius.sm} text-left`}>
             <p className="text-xs text-gray-600 font-mono">
               {errorDetails}
             </p>

@@ -2,6 +2,7 @@
 
 import { memo, useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ReactNode } from 'react'
@@ -266,7 +267,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
     
     return (
       <div className={cn("relative flex-1", search.maxWidth)} role="search">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className={cn("absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4", designSystem.typography.color.disabled)} />
         <input
           id={search.id}
           type="text"
@@ -282,14 +283,14 @@ export const UniversalToolbar = memo(function UniversalToolbar({
             search.onBlur?.()
           }}
           disabled={search.disabled || loading || disabled}
-          className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
+          className="w-full pl-10 pr-10 py-2 border border-default {designSystem.borders.radius.sm} bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
         />
         {search.value && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => search.onChange('')}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+            className={cn("absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0", designSystem.background.hover.light)}
             aria-label="Clear search"
           >
             <X className="h-3 w-3" />
@@ -311,19 +312,19 @@ export const UniversalToolbar = memo(function UniversalToolbar({
             onClick={filter.onClick}
             disabled={filter.disabled || loading || disabled}
             className={cn(
-              "px-3 py-2 h-auto rounded-lg font-medium transition-all duration-200 border-0 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm",
+              "px-3 py-2 h-auto {designSystem.borders.radius.sm} font-medium transition-all duration-200 border-0 focus:outline-none focus:ring-2 focus:ring-primary text-sm",
               filter.className
             )}
             style={filter.isActive ? {
-              background: filter.activeBg || 'linear-gradient(135deg, #FF8395, #FF6B80)',
-              color: filter.activeTextColor || '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 2px 8px rgba(255, 131, 149, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              background: filter.activeBg || 'linear-gradient(135deg, var(--pink-500), var(--pink-600))',
+              color: filter.activeTextColor || 'white',
+              border: '1px solid var(--white-alpha-10)',
+              boxShadow: '0 2px 8px var(--pink-alpha-08), inset 0 1px 0 var(--white-alpha-10)'
             } : {
-              background: 'rgba(255, 255, 255, 0.8)',
-              color: '#374151',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
+              background: 'var(--white-alpha-80)',
+              color: 'var(--gray-700)',
+              border: '1px solid var(--black-alpha-08)',
+              boxShadow: '0 1px 4px var(--black-alpha-02)'
             }}
             aria-pressed={filter.isActive}
             title={filter.title || `Filter: ${filter.label}${filter.count ? ` (${filter.count})` : ''}`}
@@ -331,14 +332,14 @@ export const UniversalToolbar = memo(function UniversalToolbar({
             {filter.icon && <filter.icon className="h-4 w-4 mr-2" />}
             <span className="relative z-10">{filter.label}</span>
             {filter.count !== undefined && (
-              <Badge 
+              <Badge
                 variant="secondary"
                 className="ml-2 border-0 text-xs font-medium"
                 style={{
-                  background: filter.isActive 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.06)',
-                  color: filter.isActive ? 'white' : 'rgba(0, 0, 0, 0.75)'
+                  background: filter.isActive
+                    ? 'var(--white-alpha-20)'
+                    : 'var(--black-alpha-06)',
+                  color: filter.isActive ? 'white' : 'var(--black-alpha-75)'
                 }}
               >
                 {loading ? '...' : filter.count}
@@ -394,7 +395,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
         {selectedCount > 0 && (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <Badge className="bg-pink-100 text-pink-700 border-pink-300">
+              <Badge className="bg-primary/20 text-primary-pressed border-primary/40">
                 {selectedCount.toLocaleString('en-US')} selected
               </Badge>
               {onUndoLastAction && (
@@ -437,24 +438,24 @@ export const UniversalToolbar = memo(function UniversalToolbar({
     if (variant !== 'user-bulk-actions' || selectedCount === 0) return null
     
     return (
-      <div className="flex items-center gap-2 px-3 sm:px-4 py-3 rounded-xl shadow-lg border-0"
+      <div className="flex items-center gap-2 px-3 sm:px-4 py-3 {designSystem.borders.radius.md} shadow-lg border-0"
         style={{
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'var(--white-alpha-95)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           boxShadow: `
-            0 8px 32px rgba(0, 0, 0, 0.15),
-            0 4px 16px rgba(0, 0, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2)
+            0 8px 32px var(--black-alpha-15),
+            0 4px 16px var(--black-alpha-10),
+            inset 0 1px 0 var(--white-alpha-20)
           `,
-          border: '1px solid rgba(255, 255, 255, 0.3)',
+          border: '1px solid var(--white-alpha-30)',
         }}
       >
         {/* Selection Info */}
         <div className="flex items-center gap-2">
           <Badge 
             variant="secondary" 
-            className="bg-pink-100 text-pink-700 border-pink-300 font-semibold"
+            className="bg-primary/20 text-primary-pressed border-primary/40 font-semibold"
           >
             <Users className="h-3 w-3 mr-1" />
             {selectedCount} selected
@@ -468,7 +469,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
                   size="sm"
                   variant="ghost"
                   onClick={selectedCount === totalCount ? onSelectNone : onSelectAll}
-                  className="px-2 py-1 h-8 text-xs hover:bg-gray-100"
+                  className={cn("px-2 py-1 h-8 text-xs", designSystem.background.hover.light)}
                   title={selectedCount === totalCount ? "Deselect all" : "Select all visible"}
                 >
                   {selectedCount === totalCount ? (
@@ -482,7 +483,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
                   size="sm"
                   variant="ghost"
                   onClick={onSelectNone}
-                  className="px-2 py-1 h-8 text-xs hover:bg-gray-100"
+                  className={cn("px-2 py-1 h-8 text-xs", designSystem.background.hover.light)}
                   title="Clear selection (Esc)"
                 >
                   <X className="h-3 w-3" />
@@ -493,7 +494,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
         </div>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-300"></div>
+        <div className={cn("h-6 w-px", designSystem.background.surface.medium)}></div>
 
         {/* Bulk Actions */}
         <div className="flex items-center gap-1">
@@ -501,7 +502,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
         </div>
 
         {/* Keyboard Hints */}
-        <div className="hidden md:flex items-center text-xs text-gray-500 ml-2">
+        <div className={cn("hidden md:flex items-center text-xs ml-2", designSystem.typography.color.subtle)}>
           <span>Ctrl/Cmd+1/2 for quick actions • ESC to clear</span>
         </div>
       </div>
@@ -512,16 +513,16 @@ export const UniversalToolbar = memo(function UniversalToolbar({
     if (!stats && !showResultsSummary) return null
     
     return (
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200/50">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-light">
         {stats?.customStats || (
-          <div className="text-sm text-gray-600">
+          <div className={cn("text-sm", designSystem.typography.color.tertiary)}>
             {stats?.filteredResults !== undefined && (
               <>
-                Showing <span className="font-semibold text-pink-600">
+                Showing <span className="font-semibold text-primary">
                   {loading ? '...' : stats.filteredResults.toLocaleString('en-US')}
                 </span>
                 {stats.totalResults !== undefined && stats.filteredResults !== stats.totalResults && (
-                  <> of <span className="font-semibold text-gray-900">
+                  <> of <span className={cn("font-semibold", designSystem.typography.color.primary)}>
                     {stats.totalResults.toLocaleString('en-US')}
                   </span></>
                 )} results
@@ -541,7 +542,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
     switch (variant) {
       case 'bulk-actions':
         return {
-          container: "sticky top-[72px] z-30 mb-2 rounded-xl border border-pink-200 bg-white/90 backdrop-blur-md shadow-sm px-3 py-2",
+          container: "sticky top-[72px] z-30 mb-2 {designSystem.borders.radius.md} border border-primary/30 bg-white/90 backdrop-blur-md shadow-sm px-3 py-2",
           role: "region",
           ariaLabel: "Bulk actions toolbar"
         }
@@ -569,7 +570,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
         }
         return {
           container: cn(
-            'relative p-4 rounded-2xl border border-gray-200',
+            'relative p-4 {designSystem.borders.radius.lg} border border-default',
             intensityStyles[intensity],
             shadowClasses[shadow]
           ),
@@ -609,7 +610,7 @@ export const UniversalToolbar = memo(function UniversalToolbar({
       {/* Collapsible Header */}
       {collapsible && (
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+          <h3 className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Filters</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -701,7 +702,7 @@ export const createBulkActionsToolbar = (props: {
       icon: Check,
       onClick: props.onBulkOk,
       variant: 'default' as const,
-      className: 'bg-pink-500 hover:bg-pink-600',
+      className: 'bg-primary hover:bg-primary-hover',
       title: 'Mark selected as Ok'
     },
     {
@@ -744,7 +745,7 @@ export const createUserBulkActionsToolbar = (props: {
       label: 'Toggle Creator',
       icon: Heart,
       onClick: props.onBulkToggleCreator,
-      className: 'bg-pink-500 hover:bg-pink-600 text-white',
+      className: 'bg-primary hover:bg-primary-hover text-white',
       title: 'Toggle creator status (Ctrl/Cmd+1)',
       shortcut: 'Ctrl+1'
     },
@@ -753,7 +754,7 @@ export const createUserBulkActionsToolbar = (props: {
       label: 'Export CSV',
       icon: Download,
       onClick: props.onBulkExport,
-      className: 'bg-pink-500 hover:bg-pink-600 text-white',
+      className: 'bg-primary hover:bg-primary-hover text-white',
       title: 'Export selected users (Ctrl/Cmd+2)',
       shortcut: 'Ctrl+2'
     },

@@ -8,7 +8,7 @@
 
 ```json
 {
-  "parent": "DOCUMENTATION_MAP.md",
+  "parent": "../INDEX.md",
   "current": "DOCUMENTATION_AGENT_GUIDE.md",
   "siblings": [
     {"path": "DOCUMENTATION_STANDARDS.md", "desc": "Rules & compliance", "status": "ENFORCED"},

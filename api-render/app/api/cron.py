@@ -5,11 +5,14 @@ Protected endpoints for scheduled tasks triggered by Render cron jobs
 CRITICAL: CRON-001 - Log cleanup to prevent disk overflow
 """
 
-import os
 import logging
-from fastapi import APIRouter, Header, HTTPException, Query
+import os
 from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException, Query
+
 from app.jobs.log_cleanup import full_log_cleanup
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +105,8 @@ async def trigger_log_cleanup(
         logger.error(f"❌ Log cleanup failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Log cleanup failed: {str(e)}"
-        )
+            detail=f"Log cleanup failed: {e!s}"
+        ) from e
 
 
 @router.get("/health")

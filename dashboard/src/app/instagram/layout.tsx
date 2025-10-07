@@ -1,4 +1,6 @@
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 export default function InstagramLayout({
   children,
@@ -10,8 +12,8 @@ export default function InstagramLayout({
       fallback={
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Instagram Dashboard Error</h2>
-            <p className="text-gray-600">Something went wrong. Please refresh the page.</p>
+            <h2 className={cn("text-2xl font-bold mb-2", designSystem.typography.color.primary)}>Instagram Dashboard Error</h2>
+            <p className={cn(designSystem.typography.color.tertiary)}>Something went wrong. Please refresh the page.</p>
           </div>
         </div>
       }

@@ -102,6 +102,12 @@ docs/**/validation-report.json
 docs/agent-output/
 docs/agent-output-backup-*/
 
+# Documentation Python Cache
+docs/**/__pycache__/
+docs/**/*.pyc
+docs/**/*.pyo
+docs/**/*.pyd
+
 # Monitoring & Analytics
 .lighthouse/
 .clinic/

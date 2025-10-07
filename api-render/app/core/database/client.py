@@ -6,7 +6,8 @@ Thread-safe, lazy-initialized Supabase client for the entire application
 import os
 from functools import lru_cache
 from typing import Optional
-from supabase import create_client, Client
+
+from supabase import Client, create_client
 
 
 @lru_cache(maxsize=1)

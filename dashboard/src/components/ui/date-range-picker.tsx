@@ -4,6 +4,8 @@
 // See: https://github.com/matejlecnik/b9-dashboard/issues - date range picker implementation
 
 import React from 'react'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 export interface DateRangePickerProps {
   value?: { from: Date; to: Date }
@@ -25,7 +27,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
         }}
         className="border rounded px-2 py-1 mr-2"
       />
-      <span className="text-gray-500 mx-2">to</span>
+      <span className={cn("mx-2", designSystem.typography.color.subtle)}>to</span>
       <input
         type="date"
         value={value?.to.toISOString().split('T')[0] || ''}

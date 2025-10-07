@@ -4,17 +4,18 @@ Centralized model definitions used across the application
 """
 
 from app.models.requests import (
+    BackgroundJobRequest,
     CategorizationRequest,
-    SingleSubredditRequest,
     ScrapingRequest,
+    SingleSubredditRequest,
     UserDiscoveryRequest,
-    BackgroundJobRequest
 )
 
+
 __all__ = [
+    "BackgroundJobRequest",
     "CategorizationRequest",
-    "SingleSubredditRequest",
     "ScrapingRequest",
-    "UserDiscoveryRequest",
-    "BackgroundJobRequest"
+    "SingleSubredditRequest",
+    "UserDiscoveryRequest"
 ]

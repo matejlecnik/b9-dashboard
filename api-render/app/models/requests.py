@@ -3,15 +3,16 @@ API Request Models
 Pydantic models for validating incoming API requests
 """
 
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 
 
 class CategorizationRequest(BaseModel):
     """Request model for subreddit categorization"""
-    batchSize: int = 30
+    batchSize: int = 30  # noqa: N815 - camelCase for frontend compatibility
     limit: Optional[int] = None
-    subredditIds: Optional[List[int]] = None
+    subredditIds: Optional[List[int]] = None  # noqa: N815 - camelCase for frontend compatibility
 
 
 class SingleSubredditRequest(BaseModel):
@@ -21,10 +22,10 @@ class SingleSubredditRequest(BaseModel):
 
 class ScrapingRequest(BaseModel):
     """Request model for scraping operations"""
-    subredditNames: Optional[List[str]] = None
+    subredditNames: Optional[List[str]] = None  # noqa: N815 - camelCase for frontend compatibility
     usernames: Optional[List[str]] = None
-    maxSubreddits: int = 100
-    maxUsers: int = 50
+    maxSubreddits: int = 100  # noqa: N815 - camelCase for frontend compatibility
+    maxUsers: int = 50  # noqa: N815 - camelCase for frontend compatibility
 
 
 class UserDiscoveryRequest(BaseModel):

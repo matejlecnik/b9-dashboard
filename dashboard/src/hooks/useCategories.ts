@@ -80,21 +80,21 @@ export function useCategories() {
 
 // Category colors for enhanced visual experience
 export const CATEGORY_COLORS: Record<string, string> = {
-  'Ass & Booty': 'bg-gradient-to-r from-pink-500 to-rose-500 text-white',
-  'Boobs & Chest': 'bg-gradient-to-r from-pink-500 to-pink-500 text-white',
+  'Ass & Booty': 'bg-gradient-to-r from-primary to-rose-500 text-white',
+  'Boobs & Chest': 'bg-gradient-to-r from-primary to-primary text-white',
   'Feet & Foot Fetish': 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white',
-  'Lingerie & Underwear': 'bg-gradient-to-r from-violet-500 to-purple-500 text-white',
-  'Cosplay & Fantasy': 'bg-gradient-to-r from-gray-600 to-purple-500 text-white',
+  'Lingerie & Underwear': 'bg-gradient-to-r from-violet-500 to-secondary text-white',
+  'Cosplay & Fantasy': 'bg-gradient-to-r from-gray-600 to-secondary text-white',
   'Gym & Fitness': 'bg-gradient-to-r from-orange-500 to-red-500 text-white',
-  'Selfie & Amateur': 'bg-gradient-to-r from-pink-500 to-emerald-500 text-white',
+  'Selfie & Amateur': 'bg-gradient-to-r from-primary to-emerald-500 text-white',
   'OnlyFans Promotion': 'bg-gradient-to-r from-blue-600 to-gray-700 text-white',
   'Goth & Alternative': 'bg-gradient-to-r from-gray-800 to-gray-900 text-white',
   'Body Types & Features': 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
   'Age Demographics': 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white',
   'Ethnic & Cultural': 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
   'Clothed & Dressed': 'bg-gradient-to-r from-slate-500 to-gray-600 text-white',
-  'Interactive & Personalized': 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white',
+  'Interactive & Personalized': 'bg-gradient-to-r from-fuchsia-500 to-primary text-white',
   'Lifestyle & Themes': 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white',
-  'Full Body & Nude': 'bg-gradient-to-r from-gray-800 to-pink-500 text-white',
+  'Full Body & Nude': 'bg-gradient-to-r from-gray-800 to-primary text-white',
   'Specific Body Parts': 'bg-gradient-to-r from-lime-500 to-green-500 text-white'
 }

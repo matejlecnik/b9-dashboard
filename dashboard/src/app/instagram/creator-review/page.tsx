@@ -8,6 +8,7 @@ import { StandardActionButton } from '@/components/shared/buttons/StandardAction
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { MetricsCards } from '@/components/shared/cards/MetricsCards'
 import { useDebounce } from '@/hooks/useDebounce'
+import { designSystem } from '@/lib/design-system'
 
 // Import data hooks directly
 import {
@@ -37,13 +38,15 @@ export default function CreatorReviewPage() {
   const [currentFilter, setCurrentFilter] = useState<FilterType>('pending')
   const [selectedCreators, setSelectedCreators] = useState<Set<number>>(new Set())
   const [showRelatedModal, setShowRelatedModal] = useState(false)
+  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  // Clear selection when filter changes
+  // Clear selection and removing items when filter changes
   useEffect(() => {
     setSelectedCreators(new Set())
+    setRemovingIds(new Set())
   }, [currentFilter])
 
   // Map filter type to creator status
@@ -77,11 +80,35 @@ export default function CreatorReviewPage() {
   const updateStatusMutation = useUpdateCreatorStatus()
   const bulkUpdateMutation = useBulkUpdateCreatorStatus()
 
-  // Flatten paginated data
+  // Flatten paginated data and filter out items being removed
   const creators = React.useMemo(
-    () => infiniteData?.pages.flat() || [],
-    [infiniteData]
+    () => {
+      const allCreators = infiniteData?.pages.flat() || []
+      // Filter out items that are currently being removed (fading out)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return allCreators.filter((creator: any) => !removingIds.has(creator.id))
+    },
+    [infiniteData, removingIds]
   )
+
+  // Clean up removingIds when data changes (items have been actually removed from backend)
+  useEffect(() => {
+    if (removingIds.size > 0 && infiniteData) {
+      const allCreators = infiniteData.pages.flat()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentIds = new Set(allCreators.map((c: any) => c.id))
+      setRemovingIds(prev => {
+        if (prev.size === 0) return prev
+        const next = new Set<number>()
+        prev.forEach(id => {
+          if (currentIds.has(id)) {
+            next.add(id)
+          }
+        })
+        return next.size === prev.size ? prev : next
+      })
+    }
+  }, [infiniteData, removingIds.size])
 
   // DEBUG: Log data
   useEffect(() => {
@@ -161,12 +188,36 @@ export default function CreatorReviewPage() {
     if (review === 'ok') status = 'ok'
     else if (review === 'non_related') status = 'non_related'
 
-    await updateStatusMutation.mutateAsync({
-      creatorId: id,
-      status,
-      notes: undefined
-    })
-  }, [updateStatusMutation])
+    // Check if item should be removed from current filter
+    const shouldRemove = (
+      (currentFilter === 'pending') ||
+      (currentFilter === 'approved' && review !== 'ok') ||
+      (currentFilter === 'rejected' && review !== 'non_related')
+    )
+
+    if (shouldRemove) {
+      // Add to removing list for fade effect
+      setRemovingIds(prev => new Set([...prev, id]))
+    }
+
+    updateStatusMutation.mutate(
+      {
+        creatorId: id,
+        status,
+        notes: undefined
+      },
+      {
+        onError: () => {
+          // Revert fade-out on error
+          setRemovingIds(prev => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+          })
+        }
+      }
+    )
+  }, [currentFilter, updateStatusMutation])
 
   // Handle bulk actions
   const handleBulkApprove = useCallback(async () => {
@@ -253,7 +304,7 @@ export default function CreatorReviewPage() {
           />
 
           {/* Table */}
-          <div className="bg-white rounded-lg shadow-sm border">
+          <div className={`bg-white ${designSystem.borders.radius.sm} shadow-sm border`}>
             <UniversalCreatorTable
               creators={transformedCreators}
               loading={isLoading}

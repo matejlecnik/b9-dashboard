@@ -3,19 +3,19 @@ Centralized Configuration for Reddit Scraper
 Eliminates hardcoded values and provides environment-based configuration
 """
 import os
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 
 @dataclass
 class ScraperConfig:
     """Configuration class for Reddit scraper with environment override support"""
-    
+
     # Subreddit Processing
     max_subreddits: int = 10000
     batch_size: int = 1000
     max_concurrent_threads: int = 9
-    
+
     # Stealth Configuration
     min_delay: float = 2.5
     max_delay: float = 6.0
@@ -23,7 +23,7 @@ class ScraperConfig:
     burst_delay_max: float = 20.0
     burst_frequency_min: int = 8
     burst_frequency_max: int = 15
-    
+
     # Memory Management
     memory_warning_threshold: float = 0.70
     memory_error_threshold: float = 0.85
@@ -40,19 +40,19 @@ class ScraperConfig:
     cache_max_users: int = 50000
     cache_max_subreddits: int = 10000
     cache_max_posts: int = 100000
-    
+
     # API Request Configuration
     max_retries: int = 5
     base_delay: float = 1.0
     request_timeout: int = 30
-    
+
     # User Processing
     max_users_per_cycle: int = 50
     min_user_karma_threshold: int = 100
-    
+
     # Discovery Mode
     discovery_limit: int = 100000
-    
+
     # Database Query Limits
     no_seller_limit: int = 500
 
@@ -70,12 +70,12 @@ class ScraperConfig:
     def from_environment(cls) -> 'ScraperConfig':
         """
         Create configuration from environment variables with fallback to defaults.
-        
+
         Environment variable format: REDDIT_SCRAPER_[SETTING_NAME]
         Example: REDDIT_SCRAPER_MAX_SUBREDDITS=3000
         """
         config = cls()
-        
+
         # Map config fields to environment variables
         env_mappings = {
             'max_subreddits': 'REDDIT_SCRAPER_MAX_SUBREDDITS',
@@ -114,7 +114,7 @@ class ScraperConfig:
             'db_rate_limit_upsert_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_UPSERT_RPS',
             'db_rate_limit_delete_rps': 'REDDIT_SCRAPER_DB_RATE_LIMIT_DELETE_RPS'
         }
-        
+
         # Override with environment values where available
         for field_name, env_var in env_mappings.items():
             env_value = os.getenv(env_var)
@@ -134,41 +134,41 @@ class ScraperConfig:
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.warning(f"Invalid environment value for {env_var}: {env_value}, using default: {current_value}")
-        
+
         return config
-    
+
     def validate(self) -> Dict[str, str]:
         """
         Validate configuration values and return any issues.
-        
+
         Returns:
             Dict of field_name -> error_message for invalid values
         """
         issues = {}
-        
+
         # Validate ranges
         if self.max_subreddits <= 0:
             issues['max_subreddits'] = "Must be positive"
         if self.max_subreddits > 10000:
             issues['max_subreddits'] = "Too high, may cause memory issues"
-            
+
         if self.batch_size <= 0 or self.batch_size > 5000:
             issues['batch_size'] = "Must be between 1 and 5000"
-            
+
         if self.min_delay >= self.max_delay:
             issues['stealth_delays'] = "min_delay must be less than max_delay"
-            
+
         if not (0.1 <= self.memory_warning_threshold <= 1.0):
             issues['memory_warning_threshold'] = "Must be between 0.1 and 1.0"
-            
+
         if self.memory_warning_threshold >= self.memory_error_threshold:
             issues['memory_thresholds'] = "Warning threshold must be less than error threshold"
-            
+
         if self.memory_error_threshold >= self.memory_critical_threshold:
             issues['memory_thresholds'] = "Error threshold must be less than critical threshold"
-            
+
         return issues
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary for logging/debugging"""
         return {
@@ -208,14 +208,14 @@ def get_scraper_config() -> ScraperConfig:
     global _config
     if _config is None:
         _config = ScraperConfig.from_environment()
-        
+
         # Validate configuration
         issues = _config.validate()
         if issues:
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Configuration validation issues: {issues}")
-    
+
     return _config
 
 def reload_config() -> ScraperConfig:

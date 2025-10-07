@@ -3,6 +3,8 @@
  * Single source of truth for all marketing categories
  */
 
+import { designSystem } from '@/lib/design-system'
+
 // ============================================================================
 // CATEGORY CONSTANTS
 // ============================================================================
@@ -64,17 +66,17 @@ export function isValidCategory(category: string): boolean {
  */
 export function getCategoryColor(category: string): string {
   const colorMap: Record<string, string> = {
-    'OnlyFans Promotion': 'bg-pink-500',
+    'OnlyFans Promotion': 'bg-primary',
     'Selfie & Amateur': 'bg-blue-500',
-    'Ass & Booty': 'bg-purple-500',
+    'Ass & Booty': 'bg-secondary',
     'Boobs & Chest': 'bg-red-500',
     'Gym & Fitness': 'bg-green-500',
-    'Goth & Alternative': 'bg-gray-800',
+    'Goth & Alternative': designSystem.background.surface.darkest,
     'Age Demographics': 'bg-yellow-500',
     'Ethnic & Cultural': 'bg-orange-500'
   }
-  
-  return colorMap[category] || 'bg-gray-500'
+
+  return colorMap[category] || designSystem.background.surface.dark
 }
 
 /**

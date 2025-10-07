@@ -3,11 +3,13 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
-import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertCircle } from 'lucide-react'
 import { useSupabaseSubscription } from '@/hooks/useSupabaseSubscription'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import { LogTerminalBase } from './LogTerminalBase'
 interface LogContext {
   subreddit?: string
   operation?: string
@@ -37,18 +39,20 @@ interface LogViewerSupabaseProps {
   tableName?: string
   sourceFilter?: string
   useSystemLogs?: boolean
+  fadeHeight?: string
 }
 
 export function LogViewerSupabase({
   title = 'Live Scraper Logs',
   height = '600px',
-  autoScroll = true,
+  autoScroll: _autoScroll = true,
   refreshInterval = 5000,
   maxLogs = 500,
   minLogsToShow = 20,
   tableName = 'reddit_scraper_logs',
   sourceFilter,
-  useSystemLogs = false
+  useSystemLogs = false,
+  fadeHeight = '2%'
 }: LogViewerSupabaseProps) {
   const [logsMap, setLogsMap] = useState<Map<string, LogEntry>>(new Map())
   const [isPaused] = useState(false)
@@ -58,8 +62,6 @@ export function LogViewerSupabase({
   const [showVerbose] = useState(false)
   const [lastLogId, setLastLogId] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const shouldAutoScroll = useRef(autoScroll)
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const seenMessageHashes = useRef<Set<string>>(new Set())
   const processingQueue = useRef<Promise<void>>(Promise.resolve())
@@ -216,20 +218,8 @@ export function LogViewerSupabase({
           })
         })
 
-        // Auto-scroll to bottom if enabled
-        if (shouldAutoScroll.current && scrollAreaRef.current && !sinceId && !signal?.aborted) {
-          // Clear any existing timer
-          if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current)
-          }
-
-          scrollTimerRef.current = setTimeout(() => {
-            if (scrollAreaRef.current) {
-              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
-            }
-            scrollTimerRef.current = null
-          }, 100)
-        }
+        // Auto-scroll disabled - logs stay at top (newest first)
+        // Users can scroll down to see older logs with fade effect visible
       }
     } catch (err) {
       logger.error('Error fetching logs:', err)
@@ -241,7 +231,7 @@ export function LogViewerSupabase({
   const actualTableName = useMemo(() => useSystemLogs ? 'system_logs' : tableName, [useSystemLogs, tableName])
 
   // Set up Supabase real-time subscription using memory-safe hook
-  const { isSubscribed, error: subError } = useSupabaseSubscription({
+  const { error: subError } = useSupabaseSubscription({
     table: actualTableName,
     event: 'INSERT',
     schema: 'public',
@@ -342,24 +332,8 @@ export function LogViewerSupabase({
         })
       })
 
-      // Auto-scroll if at bottom
-      if (shouldAutoScroll.current && scrollAreaRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-        if (isNearBottom) {
-          // Clear any existing timer
-          if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current)
-          }
-
-          scrollTimerRef.current = setTimeout(() => {
-            if (scrollAreaRef.current) {
-              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
-            }
-            scrollTimerRef.current = null
-          }, 100)
-        }
-      }
+      // Auto-scroll disabled - logs stay at top (newest first)
+      // Users can scroll down to see older logs with fade effect visible
     },
     onError: (err) => {
       logger.error(`❌ [LogViewer] Subscription error for ${actualTableName}:`, err)
@@ -481,9 +455,9 @@ export function LogViewerSupabase({
     // No need for additional deduplication as we're using hash-based deduplication upstream
     const deduped = filtered
 
-    // If no important logs found, show the last 20 logs regardless of importance
+    // If no important logs found, show the last maxLogs logs regardless of importance
     if (deduped.length === 0 && searchAndLevelFiltered.length > 0 && !showVerbose) {
-      const recentLogs = searchAndLevelFiltered.slice(0, 20)
+      const recentLogs = searchAndLevelFiltered.slice(0, maxLogs)
       const dedupedRecent: LogEntry[] = []
       let lastMsg = ''
 
@@ -498,7 +472,7 @@ export function LogViewerSupabase({
     }
 
     return deduped
-  }, [logs, searchQuery, selectedLevel, showVerbose])
+  }, [logs, searchQuery, selectedLevel, showVerbose, maxLogs])
 
 
   // Get color based on log importance
@@ -507,97 +481,93 @@ export function LogViewerSupabase({
 
     // Critical/Error logs - darkest
     if (log.level === 'error' || message.includes('error') || message.includes('failed') || message.includes('exception')) {
-      return 'text-[#8B0000] font-semibold' // Dark red
+      return cn(designSystem.typography.color.primary, 'font-semibold') // Dark for errors
     }
 
     // Success/Important logs - dark brand color
     if (log.level === 'success' || message.includes('success') || message.includes('saved') || message.includes('completed')) {
-      return 'text-[#D64365] font-medium' // Dark brand pink
+      return 'text-primary-pressed font-medium' // Dark brand pink
     }
 
-    // Processing/Active logs - medium
+    // Processing/Active logs - dark (was medium)
     if (message.includes('analyzing') || message.includes('processing') || message.includes('tracking') || message.includes('discovered')) {
-      return 'text-[#FF6B82]' // Medium brand pink
+      return 'text-primary-pressed' // Darker brand pink
     }
 
-    // Info/Status logs - lighter
+    // Info/Status logs - medium (was lighter)
     if (message.includes('race condition') || message.includes('updated') || message.includes('detected')) {
-      return 'text-[#FF8395]' // Light brand pink
+      return 'text-primary-hover' // Medium brand pink
     }
 
-    // Default/Less important - lightest
-    return 'text-[#FFB3C0]' // Very light pink
+    // Default/Less important - medium (was lightest)
+    return 'text-primary' // Medium brand pink (was text-primary-light)
   }
 
 
   return (
-    <Card className="border-gray-200/50 bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl">
-      {title && (
-        <div className="px-2 py-1 border-b border-gray-200/30">
-          <h3 className="text-[10px] font-medium text-gray-600">{title}</h3>
+    <LogTerminalBase
+      title={title}
+      height={height}
+      fadeHeight={fadeHeight}
+      topFadeOpacity="from-black/2 via-black/1"
+      bottomFadeOpacity="from-black/2 via-black/1"
+      statusBadges={
+        <>
+          {isPaused && (
+            <div className="absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+              Paused
+            </div>
+          )}
+          {/* Live badge removed - subscription status not displayed */}
+        </>
+      }
+    >
+      {error ? (
+        <div className="flex items-center justify-center h-full p-4 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          {error}
+        </div>
+      ) : (
+        <div
+          ref={scrollAreaRef}
+          className="absolute inset-0 overflow-y-auto overflow-x-hidden"
+        >
+          <div className="py-2 px-2 font-mono text-xs space-y-0.5">
+            {filteredLogs.length === 0 ? (
+              <div className={cn("p-4 text-sm text-center", designSystem.typography.color.subtle)}>
+                {searchQuery || selectedLevel !== 'all'
+                  ? 'No logs match your filters'
+                  : 'No recent scraper activity. Check if the scraper is running.'}
+              </div>
+            ) : (
+              filteredLogs.map((log) => (
+              <div
+                key={log.id}
+                className={`flex items-start gap-2 py-1 px-2 rounded group hover:${designSystem.background.hover.neutral}/40 transition-colors`}
+              >
+                <div className="flex items-center gap-1.5 min-w-fit">
+                  <span className={cn("text-[10px]", designSystem.typography.color.disabled)} title={new Date(log.timestamp).toLocaleString()}>
+                    {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                  </span>
+                </div>
+
+                <div className="flex-1 break-all">
+                  <span className={getLogImportanceColor(log)}>
+                    {log.message || log.title}
+                  </span>
+                  {log.source && log.source !== 'scraper' && (
+                    <span className={cn("ml-2 text-[10px]", designSystem.typography.color.disabled)}>
+                      [{log.source}]
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+            )}
+          </div>
         </div>
       )}
-      <CardContent className="p-0">
-        {error ? (
-          <div className="p-4 text-sm text-red-600 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            {error}
-          </div>
-        ) : (
-          <div
-            ref={scrollAreaRef}
-            className="w-full overflow-y-auto overflow-x-hidden bg-gradient-to-b from-transparent to-gray-100/20"
-            style={{ height }}
-          >
-            <div className="p-2 font-mono text-xs space-y-0.5 backdrop-blur-sm">
-              {filteredLogs.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500 text-center">
-                  {searchQuery || selectedLevel !== 'all'
-                    ? 'No logs match your filters'
-                    : 'No recent scraper activity. Check if the scraper is running.'}
-                </div>
-              ) : (
-                filteredLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className={`flex items-start gap-2 py-1 px-2 rounded group hover:bg-gray-200/40 transition-colors`}
-                >
-                  <div className="flex items-center gap-1.5 min-w-fit">
-                    <span className="text-gray-400 text-[10px]" title={new Date(log.timestamp).toLocaleString()}>
-                      {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 break-all">
-                    <span className={getLogImportanceColor(log)}>
-                      {log.message || log.title}
-                    </span>
-                    {log.source && log.source !== 'scraper' && (
-                      <span className="ml-2 text-[10px] text-gray-400">
-                        [{log.source}]
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {isPaused && (
-          <div className="absolute top-12 right-4 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-            Paused
-          </div>
-        )}
-
-        {isSubscribed && (
-          <div className="absolute top-12 right-4 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-            Live
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </LogTerminalBase>
   )
 }
 

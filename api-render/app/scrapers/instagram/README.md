@@ -61,7 +61,7 @@
     "enabled": true,
     "interval_hours": 4,
     "runs_per_day": 6,
-    "next_run": "2024-01-29T16:00:00Z"
+    "next_run": "2025-10-07T20:00:00Z"
   },
   "batch_processing": {
     "creators_per_batch": 50,
@@ -161,18 +161,18 @@
 ```json
 {
   "recent_runs": [
-    {"time": "2024-01-29T12:00:00Z", "creators": 50, "posts": 589, "status": "SUCCESS"},
-    {"time": "2024-01-29T08:00:00Z", "creators": 50, "posts": 612, "status": "SUCCESS"},
-    {"time": "2024-01-29T04:00:00Z", "creators": 50, "posts": 578, "status": "SUCCESS"},
-    {"time": "2024-01-29T00:00:00Z", "creators": 50, "posts": 601, "status": "SUCCESS"}
+    {"time": "2025-10-07T12:00:00Z", "creators": 50, "posts": 589, "status": "SUCCESS"},
+    {"time": "2025-10-07T08:00:00Z", "creators": 50, "posts": 612, "status": "SUCCESS"},
+    {"time": "2025-10-07T04:00:00Z", "creators": 50, "posts": 578, "status": "SUCCESS"},
+    {"time": "2025-10-07T00:00:00Z", "creators": 50, "posts": 601, "status": "SUCCESS"}
   ],
   "issues": [
-    {"time": "2024-01-28T20:00:00Z", "error": "Rate limit", "resolved": true}
+    {"time": "2025-10-06T20:00:00Z", "error": "Rate limit", "resolved": true}
   ]
 }
 ```
 
 ---
 
-_Scraper Version: 2.0.0 | Status: Production | Updated: 2024-01-29_
+_Scraper Version: 2.1.0 | Status: Production | Updated: 2025-10-07_
 _Navigate: [← scrapers/](../README.md) | [→ services/](services/README.md)_

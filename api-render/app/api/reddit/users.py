@@ -5,15 +5,14 @@ Migrated from dashboard API to centralize Reddit access
 Uses the same proxy system as the Reddit scraper for reliability
 """
 
-import os
-import sys
 import random
-import asyncio
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 from supabase import Client
+
 
 # Flexible import that works both locally and in production
 try:
@@ -24,6 +23,7 @@ except ImportError:
 # Import database singleton and unified logger
 from app.core.database import get_db
 from app.logging import get_logger
+
 
 # Initialize router
 router = APIRouter(prefix="/api/reddit/users", tags=["reddit-users"])
@@ -81,7 +81,7 @@ async def get_proxy_configs() -> List[Dict[str, str]]:
         return []
 
 async def log_user_discovery(username: str, action: str, success: bool,
-                            details: Dict[str, Any] = None, error: str = None):
+                            details: Optional[Dict[str, Any]] = None, error: Optional[str] = None):
     """Log user discovery actions to Supabase"""
     try:
         # Prepare context with all relevant details
@@ -117,10 +117,9 @@ async def log_user_discovery(username: str, action: str, success: bool,
             'error': error,
             'source': 'api_user_discovery'
         }
-        try:
+        from contextlib import suppress
+        with suppress(Exception):
             _get_db().table('user_discovery_logs').insert(legacy_entry).execute()
-        except Exception:
-            pass  # Ignore errors on legacy table
 
         # Also log to Python logger
         if success:
@@ -174,7 +173,7 @@ async def fetch_reddit_data(url: str) -> Dict[str, Any]:
                         logger.error(f"Failed to update account metrics: {e}")
 
                 logger.info(f"Successfully fetched data from {url.split('/')[4] if len(url.split('/')) > 4 else 'Reddit'} with proxy {proxy_config['display_name']}")
-                return result
+                return result  # type: ignore[no-any-return]
 
         except Exception as e:
             last_error = str(e)
@@ -207,7 +206,7 @@ async def fetch_reddit_data(url: str) -> Dict[str, Any]:
                     raise Exception(f"Reddit API error: {result.get('error')}")
 
             logger.info(f"Successfully fetched data from {url.split('/')[4] if len(url.split('/')) > 4 else 'Reddit'} with direct connection")
-            return result
+            return result  # type: ignore[no-any-return]
     except Exception as e:
         last_error = str(e)
         logger.error(f"Direct connection failed: {last_error}")
@@ -282,8 +281,8 @@ async def discover_reddit_user(request: UserDiscoverRequest, background_tasks: B
 
         # Analyze posts for patterns
         content_types = {'image': 0, 'video': 0, 'text': 0, 'link': 0}
-        posting_hours = {}
-        posting_days = {}
+        posting_hours: dict[int, int] = {}
+        posting_days: dict[str, int] = {}
         total_score = 0
         total_comments = 0
 

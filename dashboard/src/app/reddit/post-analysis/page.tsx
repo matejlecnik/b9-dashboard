@@ -8,6 +8,8 @@ import { StandardPostCard } from '@/components/shared/StandardPostCard'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { usePostAnalysis } from '@/hooks/usePostAnalysis'
 import type { Post } from '@/types/post'
+import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 
 export default function PostAnalysisPage() {
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -79,7 +81,7 @@ export default function PostAnalysisPage() {
           {loading && posts.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-100 rounded-xl h-48 animate-pulse" />
+                <div key={i} className={`${designSystem.background.surface.light} ${designSystem.borders.radius.md} h-48 animate-pulse`} />
               ))}
             </div>
           ) : (
@@ -102,11 +104,11 @@ export default function PostAnalysisPage() {
                 <div ref={sentinelRef} className="h-20 flex items-center justify-center">
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
-                      <span className="ml-2 text-gray-500">Loading more posts...</span>
+                      <div className={`animate-spin ${designSystem.borders.radius.full} h-6 w-6 border-b-2 border-primary`}></div>
+                      <span className={cn("ml-2", designSystem.typography.color.subtle)}>Loading more posts...</span>
                     </>
                   ) : (
-                    <div className="text-gray-400">Scroll to load more</div>
+                    <div className={cn(designSystem.typography.color.disabled)}>Scroll to load more</div>
                   )}
                 </div>
               )}

@@ -271,6 +271,59 @@ class CodeQualityChecker:
             "skipped": True
         }
 
+    def check_design_system(self) -> Dict[str, Any]:
+        """Run design system compliance check"""
+        print("🎨 Checking Design System...")
+
+        # Run the design system checker
+        design_check_script = self.root / "docs" / "scripts" / "validation" / "design-system-check.py"
+
+        if not design_check_script.exists():
+            print("  ⚠️  Design system checker not found, skipping")
+            return self._empty_result("Design System")
+
+        code, stdout, stderr = self.run_command(
+            ["python3", str(design_check_script), "--json"],
+            cwd=self.root
+        )
+
+        errors = []
+
+        # Parse design system check results
+        try:
+            if stdout:
+                # Extract JSON from output (might have other text before it)
+                json_start = stdout.rfind('{')
+                if json_start >= 0:
+                    json_str = stdout[json_start:]
+                    design_results = json.loads(json_str)
+
+                    # Convert violations to errors
+                    for violation in design_results.get("violations", []):
+                        errors.append({
+                            "file": violation["file"],
+                            "line": violation["line"],
+                            "column": 0,
+                            "code": violation["rule"],
+                            "message": violation["message"]
+                        })
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+        result = {
+            "tool": "Design System",
+            "errors": errors,
+            "warnings": [],
+            "error_count": len(errors),
+            "warning_count": 0,
+            "passed": len(errors) == 0
+        }
+
+        status = "✅" if result["passed"] else "❌"
+        print(f"  {status} Design System: {len(errors)} violations")
+
+        return result
+
     def run_all_checks(self) -> Dict[str, Any]:
         """Run all quality checks"""
         print("=" * 60)
@@ -282,6 +335,7 @@ class CodeQualityChecker:
         self.results["checks"]["eslint"] = self.check_eslint()
         self.results["checks"]["ruff"] = self.check_ruff()
         self.results["checks"]["mypy"] = self.check_mypy()
+        self.results["checks"]["design_system"] = self.check_design_system()
 
         # Calculate summary
         for check_name, check_result in self.results["checks"].items():
@@ -299,7 +353,7 @@ class CodeQualityChecker:
 
         print(f"Total Errors:   {total_errors}")
         print(f"Total Warnings: {total_warnings}")
-        print(f"Checks Passed:  {len(self.results['summary']['passed'])}/4")
+        print(f"Checks Passed:  {len(self.results['summary']['passed'])}/5")
 
         # Overall status
         if total_errors == 0:
