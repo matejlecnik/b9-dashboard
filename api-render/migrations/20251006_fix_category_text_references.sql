@@ -55,6 +55,9 @@ $function$;
 -- =============================================
 -- This function was returning category_text in its result set
 -- Note: We're removing many deprecated columns from the return signature
+-- Must DROP first since we're changing the return type signature
+
+DROP FUNCTION IF EXISTS public.filter_subreddits_for_posting(text[], text, boolean, boolean, text, text, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.filter_subreddits_for_posting(
   tag_array text[] DEFAULT NULL::text[],

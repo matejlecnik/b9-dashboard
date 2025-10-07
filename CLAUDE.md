@@ -241,30 +241,43 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md        # Technical details
 ## Recent Activity Log
 
 ```diff
-+ 2025-10-06: Database Error Fix - category_text Column Migration ✅
-+ Fixed critical Supabase errors caused by stale database function references
-+ Files Updated: 1 SQL migration, 1 TypeScript file (2 files)
++ 2025-10-07: Database Error Fix Complete - category_text Migration Applied ✅
++ Successfully fixed critical Supabase errors caused by stale database function references
++ Files Updated: 1 SQL migration, 1 TypeScript file, apply_migration.py helper script (3 files)
 +
 + Root Cause Analysis:
 + - Migration 2025_01_reddit_fields_cleanup.sql removed category_text column from reddit_subreddits
 + - 3 database functions never updated, still referencing deleted column
-+ - Causing recurring "column category_text does not exist" errors in Postgres logs
++ - Causing recurring "column category_text does not exist" errors in Postgres logs (3 errors found)
 +
 + Database Functions Fixed (api-render/migrations/20251006_fix_category_text_references.sql):
-+ - get_top_categories_for_posts: category_text → primary_category
++ - get_top_categories_for_posts: category_text → primary_category (fixed table references)
 + - populate_post_subreddit_fields: category_text → primary_category, sub_category_text → sub_primary_category
-+ - filter_subreddits_for_posting: Removed category_text from return signature, cleaned deprecated columns
++ - filter_subreddits_for_posting: Added DROP statement, removed category_text from return signature
 +
 + Frontend Code Fixed (dashboard/src/app/api/admin/update-mirror-fields/route.ts):
 + - Updated 4 instances: sub_category_text → sub_primary_category (lines 41, 78, 109, 155)
 +
-+ Impact:
-+ - Eliminated 100% of category_text errors (3 errors found in logs)
-+ - Database trigger now uses correct column names
-+ - Frontend API route compatible with current schema
++ Migration Application Process:
++ - Initial attempt via mcp__supabase__apply_migration failed (read-only mode)
++ - Created apply_migration.py Python helper script for future migrations
++ - Successfully applied via Supabase Dashboard SQL Editor (manual, 2025-10-07 06:02:01 UTC)
++ - Required DROP FUNCTION fix due to return signature changes
 +
-+ Result: Zero database errors, all functions use current schema
-+ Validation: ✅ TypeScript 0 errors, ✅ SQL migration ready for deployment
++ Verification Results:
++ - ✅ All 3 functions verified using correct column names (pg_get_functiondef query)
++ - ✅ Postgres logs clean - zero category_text errors post-migration
++ - ✅ Frontend deployed via GitHub push (commit 418fcdc)
++ - ✅ TypeScript compilation: 0 errors
++
++ Impact:
++ - Eliminated 100% of category_text database errors
++ - Database trigger now uses correct column names for new post inserts
++ - Frontend API route fully compatible with current schema
++ - Created reusable migration tooling (apply_migration.py) for future schema changes
++
++ Result: Complete resolution - zero database errors, all functions and frontend use current schema
++ Validation: ✅ TypeScript 0 errors, ✅ SQL migration applied to production, ✅ Logs verified clean
 +
 + 2025-10-06: Log Terminals - Full Height Extension ✅
 + Extended log scroll areas to fill entire card from top to bottom edge
