@@ -1,5 +1,26 @@
 # Cloudflare R2 Storage Setup Guide
 
+┌─ DEPLOYMENT GUIDE ──────────────────────────────────────┐
+│ ● OPERATIONAL  │ ████████████████████ 100% COMPLETE     │
+│ Version: 2.1.0 │ Last Update: 2025-10-07                │
+└─────────────────────────────────────────────────────────┘
+
+## Navigation
+
+```json
+{
+  "parent": "../../docs/backend/RENDER_API_DEPLOYMENT.md",
+  "current": "R2_STORAGE_SETUP.md",
+  "siblings": [
+    {"path": "../README.md", "desc": "API README", "status": "ACTIVE"}
+  ],
+  "related": [
+    {"path": "../../docs/backend/API.md", "desc": "API documentation", "use": "REFERENCE"},
+    {"path": "../../docs/deployment/DEPLOYMENT.md", "desc": "Deployment guide", "use": "REFERENCE"}
+  ]
+}
+```
+
 ## Overview
 
 Permanent media storage system for Instagram profile pictures, videos, and photos using Cloudflare R2.
@@ -91,6 +112,33 @@ ENABLE_R2_STORAGE=true  # Set to 'true' to enable
 # Test R2 connection
 python3 -c "from app.core.config.r2_config import r2_config; print(r2_config.validate_config())"
 # Expected: (True, None)
+```
+
+### Configure on Render (Production)
+
+**Add environment variables in Render dashboard:**
+1. Go to https://dashboard.render.com/
+2. Select your service → Environment
+3. Add the following variables:
+
+```bash
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key-id
+R2_SECRET_ACCESS_KEY=your-secret-access-key
+R2_BUCKET_NAME=b9-instagram-media
+R2_PUBLIC_URL=https://42fed19201b741d13bb514ab3e2cbb48.r2.cloudflarestorage.com
+ENABLE_R2_STORAGE=true
+```
+
+4. Click "Save Changes" → automatic redeploy
+
+**Verify Deployment:**
+```bash
+# Check R2 module loaded
+curl https://your-app.onrender.com/health
+
+# Check scraper logs
+# Logs → should see "✅ R2 media storage loaded successfully"
 ```
 
 ---
@@ -282,11 +330,99 @@ ENABLE_R2_STORAGE=false
 
 ---
 
-## 9. Migration Guide
+## 9. CDN → R2 Migration
 
-### Backfill Existing Creators
+### Automated Migration (Recommended)
+
+**Use the migration API endpoint to migrate existing CDN URLs to R2:**
+
+```bash
+# Migrate all media types (10 items per batch)
+curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
+  -H "Authorization: Bearer your-cron-secret"
+
+# Migrate specific types:
+# Profile pictures only:
+curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=profile&batch_size=10" \
+  -H "Authorization: Bearer your-cron-secret"
+
+# Carousel posts only:
+curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=posts&batch_size=10" \
+  -H "Authorization: Bearer your-cron-secret"
+
+# Reels only:
+curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=reels&batch_size=10" \
+  -H "Authorization: Bearer your-cron-secret"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "CDN→R2 migration completed (type: all, batch: 10)",
+  "results": {
+    "success": true,
+    "total_time_seconds": 45.2,
+    "profile_pictures": {
+      "total": 10,
+      "migrated": 9,
+      "failed": 1,
+      "skipped": 0,
+      "success_rate": "90.0%"
+    },
+    "carousel_posts": {
+      "total": 10,
+      "migrated": 10,
+      "failed": 0,
+      "skipped": 0,
+      "success_rate": "100.0%"
+    },
+    "reels": {
+      "total": 10,
+      "migrated": 8,
+      "failed": 2,
+      "skipped": 0,
+      "success_rate": "80.0%"
+    },
+    "totals": {
+      "total": 30,
+      "migrated": 27,
+      "failed": 3,
+      "skipped": 0
+    }
+  }
+}
+```
+
+**Migration Features:**
+- ✅ **Idempotent:** Safe to run multiple times (skips existing R2 URLs)
+- ✅ **Batch processing:** Control batch size (1-50 items)
+- ✅ **Progress tracking:** Returns detailed statistics
+- ✅ **Error handling:** Continues on failures, reports errors
+- ✅ **Rate limiting:** 2-3s delay between items
+- ✅ **Database safety:** Only updates on successful upload
+
+**Full Migration Strategy:**
+```bash
+# 1. Start with small batch to test
+curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=5" \
+  -H "Authorization: Bearer your-cron-secret"
+
+# 2. Check results, verify R2 URLs in database
+
+# 3. Run larger batches until complete
+# Repeat until all CDN URLs migrated:
+for i in {1..100}; do
+  curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
+    -H "Authorization: Bearer your-cron-secret"
+  sleep 60  # Wait 1 minute between batches
+done
+```
+
+### Manual Migration (Alternative)
+
+**Re-scrape existing creators to populate R2:**
 ```python
-# Re-scrape existing creators to populate R2
 from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
 from app.core.database import get_db
 
@@ -306,7 +442,9 @@ for creator in creators.data:
 print(f"✅ Migrated {len(creators.data)} creators to R2")
 ```
 
-**Time estimate:** ~2 hours for 414 creators
+**Time estimates:**
+- API Migration: ~2 hours for 900 items (batch_size=10)
+- Re-scraping: ~2 hours for 400 creators
 
 ---
 

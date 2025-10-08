@@ -2,6 +2,7 @@
 Media Storage Utility for Cloudflare R2
 Handles downloading, compression, and permanent storage of Instagram media
 """
+
 import os
 import tempfile
 import time
@@ -25,13 +26,14 @@ logger = get_logger(__name__)
 
 class MediaStorageError(Exception):
     """Base exception for media storage errors"""
+
     pass
 
 
 class R2Client:
     """Cloudflare R2 storage client"""
 
-    _instance: Optional['R2Client'] = None
+    _instance: Optional["R2Client"] = None
     _client: Optional[boto3.client] = None
 
     def __new__(cls):
@@ -51,14 +53,13 @@ class R2Client:
 
             # Create S3-compatible client for R2
             self._client = boto3.client(
-                's3',
+                "s3",
                 endpoint_url=r2_config.get_endpoint_url(),
                 aws_access_key_id=r2_config.ACCESS_KEY_ID,
                 aws_secret_access_key=r2_config.SECRET_ACCESS_KEY,
                 config=Config(
-                    signature_version='s3v4',
-                    retries={'max_attempts': r2_config.MAX_RETRIES}
-                )
+                    signature_version="s3v4", retries={"max_attempts": r2_config.MAX_RETRIES}
+                ),
             )
 
             logger.info(f"✅ Connected to R2 bucket: {r2_config.BUCKET_NAME}")
@@ -112,11 +113,11 @@ def compress_image(image_data: bytes, target_size_kb: int = 300, quality: int = 
         img = Image.open(BytesIO(image_data))
 
         # Convert RGBA to RGB if needed (for JPEG)
-        if img.mode in ('RGBA', 'LA', 'P'):
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+        if img.mode in ("RGBA", "LA", "P"):
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode == "P":
+                img = img.convert("RGBA")
+            background.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
             img = background
 
         # Compress with decreasing quality until under target size
@@ -127,7 +128,7 @@ def compress_image(image_data: bytes, target_size_kb: int = 300, quality: int = 
             output.seek(0)
             output.truncate()
 
-            img.save(output, format='JPEG', quality=current_quality, optimize=True)
+            img.save(output, format="JPEG", quality=current_quality, optimize=True)
             size_kb = output.tell() / 1024
 
             if size_kb <= target_size_kb:
@@ -138,10 +139,11 @@ def compress_image(image_data: bytes, target_size_kb: int = 300, quality: int = 
         compressed_data = output.getvalue()
         original_size_kb = len(image_data) / 1024
         compressed_size_kb = len(compressed_data) / 1024
+        reduction_pct = ((original_size_kb - compressed_size_kb) / original_size_kb) * 100
 
-        logger.debug(
-            f"Image compressed: {original_size_kb:.1f}KB → {compressed_size_kb:.1f}KB "
-            f"(quality={current_quality})"
+        logger.info(
+            f"🗜️ Image compressed: {original_size_kb:.1f}KB → {compressed_size_kb:.1f}KB "
+            f"({reduction_pct:.0f}% reduction, quality={current_quality})"
         )
 
         return compressed_data
@@ -165,18 +167,20 @@ def compress_video(input_path: str, output_path: str, target_resolution: str = "
     try:
         # Get video info
         probe = ffmpeg.probe(input_path)
-        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-        width = int(video_info['width'])
-        height = int(video_info['height'])
+        video_info = next(s for s in probe["streams"] if s["codec_type"] == "video")
+        width = int(video_info["width"])
+        height = int(video_info["height"])
 
         # Calculate new dimensions (maintain aspect ratio)
         target_height = int(target_resolution)
+        logger.info(f"🗜️ Compressing video: {width}x{height} → target {target_resolution}p")
+
         if height > target_height:
             scale_factor = target_height / height
             new_width = int(width * scale_factor)
             new_height = target_height
 
-            # Make dimensions divisible by 2 (required by H.265)
+            # Make dimensions divisible by 2 (required by H.264)
             new_width = new_width if new_width % 2 == 0 else new_width - 1
             new_height = new_height if new_height % 2 == 0 else new_height - 1
         else:
@@ -187,24 +191,23 @@ def compress_video(input_path: str, output_path: str, target_resolution: str = "
         # Compress video (H.264 for maximum compatibility)
         # H.264 is required for QuickTime/Safari compatibility (H.265 not supported)
         (
-            ffmpeg
-            .input(input_path)
+            ffmpeg.input(input_path)
             .output(
                 output_path,
-                vcodec='libx264',  # H.264 for maximum compatibility
+                vcodec="libx264",  # H.264 for maximum compatibility
                 crf=23,  # Constant Rate Factor (lower = better quality, 23 is good balance)
-                preset='fast',  # Encoding speed
-                pix_fmt='yuv420p',  # Pixel format (REQUIRED for QuickTime/Safari)
-                vf=f'scale={new_width}:{new_height}',
-                acodec='aac',  # Audio codec
-                audio_bitrate='128k',
-                movflags='faststart'  # Enable streaming/progressive download
+                preset="fast",  # Encoding speed
+                pix_fmt="yuv420p",  # Pixel format (REQUIRED for QuickTime/Safari)
+                vf=f"scale={new_width}:{new_height}",
+                acodec="aac",  # Audio codec
+                audio_bitrate="128k",
+                movflags="faststart",  # Enable streaming/progressive download
             )
             .overwrite_output()
             .run(quiet=True, capture_stdout=True, capture_stderr=True)
         )
 
-        logger.debug(f"Video compressed: {width}x{height} → {new_width}x{new_height}")
+        logger.info(f"✅ Video compressed: {width}x{height} → {new_width}x{new_height}")
 
     except ffmpeg.Error as e:
         error_message = e.stderr.decode() if e.stderr else str(e)
@@ -216,8 +219,8 @@ def compress_video(input_path: str, output_path: str, target_resolution: str = "
 def upload_to_r2(
     file_data: bytes,
     object_key: str,
-    content_type: str = 'application/octet-stream',
-    metadata: Optional[dict] = None
+    content_type: str = "application/octet-stream",
+    metadata: Optional[dict] = None,
 ) -> str:
     """
     Upload file to R2
@@ -236,6 +239,9 @@ def upload_to_r2(
     """
     try:
         client = _r2_client.get_client()
+        file_size_kb = len(file_data) / 1024
+
+        logger.info(f"📤 Uploading to R2: {object_key} ({file_size_kb:.1f}KB)")
 
         # Upload with retries
         for attempt in range(r2_config.MAX_RETRIES):
@@ -245,12 +251,12 @@ def upload_to_r2(
                     Key=object_key,
                     Body=file_data,
                     ContentType=content_type,
-                    Metadata=metadata or {}
+                    Metadata=metadata or {},
                 )
 
                 # Generate public URL
                 public_url = f"{r2_config.PUBLIC_URL}/{object_key}"
-                logger.debug(f"✅ Uploaded to R2: {object_key}")
+                logger.info(f"✅ Uploaded to R2: {public_url}")
                 return public_url
 
             except ClientError:
@@ -260,14 +266,11 @@ def upload_to_r2(
                 raise
 
     except Exception as e:
-        raise MediaStorageError(f"Failed to upload to R2: {e}")
+        raise MediaStorageError(f"Failed to upload to R2: {e}") from e
 
 
 def process_and_upload_image(
-    cdn_url: str,
-    creator_id: str,
-    media_pk: str,
-    index: int = 0
+    cdn_url: str, creator_id: str, media_pk: str, index: int = 0
 ) -> Optional[str]:
     """
     Download, compress, and upload image to R2
@@ -290,14 +293,13 @@ def process_and_upload_image(
 
     try:
         # Download from CDN
-        logger.debug(f"Downloading image from CDN: {cdn_url[:80]}...")
+        logger.info("⬇️ Downloading image from Instagram CDN...")
         image_data = download_media(cdn_url)
+        logger.info(f"✅ Downloaded {len(image_data) / 1024:.1f}KB from CDN")
 
         # Compress
         compressed_data = compress_image(
-            image_data,
-            target_size_kb=r2_config.IMAGE_MAX_SIZE_KB,
-            quality=r2_config.IMAGE_QUALITY
+            image_data, target_size_kb=r2_config.IMAGE_MAX_SIZE_KB, quality=r2_config.IMAGE_QUALITY
         )
 
         # Generate object key: photos/YYYY/MM/creator_id/media_pk_index.jpg
@@ -311,12 +313,12 @@ def process_and_upload_image(
         r2_url = upload_to_r2(
             compressed_data,
             object_key,
-            content_type='image/jpeg',
+            content_type="image/jpeg",
             metadata={
-                'creator_id': creator_id,
-                'media_pk': media_pk,
-                'original_url': cdn_url[:200]  # Truncate long URLs
-            }
+                "creator_id": creator_id,
+                "media_pk": media_pk,
+                "original_url": cdn_url[:200],  # Truncate long URLs
+            },
         )
 
         return r2_url
@@ -326,10 +328,7 @@ def process_and_upload_image(
         raise
 
 
-def process_and_upload_profile_picture(
-    cdn_url: str,
-    creator_id: str
-) -> Optional[str]:
+def process_and_upload_profile_picture(cdn_url: str, creator_id: str) -> Optional[str]:
     """
     Download, compress, and upload profile picture to R2
 
@@ -349,14 +348,15 @@ def process_and_upload_profile_picture(
 
     try:
         # Download from CDN
-        logger.debug(f"Downloading profile picture from CDN for creator {creator_id}")
+        logger.info(f"⬇️ Downloading profile picture from Instagram CDN (creator: {creator_id})")
         image_data = download_media(cdn_url)
+        logger.info(f"✅ Downloaded {len(image_data) / 1024:.1f}KB from CDN")
 
         # Compress (smaller target for profile pics)
         compressed_data = compress_image(
             image_data,
             target_size_kb=200,  # Smaller target for profile pictures
-            quality=r2_config.IMAGE_QUALITY
+            quality=r2_config.IMAGE_QUALITY,
         )
 
         # Generate object key: profile_pictures/creator_id/profile.jpg
@@ -367,12 +367,12 @@ def process_and_upload_profile_picture(
         r2_url = upload_to_r2(
             compressed_data,
             object_key,
-            content_type='image/jpeg',
+            content_type="image/jpeg",
             metadata={
-                'creator_id': creator_id,
-                'type': 'profile_picture',
-                'original_url': cdn_url[:200]
-            }
+                "creator_id": creator_id,
+                "type": "profile_picture",
+                "original_url": cdn_url[:200],
+            },
         )
 
         logger.info(f"✅ Profile picture uploaded to R2 for creator {creator_id}")
@@ -383,11 +383,7 @@ def process_and_upload_profile_picture(
         raise
 
 
-def process_and_upload_video(
-    cdn_url: str,
-    creator_id: str,
-    media_pk: str
-) -> Optional[str]:
+def process_and_upload_video(cdn_url: str, creator_id: str, media_pk: str) -> Optional[str]:
     """
     Download, compress, and upload video to R2
 
@@ -411,49 +407,49 @@ def process_and_upload_video(
 
     try:
         # Download from CDN
-        logger.debug(f"Downloading video from CDN: {cdn_url[:80]}...")
+        logger.info("⬇️ Downloading video from Instagram CDN...")
         video_data = download_media(cdn_url, timeout=60)
+        logger.info(f"✅ Downloaded {len(video_data) / (1024 * 1024):.1f}MB from CDN")
 
         # Save to temp file for FFmpeg
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_in:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_in:
             temp_input = temp_in.name
             temp_in.write(video_data)
 
         # Compress video
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_out:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_out:
             temp_output = temp_out.name
 
         compress_video(temp_input, temp_output, r2_config.VIDEO_RESOLUTION)
 
         # Read compressed video
-        with open(temp_output, 'rb') as f:
+        with open(temp_output, "rb") as f:
             compressed_data = f.read()
 
         # Generate object key: videos/YYYY/MM/creator_id/media_pk.mp4
         now = datetime.now()
         object_key = (
-            f"{r2_config.VIDEOS_PREFIX}/{now.year}/{now.month:02d}/"
-            f"{creator_id}/{media_pk}.mp4"
+            f"{r2_config.VIDEOS_PREFIX}/{now.year}/{now.month:02d}/{creator_id}/{media_pk}.mp4"
         )
 
         # Upload to R2
         r2_url = upload_to_r2(
             compressed_data,
             object_key,
-            content_type='video/mp4',
+            content_type="video/mp4",
             metadata={
-                'creator_id': creator_id,
-                'media_pk': media_pk,
-                'original_url': cdn_url[:200]
-            }
+                "creator_id": creator_id,
+                "media_pk": media_pk,
+                "original_url": cdn_url[:200],
+            },
         )
 
         # Log compression ratio
         original_size_mb = len(video_data) / (1024 * 1024)
         compressed_size_mb = len(compressed_data) / (1024 * 1024)
         logger.info(
-            f"Video compressed: {original_size_mb:.1f}MB → {compressed_size_mb:.1f}MB "
-            f"({(1 - compressed_size_mb/original_size_mb)*100:.0f}% reduction)"
+            f"✅ Video compression complete: {original_size_mb:.1f}MB → {compressed_size_mb:.1f}MB "
+            f"({(1 - compressed_size_mb / original_size_mb) * 100:.0f}% reduction)"
         )
 
         return r2_url
