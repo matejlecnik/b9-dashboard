@@ -18,10 +18,13 @@ from botocore.exceptions import ClientError
 from PIL import Image
 
 from app.core.config.r2_config import r2_config
+from app.core.database.supabase_client import get_supabase_client
 from app.logging import get_logger
 
 
-logger = get_logger(__name__)
+# Get Supabase client for logging
+_supabase = get_supabase_client()
+logger = get_logger(__name__, supabase_client=_supabase, source="instagram_media_storage")
 
 
 class MediaStorageError(Exception):
@@ -45,24 +48,55 @@ class R2Client:
     def get_client(self) -> boto3.client:
         """Get or create R2 S3 client"""
         if self._client is None:
+            # Validate R2 configuration
+            is_valid, error_msg = r2_config.validate_config()
+            if not is_valid:
+                error = f"❌ R2 configuration invalid: {error_msg}"
+                logger.error(error, action="r2_init_failed")
+                raise MediaStorageError(error)
+
             if not r2_config.is_configured():
-                raise MediaStorageError(
-                    "R2 is not configured. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, "
-                    "R2_SECRET_ACCESS_KEY in .env"
+                error = (
+                    "❌ R2 credentials missing: Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, "
+                    "R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME"
+                )
+                logger.error(error, action="r2_init_failed")
+                raise MediaStorageError(error)
+
+            try:
+                # Create S3-compatible client for R2
+                self._client = boto3.client(
+                    "s3",
+                    endpoint_url=r2_config.get_endpoint_url(),
+                    aws_access_key_id=r2_config.ACCESS_KEY_ID,
+                    aws_secret_access_key=r2_config.SECRET_ACCESS_KEY,
+                    config=Config(
+                        signature_version="s3v4", retries={"max_attempts": r2_config.MAX_RETRIES}
+                    ),
                 )
 
-            # Create S3-compatible client for R2
-            self._client = boto3.client(
-                "s3",
-                endpoint_url=r2_config.get_endpoint_url(),
-                aws_access_key_id=r2_config.ACCESS_KEY_ID,
-                aws_secret_access_key=r2_config.SECRET_ACCESS_KEY,
-                config=Config(
-                    signature_version="s3v4", retries={"max_attempts": r2_config.MAX_RETRIES}
-                ),
-            )
+                # Test connection by listing buckets
+                self._client.head_bucket(Bucket=r2_config.BUCKET_NAME)
 
-            logger.info(f"✅ Connected to R2 bucket: {r2_config.BUCKET_NAME}")
+                logger.info(
+                    "✅ R2 Storage Connected Successfully",
+                    action="r2_init_success",
+                    context={
+                        "bucket": r2_config.BUCKET_NAME,
+                        "endpoint": r2_config.get_endpoint_url(),
+                        "account_id": r2_config.ACCOUNT_ID[:8] + "...",  # Partial for security
+                    },
+                )
+
+            except ClientError as e:
+                error_code = e.response.get("Error", {}).get("Code", "Unknown")
+                error = f"❌ R2 connection failed: {error_code} - {e!s}"
+                logger.error(error, action="r2_connection_failed", exc_info=True)
+                raise MediaStorageError(error) from e
+            except Exception as e:
+                error = f"❌ R2 initialization failed: {e!s}"
+                logger.error(error, action="r2_init_failed", exc_info=True)
+                raise MediaStorageError(error) from e
 
         return self._client
 

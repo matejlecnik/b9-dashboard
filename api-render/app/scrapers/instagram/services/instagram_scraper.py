@@ -13,18 +13,19 @@ import logging  # noqa: E402
 import sys  # noqa: E402
 
 
-# Configure logging FIRST before any imports
+# Configure basic console logging FIRST before any imports
+# This will be replaced with Supabase logging once imports are complete
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
     force=True,
 )
-logger = logging.getLogger(__name__)
-logger.info("=" * 60)
-logger.info(f"Instagram Unified Scraper v{SCRAPER_VERSION} - Module Loading")
-logger.info(f"Deployment Date: {DEPLOYMENT_DATE}")
-logger.info("=" * 60)
+_temp_logger = logging.getLogger(__name__)
+_temp_logger.info("=" * 60)
+_temp_logger.info(f"Instagram Unified Scraper v{SCRAPER_VERSION} - Module Loading")
+_temp_logger.info(f"Deployment Date: {DEPLOYMENT_DATE}")
+_temp_logger.info("=" * 60)
 
 import asyncio  # noqa: E402
 
@@ -44,21 +45,23 @@ try:
     from supabase import Client
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-    logger.info("✅ All external dependencies loaded successfully")
+    _temp_logger.info("✅ All external dependencies loaded successfully")
 except ImportError as e:
-    logger.error(f"❌ Failed to import dependency: {e}")
+    _temp_logger.error(f"❌ Failed to import dependency: {e}")
     raise
 
 try:
     from .instagram_config import Config
 
-    logger.info("✅ Config module loaded successfully")
+    _temp_logger.info("✅ Config module loaded successfully")
 except ImportError as e:
-    logger.error(f"❌ Failed to import Config: {e}")
+    _temp_logger.error(f"❌ Failed to import Config: {e}")
     raise
 
 try:
     from app.core.config.r2_config import r2_config
+    from app.core.database.supabase_client import get_supabase_client
+    from app.logging import get_logger
     from app.utils.media_storage import (
         MediaStorageError,
         process_and_upload_image,
@@ -66,16 +69,28 @@ try:
         process_and_upload_video,
     )
 
-    logger.info("✅ R2 media storage loaded successfully")
+    _temp_logger.info("✅ R2 media storage loaded successfully")
 except ImportError as e:
-    logger.warning(f"⚠️ R2 media storage not available: {e}")
-    process_and_upload_image = None
-    process_and_upload_video = None
-    r2_config = None
-    MediaStorageError = Exception
+    _temp_logger.error(f"❌ Failed to import dependencies: {e}")
+    raise
 
 # Load environment
 load_dotenv()
+
+# Initialize Supabase logger (replaces temp logger)
+try:
+    supabase_client = get_supabase_client()
+    logger = get_logger(__name__, supabase_client=supabase_client, source="instagram_scraper")
+    logger.info(
+        "🚀 Instagram Scraper Starting",
+        action="scraper_init",
+        context={"version": SCRAPER_VERSION, "deployment_date": DEPLOYMENT_DATE},
+    )
+except Exception as e:
+    # Fall back to temp logger if Supabase logging fails
+    _temp_logger.warning(f"⚠️ Supabase logging unavailable, using console only: {e}")
+    logger = _temp_logger
+
 logger.info("✅ Environment variables loaded")
 
 
@@ -1002,13 +1017,47 @@ class InstagramScraperUnified:
                             )
                             if r2_video_url:
                                 video_url = r2_video_url  # Use R2 URL instead of CDN
-                                logger.info(f"✅ Uploaded reel video to R2: {reel.get('pk')}")
+                                logger.info(
+                                    "✅ Uploaded reel video to R2",
+                                    action="r2_video_uploaded",
+                                    context={
+                                        "media_pk": str(reel.get("pk")),
+                                        "creator_id": str(creator_id),
+                                        "r2_url": r2_video_url[:80] + "...",
+                                    },
+                                )
                             else:
                                 logger.warning(
-                                    f"⚠️ R2 upload returned None for reel {reel.get('pk')}"
+                                    f"⚠️ R2 upload returned None for reel {reel.get('pk')}",
+                                    action="r2_upload_failed",
+                                    context={
+                                        "media_pk": str(reel.get("pk")),
+                                        "creator_id": str(creator_id),
+                                    },
                                 )
+                        except MediaStorageError as e:
+                            logger.error(
+                                "❌ R2 upload failed (MediaStorageError), using CDN URL",
+                                action="r2_upload_error",
+                                context={
+                                    "media_pk": str(reel.get("pk")),
+                                    "creator_id": str(creator_id),
+                                    "error": str(e),
+                                },
+                                exc_info=True,
+                            )
+                            # Continue with CDN URL on error
                         except Exception as e:
-                            logger.warning(f"Failed to upload reel video to R2, using CDN URL: {e}")
+                            logger.error(
+                                "❌ R2 upload failed (unexpected error), using CDN URL",
+                                action="r2_upload_error",
+                                context={
+                                    "media_pk": str(reel.get("pk")),
+                                    "creator_id": str(creator_id),
+                                    "error": str(e),
+                                },
+                                exc_info=True,
+                            )
                             # Continue with CDN URL on error
 
                 row = {
