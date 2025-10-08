@@ -33,10 +33,11 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=10000 \
     ENVIRONMENT=production
 
-# Install runtime dependencies
+# Install runtime dependencies including FFmpeg for video compression
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
