@@ -1077,8 +1077,6 @@ class InstagramScraperUnified:
                             if r2_image_urls:
                                 image_urls = r2_image_urls
                                 logger.info(f"✅ Uploaded {len(r2_image_urls)} carousel photos to R2: {post.get('pk')}")
-                            else:
-                                logger.warning(f"⚠️ No R2 URLs generated for carousel {post.get('pk')}")
 
                 elif post.get("media_type") == 2 or post.get("product_type") == "clips":
                     post_type = "video"
