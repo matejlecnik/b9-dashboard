@@ -477,17 +477,24 @@ class InstagramScraperUnified:
                 max_id = paging.get("max_id")
 
             except APIError as e:
-                # Handle timeout specifically
+                # Handle timeout specifically - return partial results instead of breaking
                 if "timeout" in str(e).lower():
                     logger.warning(
-                        f"Request timeout for reels (creator {user_id} - Instagram may be rate-limiting): {e}"
+                        f"Request timeout for reels (creator {user_id} - Instagram may be rate-limiting): {e}. "
+                        f"Returning {len(reels)} reels collected so far."
                     )
                 else:
-                    logger.error(f"API error fetching reels page: {e}")
-                break
+                    logger.error(
+                        f"API error fetching reels page: {e}. Returning {len(reels)} reels collected so far."
+                    )
+                # Return what we have instead of breaking completely
+                return reels[:total_to_fetch]
             except Exception as e:
-                logger.error(f"Failed to fetch reels page: {e}")
-                break
+                logger.error(
+                    f"Failed to fetch reels page: {e}. Returning {len(reels)} reels collected so far."
+                )
+                # Return what we have instead of breaking completely
+                return reels[:total_to_fetch]
 
         return reels[:total_to_fetch]
 
@@ -530,9 +537,25 @@ class InstagramScraperUnified:
 
                 max_id = paging.get("max_id")
 
+            except APIError as e:
+                # Handle timeout specifically - return partial results instead of breaking
+                if "timeout" in str(e).lower():
+                    logger.warning(
+                        f"Request timeout for posts (creator {user_id} - Instagram may be rate-limiting): {e}. "
+                        f"Returning {len(posts)} posts collected so far."
+                    )
+                else:
+                    logger.error(
+                        f"API error fetching posts page: {e}. Returning {len(posts)} posts collected so far."
+                    )
+                # Return what we have instead of breaking completely
+                return posts[:total_to_fetch]
             except Exception as e:
-                logger.error(f"Failed to fetch posts page: {e}")
-                break
+                logger.error(
+                    f"Failed to fetch posts page: {e}. Returning {len(posts)} posts collected so far."
+                )
+                # Return what we have instead of breaking completely
+                return posts[:total_to_fetch]
 
         return posts[:total_to_fetch]
 
@@ -1010,6 +1033,10 @@ class InstagramScraperUnified:
 
                     if r2_config and r2_config.ENABLED and process_and_upload_video and video_url:
                         try:
+                            logger.info(
+                                f"📤 Starting R2 upload for reel {reel.get('pk')} (creator: {creator_id})",
+                                action="r2_upload_start",
+                            )
                             r2_video_url = process_and_upload_video(
                                 cdn_url=video_url,
                                 creator_id=str(creator_id),
@@ -1037,7 +1064,7 @@ class InstagramScraperUnified:
                                 )
                         except MediaStorageError as e:
                             logger.error(
-                                "❌ R2 upload failed (MediaStorageError), using CDN URL",
+                                "❌ R2 upload failed (MediaStorageError), using CDN URL - continuing with CDN",
                                 action="r2_upload_error",
                                 context={
                                     "media_pk": str(reel.get("pk")),
@@ -1046,11 +1073,10 @@ class InstagramScraperUnified:
                                 },
                                 exc_info=True,
                             )
-                            # Continue with CDN URL on error
                         except Exception as e:
                             logger.error(
-                                "❌ R2 upload failed (unexpected error), using CDN URL",
-                                action="r2_upload_error",
+                                "❌ R2 upload failed (unexpected error), using CDN URL - continuing with CDN",
+                                action="r2_upload_exception",
                                 context={
                                     "media_pk": str(reel.get("pk")),
                                     "creator_id": str(creator_id),
@@ -1659,13 +1685,40 @@ class InstagramScraperUnified:
             )
             posts = self._fetch_posts(creator_id, posts_to_fetch)
 
-            # Store content with niche information
-            reels_saved, reels_new, reels_existing = self._store_reels(
-                creator_id, username, reels, creator_niche
-            )
-            posts_saved, posts_new, posts_existing = self._store_posts(
-                creator_id, username, posts, creator_niche
-            )
+            # Store content with niche information (guaranteed with error handling)
+            reels_saved, reels_new, reels_existing = 0, 0, 0
+            posts_saved, posts_new, posts_existing = 0, 0, 0
+
+            try:
+                logger.info(
+                    f"💾 [{thread_id}] Saving {len(reels)} reels to database for {username}"
+                )
+                reels_saved, reels_new, reels_existing = self._store_reels(
+                    creator_id, username, reels, creator_niche
+                )
+                logger.info(
+                    f"✅ [{thread_id}] Saved {reels_saved} reels ({reels_new} new, {reels_existing} existing)"
+                )
+            except Exception as e:
+                logger.error(
+                    f"❌ [{thread_id}] Failed to save reels for {username}: {e}", exc_info=True
+                )
+
+            try:
+                logger.info(
+                    f"💾 [{thread_id}] Saving {len(posts)} posts to database for {username}"
+                )
+                posts_saved, posts_new, posts_existing = self._store_posts(
+                    creator_id, username, posts, creator_niche
+                )
+                logger.info(
+                    f"✅ [{thread_id}] Saved {posts_saved} posts ({posts_new} new, {posts_existing} existing)"
+                )
+            except Exception as e:
+                logger.error(
+                    f"❌ [{thread_id}] Failed to save posts for {username}: {e}", exc_info=True
+                )
+
             total_saved = reels_saved + posts_saved
             total_new = reels_new + posts_new
 
@@ -1770,13 +1823,17 @@ class InstagramScraperUnified:
         def process_creator_thread(creator_data):
             """Thread function to process a single creator"""
             username = creator_data.get("username", "Unknown")
+            thread_name = threading.current_thread().name
             try:
+                logger.info(f"🏁 [{thread_name}] Thread started for creator {username}")
                 # Process the creator
                 self.process_creator(creator_data)
-                logger.info(f"✅ Creator {username} processed successfully")
+                logger.info(f"✅ [{thread_name}] Creator {username} processed successfully")
             except Exception as e:
-                logger.error(f"❌ Creator {username} failed: {e}")
+                logger.error(f"❌ [{thread_name}] Creator {username} failed: {e}", exc_info=True)
                 self.errors.append({"creator": username, "error": str(e)})
+            finally:
+                logger.info(f"🏁 [{thread_name}] Thread completed for creator {username}")
 
         # Create and start threads with concurrency limit
         for i, creator in enumerate(creators):
@@ -1808,14 +1865,20 @@ class InstagramScraperUnified:
             # Small delay to avoid thundering herd
             time.sleep(0.05)
 
-        # Wait for all threads to complete (with stop check)
+        # Wait for all threads to complete (with stop check and timeout)
+        thread_timeout = 300  # 5 minutes max per thread
         for thread in threads:
             if thread.is_alive():
-                # Give threads 5 seconds to complete if stop requested
-                timeout = 5.0 if not self.should_continue() else None
+                # Give threads 5 seconds to complete if stop requested, otherwise 5 minutes max
+                timeout = 5.0 if not self.should_continue() else thread_timeout
                 thread.join(timeout=timeout)
-                if thread.is_alive() and not self.should_continue():
-                    logger.warning(f"Thread {thread.name} still running after stop requested")
+                if thread.is_alive():
+                    if not self.should_continue():
+                        logger.warning(f"Thread {thread.name} still running after stop requested")
+                    else:
+                        logger.error(
+                            f"⚠️ Thread {thread.name} timed out after {thread_timeout}s - may be stuck in R2 upload or API call"
+                        )
 
         # Log completion
         successful_count = self.creators_processed

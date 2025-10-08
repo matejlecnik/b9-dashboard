@@ -64,14 +64,17 @@ class R2Client:
                 raise MediaStorageError(error)
 
             try:
-                # Create S3-compatible client for R2
+                # Create S3-compatible client for R2 with timeout configuration
                 self._client = boto3.client(
                     "s3",
                     endpoint_url=r2_config.get_endpoint_url(),
                     aws_access_key_id=r2_config.ACCESS_KEY_ID,
                     aws_secret_access_key=r2_config.SECRET_ACCESS_KEY,
                     config=Config(
-                        signature_version="s3v4", retries={"max_attempts": r2_config.MAX_RETRIES}
+                        signature_version="s3v4",
+                        retries={"max_attempts": r2_config.MAX_RETRIES},
+                        connect_timeout=30,  # 30 second connection timeout
+                        read_timeout=r2_config.UPLOAD_TIMEOUT_SECONDS,  # 5 minute upload timeout
                     ),
                 )
 
@@ -105,13 +108,13 @@ class R2Client:
 _r2_client = R2Client()
 
 
-def download_media(url: str, timeout: int = 30) -> bytes:
+def download_media(url: str, timeout: int = 60) -> bytes:
     """
-    Download media from URL
+    Download media from URL with timeout protection
 
     Args:
         url: Media URL (Instagram CDN)
-        timeout: Request timeout
+        timeout: Request timeout in seconds (default 60s for large videos)
 
     Returns:
         Raw media bytes
@@ -120,9 +123,14 @@ def download_media(url: str, timeout: int = 30) -> bytes:
         MediaStorageError: If download fails
     """
     try:
+        logger.debug(f"⬇️ Downloading media from {url[:80]}... (timeout: {timeout}s)")
         response = requests.get(url, timeout=timeout, stream=True)
         response.raise_for_status()
-        return response.content
+        content = response.content
+        logger.debug(f"✅ Downloaded {len(content) / (1024 * 1024):.1f}MB")
+        return content
+    except requests.Timeout as e:
+        raise MediaStorageError(f"Download timeout after {timeout}s for {url[:80]}...") from e
     except requests.RequestException as e:
         raise MediaStorageError(f"Failed to download media from {url[:80]}...: {e}") from e
 
