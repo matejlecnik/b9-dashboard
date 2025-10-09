@@ -93,7 +93,7 @@ export function createLazyComponent<T extends React.ComponentType<unknown>>(
 /**
  * Default loading component for lazy loaded components
  */
-export const DEFAULT_LOADING_COMPONENT = `animate-pulse h-96 ${designSystem.background.surface.light} rounded-lg`
+export const DEFAULT_LOADING_COMPONENT = `animate-pulse h-96 ${designSystem.background.surface.light} ${designSystem.borders.radius.sm}`
 
 /**
  * Webpack optimization plugins for better tree-shaking

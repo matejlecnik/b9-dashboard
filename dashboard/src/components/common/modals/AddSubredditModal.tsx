@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Plus, X, AlertCircle, Loader2 } from 'lucide-react'
 import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -131,31 +132,48 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
         <div
           className={`relative w-full max-w-md max-h-[70vh] overflow-hidden ${designSystem.borders.radius.xl}`}
           style={{
-            background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 246, 0.92))',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04)'
+            background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+            backdropFilter: 'blur(20px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+            border: '1px solid var(--slate-400-alpha-60)',
+            boxShadow: '0 20px 50px var(--black-alpha-12), 0 1px 0 var(--white-alpha-60) inset, 0 -1px 0 var(--black-alpha-02) inset'
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50/30 to-purple-50/30">
+          <div className="relative px-5 py-3 border-b border-default">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className={`p-1.5 ${designSystem.borders.radius.sm} bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-sm`}>
-                  <Plus className="h-4 w-4 text-pink-500" />
+                <div
+                  className="p-2 rounded-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                    border: '1px solid var(--pink-600)',
+                    boxShadow: '0 8px 32px var(--pink-alpha-40)'
+                  }}
+                >
+                  <Plus className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                  <h2 className={cn(
+                    "text-sm font-semibold font-mac-display",
+                    designSystem.typography.color.primary
+                  )}>
                     Add New Subreddit
                   </h2>
-                  <p className="text-[10px] text-gray-500">Fetches data from Reddit automatically</p>
+                  <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
+                    Fetches data from Reddit automatically
+                  </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className={`p-1 ${designSystem.borders.radius.sm} hover:bg-pink-100/50 transition-colors`}
+                className={cn(
+                  `p-1 ${designSystem.borders.radius.sm}`,
+                  "hover:bg-gray-200/50 transition-colors"
+                )}
                 disabled={loading}
               >
                 <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
@@ -164,11 +182,11 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
           </div>
 
           {/* Content */}
-          <div className="px-5 py-3 overflow-y-auto max-h-[calc(70vh-140px)]">
-            <div className="space-y-4">
+          <div className="px-5 py-4 overflow-y-auto max-h-[calc(70vh-140px)]">
+            <div className="space-y-5">
               {/* Subreddit Name Input */}
-              <div className="space-y-1.5">
-                <Label htmlFor="subreddit-name" className="text-xs text-gray-700">
+              <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+                <Label htmlFor="subreddit-name" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
                   Subreddit Name
                 </Label>
                 <Input
@@ -179,17 +197,25 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
                   onChange={(e) => setSubredditName(e.target.value)}
                   onKeyPress={handleKeyPress}
                   disabled={loading}
-                  className="w-full h-8 text-sm border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                  className={cn(
+                    "w-full h-9 text-sm font-mac-text",
+                    "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+                    "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                    "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                    "hover:border-gray-300/60",
+                    "transition-all duration-200",
+                    "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+                  )}
                   autoFocus
                 />
-                <p className="text-[10px] text-gray-500">
+                <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
                   Enter the subreddit name with or without the r/ prefix
                 </p>
               </div>
 
               {/* Review Status Selection */}
-              <div className="space-y-1.5">
-                <Label htmlFor="review-status" className="text-xs text-gray-700">
+              <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+                <Label htmlFor="review-status" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
                   Review Status
                 </Label>
                 <Select
@@ -197,35 +223,79 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
                   onValueChange={setReviewStatus}
                   disabled={loading}
                 >
-                  <SelectTrigger id="review-status" className="w-full h-8 text-sm border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                  <SelectTrigger
+                    id="review-status"
+                    className={cn(
+                      "w-full h-9 text-sm font-mac-text",
+                      "border border-gray-200/60 bg-gray-50/30 backdrop-blur-sm",
+                      "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                      "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                      "hover:border-gray-300/60 hover:bg-gray-50/40",
+                      "transition-all duration-200",
+                      "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+                    )}
+                  >
                     <SelectValue placeholder="Select review status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unreviewed">Unreviewed</SelectItem>
-                    <SelectItem value="ok">Ok</SelectItem>
-                    <SelectItem value="no_seller">No Seller</SelectItem>
-                    <SelectItem value="non_related">Non Related</SelectItem>
+                  <SelectContent
+                    className={cn(
+                      "bg-gradient-to-br from-gray-100/70 to-gray-200/60",
+                      "backdrop-blur-xl backdrop-saturate-150",
+                      "border border-gray-300/30",
+                      "shadow-lg"
+                    )}
+                  >
+                    <SelectItem
+                      value="unreviewed"
+                      className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text"
+                    >
+                      Unreviewed
+                    </SelectItem>
+                    <SelectItem
+                      value="ok"
+                      className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text"
+                    >
+                      Ok
+                    </SelectItem>
+                    <SelectItem
+                      value="no_seller"
+                      className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text"
+                    >
+                      No Seller
+                    </SelectItem>
+                    <SelectItem
+                      value="non_related"
+                      className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text"
+                    >
+                      Non Related
+                    </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-gray-500">
+                <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
                   Set the initial review status for this subreddit
                 </p>
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className={`flex items-start gap-2 p-2.5 ${designSystem.borders.radius.sm} bg-gradient-to-r from-red-50 to-pink-50 border border-red-200`}>
+                <div className={cn(
+                  `flex items-start gap-2 p-2.5 ${designSystem.borders.radius.sm}`,
+                  "bg-red-50/80 border border-red-200"
+                )}>
                   <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-red-600">{error}</p>
+                  <p className={cn("text-xs font-mac-text text-red-600")}>{error}</p>
                 </div>
               )}
 
               {/* Loading State */}
               {loading && (
-                <div className={`p-3 ${designSystem.borders.radius.sm} bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border border-pink-200/50`}>
+                <div className={cn(
+                  `p-3 ${designSystem.borders.radius.sm}`,
+                  "bg-primary/5 border border-primary/20"
+                )}>
                   <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-pink-500" />
-                    <p className="text-xs font-medium bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <p className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.primary)}>
                       Fetching subreddit data from Reddit...
                     </p>
                   </div>
@@ -235,33 +305,63 @@ export function AddSubredditModal({ isOpen, onClose, onSuccess }: AddSubredditMo
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-gray-200 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
+          <div className="px-5 py-3 border-t border-default">
             <div className="flex items-center justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={onClose}
                 disabled={loading}
-                className="text-xs h-7 px-3 border-pink-200 hover:bg-pink-50 hover:border-pink-300"
+                className={cn(
+                  "text-xs h-8 px-4 font-mac-text",
+                  "bg-white/60 backdrop-blur-sm",
+                  "border border-gray-200/60",
+                  "hover:bg-white/80 hover:border-gray-300/60",
+                  "shadow-sm hover:shadow",
+                  "transition-all duration-200"
+                )}
               >
                 Cancel
               </Button>
-              <Button
+              <button
                 onClick={handleSubmit}
                 disabled={loading || !subredditName.trim()}
-                className="text-xs h-7 px-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
+                className={cn(
+                  "text-xs h-8 px-4 font-mac-text font-medium",
+                  "rounded-lg transition-all duration-200",
+                  "flex items-center justify-center gap-1.5",
+                  "disabled:opacity-40 disabled:cursor-not-allowed"
+                )}
+                style={{
+                  background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid var(--pink-600)',
+                  boxShadow: '0 8px 32px var(--pink-alpha-40)',
+                  color: 'var(--pink-600)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && subredditName.trim()) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 131, 149, 0.7) 0%, var(--pink-alpha-50) 100%)'
+                    e.currentTarget.style.boxShadow = '0 12px 40px var(--pink-alpha-50)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)'
+                  e.currentTarget.style.boxShadow = '0 8px 32px var(--pink-alpha-40)'
+                }}
               >
                 {loading ? (
                   <>
-                    <div className={`animate-spin ${designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5`} />
+                    <div className={`animate-spin ${designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-current mr-1.5`} />
                     Adding...
                   </>
                 ) : (
                   <>
-                    <Plus className="h-3 w-3 mr-1.5" />
+                    <Plus className="h-3 w-3" />
                     Add Subreddit
                   </>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

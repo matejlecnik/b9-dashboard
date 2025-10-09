@@ -238,7 +238,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
           designSystem.typography.color.disabled,
           `hover:${designSystem.typography.color.tertiary}`,
           'focus:outline-none focus:ring-2 focus:ring-b9-pink/50',
-          'rounded-lg p-1'
+          `${designSystem.borders.radius.sm} p-1`
         )}
         aria-label="Dismiss"
       >

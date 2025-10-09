@@ -12,7 +12,7 @@
   "current": "backend/INSTAGRAM_AI_TAGGING.md",
   "related": [
     {"path": "../database/SUPABASE_SCHEMA.md", "desc": "Database schema", "status": "ACTIVE"},
-    {"path": "../../api-render/app/services/tags/TAG_CATEGORIES.md", "desc": "Tag system", "status": "ACTIVE"},
+    {"path": "../../backend/app/services/tags/TAG_CATEGORIES.md", "desc": "Tag system", "status": "ACTIVE"},
     {"path": "../../ROADMAP.md", "desc": "Roadmap Phase 7", "status": "ACTIVE"}
   ]
 }

@@ -12,7 +12,6 @@ export { PerformanceProfiler } from './PerformanceProfiler'
 export { AICategorizationModal } from './ai/AICategorizationModal'
 
 // Monitoring features
-export { ApiActivityLog } from './monitoring/ApiActivityLog'
 export { DatabasePerformancePanel } from './monitoring/DatabasePerformancePanel'
 export { JobQueueDashboard } from './monitoring/JobQueueDashboard'
 export { LogViewerSupabase } from './monitoring/LogViewerSupabase'

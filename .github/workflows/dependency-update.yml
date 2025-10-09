@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./api-render
+        working-directory: ./backend
 
     steps:
       - name: 📥 Checkout code
@@ -122,7 +122,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: api-render/requirements.txt
+          cache-dependency-path: backend/requirements.txt
 
       - name: 📦 Install dependencies
         run: |
@@ -184,7 +184,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-security-report
-          path: api-render/safety-report.json
+          path: backend/safety-report.json
         continue-on-error: true
 
   create-pr:

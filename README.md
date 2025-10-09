@@ -13,7 +13,7 @@
   "children": [
     {"path": "CLAUDE.md", "desc": "Mission control dashboard", "status": "ACTIVE"},
     {"path": "dashboard/README.md", "desc": "Frontend application", "status": "ACTIVE"},
-    {"path": "api-render/README.md", "desc": "Backend API", "status": "LIVE"},
+    {"path": "backend/README.md", "desc": "Backend API", "status": "LIVE"},
     {"path": "ROADMAP.md", "desc": "Strategic roadmap", "status": "ACTIVE"}
   ],
   "related": [
@@ -41,7 +41,7 @@
   },
   "infrastructure": {
     "frontend": "Vercel",
-    "backend": "Render",
+    "backend": "Hetzner Cloud (€30/mo, 3 servers)",
     "database": "Supabase",
     "monitoring": "Internal"
   }
@@ -62,7 +62,7 @@ $ cp .env.example .env.local
 $ npm run dev                    # → http://localhost:3000
 
 ## Backend Setup (if needed)
-$ cd ../api-render
+$ cd ../backend
 $ pip3 install -r requirements.txt
 $ cp .env.example .env
 $ python3 main.py               # → http://localhost:8000
@@ -80,7 +80,7 @@ $ python3 main.py               # → http://localhost:8000
   "backend": {
     "python": ">=3.12",
     "framework": "FastAPI",
-    "deployment": "Render"
+    "deployment": "Hetzner Cloud (Docker)"
   },
   "database": {
     "provider": "Supabase",
@@ -94,7 +94,7 @@ $ python3 main.py               # → http://localhost:8000
 ```
 b9_dashboard/
 ├── dashboard/        [FRONTEND]  Next.js 15 app
-├── api-render/       [BACKEND]   FastAPI service
+├── backend/          [BACKEND]   FastAPI service
 ├── docs/            [DOCS]      Documentation
 └── CLAUDE.md        [HUB]       Control center
 
@@ -125,7 +125,7 @@ Status Legend:
     "status": "PRODUCTION",
     "endpoints": 36,
     "security": "JWT + Rate Limiting",
-    "deployment": "api-render.onrender.com"
+    "deployment": "hetzner_cloud_3_servers"
   }
 }
 ```
@@ -143,8 +143,8 @@ $ npm run lint               # Code quality
 $ npm run typecheck          # Type validation
 
 ## API Tasks
-$ cd api-render && python3 main.py    # Start API
-$ cd api-render && pytest              # Run tests
+$ cd backend && python3 main.py    # Start API
+$ cd backend && pytest              # Run tests
 
 ## Documentation
 $ open docs/development/DOCUMENTATION_MAP.md  # Find any doc
@@ -172,11 +172,12 @@ BUNDLE SIZE  [██████████░░░░░░░░░░] 1.8M
 ## Recent Updates
 
 ```diff
++ Hetzner Cloud deployment (€30/mo, 94.7% cost savings vs Render)
++ Redis job queue architecture (1 API + 2 Workers)
 + Terminal documentation style implemented
-+ api-render 100% documented and cleaned
++ backend 100% documented and cleaned
 + All print statements removed
 + Production logging configured
-- Redis dependency removed
 ```
 
 ## Execution Plan
@@ -218,4 +219,4 @@ BUNDLE SIZE  [██████████░░░░░░░░░░] 1.8M
 ---
 
 _Version: 3.2.0 | Environment: Production | Updated: 2024-01-28_
-_Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ Dashboard](dashboard/README.md) | [→ API](api-render/README.md)_
+_Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ Dashboard](dashboard/README.md) | [→ API](backend/README.md)_

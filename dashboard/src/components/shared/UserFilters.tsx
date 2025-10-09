@@ -89,7 +89,7 @@ const UserFilters = memo(function UserFilters({
               onClick={() => onFilterChange(filter.id)}
               disabled={loading}
               className={cn(
-                "px-2.5 py-1.5 h-8 rounded-lg font-medium text-xs border font-mac-text",
+                `px-2.5 py-1.5 h-8 ${designSystem.borders.radius.sm} font-medium text-xs border font-mac-text`,
                 "focus:outline-none focus:ring-1 focus:ring-b9-pink",
                 designSystem.transitions.default,
                 isActive ? "text-white border-white/10" : `${designSystem.typography.color.secondary} border-black/8 hover:${designSystem.background.hover.subtle}/90`

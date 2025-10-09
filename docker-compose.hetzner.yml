@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: b9-api
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # RapidAPI
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+
+      # Cloudflare R2
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - ENABLE_R2_STORAGE=true
+
+      # Server Config
+      - PORT=10000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+
+      # Redis Queue (for worker coordination)
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - /app/b9dashboard/logs:/app/logs
+    networks:
+      - b9-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  b9-network:
+    driver: bridge

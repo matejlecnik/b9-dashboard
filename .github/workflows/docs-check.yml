@@ -69,7 +69,7 @@ jobs:
           echo "| Directory | Count |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| /docs | $(find docs -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
-          echo "| /api-render | $(find api-render -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| /backend | $(find backend -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "| /dashboard | $(find dashboard -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "| Root | $(find . -maxdepth 1 -name "*.md" | wc -l) |" >> $GITHUB_STEP_SUMMARY
 
@@ -152,10 +152,10 @@ jobs:
           fi
 
           # Check API documentation
-          if [ -f "api-render/README.md" ]; then
-            echo "| /api-render/README.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+          if [ -f "backend/README.md" ]; then
+            echo "| /backend/README.md | ✅ Present |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| /api-render/README.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            echo "| /backend/README.md | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Dashboard documentation
@@ -169,7 +169,7 @@ jobs:
           echo "#### Module Documentation" >> $GITHUB_STEP_SUMMARY
 
           # Check for READMEs in important directories
-          for dir in "api-render/app" "api-render/scrapers" "dashboard/src" "docs"; do
+          for dir in "backend/app" "backend/scrapers" "dashboard/src" "docs"; do
             if [ -d "$dir" ]; then
               README_COUNT=$(find "$dir" -name "README.md" | wc -l)
               echo "| $dir | $README_COUNT README files |" >> $GITHUB_STEP_SUMMARY

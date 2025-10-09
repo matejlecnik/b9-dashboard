@@ -1,3 +1,5 @@
+import { designSystem } from '@/lib/design-system'
+
 export const UNIFIED_TOOLBAR_STYLES = {
   // Main container style - standardized across all toolbars
   container: {
@@ -75,7 +77,7 @@ export const B9_GRADIENTS = {
 // Standard spacing and sizing
 export const TOOLBAR_DIMENSIONS = {
   padding: 'p-4',
-  borderRadius: 'rounded-xl',
+  borderRadius: designSystem.borders.radius.md,
   searchMaxWidth: 'lg:max-w-[45%]',
   buttonHeight: 'h-auto',
   buttonPadding: 'px-4 py-3'

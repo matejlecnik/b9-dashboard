@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./api-render
+        working-directory: ./backend
 
     steps:
       - name: 📥 Checkout code
@@ -74,7 +74,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-          cache-dependency-path: api-render/requirements.txt
+          cache-dependency-path: backend/requirements.txt
 
       - name: 📦 Install dependencies
         run: |
@@ -146,8 +146,8 @@ jobs:
 
       - name: 🏗️ Build Docker image (API)
         run: |
-          if [ -f "api-render/Dockerfile" ]; then
-            docker build -t b9-api:test ./api-render
+          if [ -f "Dockerfile" ]; then
+            docker build -t b9-api:test -f Dockerfile .
             echo "✅ API Docker image built successfully"
           else
             echo "No Dockerfile found for API"

@@ -14,7 +14,7 @@
     {"path": "ARCHITECTURE.md", "desc": "System design", "status": "STABLE"},
     {"path": "API.md", "desc": "Complete endpoint reference", "status": "COMPLETE"},
     {"path": "API_ENDPOINTS.md", "desc": "Endpoint details", "status": "UPDATED"},
-    {"path": "DEPLOYMENT.md", "desc": "Render deployment guide", "status": "PRODUCTION"},
+    {"path": "RENDER_API_DEPLOYMENT.md", "desc": "Deployment reference (deprecated, see docs/deployment/)", "status": "DEPRECATED"},
     {"path": "MONITORING.md", "desc": "Health & metrics", "status": "ACTIVE"},
     {"path": "PERFORMANCE.md", "desc": "Optimization guide", "status": "OPTIMIZED"},
     {"path": "logging.md", "desc": "Logging system", "status": "ENFORCED"}
@@ -28,7 +28,7 @@
 {
   "api_backend": {
     "purpose": "Backend service for B9 Dashboard",
-    "deployment": "Render (24/7)",
+    "deployment": "Hetzner Cloud (3 servers, 24/7)",
     "database": "Supabase",
     "features": [
       "Reddit & Instagram scraping",
@@ -63,7 +63,7 @@
     "utils": "100%"
   },
   "deployment": {
-    "render_guide": true,
+    "deployment_guide": true,
     "environment_vars": true,
     "health_checks": true,
     "monitoring": true
@@ -76,7 +76,8 @@
 ```json
 {
   "base_urls": {
-    "production": "https://b9-dashboard.onrender.com",
+    "production_hetzner": "http://91.98.91.129:10000",
+    "production_render_legacy": "https://b9-dashboard.onrender.com",
     "development": "http://localhost:8000"
   },
   "key_endpoints": {
@@ -155,5 +156,5 @@
 
 ---
 
-_Documentation Version: 3.4.9 | Status: Complete | Updated: 2025-10-01_
-_Navigate: [← api-render/](../README.md) | [→ API.md](API.md) | [→ DEPLOYMENT.md](DEPLOYMENT.md)_
+_Documentation Version: 3.4.9 | Status: Complete | Updated: 2025-10-08_
+_Navigate: [← backend/](../README.md) | [→ API.md](API.md) | [→ Deployment Docs](../deployment/HETZNER_DEPLOYMENT_INFO.md)_

@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { logger } from '@/lib/logger'
+import { designSystem } from '@/lib/design-system'
 /**
 
  * Dynamic Import Utilities
@@ -17,7 +18,7 @@ import { logger } from '@/lib/logger'
  */
 export const LoadingFallback = () => (
   <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100" />
+    <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100`} />
   </div>
 )
 

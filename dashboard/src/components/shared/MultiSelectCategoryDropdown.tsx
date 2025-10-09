@@ -67,7 +67,7 @@ export function MultiSelectCategoryDropdown({
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
         className={cn(
-          "w-full py-2 px-3 rounded-lg text-sm border border-default",
+          `w-full py-2 px-3 ${designSystem.borders.radius.sm} text-sm border border-default`,
           "hover:bg-white/90 hover:border-strong",
           "focus:outline-none focus:ring-2 focus:ring-b9-pink/20 focus:border-b9-pink",
           "disabled:opacity-50 disabled:cursor-not-allowed font-mac-text",
@@ -102,7 +102,7 @@ export function MultiSelectCategoryDropdown({
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 w-80 mt-1 rounded-lg max-h-80 overflow-y-auto",
+            `absolute z-50 w-80 mt-1 ${designSystem.borders.radius.sm} max-h-80 overflow-y-auto`,
             designSystem.glass.medium,
             designSystem.borders.default,
             designSystem.shadows.lg

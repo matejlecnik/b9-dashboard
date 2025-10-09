@@ -99,7 +99,7 @@ export function NicheFilterDropdown({
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed w-64 bg-white rounded-lg shadow-lg border border-default z-[9999]"
+          className={`fixed w-64 bg-white ${designSystem.borders.radius.sm} shadow-lg border border-default z-[9999]`}
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`

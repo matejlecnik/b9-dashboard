@@ -1,0 +1,111 @@
+# B9 Dashboard API - Render Optimized Requirements
+# Streamlined dependencies for production deployment on Render
+
+# Core Web Framework - Production Ready
+fastapi>=0.104.1,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+python-multipart>=0.0.6
+
+# HTTP Client & Networking - Async Optimized
+httpx>=0.25.0,<1.0.0
+aiohttp>=3.8.0,<4.0.0
+requests>=2.31.0,<3.0.0
+
+# Reddit API - Async Support
+asyncpraw>=7.7.1,<8.0.0
+asyncprawcore>=2.3.0,<3.0.0
+
+# AI/ML - OpenAI Integration
+openai>=1.3.0,<2.0.0
+
+# Database - Pin to known-good versions to avoid resolver conflicts on Render
+# Supabase Python SDK 2.3.4 pairs with gotrue 2.5.4 and postgrest 0.13.x
+postgrest==0.13.2
+gotrue==2.5.4
+supabase==2.3.4
+
+# Caching & Performance - Redis for worker queue
+redis>=5.0.0,<6.0.0  # Redis client for worker job queue
+
+# Environment & Configuration
+python-dotenv>=1.0.0,<2.0.0
+pydantic>=2.4.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+
+# Rate Limiting & Security
+slowapi>=0.1.9,<1.0.0  # FastAPI rate limiting
+python-jose[cryptography]>=3.3.0,<4.0.0  # JWT handling
+
+# Data Processing & Utilities
+asyncio-throttle>=1.0.2,<2.0.0
+fake-useragent>=1.4.0,<2.0.0
+numpy>=1.26.0,<3.0.0
+
+# Logging & Monitoring - Structured for Production
+structlog>=23.1.0,<24.0.0
+loguru>=0.7.0,<1.0.0  # Better logging
+
+# Date/Time Handling
+python-dateutil>=2.8.2,<3.0.0
+
+# Security & Authentication
+cryptography>=41.0.0,<42.0.0
+
+# Performance Monitoring & Health Checks
+psutil>=5.9.0,<6.0.0
+prometheus-client>=0.19.0,<1.0.0  # Metrics
+
+# JSON Processing - Ultra Fast
+orjson>=3.9.0,<4.0.0
+ujson>=5.8.0,<6.0.0  # Fallback JSON parser
+
+# Async Utilities
+anyio>=3.7.0,<4.0.0
+asyncio-mqtt>=0.16.0,<1.0.0  # For real-time features
+
+# HTTP Middleware & CORS
+starlette>=0.27.0,<1.0.0
+python-multipart>=0.0.6
+
+# Background Job Processing
+schedule>=1.2.0,<2.0.0  # Cron scheduling
+
+# Database Connection Pooling
+asyncpg>=0.29.0,<1.0.0  # Fast PostgreSQL driver
+sqlalchemy[asyncio]>=2.0.0,<3.0.0  # ORM support
+
+# File Processing & Storage
+aiofiles>=23.2.1,<24.0.0  # Async file operations
+boto3>=1.34.0,<2.0.0  # AWS S3 / Cloudflare R2 client
+Pillow>=10.0.0,<11.0.0  # Image processing and compression
+ffmpeg-python>=0.2.0,<1.0.0  # Video compression
+
+# Type Checking & Validation (Production)
+types-requests>=2.31.0
+types-python-dateutil>=2.8.0
+
+# Compression & Optimization
+brotli>=1.1.0,<2.0.0  # Response compression
+zstandard>=0.21.0,<1.0.0  # Fast compression
+
+# Health Monitoring
+healthcheck>=1.3.3,<2.0.0
+
+# Error Tracking (Optional - can be enabled via env var)
+sentry-sdk[fastapi]>=1.38.0,<2.0.0
+
+# Instagram Scraper Dependencies
+tenacity>=8.2.3,<9.0.0  # Retry logic with exponential backoff
+pandas>=2.1.4,<3.0.0  # Data processing for analytics
+# numpy is already included above in line 43
+
+# Development Dependencies (only in dev environment)
+# These will be skipped in production
+black>=23.7.0,<24.0.0; python_version>="3.8" and sys_platform!="win32"
+isort>=5.12.0,<6.0.0; python_version>="3.8" and sys_platform!="win32"
+pytest>=7.4.0,<8.0.0; python_version>="3.8" and sys_platform!="win32"
+pytest-asyncio>=0.21.0,<1.0.0; python_version>="3.8" and sys_platform!="win32"
+
+# Code Quality & Linting (development only)
+ruff>=0.1.0,<1.0.0; python_version>="3.8" and sys_platform!="win32"  # Fast Python linter
+mypy>=1.7.0,<2.0.0; python_version>="3.8" and sys_platform!="win32"  # Static type checking

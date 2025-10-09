@@ -69,7 +69,7 @@ export const DataCard: React.FC<DataCardProps> = ({
           <div className="flex items-center gap-2 mb-2">
             {Icon && (
               <div className={cn(
-                'p-2 rounded-xl bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20',
+                `p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`,
                 designSystem.typography.color.secondary
               )}>
                 <Icon className="h-4 w-4" />
@@ -175,7 +175,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     )}>
       {Icon && (
         <div className={cn(
-          'p-2 rounded-lg',
+          `p-2 ${designSystem.borders.radius.sm}`,
           colors[color]
         )}>
           <Icon className="h-5 w-5" />

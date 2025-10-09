@@ -31,9 +31,10 @@
       "status": "PRODUCTION"
     },
     "backend": {
-      "provider": "Render",
+      "provider": "Hetzner Cloud",
       "framework": "FastAPI",
-      "url": "api-render.onrender.com",
+      "url": "http://91.98.91.129:10000",
+      "architecture": "3 servers (1 API + 2 Workers)",
       "status": "PRODUCTION"
     },
     "database": {
@@ -105,18 +106,27 @@ $ git push origin main
       "NEXT_PUBLIC_LOG_LEVEL"
     ]
   },
-  "backend": {
+  "backend_hetzner": {
     "required": [
       "SUPABASE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
       "OPENAI_API_KEY",
-      "DATABASE_URL"
+      "RAPIDAPI_KEY",
+      "R2_ACCOUNT_ID",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "R2_BUCKET_NAME",
+      "REDIS_HOST",
+      "REDIS_PORT",
+      "REDIS_PASSWORD"
     ],
     "optional": [
       "LOG_LEVEL",
       "ENVIRONMENT",
-      "PORT"
-    ]
+      "PORT",
+      "WORKER_ID"
+    ],
+    "notes": "Workers use same env vars but with REDIS_HOST=91.98.91.129"
   }
 }
 ```
@@ -130,10 +140,15 @@ $ git push origin main
       "health": "https://b9-dashboard.com/api/health",
       "status": "https://b9-dashboard.com/api/status"
     },
-    "backend": {
-      "health": "https://api-render.onrender.com/health",
-      "ready": "https://api-render.onrender.com/ready",
-      "metrics": "https://api-render.onrender.com/metrics"
+    "backend_hetzner": {
+      "health": "http://91.98.91.129:10000/health",
+      "ready": "http://91.98.91.129:10000/ready",
+      "metrics": "http://91.98.91.129:10000/metrics"
+    },
+    "backend_render_legacy": {
+      "health": "https://backend.onrender.com/health",
+      "ready": "https://backend.onrender.com/ready",
+      "metrics": "https://backend.onrender.com/metrics"
     }
   },
   "monitoring": {
@@ -208,7 +223,7 @@ Database     [████████████████████] 100.
 $ vercel rollback <deployment-id>
 
 ## Backend Rollback
-$ render deploy --service api-render --commit <commit-sha>
+$ render deploy --service backend --commit <commit-sha>
 
 ## Database Rollback
 $ supabase db reset --version <migration-version>
@@ -275,9 +290,10 @@ $ supabase db reset --version <migration-version>
 {
   "monthly_costs": {
     "vercel": {"plan": "Pro", "cost": 20, "usage": "5GB bandwidth"},
-    "render": {"plan": "Starter", "cost": 7, "usage": "512MB RAM"},
+    "hetzner": {"plan": "3 servers", "cost": 33, "usage": "1 API + 2 Workers"},
     "supabase": {"plan": "Pro", "cost": 25, "usage": "8GB database"},
-    "total": 52
+    "total": 78,
+    "savings_vs_render": "$592/month (from $625 Render)"
   },
   "projections": {
     "3_months": 156,
@@ -305,7 +321,7 @@ $ render rollback          # Rollback backend
 
 ## Health Check
 $ curl https://b9-dashboard.com/api/health
-$ curl https://api-render.onrender.com/health
+$ curl https://backend.onrender.com/health
 ```
 
 ---

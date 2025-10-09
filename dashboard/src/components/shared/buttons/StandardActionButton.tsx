@@ -22,7 +22,7 @@ export interface StandardActionButtonProps {
   icon?: LucideIcon
   loading?: boolean
   disabled?: boolean
-  variant?: 'primary' | 'danger' | 'secondary' | 'reddit' | 'instagram'
+  variant?: 'primary' | 'stop' | 'danger' | 'secondary' | 'reddit' | 'instagram'
   className?: string
   size?: 'normal' | 'large'
 }
@@ -39,16 +39,21 @@ const StandardActionButton = memo(function StandardActionButton({
 }: StandardActionButtonProps) {
   const isDisabled = disabled || loading
 
-  // Variant-specific styles - simplified with single gradient
+  // Variant-specific styles - Mac glassmorphic design
   const variantStyles = {
     primary: {
-      background: 'bg-gradient-to-br from-primary via-primary/90 to-secondary',
-      hoverBg: 'hover:from-primary-hover hover:via-primary hover:to-secondary-hover',
-      shadow: 'shadow-[0_8px_24px_-4px_var(--pink-alpha-30)]',
-      hoverShadow: 'hover:shadow-[0_12px_32px_-4px_var(--pink-alpha-50)]',
-      icon: 'text-white',
-      text: 'text-white',
-      border: 'border-primary/30'
+      glassStyle: {
+        background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        border: '1px solid var(--pink-600)',
+        boxShadow: '0 8px 32px var(--pink-alpha-40)'
+      },
+      hoverGlass: {
+        background: 'linear-gradient(135deg, rgba(255, 131, 149, 0.7) 0%, var(--pink-alpha-50) 100%)',
+        boxShadow: '0 12px 40px var(--pink-alpha-50)'
+      },
+      icon: 'text-primary',
+      text: 'text-primary'
     },
     reddit: {
       background: 'bg-gradient-to-br from-[var(--reddit-primary)] via-[var(--reddit-primary)]/90 to-[var(--reddit-secondary)]',
@@ -67,6 +72,20 @@ const StandardActionButton = memo(function StandardActionButton({
       icon: 'text-white',
       text: 'text-white',
       border: 'border-[var(--instagram-primary)]/30'
+    },
+    stop: {
+      glassStyle: {
+        background: 'linear-gradient(135deg, var(--pink-alpha-30) 0%, var(--pink-alpha-20) 100%)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        border: '1px solid var(--pink-alpha-25)',
+        boxShadow: '0 8px 24px var(--pink-alpha-20)'
+      },
+      hoverGlass: {
+        background: 'linear-gradient(135deg, var(--pink-alpha-40) 0%, var(--pink-alpha-30) 100%)',
+        boxShadow: '0 10px 32px var(--pink-alpha-30)'
+      },
+      icon: 'text-primary/80',
+      text: 'text-primary/80'
     },
     danger: {
       background: 'bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900',
@@ -89,36 +108,55 @@ const StandardActionButton = memo(function StandardActionButton({
   }
 
   const sizeStyles = {
-    normal: 'h-[88px] w-full px-5 py-3',
-    large: 'h-[100px] w-full px-5 py-3.5'
+    normal: 'h-[90px] w-full px-4 py-3',
+    large: 'h-[90px] w-full px-4 py-3'
   }
 
   const iconSizes = {
-    normal: 'h-7 w-7',
-    large: 'h-8 w-8'
+    normal: 'h-6 w-6',
+    large: 'h-6 w-6'
   }
 
   const styles = variantStyles[variant]
+  const isGlassmorphic = 'glassStyle' in styles
 
   return (
     <button
       onClick={onClick}
       disabled={isDisabled}
       className={cn(
-        'group relative overflow-hidden rounded-2xl transition-all duration-300',
+        `group relative overflow-hidden ${designSystem.borders.radius.lg} transition-all duration-300`,
         'flex flex-col items-center justify-center gap-2',
         'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
-        'border',
         'hover:scale-[1.02] active:scale-[0.98]',
         'font-mac-text',
-        styles.background,
-        styles.hoverBg,
-        styles.shadow,
-        styles.hoverShadow,
-        styles.border,
+        // Apply classes for solid variants only
+        !isGlassmorphic && [
+          'border',
+          styles.background,
+          styles.hoverBg,
+          styles.shadow,
+          styles.hoverShadow,
+          styles.border
+        ],
         sizeStyles[size],
         className
       )}
+      style={isGlassmorphic ? {
+        background: styles.glassStyle.background,
+        backdropFilter: styles.glassStyle.backdropFilter,
+        border: styles.glassStyle.border,
+        boxShadow: styles.glassStyle.boxShadow,
+        WebkitBackdropFilter: styles.glassStyle.backdropFilter
+      } : undefined}
+      onMouseEnter={isGlassmorphic ? (e) => {
+        e.currentTarget.style.background = styles.hoverGlass.background
+        e.currentTarget.style.boxShadow = styles.hoverGlass.boxShadow
+      } : undefined}
+      onMouseLeave={isGlassmorphic ? (e) => {
+        e.currentTarget.style.background = styles.glassStyle.background
+        e.currentTarget.style.boxShadow = styles.glassStyle.boxShadow
+      } : undefined}
     >
       {/* Subtle shine effect on hover */}
       <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
@@ -136,7 +174,7 @@ const StandardActionButton = memo(function StandardActionButton({
 
       {/* Label */}
       <span className={cn(
-        'text-sm font-semibold tracking-wide',
+        'text-xs font-semibold tracking-wide',
         'transition-all duration-200',
         styles.text
       )}>

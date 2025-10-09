@@ -46,7 +46,7 @@ updates:
 
   # Backend - Python FastAPI
   - package-ecosystem: "pip"
-    directory: "/api-render"
+    directory: "/backend"
     schedule:
       interval: "weekly"
       day: "sunday"

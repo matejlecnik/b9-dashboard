@@ -34,10 +34,10 @@ REDIS_URL=redis://localhost:6379
 ```
 
 ## API Endpoints
-- **Backend**: Python FastAPI (localhost:8000)
+- **Backend**: Python FastAPI (Hetzner Cloud: 91.98.91.129:10000 / localhost:8000)
 - **Frontend**: Next.js (localhost:3000)
 - **Database**: Supabase PostgreSQL
-- **Cache**: Redis
+- **Cache**: Redis (Active on Hetzner - job queue for workers)
 
 ## TODO List
 - [ ] Add API_BASE_URL configuration

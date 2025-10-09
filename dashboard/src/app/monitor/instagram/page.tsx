@@ -3,20 +3,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Play,
-  Square,
-  TrendingUp,
-  Clock,
-  DollarSign
+  Square
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { LogViewerSupabase } from '@/components/features/monitoring/LogViewerSupabase'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
-import { CombinedActivityLog } from '@/components/features/monitoring/CombinedActivityLog'
+import { UniversalMetricCard } from '@/components/shared/cards'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
-import { designSystem } from '@/lib/design-system'
-import { cn } from '@/lib/utils'
 
 export default function InstagramMonitor() {
   // API URL configuration - memoized to satisfy ESLint exhaustive-deps
@@ -68,7 +63,7 @@ export default function InstagramMonitor() {
     } catch (error) {
       logger.error('Error calculating success rate:', error)
     }
-  }, [])
+  }, [API_URL])
 
   // Fetch cost data from API
   const fetchCostData = useCallback(async () => {
@@ -103,7 +98,7 @@ export default function InstagramMonitor() {
     } catch (error) {
       logger.error('Error fetching cost data:', error)
     }
-  }, [])
+  }, [API_URL])
 
   // Fetch cycle data from API
   const fetchCycleData = useCallback(async () => {
@@ -156,7 +151,7 @@ export default function InstagramMonitor() {
       logger.error('Error fetching cycle data:', error)
       setCycleData(null)
     }
-  }, [])
+  }, [API_URL])
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -220,7 +215,7 @@ export default function InstagramMonitor() {
     } finally {
       setLoading(false)
     }
-  }, [manualOverride])
+  }, [API_URL, manualOverride])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -370,167 +365,94 @@ export default function InstagramMonitor() {
     return () => {
       clearInterval(metricsInterval)
     }
-  }, [fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData]) // Include all called functions
+  }, [API_URL, fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData]) // Include all called functions
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Main Content Area - Responsive Layout */}
-        <div className="flex flex-col md:flex-row gap-4 items-start">
-          {/* Controls Section - Left */}
-          <div className="flex flex-col gap-4 flex-shrink-0 w-full md:w-[220px] mt-[18px]">
-              {/* Start/Stop Scraper Button with Enhanced Status Indicator */}
-              <div className="relative">
-                {/* Enhanced status indicator - larger with pulsing animation */}
-                <div className={cn(
-                  `absolute -top-2 -right-2 w-4 h-4 ${designSystem.borders.radius.full} z-20`,
-                  "border-2 border-white shadow-lg",
-                  isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-                )} />
-                <StandardActionButton
-                  onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
-                  label={isRunning ? 'Stop' : 'Start'}
-                  icon={isRunning ? Square : Play}
-                  variant={isRunning ? 'danger' : 'instagram'}
-                  disabled={loading}
-                  size="large"
-                  className="w-full"
-                />
-              </div>
+        {/* Metric Cards at Top */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Start/Stop Scraper Button */}
+          <StandardActionButton
+            onClick={() => handleScraperControl(isRunning ? 'stop' : 'start')}
+            label={isRunning ? 'Stop' : 'Start'}
+            icon={isRunning ? Square : Play}
+            variant={isRunning ? 'stop' : 'primary'}
+            disabled={loading}
+            size="large"
+            className="w-full h-full"
+          />
 
-              {/* Success Rate Card - Enhanced with Icon */}
-              <div className={cn(
-                "relative overflow-hidden group cursor-default",
-                "bg-gradient-to-br from-[var(--instagram-primary)]/12 via-white/95 to-[var(--instagram-secondary)]/10",
-                "backdrop-blur-[16px] backdrop-saturate-[180%]",
-                designSystem.radius.lg,
-                "shadow-lg",
-                "border border-[var(--instagram-primary)]/30",
-                "p-5",
-                "hover:scale-[1.02] hover:shadow-2xl hover:border-[var(--instagram-primary)]/40",
-                "transition-all duration-300 ease-out"
-              )}>
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--instagram-primary)]/15 to-transparent opacity-60 pointer-events-none" />
+          {/* Success Rate Card */}
+          <UniversalMetricCard
+            title="Success Rate"
+            value={successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
+            subtitle={successRate ? `${successRate.successful}/${successRate.total}` : undefined}
+          />
 
-                <div className="relative flex items-start justify-between mb-3">
-                  <div className={cn("text-xs font-semibold uppercase tracking-wide font-mac-text", designSystem.typography.color.secondary)}>
-                    Success Rate
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-[var(--instagram-primary)] opacity-70" />
-                </div>
-                <div className="relative">
-                  <div className="text-3xl font-bold text-[var(--instagram-primary)] font-mac-display mb-1">
-                    {successRate ? `${successRate.percentage.toFixed(1)}%` : '—'}
-                  </div>
-                  {successRate && (
-                    <div className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.tertiary)}>
-                      {successRate.successful}/{successRate.total} requests
-                    </div>
-                  )}
-                  <div className={cn("text-[9px] mt-3 font-mac-text", designSystem.typography.color.disabled)}>
-                    Updated {new Date().toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
+          {/* Cycle Length Card */}
+          <UniversalMetricCard
+            title="Current Cycle"
+            value={cycleData?.elapsed_formatted || 'Not Active'}
+            subtitle={
+              cycleData?.elapsed_formatted === 'Not Active'
+                ? 'Disabled'
+                : cycleData?.elapsed_formatted === 'Unknown'
+                ? 'No Data'
+                : 'Active'
+            }
+          />
 
-              {/* Cycle Length Card - Enhanced with Icon */}
-              <div className={cn(
-                "relative overflow-hidden group cursor-default",
-                "bg-gradient-to-br from-[var(--instagram-secondary)]/10 via-white/95 to-white/98",
-                "backdrop-blur-[16px] backdrop-saturate-[180%]",
-                designSystem.radius.lg,
-                "shadow-lg",
-                "border border-[var(--instagram-secondary)]/30",
-                "p-5",
-                "hover:scale-[1.02] hover:shadow-2xl hover:border-[var(--instagram-secondary)]/40",
-                "transition-all duration-300 ease-out"
-              )}>
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--instagram-secondary)]/12 to-transparent opacity-50 pointer-events-none" />
+          {/* Cost Tracking Card */}
+          <UniversalMetricCard
+            title="Today's Cost"
+            value={`$${costData?.daily.toFixed(2) || '0.00'}`}
+            subtitle={`~$${costData?.monthly.toFixed(2) || '0.00'}/mo`}
+          />
+        </div>
 
-                <div className="relative flex items-start justify-between mb-3">
-                  <div className={cn("text-xs font-semibold uppercase tracking-wide font-mac-text", designSystem.typography.color.secondary)}>
-                    Current Cycle
-                  </div>
-                  <Clock className="h-4 w-4 text-[var(--instagram-secondary)] opacity-70" />
-                </div>
-                <div className="relative">
-                  <div className="text-3xl font-bold text-[var(--instagram-secondary)] font-mac-display mb-1">
-                    {cycleData?.elapsed_formatted || 'Not Active'}
-                  </div>
-                  <div className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.tertiary)}>
-                    {cycleData?.elapsed_formatted === 'Not Active'
-                      ? 'Scraper Disabled'
-                      : cycleData?.elapsed_formatted === 'Unknown'
-                      ? 'No Start Log Found'
-                      : cycleData?.elapsed_formatted
-                      ? 'Scraper Active'
-                      : 'Loading...'}
-                  </div>
-                  <div className={cn("text-[9px] mt-3 font-mac-text", designSystem.typography.color.disabled)}>
-                    Updated {new Date().toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Cost Tracking Card - Enhanced with Icon */}
-              <div className={cn(
-                "relative overflow-hidden group cursor-default",
-                "bg-gradient-to-br from-[var(--instagram-gradient)]/10 via-white/96 to-white/98",
-                "backdrop-blur-[16px] backdrop-saturate-[180%]",
-                designSystem.radius.lg,
-                "shadow-lg",
-                "border border-[var(--instagram-gradient)]/30",
-                "p-5",
-                "hover:scale-[1.02] hover:shadow-2xl hover:border-[var(--instagram-gradient)]/40",
-                "transition-all duration-300 ease-out"
-              )}>
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--instagram-gradient)]/12 via-[var(--instagram-primary)]/8 to-transparent opacity-50 pointer-events-none" />
-
-                <div className="relative flex items-start justify-between mb-3">
-                  <div className={cn("text-xs font-semibold uppercase tracking-wide font-mac-text", designSystem.typography.color.secondary)}>
-                    Today&apos;s Cost
-                  </div>
-                  <DollarSign className="h-4 w-4 text-[var(--instagram-gradient)] opacity-70" />
-                </div>
-                <div className="relative">
-                  <div className="text-3xl font-bold text-[var(--instagram-gradient)] font-mac-display mb-1">
-                    ${costData?.daily.toFixed(2) || '0.00'}
-                  </div>
-                  <div className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.tertiary)}>
-                    ~${costData?.monthly.toFixed(2) || '0.00'} projected/mo
-                  </div>
-                  <div className={cn("text-[9px] mt-3 font-mac-text", designSystem.typography.color.disabled)}>
-                    Updated {new Date().toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
+        {/* Logs Section - Full Width */}
+        <div className="flex flex-col gap-4">
+          {/* Main Logs */}
+          <div>
+            <LogViewerSupabase
+              title="Instagram Scraper Activity"
+              height="calc((100vh - 400px) / 2)"
+              autoScroll={true}
+              refreshInterval={5000}
+              maxLogs={30}
+              minLogsToShow={30}
+              useSystemLogs={true}
+              sourceFilter="instagram_scraper"
+            />
           </div>
 
-          {/* Logs Section - Flexible Width */}
-          <div className="flex-1 flex flex-col gap-4">
-              {/* Main Logs */}
-              <div>
-                <LogViewerSupabase
-                  title="Instagram Scraper Activity"
-                  height="calc((100vh - 264px) / 2)"
-                  autoScroll={true}
-                  refreshInterval={5000}
-                  maxLogs={30}
-                  minLogsToShow={30}
-                  useSystemLogs={true}
-                  sourceFilter="instagram_scraper"
-                />
-              </div>
-
-              {/* Combined Activity Logs - Creator Updates + Content Processing */}
-              <div>
-                <CombinedActivityLog
-                  title="Creator Updates & Content Processing"
-                  height="calc((100vh - 264px) / 2)"
-                  maxLogs={30}
-                  useSystemLogs={true}
-                />
-              </div>
+          {/* Activity Logs - Side-by-side layout */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <LogViewerSupabase
+                title="Creator Updates"
+                height="calc((100vh - 400px) / 2)"
+                autoScroll={true}
+                refreshInterval={5000}
+                maxLogs={30}
+                minLogsToShow={30}
+                useSystemLogs={true}
+                sourceFilter="creator_addition"
+              />
+            </div>
+            <div className="flex-1">
+              <LogViewerSupabase
+                title="Related Creators"
+                height="calc((100vh - 400px) / 2)"
+                autoScroll={true}
+                refreshInterval={5000}
+                maxLogs={30}
+                minLogsToShow={30}
+                useSystemLogs={true}
+                sourceFilter="instagram_related_creators"
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -290,11 +290,13 @@ export function usePerformanceMonitor(componentName: string) {
       // Component unmount
       if (mountTime.current) {
         const lifetime = performance.now() - mountTime.current
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally capturing ref value at cleanup time
+        const finalRenderCount = renderCount.current
         performanceMonitor.mark(`${componentName}-unmount`)
         performanceMonitor.measure(`${componentName}-lifetime`, `${componentName}-mount`, `${componentName}-unmount`)
-        
+
         if (lifetime > 30000) { // Log if component lived > 30s
-          logger.log(`Component ${componentName} lifetime: ${(lifetime / 1000).toFixed(2)}s, renders: ${renderCount.current}`)
+          logger.log(`Component ${componentName} lifetime: ${(lifetime / 1000).toFixed(2)}s, renders: ${finalRenderCount}`)
         }
       }
     }

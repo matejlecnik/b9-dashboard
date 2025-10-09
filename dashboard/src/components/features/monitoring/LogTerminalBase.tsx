@@ -34,9 +34,9 @@ interface LogTerminalBaseProps {
 export function LogTerminalBase({
   title,
   height,
-  fadeHeight = '2%',
-  topFadeOpacity = 'from-black/2 via-black/1',
-  bottomFadeOpacity = 'from-black/2 via-black/1',
+  fadeHeight: _fadeHeight = '60px',
+  topFadeOpacity: _topFadeOpacity = 'from-pink-500 to-pink-500',
+  bottomFadeOpacity: _bottomFadeOpacity = 'from-pink-500 to-pink-500',
   children,
   className = '',
   statusBadges
@@ -51,23 +51,16 @@ export function LogTerminalBase({
       )}
 
       {/* Log card with full height */}
-      <Card className={`p-0 border-light bg-gradient-to-br from-gray-100/80 via-gray-50/60 to-gray-100/40 backdrop-blur-xl shadow-xl ${className}`}>
+      <Card
+        className={`!p-0 !gap-0 !py-0 border-light backdrop-blur-glass-lg shadow-xl hover:!scale-100 hover:!translate-y-0 hover:!bg-white/70 hover:!shadow-xl ${className}`}
+        style={{
+          background: 'linear-gradient(to bottom right, var(--gray-150) 0%, var(--gray-100) 50%, var(--gray-150) 100%)'
+        }}
+      >
         <CardContent className="p-0">
-          <div className="relative" style={{ height }}>
-            {/* Top fade gradient - configurable */}
-            <div
-              style={{ height: fadeHeight }}
-              className={`absolute top-0 left-0 right-0 bg-gradient-to-b ${topFadeOpacity} to-transparent pointer-events-none z-10`}
-            />
-
+          <div className="relative overflow-hidden" style={{ height }}>
             {/* Log content (provided as children) */}
             {children}
-
-            {/* Bottom fade gradient - configurable */}
-            <div
-              style={{ height: fadeHeight }}
-              className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${bottomFadeOpacity} to-transparent pointer-events-none z-10`}
-            />
           </div>
         </CardContent>
 

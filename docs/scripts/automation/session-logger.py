@@ -123,7 +123,7 @@ class SessionLogger:
         for filepath in all_files:
             if "dashboard/" in filepath or ".tsx" in filepath or ".ts" in filepath:
                 categories["frontend"].append(filepath)
-            elif "api-render/" in filepath or ".py" in filepath:
+            elif "backend/" in filepath or ".py" in filepath:
                 categories["backend"].append(filepath)
             elif "database/" in filepath or ".sql" in filepath:
                 categories["database"].append(filepath)

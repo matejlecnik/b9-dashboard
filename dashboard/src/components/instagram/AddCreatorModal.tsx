@@ -93,7 +93,6 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
       title="Add Instagram Creator"
       subtitle="Manually add a creator to track"
       icon={<Sparkles className="h-4 w-4" />}
-      variant="instagram"
       loading={isSubmitting}
       maxWidth="md"
       footer={
@@ -113,7 +112,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
           >
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1.5" />
+                <div className={`animate-spin ${designSystem.borders.radius.full} h-3 w-3 border-b-2 border-white mr-1.5`} />
                 Adding...
               </>
             ) : (
@@ -170,7 +169,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
         </div>
 
         {/* Info Message */}
-        <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+        <div className={`p-3 bg-primary/10 border border-primary/30 ${designSystem.borders.radius.sm}`}>
           <p className={cn("text-xs", designSystem.typography.color.secondary)}>
             💡 The creator will be added to your tracking list. You can assign a niche now or update it later from the Niching page.
           </p>

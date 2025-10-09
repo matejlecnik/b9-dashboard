@@ -3,6 +3,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { designSystem } from "@/lib/design-system"
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { CheckIcon } from 'lucide-react'
 

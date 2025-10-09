@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./api-render
+        working-directory: ./backend
 
     steps:
       - name: 📥 Checkout code
@@ -107,7 +107,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: api-render/requirements.txt
+          cache-dependency-path: backend/requirements.txt
 
       - name: 📦 Install quality tools
         run: |
@@ -175,7 +175,7 @@ jobs:
           echo "| Directory | .md Files |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
           echo "| /docs | $(find docs -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
-          echo "| /api-render | $(find api-render -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| /backend | $(find backend -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "| /dashboard | $(find dashboard -name "*.md" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "| Total | $(find . -name "*.md" -not -path "./node_modules/*" 2>/dev/null | wc -l) |" >> $GITHUB_STEP_SUMMARY
 

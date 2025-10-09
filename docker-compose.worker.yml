@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: b9-worker-${WORKER_ID}
+    restart: unless-stopped
+    environment:
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # RapidAPI
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+
+      # Cloudflare R2
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - ENABLE_R2_STORAGE=true
+
+      # Worker Config
+      - WORKER_ID=${WORKER_ID}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+
+      # Redis Queue
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - /app/b9dashboard/logs:/app/logs
+    networks:
+      - b9-network
+
+networks:
+  b9-network:
+    driver: bridge

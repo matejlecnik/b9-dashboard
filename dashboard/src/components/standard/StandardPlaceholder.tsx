@@ -237,7 +237,7 @@ export const StandardPlaceholder: React.FC<StandardPlaceholderProps> = ({
                     <div
                       key={index}
                       className={cn(
-                        'p-4 rounded-lg',
+                        `p-4 ${designSystem.borders.radius.sm}`,
                         'statBg' in scheme && scheme.statBg
                       )}
                     >

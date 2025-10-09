@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { TagsDisplay } from '@/components/shared/TagsDisplay'
 import { BookOpen, BadgeCheck, Lock, Briefcase, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 import { useLRUSet } from '@/lib/lru-cache'
@@ -37,10 +36,14 @@ function useMemoryOptimizedData<T>(data: ReadonlyArray<T>, maxItems: number): { 
 const UniversalTableSkeleton = () => (
   <div className="animate-pulse">
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex items-center px-4 py-3 border-b border-light">
-        <div className={cn("h-4 rounded w-1/4 mr-4", designSystem.background.surface.neutral)}></div>
-        <div className={cn("h-4 rounded w-1/3 mr-4", designSystem.background.surface.neutral)}></div>
-        <div className={cn("h-4 rounded w-1/4", designSystem.background.surface.neutral)}></div>
+      <div
+        key={i}
+        className="flex items-center px-4 py-3"
+        style={{ borderBottom: '1px solid var(--gray-200-alpha-85)' }}
+      >
+        <div className={cn("h-4 w-1/4 mr-4", designSystem.borders.radius.xs)} style={{ background: 'var(--gray-200-alpha-85)' }}></div>
+        <div className={cn("h-4 w-1/3 mr-4", designSystem.borders.radius.xs)} style={{ background: 'var(--gray-200-alpha-85)' }}></div>
+        <div className={cn("h-4 w-1/4", designSystem.borders.radius.xs)} style={{ background: 'var(--gray-200-alpha-85)' }}></div>
       </div>
     ))}
   </div>
@@ -57,11 +60,6 @@ interface UniversalTableProps {
   // Core data
   subreddits: Subreddit[]
   loading: boolean
-
-  // Selection
-  selectedSubreddits?: Set<number>
-  setSelectedSubreddits?: (ids: Set<number>) => void
-  allowSelectionInReview?: boolean
 
   // Update handlers
   onBulkUpdateTags?: (tags: string[]) => void
@@ -90,7 +88,6 @@ interface UniversalTableProps {
   className?: string
   testId?: string
   showHeader?: boolean
-  showSelection?: boolean
   showIcons?: boolean
   compactMode?: boolean
   
@@ -181,7 +178,6 @@ const areUniversalTablePropsEqual = (
   if (prevProps.className !== nextProps.className) return false
   if (prevProps.testId !== nextProps.testId) return false
   if (prevProps.showHeader !== nextProps.showHeader) return false
-  if (prevProps.showSelection !== nextProps.showSelection) return false
   if (prevProps.showIcons !== nextProps.showIcons) return false
   if (prevProps.compactMode !== nextProps.compactMode) return false
 
@@ -248,9 +244,6 @@ export const UniversalTable = memo(function UniversalTable({
   // Core props
   subreddits,
   loading,
-  selectedSubreddits = new Set(),
-  setSelectedSubreddits,
-  allowSelectionInReview = false,
 
   // Update handlers
   onUpdateReview,
@@ -266,20 +259,19 @@ export const UniversalTable = memo(function UniversalTable({
   onReachEnd,
   hasMore = false,
   loadingMore = false,
-  
+
   // Performance and UI
   searchQuery = '',
   highlightedIndex,
   onShowRules,
-  
+
   // Styling
   className = '',
   testId,
   showHeader = true,
-  showSelection = true,
   showIcons = true,
   compactMode = false,
-  
+
   // Image handling
   brokenIcons = new Set(),
   handleIconError,
@@ -416,7 +408,6 @@ export const UniversalTable = memo(function UniversalTable({
   // ============================================================================
   
   const renderRow = useCallback((subreddit: Subreddit, index: number) => {
-    const isSelected = selectedSubreddits?.has(subreddit.id) || false
     const isHighlighted = typeof highlightedIndex === 'number' && highlightedIndex === index
     const isRemoving = removingIds.has(subreddit.id)
     const iconUrl = (subreddit.community_icon && subreddit.community_icon.trim() !== '')
@@ -446,36 +437,21 @@ export const UniversalTable = memo(function UniversalTable({
     return (
       <div
         className={cn(
-          "flex items-center px-4 py-2 border-b border-light transition-all duration-300",
-          `hover:${designSystem.background.surface.subtle}/50`,
-          isHighlighted && "bg-primary/10 border-primary/30",
-          isSelected && "bg-primary/5",
+          "flex items-center px-4 py-2 transition-all duration-300 group/row",
+          "hover:bg-gradient-to-r hover:from-white/5 hover:via-gray-50/10 hover:to-transparent",
+          "hover:shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-1px_0_rgba(0,0,0,0.05)_inset]",
+          "hover:-translate-y-[0.5px]",
+          isHighlighted && "bg-primary/10",
           compactMode && "py-1",
           isRemoving && "opacity-0 scale-95 pointer-events-none"
         )}
+        style={{
+          borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+          boxShadow: 'inset 0 -0.5px 0 rgba(255, 255, 255, 0.08)',
+        }}
         role="row"
-        aria-selected={isSelected}
         data-testid={`subreddit-row-${subreddit.id}`}
       >
-        {/* Selection checkbox */}
-        {showSelection && (mode === 'category' || allowSelectionInReview) && setSelectedSubreddits && (
-          <div className="w-10 flex justify-center">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked: boolean) => {
-                const newSelected = new Set(selectedSubreddits)
-                if (checked) {
-                  newSelected.add(subreddit.id)
-                } else {
-                  newSelected.delete(subreddit.id)
-                }
-                setSelectedSubreddits(newSelected)
-              }}
-              aria-label={`${isSelected ? 'Deselect' : 'Select'} ${safeDisplayName}`}
-            />
-          </div>
-        )}
-        
         {/* Icon */}
         {showIcons && (
           <a
@@ -501,7 +477,8 @@ export const UniversalTable = memo(function UniversalTable({
 
                 return (
                   <div className={cn(
-                    "relative overflow-hidden {designSystem.borders.radius.full} border border-default",
+                    "relative overflow-hidden border border-default",
+                    designSystem.borders.radius.full,
                     platform === 'instagram'
                       ? (compactMode ? "w-8 h-8" : "w-10 h-10")
                       : (compactMode ? "w-6 h-6" : "w-8 h-8")
@@ -536,12 +513,32 @@ export const UniversalTable = memo(function UniversalTable({
                 )
               })()
             ) : (
-              <div className={cn(
-                "{designSystem.borders.radius.full} bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white font-bold border border-primary-pressed",
-                platform === 'instagram'
-                  ? (compactMode ? "w-8 h-8 text-sm" : "w-10 h-10 text-base")
-                  : (compactMode ? "w-6 h-6 text-xs" : "w-8 h-8 text-xs")
-              )}>
+              <div
+                className={cn(
+                  "flex items-center justify-center text-white font-bold",
+                  designSystem.borders.radius.full,
+                  platform === 'instagram'
+                    ? (compactMode ? "w-8 h-8 text-sm" : "w-10 h-10 text-base")
+                    : (compactMode ? "w-6 h-6 text-xs" : "w-8 h-8 text-xs")
+                )}
+                style={{
+                  background: `linear-gradient(135deg, ${(() => {
+                    // Generate deterministic color variations based on name
+                    const hash = (safeDisplayName || '').split('').reduce((acc, char) => {
+                      return char.charCodeAt(0) + ((acc << 5) - acc)
+                    }, 0)
+                    const variants = [
+                      'var(--pink-400), var(--pink-600)',  // Light to dark
+                      'var(--pink-500), var(--pink-700)',  // Medium to darker
+                      'var(--pink-300), var(--pink-500)',  // Very light to medium
+                      'var(--pink-600), var(--pink-400)',  // Dark to light (reverse)
+                      'var(--pink-500), var(--pink-600)',  // Medium gradient
+                    ]
+                    return variants[Math.abs(hash) % variants.length]
+                  })()})`,
+                  border: '1px solid var(--pink-600-alpha-30)'
+                }}
+              >
                 {platform === 'instagram' ? '@' : (subreddit.name?.charAt(0)?.toUpperCase() || 'R')}
               </div>
             )}
@@ -618,7 +615,8 @@ export const UniversalTable = memo(function UniversalTable({
                   if (typeof nsfwFlag !== 'boolean') return null
                   return (
                   <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 {designSystem.borders.radius.full} text-xs font-medium",
+                    "inline-flex items-center px-2 py-0.5 text-xs font-medium",
+                    designSystem.borders.radius.full,
                     nsfwFlag
                       ? "bg-red-100 text-red-800 border border-red-200"
                       : "bg-green-100 text-green-800 border border-green-200",
@@ -646,12 +644,28 @@ export const UniversalTable = memo(function UniversalTable({
           <div className="w-14 flex justify-center">
             {onShowRules && (() => {
               // Check if rules_data exists and has content
-              const hasRulesData = subreddit.rules_data &&
-                typeof subreddit.rules_data === 'object' && (
-                  (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
-                  (typeof subreddit.rules_data === 'object' && 'rules' in subreddit.rules_data &&
-                   Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) && ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
-                );
+              let hasRulesData = false;
+
+              if (subreddit.rules_data) {
+                // Check for string format (current production format): "[{...}]"
+                if (typeof subreddit.rules_data === 'string') {
+                  try {
+                    const parsed = JSON.parse(subreddit.rules_data);
+                    hasRulesData = Array.isArray(parsed) && parsed.length > 0;
+                  } catch {
+                    hasRulesData = false;
+                  }
+                }
+                // Check for object format: {rules: [...]}
+                else if (typeof subreddit.rules_data === 'object') {
+                  hasRulesData = (
+                    (Array.isArray(subreddit.rules_data) && subreddit.rules_data.length > 0) ||
+                    ('rules' in subreddit.rules_data &&
+                     Array.isArray((subreddit.rules_data as { rules?: unknown[] }).rules) &&
+                     ((subreddit.rules_data as { rules?: unknown[] }).rules?.length || 0) > 0)
+                  );
+                }
+              }
 
               return (
                 <Button
@@ -682,7 +696,7 @@ export const UniversalTable = memo(function UniversalTable({
                 >
                   <BookOpen className={cn(
                     compactMode ? "h-3 w-3" : "h-4 w-4",
-                    hasRulesData ? designSystem.typography.color.subtle : designSystem.typography.color.disabled
+                    hasRulesData ? "text-primary" : designSystem.typography.color.disabled
                   )} />
                 </Button>
               )
@@ -779,7 +793,7 @@ export const UniversalTable = memo(function UniversalTable({
 
         {/* Upvotes / Avg Likes - Hidden for Instagram review mode */}
         {!(platform === 'instagram' && mode === 'review') && (
-          <div className="w-16 text-center">
+          <div className="w-24 text-center">
             <div className={cn(
               "font-medium",
               designSystem.typography.color.secondary,
@@ -800,7 +814,8 @@ export const UniversalTable = memo(function UniversalTable({
                 const niche = (subreddit as any).niche as string | null
                 return niche ? (
                   <div className={cn(
-                    "inline-flex items-center px-2 py-0.5 {designSystem.borders.radius.full} text-xs font-medium bg-secondary/20 text-secondary-pressed border border-secondary/30",
+                    "inline-flex items-center px-2 py-0.5 text-xs font-medium bg-secondary/20 text-secondary-pressed border border-secondary/30",
+                    designSystem.borders.radius.full,
                     compactMode && "px-1.5 py-0 text-[10px]"
                   )}>
                     {niche}
@@ -951,10 +966,21 @@ export const UniversalTable = memo(function UniversalTable({
                     size="sm"
                     onClick={() => handleUpdate(subreddit.id, option)}
                     className={cn(
-                      "text-xs",
+                      "text-xs font-semibold",
                       compactMode ? "h-6 px-1" : "h-7 px-2",
-                      currentReviewLabel === option && "bg-primary hover:bg-primary-hover text-white"
+                      currentReviewLabel === option
+                        ? "!text-white !border-0 before:hidden"
+                        : "hover:border-primary/40"
                     )}
+                    style={
+                      currentReviewLabel === option
+                        ? {
+                            background: 'linear-gradient(135deg, var(--pink-500), var(--pink-600))',
+                            boxShadow: '0 2px 8px var(--pink-alpha-15), inset 0 1px 0 var(--white-alpha-10)',
+                            borderRadius: '0.5rem', // 8px - matches rounded-lg from size="sm"
+                          }
+                        : undefined
+                    }
                     title={`Mark as ${option}`}
                   >
                     {compactMode ? option.charAt(0) : option}
@@ -980,12 +1006,8 @@ export const UniversalTable = memo(function UniversalTable({
       </div>
     )
   }, [
-    selectedSubreddits,
-    setSelectedSubreddits,
     mode,
     platform,
-    allowSelectionInReview,
-    showSelection,
     showIcons,
     compactMode,
     highlightedIndex,
@@ -1006,7 +1028,7 @@ export const UniversalTable = memo(function UniversalTable({
   if (loading && processedSubreddits.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin {designSystem.borders.radius.full} h-8 w-8 border-b-2 border-primary"></div>
+        <div className={cn("animate-spin h-8 w-8 border-b-2 border-primary", designSystem.borders.radius.full)}></div>
         <span className={cn("ml-2", designSystem.typography.color.subtle)}>
           {platform === 'instagram' ? 'Loading creators...' : 'Loading subreddits...'}
         </span>
@@ -1017,40 +1039,31 @@ export const UniversalTable = memo(function UniversalTable({
   return (
     <div
         ref={containerRef}
-        className={cn(
-          "flex flex-col h-full {designSystem.borders.radius.lg} border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden",
-          className
-        )}
+        className={cn("flex flex-col gap-3 h-full", className)}
         role="table"
         aria-busy={loadingMore}
         data-testid={testId}
       >
-      {/* Header */}
+      {/* Header Card - Separate glassmorphic container */}
       {showHeader && (
         <div
-          className={cn(
-            "flex items-center px-4 py-3 border-b border-light font-medium text-sm sticky top-0 z-10",
-            `${designSystem.background.surface.subtle}/80`,
-            designSystem.typography.color.secondary
-          )}
-          role="row"
-          aria-label="Table header"
+          className={cn("flex-shrink-0", designSystem.borders.radius.lg)}
+          style={{
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(252, 252, 253, 0.90) 50%, var(--gray-50-alpha-90) 100%)',
+            backdropFilter: 'blur(24px) saturate(180%) brightness(1.08) contrast(0.98)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%) brightness(1.08) contrast(0.98)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 -1px 0 rgba(0, 0, 0, 0.03) inset',
+            border: '1px solid rgba(0, 0, 0, 0.15)',
+          }}
         >
-          {showSelection && (mode === 'category' || allowSelectionInReview) && setSelectedSubreddits && (
-            <div className="w-10 flex justify-center" role="columnheader">
-              <Checkbox
-                checked={selectedSubreddits.size === processedSubreddits.length && processedSubreddits.length > 0}
-                onCheckedChange={(checked: boolean) => {
-                  if (checked) {
-                    setSelectedSubreddits(new Set(processedSubreddits.map(s => s.id)))
-                  } else {
-                    setSelectedSubreddits(new Set())
-                  }
-                }}
-                aria-label="Select all"
-              />
-            </div>
-          )}
+          <div
+            className={cn(
+              "flex items-center px-4 py-3 font-medium text-sm",
+              designSystem.typography.color.secondary
+            )}
+            role="row"
+            aria-label="Table header"
+          >
           {showIcons && (
             <div className={cn(
               "flex justify-center font-medium pr-3",
@@ -1092,7 +1105,7 @@ export const UniversalTable = memo(function UniversalTable({
           )}
           {/* Avg Likes/Upvotes - Hidden for Instagram review mode */}
           {!(platform === 'instagram' && mode === 'review') && (
-            <div className="w-16 text-center font-medium pr-3" role="columnheader">
+            <div className="w-24 text-center font-medium pr-3" role="columnheader">
               {platform === 'instagram' ? 'Avg Likes' : 'Avg Upvotes'}
             </div>
           )}
@@ -1118,10 +1131,36 @@ export const UniversalTable = memo(function UniversalTable({
             </span>
           </div>
         </div>
+      </div>
       )}
 
-      {/* Body */}
-      <div ref={wrapperRef} className="flex-1 overflow-auto">
+      {/* Body Card - Separate glassmorphic container with frozen glass effect */}
+      <div
+        className={cn("flex-1 flex flex-col overflow-hidden relative", designSystem.borders.radius.lg)}
+        style={{
+          background: 'linear-gradient(180deg, var(--white-alpha-80) 0%, var(--gray-50-alpha-90) 25%, var(--gray-100-alpha-90) 75%, var(--gray-200-alpha-85) 100%)',
+          backdropFilter: 'blur(40px) saturate(180%) brightness(1.05)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.05)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.04), 0 12px 40px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.02), inset 0 0 0 1px rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03)',
+          border: '1px solid rgba(0, 0, 0, 0.18)',
+          willChange: 'backdrop-filter',
+          transform: 'translateZ(0)',
+          contain: 'layout style paint',
+        }}
+      >
+        {/* Noise Texture Overlay - Frosted Glass Effect */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+            opacity: 0.03,
+            mixBlendMode: 'overlay',
+            borderRadius: 'inherit',
+          }}
+        />
+
+        {/* Scrollable Body Content */}
+        <div ref={wrapperRef} className="flex-1 overflow-auto">
         {loading ? (
           <UniversalTableSkeleton />
         ) : processedSubreddits.length === 0 ? (
@@ -1147,7 +1186,7 @@ export const UniversalTable = memo(function UniversalTable({
               <div ref={sentinelRef} className="h-20 flex items-center justify-center">
                 {loadingMore ? (
                   <>
-                    <div className="animate-spin {designSystem.borders.radius.full} h-6 w-6 border-b-2 border-primary"></div>
+                    <div className={cn("animate-spin h-6 w-6 border-b-2 border-primary", designSystem.borders.radius.full)}></div>
                     <span className={cn("ml-2", designSystem.typography.color.subtle)}>Loading more...</span>
                   </>
                 ) : (
@@ -1157,6 +1196,7 @@ export const UniversalTable = memo(function UniversalTable({
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   )
@@ -1170,16 +1210,13 @@ export const UniversalTable = memo(function UniversalTable({
 export const createSubredditReviewTable = (props: Omit<UniversalTableProps, 'variant' | 'mode'>) => ({
   ...props,
   variant: 'standard' as const,
-  mode: 'review' as const,
-  showSelection: true,
-  allowSelectionInReview: true
+  mode: 'review' as const
 })
 
 export const createCategorizationTable = (props: Omit<UniversalTableProps, 'variant' | 'mode'>) => ({
   ...props,
   variant: 'standard' as const,
   mode: 'category' as const,
-  showSelection: true,
   showIcons: true
 })
 

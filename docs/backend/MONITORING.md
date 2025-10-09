@@ -22,26 +22,46 @@
 
 ```json
 {
-  "endpoints": {
+  "hetzner": {
     "/health": {
+      "url": "http://91.98.91.129:10000/health",
       "type": "Basic health check",
       "response_time": "< 10ms",
       "checks": ["API running", "Port accessible"],
       "frequency": "30s"
     },
     "/health/detailed": {
+      "url": "http://91.98.91.129:10000/health/detailed",
       "type": "Comprehensive check",
       "response_time": "< 100ms",
       "checks": [
         "Database connection",
-        "Scraper status",
-        "Memory usage",
-        "Queue depth"
+        "Redis queue status",
+        "Worker connectivity",
+        "Memory usage across 3 servers"
       ],
       "frequency": "60s"
     }
   }
 }
+```
+
+## Hetzner-Specific Monitoring
+
+```bash
+## Docker Status (on all 3 servers)
+ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 "docker compose ps"
+ssh -i ~/.ssh/hetzner_b9 root@188.245.232.203 "docker compose ps"
+ssh -i ~/.ssh/hetzner_b9 root@91.98.92.192 "docker compose ps"
+
+## Docker Logs (API server)
+ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 "docker compose logs --tail=50"
+
+## Redis Queue Monitoring (API server)
+ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 "redis-cli -a B9Dashboard2025SecureRedis! LLEN instagram_scraper_queue"
+
+## System Resources (API server)
+ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 "docker stats --no-stream"
 ```
 
 ## System Metrics

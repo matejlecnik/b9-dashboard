@@ -91,7 +91,7 @@ export function SortButton({
           onChange={(e) => handleSortFieldChange(e.target.value as SortField)}
           disabled={loading}
           className={cn(
-            "appearance-none rounded-lg px-4 pr-10 py-2 text-sm font-medium cursor-pointer",
+            `appearance-none ${designSystem.borders.radius.sm} px-4 pr-10 py-2 text-sm font-medium cursor-pointer`,
             "disabled:opacity-50 disabled:cursor-not-allowed",
             designSystem.glass.light,
             designSystem.borders.default,

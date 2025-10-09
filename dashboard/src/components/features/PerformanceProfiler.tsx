@@ -220,7 +220,7 @@ export function DevPerformancePanel() {
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={cn("fixed bottom-4 left-4 z-50 text-white p-2 rounded-full shadow-lg transition-colors", designSystem.background.surface.inverse, `hover:${designSystem.background.surface.darkest}`)}
+        className={cn(`fixed bottom-4 left-4 z-50 text-white p-2 ${designSystem.borders.radius.full} shadow-lg transition-colors`, designSystem.background.surface.inverse, `hover:${designSystem.background.surface.darkest}`)}
         title="Toggle Performance Panel"
       >
         🚀
@@ -228,7 +228,7 @@ export function DevPerformancePanel() {
 
       {/* Performance panel */}
       {isOpen && metrics && (
-        <div className={cn("fixed bottom-16 left-4 z-50 bg-white rounded-lg shadow-xl border p-4 w-96 max-h-[600px] overflow-auto", `dark:${designSystem.background.surface.inverse}`)}>
+        <div className={cn(`fixed bottom-16 left-4 z-50 bg-white ${designSystem.borders.radius.sm} shadow-xl border p-4 w-96 max-h-[600px] overflow-auto`, `dark:${designSystem.background.surface.inverse}`)}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-lg">Performance Monitor</h3>
             <button

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-07T11:19:17.758388",
+  "timestamp": "2025-10-08T14:20:51.299400",
   "violations": [
     {
       "file": "src/app/api/reddit/categories/route.ts",
@@ -9,311 +9,171 @@
       "code_snippet": "color: '#FF8395',"
     },
     {
-      "file": "src/app/login/page.tsx",
-      "line": 27,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "e.currentTarget.style.boxShadow = '0 20px 40px rgba(255, 131, 149, 0.4), 0 0 0 1"
-    },
-    {
-      "file": "src/app/login/page.tsx",
-      "line": 32,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 131, 149, 0.2)';"
-    },
-    {
-      "file": "src/app/login/page.tsx",
-      "line": 139,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 8px 32px rgba(255, 131, 149, 0.15), 0 0 0 1px rgba(255, 255, 255, "
-    },
-    {
-      "file": "src/app/login/page.tsx",
-      "line": 158,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'linear-gradient(135deg, rgba(254, 243, 199, 0.8), rgba(252, 211, 77"
-    },
-    {
-      "file": "src/app/login/page.tsx",
-      "line": 181,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'linear-gradient(135deg, rgba(254, 226, 226, 0.8), rgba(252, 165, 16"
-    },
-    {
       "file": "src/app/reddit/categorization/page.tsx",
-      "line": 446,
+      "line": 448,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247"
     },
     {
       "file": "src/app/reddit/categorization/page.tsx",
-      "line": 449,
+      "line": 451,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "border: '1px solid rgba(255, 255, 255, 0.3)',"
     },
     {
       "file": "src/app/reddit/categorization/page.tsx",
-      "line": 450,
+      "line": 452,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(25"
     },
     {
       "file": "src/app/reddit/categorization/page.tsx",
-      "line": 576,
+      "line": 578,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "background: 'rgba(255,255,255,0.25)',"
     },
     {
       "file": "src/app/reddit/subreddit-review/page.tsx",
-      "line": 407,
+      "line": 409,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "background: 'rgba(255,255,255,0.25)',"
     },
     {
       "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 356,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 358,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 359,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:bg-[rgba(248,250,252,0.8)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 360,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 383,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 385,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 386,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:bg-[rgba(248,250,252,0.8)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 387,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 397,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 1px 2px rgba(255, 179, 193, 0.2)',"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 417,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 419,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 420,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:bg-[rgba(248,250,252,0.8)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 421,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 444,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 446,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 447,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:bg-[rgba(248,250,252,0.8)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 448,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 458,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 1px 2px rgba(255, 131, 149, 0.25)',"
-    },
-    {
-      "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 733,
+      "line": 640,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "background: 'rgba(0,0,0,0.4)',"
     },
     {
+      "file": "src/components/common/PostAnalysisMetrics.tsx",
+      "line": 47,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "className={`${designSystem.borders.radius.lg} p-4 h-full min-h-[100px] bg-[rgba("
+    },
+    {
+      "file": "src/components/common/modals/AddSubredditModal.tsx",
+      "line": 134,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 2"
+    },
+    {
+      "file": "src/components/common/modals/AddSubredditModal.tsx",
+      "line": 137,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "border: '1px solid rgba(0, 0, 0, 0.1)',"
+    },
+    {
+      "file": "src/components/common/modals/AddSubredditModal.tsx",
+      "line": 138,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0,"
+    },
+    {
       "file": "src/components/instagram/InstagramCard.tsx",
-      "line": 51,
+      "line": 52,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "'shadow-[0_8px_32px_rgba(0,0,0,0.1)]',"
     },
     {
       "file": "src/components/instagram/InstagramCard.tsx",
-      "line": 57,
+      "line": 58,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "'hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]'"
     },
     {
       "file": "src/components/instagram/InstagramMetricCard.tsx",
-      "line": 58,
+      "line": 70,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "'shadow-[0_8px_32px_rgba(0,0,0,0.1)]',"
     },
     {
       "file": "src/components/instagram/InstagramMetricCard.tsx",
-      "line": 63,
+      "line": 75,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "'hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]',"
     },
     {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 46,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow: 'shadow-[0_8px_24px_-4px_rgba(255,131,149,0.3)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 47,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hoverShadow: 'hover:shadow-[0_12px_32px_-4px_rgba(255,131,149,0.5)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 55,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow: 'shadow-[0_8px_24px_-4px_rgba(255,69,0,0.3)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 56,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hoverShadow: 'hover:shadow-[0_12px_32px_-4px_rgba(255,69,0,0.5)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 64,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow: 'shadow-[0_8px_24px_-4px_rgba(228,64,95,0.3)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 65,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hoverShadow: 'hover:shadow-[0_12px_32px_-4px_rgba(228,64,95,0.5)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
+      "file": "src/components/shared/layouts/Header.tsx",
       "line": 73,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow: 'shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)]',"
+      "rule": "no-inline-font-family",
+      "message": "Inline fontFamily style detected. Use font-mac-text or font-mac-display instead",
+      "code_snippet": "<span className=\"text-sm font-medium text-gray-700 hidden md:block font-[-apple-"
     },
     {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 74,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hoverShadow: 'hover:shadow-[0_12px_32px_-4px_rgba(0,0,0,0.5)]',"
-    },
-    {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
+      "file": "src/components/shared/layouts/Header.tsx",
       "line": 82,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "shadow: 'shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1)]',"
+      "code_snippet": "<div className={`absolute right-0 mt-2 w-64 bg-[rgba(248,250,252,0.95)] backdrop"
     },
     {
-      "file": "src/components/shared/buttons/StandardActionButton.tsx",
-      "line": 83,
+      "file": "src/components/shared/layouts/Header.tsx",
+      "line": 89,
+      "rule": "no-inline-font-family",
+      "message": "Inline fontFamily style detected. Use font-mac-text or font-mac-display instead",
+      "code_snippet": "<div className=\"font-semibold text-gray-900 font-[-apple-system,BlinkMacSystemFo"
+    },
+    {
+      "file": "src/components/shared/layouts/Header.tsx",
+      "line": 92,
+      "rule": "no-inline-font-family",
+      "message": "Inline fontFamily style detected. Use font-mac-text or font-mac-display instead",
+      "code_snippet": "<div className=\"text-sm text-gray-600 font-[-apple-system,BlinkMacSystemFont,'SF"
+    },
+    {
+      "file": "src/components/shared/layouts/Header.tsx",
+      "line": 104,
+      "rule": "no-inline-font-family",
+      "message": "Inline fontFamily style detected. Use font-mac-text or font-mac-display instead",
+      "code_snippet": "className={`w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-white/50 f"
+    },
+    {
+      "file": "src/components/shared/modals/StandardModal.tsx",
+      "line": 67,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "hoverShadow: 'hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)]',"
+      "code_snippet": "background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 2"
+    },
+    {
+      "file": "src/components/shared/modals/StandardModal.tsx",
+      "line": 70,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "border: '1px solid rgba(0, 0, 0, 0.1)',"
+    },
+    {
+      "file": "src/components/shared/modals/StandardModal.tsx",
+      "line": 71,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0,"
+    },
+    {
+      "file": "src/components/ui/ToolbarComponents.tsx",
+      "line": 132,
+      "rule": "no-hardcoded-hex-colors",
+      "message": "Hardcoded hex color detected. Use CSS variables (var(--color-name)) instead",
+      "code_snippet": "color: '#ffffff',"
     }
   ],
   "summary": {
-    "total_violations": 44,
-    "files_checked": 213,
-    "files_with_violations": 8,
+    "total_violations": 24,
+    "files_checked": 212,
+    "files_with_violations": 11,
     "passed": false
   }
 }

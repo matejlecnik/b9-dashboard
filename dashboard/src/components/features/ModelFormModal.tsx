@@ -57,7 +57,6 @@ export function ModelFormModal({
       title={model ? 'Edit Model' : 'Create New Model'}
       subtitle={model ? `Editing: ${model.stage_name}` : 'Set up model profile and tag preferences'}
       icon={<UserCircle2 className="h-4 w-4" />}
-      variant="default"
       loading={saving}
       maxWidth="4xl"
       maxHeight="85vh"

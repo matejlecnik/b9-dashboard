@@ -1,0 +1,48 @@
+# Worker-specific Dockerfile (focuses on scraping, no web server)
+FROM python:3.12-slim-bullseye as builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.12-slim-bullseye
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    ENVIRONMENT=production
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    ffmpeg \
+    redis-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+RUN useradd --create-home --shell /bin/bash worker
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY --chown=worker:worker backend/ ./backend/
+
+RUN mkdir -p logs && chown -R worker:worker logs
+
+USER worker
+
+# Worker startup script (pulls jobs from Redis queue)
+CMD ["python", "backend/worker.py"]

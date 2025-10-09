@@ -16,7 +16,7 @@ class CodeQualityChecker:
     def __init__(self, quick: bool = False, files: Optional[List[str]] = None):
         self.root = Path(__file__).parent.parent.parent.parent
         self.dashboard_dir = self.root / "dashboard"
-        self.api_dir = self.root / "api-render"
+        self.api_dir = self.root / "backend"
         self.quick = quick
         self.files = files  # Specific files to check (for git hooks)
         self.results = {
@@ -158,8 +158,8 @@ class CodeQualityChecker:
             if not py_files:
                 print("  ⏭️  No Python files to lint")
                 return self._empty_result("Ruff")
-            # Strip api-render/ prefix if present (for git hooks with cwd=api_dir)
-            py_files = [f.replace('api-render/', '', 1) if f.startswith('api-render/') else f for f in py_files]
+            # Strip backend/ prefix if present (for git hooks with cwd=api_dir)
+            py_files = [f.replace('backend/', '', 1) if f.startswith('backend/') else f for f in py_files]
             cmd = ["ruff", "check"] + py_files + ["--output-format=json"]
 
         code, stdout, stderr = self.run_command(cmd, cwd=self.api_dir)
@@ -214,12 +214,12 @@ class CodeQualityChecker:
         # Mypy command
         cmd = ["mypy", "app", "--no-error-summary"]
         if self.files:
-            py_files = [f for f in self.files if f.endswith('.py') and 'api-render' in f]
+            py_files = [f for f in self.files if f.endswith('.py') and 'backend' in f]
             if not py_files:
                 print("  ⏭️  No Python files to type check")
                 return self._empty_result("Mypy")
-            # Strip api-render/ prefix if present (for git hooks with cwd=api_dir)
-            py_files = [f.replace('api-render/', '', 1) if f.startswith('api-render/') else f for f in py_files]
+            # Strip backend/ prefix if present (for git hooks with cwd=api_dir)
+            py_files = [f.replace('backend/', '', 1) if f.startswith('backend/') else f for f in py_files]
             cmd = ["mypy"] + py_files + ["--no-error-summary"]
 
         code, stdout, stderr = self.run_command(cmd, cwd=self.api_dir)

@@ -104,7 +104,7 @@ export function DatabasePerformancePanel() {
   if (!metrics) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-strong" />
+        <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-strong`} />
       </div>
     )
   }
@@ -359,7 +359,7 @@ export function DatabaseMetricsBadge() {
   if (!metrics) return null
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1 ${designSystem.background.surface.light} rounded-full text-xs`}>
+    <div className={`flex items-center gap-2 px-3 py-1 ${designSystem.background.surface.light} ${designSystem.borders.radius.full} text-xs`}>
       <Database className="h-3 w-3" />
       <span className="font-medium">DB</span>
       <span className={cn(designSystem.typography.color.tertiary)}>

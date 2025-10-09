@@ -23,9 +23,11 @@
 
 ```json
 {
-  "production": "https://b9-dashboard.onrender.com",
+  "production_hetzner": "http://91.98.91.129:10000",
+  "production_render": "https://b9-dashboard.onrender.com",
   "development": "http://localhost:8000",
   "version": "3.4.5",
+  "note": "Primary deployment on Hetzner Cloud (€30/mo, 3 servers)",
   "authentication": {
     "type": "Bearer Token / API Key",
     "header": "Authorization",
@@ -485,14 +487,17 @@
 ## Authentication
 
 ```bash
-## Header authentication
-curl -H "X-API-Key: your-api-key" https://b9-dashboard.onrender.com/api/endpoint
+## Header authentication (Hetzner)
+curl -H "X-API-Key: your-api-key" http://91.98.91.129:10000/api/endpoint
 
 ## Example request
 curl -X POST \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
-  https://b9-dashboard.onrender.com/api/scraper/start
+  http://91.98.91.129:10000/api/scraper/start
+
+## Legacy Render endpoint (if still active)
+curl -H "X-API-Key: your-api-key" https://b9-dashboard.onrender.com/api/endpoint
 ```
 
 ## Error Responses
@@ -589,8 +594,8 @@ curl -X POST \
 import requests
 
 class B9Dashboard:
-    def __init__(self, api_key):
-        self.base_url = "https://b9-dashboard.onrender.com"
+    def __init__(self, api_key, use_hetzner=True):
+        self.base_url = "http://91.98.91.129:10000" if use_hetzner else "https://b9-dashboard.onrender.com"
         self.headers = {"X-API-Key": api_key}
 
     def get_scraper_status(self):
@@ -614,8 +619,10 @@ status = client.get_scraper_status()
 
 ```javascript
 class B9Dashboard {
-  constructor(apiKey) {
-    this.baseUrl = 'https://b9-dashboard.onrender.com';
+  constructor(apiKey, useHetzner = true) {
+    this.baseUrl = useHetzner
+      ? 'http://91.98.91.129:10000'
+      : 'https://b9-dashboard.onrender.com';
     this.headers = {'X-API-Key': apiKey};
   }
 

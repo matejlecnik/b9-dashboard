@@ -19,8 +19,8 @@
   "configs": [
     {"path": "../../../dashboard/eslint.config.mjs", "desc": "ESLint rules"},
     {"path": "../../../dashboard/tsconfig.json", "desc": "TypeScript config"},
-    {"path": "../../../api-render/ruff.toml", "desc": "Ruff linter config"},
-    {"path": "../../../api-render/pyproject.toml", "desc": "Python project config"}
+    {"path": "../../../backend/ruff.toml", "desc": "Ruff linter config"},
+    {"path": "../../../backend/pyproject.toml", "desc": "Python project config"}
   ]
 }
 ```
@@ -268,14 +268,14 @@ lefthook run design-check         # Design system only
 }
 ```
 
-### Ruff (api-render/ruff.toml)
+### Ruff (backend/ruff.toml)
 ```toml
 line-length = 100
 select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 ignore = ["E501"]  # Line too long
 ```
 
-### Mypy (api-render/pyproject.toml)
+### Mypy (backend/pyproject.toml)
 ```toml
 [tool.mypy]
 python_version = "3.8"
@@ -332,7 +332,7 @@ Historical trend data (last 30 days)
 
 ### Python Tools (Development Only)
 ```bash
-cd api-render
+cd backend
 pip install -r requirements.txt
 ```
 

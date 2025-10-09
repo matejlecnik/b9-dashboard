@@ -185,7 +185,7 @@ class QualityDashboard:
         print("│ Fix issues:      python3 docs/scripts/validation/code-quality-check.py")
         print("│ TypeScript fix:  cd dashboard && npx tsc --noEmit")
         print("│ ESLint fix:      cd dashboard && npx eslint src --fix")
-        print("│ Python fix:      cd api-render && ruff check . --fix")
+        print("│ Python fix:      cd backend && ruff check . --fix")
         print("└" + "─" * 78 + "┘\n")
 
         # Return exit code

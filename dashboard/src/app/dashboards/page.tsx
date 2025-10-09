@@ -10,14 +10,13 @@ import {
   LogOut
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { getUserDashboardsClient, DashboardInfo } from '@/lib/permissions'
 import { useDashboardTracking, DashboardWithTracking } from '@/hooks/useDashboardTracking'
 import { RedditIcon, InstagramIcon, UsersIcon, ActivityIcon, MonitorIcon } from '@/components/shared/icons/DashboardIcons'
-import { designSystem } from '@/lib/design-system'
+import { designSystem, getDashboardTheme } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
 
 const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -26,38 +25,6 @@ const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>
   models: UsersIcon,
   tracking: ActivityIcon,
   monitor: MonitorIcon
-}
-
-/**
- * Dashboard Colors - Migrated to Design Token System v2.0
- * Using semantic tokens and platform-specific colors
- */
-const dashboardColors: Record<string, { color: string; bgColor: string; accent: string }> = {
-  reddit: {
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50',
-    accent: 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 text-white'
-  },
-  instagram: {
-    color: 'text-fuchsia-600',
-    bgColor: 'bg-fuchsia-50',
-    accent: 'bg-gradient-to-br from-fuchsia-600 via-pink-500 to-purple-600 text-white'
-  },
-  models: {
-    color: 'text-secondary',
-    bgColor: 'bg-secondary/10',
-    accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-fuchsia-500 text-white'
-  },
-  tracking: {
-    color: 'text-rose-700',
-    bgColor: 'bg-rose-50',
-    accent: 'bg-gradient-to-br from-rose-700 via-rose-500 to-pink-600 text-white'
-  },
-  monitor: {
-    color: 'text-purple-700',
-    bgColor: 'bg-purple-50',
-    accent: 'bg-gradient-to-br from-purple-700 via-purple-600 to-purple-500 text-white'
-  }
 }
 
 
@@ -171,8 +138,16 @@ export default function DashboardsPage() {
     return (
       <div className={cn("min-h-screen", designSystem.background.surface.subtle)}>
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center h-96">
+            <div className={cn(
+              "p-8 rounded-2xl animate-fade-in",
+              "bg-gradient-to-br from-white/60 via-gray-50/50 to-white/60",
+              "backdrop-blur-2xl backdrop-saturate-150",
+              "border border-gray-300/40",
+              "shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+            )}>
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
           </div>
         </div>
       </div>
@@ -184,7 +159,10 @@ export default function DashboardsPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 pb-6 border-b border-default">
+        <div className="flex items-center justify-between mb-8 pb-6 relative">
+          {/* Gradient divider */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300/60 to-transparent" />
+
           <div className="flex items-center space-x-4">
             <Image
               src="/logo/logo.png"
@@ -195,85 +173,155 @@ export default function DashboardsPage() {
               priority
             />
             <div>
-              <h1 className={cn("text-2xl font-semibold tracking-tight", designSystem.typography.color.primary)}>
+              <h1 className={cn("text-2xl font-mac-display font-semibold tracking-tight", designSystem.typography.color.primary)}>
                 B9 Dashboard
               </h1>
             </div>
           </div>
           <Button
             onClick={handleLogout}
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={cn("bg-white border-strong", designSystem.background.hover.subtle, designSystem.typography.color.secondary)}
+            className={cn(
+              "font-mac-text transition-all duration-300 ease-out",
+              // Glassmorphic background
+              "bg-gradient-to-br from-white/50 via-gray-50/40 to-white/50",
+              "backdrop-blur-xl backdrop-saturate-150",
+              // Mac-style border & shadow
+              "border border-gray-300/40",
+              "shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+              // Hover state with red tint (Mac logout style)
+              "hover:from-red-50/60 hover:via-red-50/50 hover:to-red-50/60",
+              "hover:border-red-300/40 hover:text-red-600",
+              "hover:shadow-[0_4px_12px_rgba(239,68,68,0.15)]",
+              "hover:scale-105 active:scale-95"
+            )}
           >
-            <LogOut className="w-3 h-3 mr-1.5" />
-            <span className="text-xs">Sign Out</span>
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">Sign Out</span>
           </Button>
         </div>
 
         {/* Search Bar */}
         <div className="mb-8 flex justify-center">
-          <div className="relative w-full max-w-sm">
-            <div className={cn("absolute left-3 top-1/2 transform -translate-y-1/2 z-10", designSystem.typography.color.disabled)}>
-              <Search className="h-4 w-4" />
+          <div className="relative w-full max-w-md">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10">
+              <Search className="h-4 w-4 text-gray-400" />
             </div>
-            <Input
+            <input
               id="dashboard-search"
               type="text"
-              placeholder=""
+              placeholder="Search dashboards..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              className={`w-full pl-10 pr-4 py-3 border-2 ${designSystem.borders.radius.md} backdrop-blur-sm transition-all duration-300`}
+              className={cn(
+                "w-full pl-10 pr-16 py-2.5 rounded-xl font-mac-text text-sm",
+                "transition-all duration-300 ease-out",
+                // Glassmorphic background matching sidebar
+                "bg-gradient-to-br from-white/60 via-gray-50/50 to-white/60",
+                "backdrop-blur-2xl backdrop-saturate-150",
+                // Mac-style border & shadow
+                "border border-gray-300/40",
+                "shadow-[0_2px_8px_var(--black-alpha-04),0_1px_0_var(--white-alpha-60)_inset]",
+                // Focus state with subtle gray ring (Mac-style)
+                isSearchFocused
+                  ? "ring-4 ring-gray-400/20 border-gray-400/50 shadow-[0_4px_12px_var(--black-alpha-08)]"
+                  : "hover:border-gray-300/60 hover:shadow-[0_4px_10px_var(--black-alpha-06)]",
+                // Placeholder styling + explicit outline suppression
+                "placeholder:text-gray-400 text-gray-900",
+                "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+              )}
             />
+            {/* Keyboard hint */}
+            {!isSearchFocused && !searchQuery && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <kbd className={cn(
+                  "inline-flex items-center justify-center",
+                  "w-6 h-6",
+                  "text-[10px] font-mac-text font-semibold",
+                  "text-gray-500",
+                  "bg-gradient-to-b from-white/60 to-gray-100/50",
+                  "border border-gray-300/50",
+                  "rounded-md shadow-sm",
+                  "backdrop-blur-sm"
+                )}>
+                  <span className="translate-y-[0.5px]">/</span>
+                </kbd>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Empty State - No Access */}
         {dashboards.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Card className="max-w-md mx-auto p-8">
-              <Lock className={cn("w-12 h-12 mx-auto mb-4", designSystem.typography.color.disabled)} />
-              <h2 className="text-xl font-semibold mb-2">No Dashboards Available</h2>
-              <p className={cn(designSystem.typography.color.subtle)}>
+          <div className="text-center py-16 animate-fade-in">
+            <div className={cn(
+              "max-w-md mx-auto p-10 rounded-2xl",
+              // Glassmorphic background matching other cards
+              "bg-gradient-to-br from-white/60 via-gray-50/50 to-white/60",
+              "backdrop-blur-2xl backdrop-saturate-150",
+              "border border-gray-300/40",
+              "shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+            )}>
+              {/* Icon with gradient */}
+              <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 mb-6">
+                <Lock className="w-8 h-8 text-gray-600" />
+              </div>
+              <h2 className="text-xl font-mac-display font-semibold mb-3 text-gray-900">
+                No Dashboards Available
+              </h2>
+              <p className="text-sm font-mac-text text-gray-600 leading-relaxed">
                 You don&apos;t have access to any dashboards yet. Please contact your administrator.
               </p>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Empty State - No Search Results */}
         {searchQuery.trim() && filteredDashboards.length === 0 && dashboards.length > 0 && (
-          <div className="text-center py-12">
-            <Search className={cn("h-12 w-12 mx-auto mb-4", designSystem.typography.color.disabled)} />
-            <h3 className={cn("text-lg font-medium mb-2", designSystem.typography.color.primary)}>No dashboards found</h3>
-            <p className={cn(designSystem.typography.color.subtle)}>Try searching with different keywords</p>
-            <Button
-              variant="outline"
-              onClick={() => setSearchQuery('')}
-              className="mt-4"
-            >
-              Clear search
-            </Button>
+          <div className="text-center py-16 animate-fade-in">
+            <div className={cn(
+              "max-w-md mx-auto p-10 rounded-2xl",
+              // Glassmorphic background matching other cards
+              "bg-gradient-to-br from-white/60 via-gray-50/50 to-white/60",
+              "backdrop-blur-2xl backdrop-saturate-150",
+              "border border-gray-300/40",
+              "shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+            )}>
+              {/* Icon with gradient */}
+              <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 mb-6">
+                <Search className="h-8 w-8 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-mac-display font-semibold mb-3 text-gray-900">
+                No dashboards found
+              </h3>
+              <p className="text-sm font-mac-text text-gray-600 leading-relaxed mb-6">
+                Try searching with different keywords
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery('')}
+                className="font-mac-text"
+              >
+                Clear search
+              </Button>
+            </div>
           </div>
         )}
 
         {/* Available Dashboards */}
         {filteredDashboards.length > 0 && (
           <div>
-            <h2 className={cn("text-lg font-semibold mb-4 text-center tracking-tight", designSystem.typography.color.secondary)}>
+            <h2 className={cn("text-lg font-mac-text font-semibold mb-4 text-center tracking-tight", designSystem.typography.color.secondary)}>
               Your Available Dashboards
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
               {filteredDashboards.map((dashboard: DashboardWithTracking, index: number) => {
                 const Icon = dashboardIcons[dashboard.dashboard_id] as React.ComponentType<{ className?: string }> || ActivityIcon
-                const colors = dashboardColors[dashboard.dashboard_id] || {
-                  color: designSystem.typography.color.subtle,
-                  bgColor: designSystem.background.surface.subtle,
-                  accent: `${designSystem.background.surface.darker} text-white`
-                }
+                const theme = getDashboardTheme(dashboard.dashboard_id)
 
                 const handleDashboardClick = () => {
                   trackDashboardAccess(dashboard.dashboard_id)
@@ -281,29 +329,47 @@ export default function DashboardsPage() {
                 }
 
                 return (
-                  <Card
+                  <div
                     key={dashboard.dashboard_id}
-                    className={`group dashboard-card-active transition-all duration-300 cursor-pointer ${designSystem.borders.radius.sm} hover:scale-105 hover:-translate-y-1 active:scale-95`}
+                    className={cn(
+                      "group dashboard-card-active",
+                      "transition-all duration-300 cursor-pointer",
+                      designSystem.borders.radius.lg,
+                      "hover:scale-105 hover:-translate-y-1 active:scale-95",
+                      "overflow-hidden",
+                      "min-h-[117px]"
+                    )}
                     onClick={handleDashboardClick}
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    style={{
+                      animationDelay: `${index * 0.1}s`,
+                      background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+                      backdropFilter: 'blur(20px) saturate(140%)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                      // Enhanced Mac-style shadow (multi-layer with subtle inset highlights)
+                      boxShadow: '0 20px 50px var(--black-alpha-12), 0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.02) inset',
+                      border: '1px solid var(--slate-400-alpha-60)'
+                    }}
                   >
-                    <div className="p-4">
-                      <div className="flex items-start">
-                        <div className={`p-2 ${designSystem.borders.radius.sm} flex-shrink-0 ${colors.accent}`}>
+                    <div className="p-5 flex items-center h-full">
+                      <div className="flex items-center">
+                        <div className={cn(
+                          `p-2 ${designSystem.borders.radius.sm} flex-shrink-0 ${theme.accent}`,
+                          "shadow-[0_1px_2px_rgba(0,0,0,0.1)_inset]" // Inner depth
+                        )}>
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="ml-3 flex-1">
-                          <CardTitle className={cn("text-sm font-semibold tracking-tight", designSystem.typography.color.primary)}>
+                          <CardTitle className={cn("text-sm font-mac-text font-semibold tracking-tight", designSystem.typography.color.primary)}>
                             {highlightText(dashboard.name, searchQuery)}
                           </CardTitle>
                           {/* Last Opened Time */}
-                          <p className={cn("text-xs mt-0.5", designSystem.typography.color.subtle)}>
+                          <p className={cn("text-xs font-mac-text mt-0.5", designSystem.typography.color.subtle)}>
                             {getRelativeTime(dashboard.dashboard_id)}
                           </p>
                         </div>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
@@ -312,7 +378,7 @@ export default function DashboardsPage() {
 
         {/* Footer */}
         <div className="mt-16 pt-6 text-center">
-          <p className={cn("text-xs", designSystem.typography.color.disabled)}>
+          <p className={cn("text-xs font-mac-text", designSystem.typography.color.disabled)}>
             © 2025 B9 Dashboard · {userEmail === 'info@b9agencija.com' && 'Admin Access'}
           </p>
         </div>

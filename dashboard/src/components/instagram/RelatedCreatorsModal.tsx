@@ -164,7 +164,6 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
       title="Related Creators Discovery"
       subtitle="Automated discovery"
       icon={<Users className="h-4 w-4" />}
-      variant="instagram"
       loading={isProcessing}
       maxWidth="md"
       maxHeight="70vh"

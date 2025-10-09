@@ -693,7 +693,7 @@
         "Audience demographics quality"
       ],
       "implementation": {
-        "backend": "api-render/scrapers/instagram/scoring.py",
+        "backend": "backend/scrapers/instagram/scoring.py",
         "frontend": "dashboard/components/features/instagram/QualityScore.tsx",
         "database": "instagram_creator_scores table"
       },

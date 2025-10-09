@@ -35,7 +35,7 @@
 ```
 
 ## 🎯 Objective
-Clean up api-render codebase by removing legacy artifacts, fixing version inconsistencies, and updating outdated configuration files.
+Clean up backend codebase by removing legacy artifacts, fixing version inconsistencies, and updating outdated configuration files.
 
 ---
 
@@ -44,12 +44,12 @@ Clean up api-render codebase by removing legacy artifacts, fixing version incons
 ### Task 1: Delete Empty app/routes/ Directory
 **Status:** ✅ COMPLETED
 **Priority:** CRITICAL
-**Location:** `api-render/app/routes/`
+**Location:** `backend/app/routes/`
 **Issue:** Directory only contains `__pycache__/`, no actual code. All routes migrated to `app/api/`.
 
 **Actions:**
 ```bash
-rm -rf api-render/app/routes/
+rm -rf backend/app/routes/
 ```
 
 **Impact:** Removes confusing legacy structure, prevents documentation conflicts

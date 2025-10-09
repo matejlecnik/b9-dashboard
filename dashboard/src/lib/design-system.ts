@@ -460,6 +460,55 @@ export const platform = {
   },
 } as const
 
+// ============================================================================
+// DASHBOARD CARD THEME SYSTEM
+// ============================================================================
+
+/**
+ * Dashboard card styling - Centralized theme configuration
+ * Each dashboard has consistent text color, background, and accent gradient
+ */
+export const dashboards = {
+  reddit: {
+    text: 'text-[var(--reddit-primary)]',
+    bg: 'bg-orange-50',
+    accent: 'bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 text-white',
+  },
+  instagram: {
+    text: 'text-fuchsia-600',
+    bg: 'bg-fuchsia-50',
+    accent: 'bg-gradient-to-br from-fuchsia-600 via-pink-500 to-purple-600 text-white',
+  },
+  models: {
+    text: 'text-secondary',
+    bg: 'bg-secondary/10',
+    accent: 'bg-gradient-to-br from-purple-600 via-purple-500 to-fuchsia-500 text-white',
+  },
+  tracking: {
+    text: 'text-rose-700',
+    bg: 'bg-rose-50',
+    accent: 'bg-gradient-to-br from-rose-700 via-rose-500 to-pink-600 text-white',
+  },
+  monitor: {
+    text: 'text-purple-700',
+    bg: 'bg-purple-50',
+    accent: 'bg-gradient-to-br from-purple-700 via-purple-600 to-purple-500 text-white',
+  },
+} as const
+
+/**
+ * Get dashboard theme by ID with fallback
+ * @param dashboardId - Dashboard identifier (reddit, instagram, etc.)
+ * @returns Theme object with text, bg, and accent classes
+ */
+export function getDashboardTheme(dashboardId: string) {
+  return dashboards[dashboardId as keyof typeof dashboards] || {
+    text: typography.color.subtle,
+    bg: background.surface.subtle,
+    accent: `${background.surface.darker} text-white`
+  }
+}
+
 /**
  * Get platform-specific color
  * @param platformName - 'instagram' | 'reddit' | 'tracking'

@@ -60,7 +60,7 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-b9-pink text-white rounded-lg hover:bg-b9-pink/90 transition"
+          className={`mt-4 px-4 py-2 bg-b9-pink text-white ${designSystem.borders.radius.sm} hover:bg-b9-pink/90 transition`}
         >
           Refresh Page
         </button>

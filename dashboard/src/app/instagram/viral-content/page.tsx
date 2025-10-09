@@ -2,16 +2,14 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import {
-  Film,
   TrendingUp,
-  Sparkles,
   Eye,
-  Play,
   Heart,
   Clock
 } from 'lucide-react'
 import { StandardToolbar } from '@/components/shared'
-import { InstagramCard, InstagramMetricCard, ViralFilters, ViralReelsGrid } from '@/components/instagram'
+import { InstagramCard, ViralFilters, ViralReelsGrid } from '@/components/instagram'
+import { UniversalMetricCard } from '@/components/shared/cards'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
@@ -75,53 +73,35 @@ export default function ViralContentPage() {
                   <MetricsCardsSkeleton />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
-                    <InstagramMetricCard
-                      icon={<Film className="h-4 w-4" />}
-                      iconColor="secondary"
+                    <UniversalMetricCard
+                      title="Total Reels"
                       value={formatNumber(stats?.total_reels || 8001)}
-                      label="Total Reels"
-                      sublabel="In Database"
+                      subtitle="Database"
                     />
 
-                    <InstagramMetricCard
-                      icon={<TrendingUp className="h-4 w-4" />}
-                      iconColor="primary"
+                    <UniversalMetricCard
+                      title="Viral Reels"
                       value={formatNumber(stats?.total_viral || 6566)}
-                      label="Viral Reels"
-                      sublabel="50K+ Views"
+                      subtitle="50K+ views"
                       highlighted
-                      badge={
-                        <div className={`w-1.5 h-1.5 ${designSystem.borders.radius.full} bg-gradient-to-br from-primary to-primary-hover shadow-sm`} />
-                      }
                     />
 
-                    <InstagramMetricCard
-                      icon={<Sparkles className="h-4 w-4" />}
-                      iconColor="secondary"
+                    <UniversalMetricCard
+                      title="Ultra Viral"
                       value={formatNumber(stats?.ultra_viral || 3)}
-                      label="Ultra Viral"
-                      sublabel="50M+ Views"
+                      subtitle="50M+ views"
                     />
 
-                    <InstagramMetricCard
-                      icon={<Eye className="h-4 w-4" />}
-                      iconColor="tertiary"
+                    <UniversalMetricCard
+                      title="Avg Views"
                       value={formatNumber(stats?.avg_views || 1008541)}
-                      label="Avg Views"
-                      sublabel="Per Viral Reel"
-                      className="[&>div:first-child>div:first-child]:text-blue-600"
+                      subtitle="Per reel"
                     />
 
-                    <InstagramMetricCard
-                      icon={<Play className="h-4 w-4" />}
-                      iconColor="tertiary"
+                    <UniversalMetricCard
+                      title="Max Views"
                       value={formatNumber(stats?.max_views || 112747183)}
-                      label="Max Views"
-                      sublabel="Top Performer"
-                      className="[&>div:first-child>div:first-child]:text-green-600"
-                      badge={
-                        <div className={`w-1 h-1 ${designSystem.borders.radius.full} bg-gradient-to-br from-green-500 to-green-400 shadow-sm`} />
-                      }
+                      subtitle="Top"
                     />
                   </div>
                 )}

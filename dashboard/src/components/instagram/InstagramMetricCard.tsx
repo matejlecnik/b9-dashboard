@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 interface InstagramMetricCardProps {
   icon: ReactNode
@@ -17,17 +18,28 @@ interface InstagramMetricCardProps {
 /**
  * InstagramMetricCard - Standardized metric card for Instagram pages
  *
- * Replaces 67 inline glassmorphism instances with a single reusable component
- * using design system tokens for consistent styling and easy theming.
+ * @deprecated Use UniversalMetricCard with variant="viral" instead
+ * This component will be removed in v5.0.0
  *
- * @example
+ * Migration example:
  * ```tsx
+ * // OLD
  * <InstagramMetricCard
  *   icon={<Film className="h-4 w-4" />}
  *   iconColor="secondary"
  *   value={formatNumber(8001)}
  *   label="Total Reels"
  *   sublabel="In Database"
+ * />
+ *
+ * // NEW
+ * <UniversalMetricCard
+ *   variant="viral"
+ *   icon={Film}
+ *   iconColor="secondary"
+ *   title="Total Reels"
+ *   value={formatNumber(8001)}
+ *   subtitle="In Database"
  * />
  * ```
  */
@@ -51,7 +63,7 @@ export function InstagramMetricCard({
     <div
       className={cn(
         // Base layout
-        'rounded-2xl p-4 h-full min-h-[100px]',
+        `${designSystem.borders.radius.lg} p-4 h-full min-h-[100px]`,
         // Glassmorphism using design tokens (replaces inline bg-[rgba(...)])
         'bg-slate-50/70 backdrop-blur-md',
         'border border-white/20',
@@ -71,7 +83,7 @@ export function InstagramMetricCard({
       {/* Icon and optional badge */}
       <div className="flex items-center justify-between mb-2">
         <div className={cn(
-          'p-2 rounded-xl shadow-sm ring-1 ring-white/20',
+          `p-2 ${designSystem.borders.radius.md} shadow-sm ring-1 ring-white/20`,
           'bg-white/60 backdrop-blur-sm',
           iconColors[iconColor]
         )}>

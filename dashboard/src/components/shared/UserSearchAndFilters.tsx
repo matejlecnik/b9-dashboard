@@ -110,7 +110,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
           disabled={loading}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          className="px-4 py-2 border rounded-lg lg:max-w-[60%] w-full"
+          className={`px-4 py-2 border ${designSystem.borders.radius.sm} lg:max-w-[60%] w-full`}
         />
 
         {/* Filter Pills (40% on larger screens) */}
@@ -126,7 +126,7 @@ export const UserSearchAndFilters = React.memo(function UserSearchAndFilters({
                 id={`user-filter-${filter.id}`}
                 onClick={() => onFilterChange(filter.id)}
                 disabled={loading}
-                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 ${
+                className={`px-3 py-1.5 ${designSystem.borders.radius.sm} flex items-center gap-2 ${
                   isActive ? 'bg-blue-500 text-white' : designSystem.background.surface.light
                 }`}
               >

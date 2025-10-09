@@ -66,13 +66,13 @@
 ```json
 {
   "files_without_navigation": [
-    "api-render/app/services/README.md",
-    "api-render/app/services/tags/README.md",
-    "api-render/app/services/tags/TAG_CATEGORIES.md",
-    "api-render/app/scrapers/instagram/services/README.md",
-    "api-render/scripts/README.md",
-    "api-render/tests/README.md",
-    "api-render/migrations/README.md",
+    "backend/app/services/README.md",
+    "backend/app/services/tags/README.md",
+    "backend/app/services/tags/TAG_CATEGORIES.md",
+    "backend/app/scrapers/instagram/services/README.md",
+    "backend/scripts/README.md",
+    "backend/tests/README.md",
+    "backend/migrations/README.md",
     "dashboard/docs/deployment/CHECKLIST.md",
     "dashboard/docs/development/TASKS.md",
     "docs/deployment/DEPLOYMENT.md",
@@ -151,7 +151,7 @@
     "database/SUPABASE_SCHEMA.md - Weekly"
   ],
   "needs_update": [
-    "api-render/ARCHITECTURE.md - Last: 3 months ago",
+    "backend/ARCHITECTURE.md - Last: 3 months ago",
     "dashboard/README.md - Last: 2 months ago"
   ]
 }

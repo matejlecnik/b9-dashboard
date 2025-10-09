@@ -115,7 +115,6 @@ export function AICategorizationModal({
       title="AI Categorization"
       subtitle="Automated categorization"
       icon={<Sparkles className="h-4 w-4" />}
-      variant="default"
       loading={isProcessing}
       maxWidth="md"
       maxHeight="70vh"

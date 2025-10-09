@@ -111,7 +111,7 @@ const ModelsTable = memo(function ModelsTable({
 
   return (
     <div className={cn(
-      "flex flex-col h-full rounded-2xl border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden",
+      `flex flex-col h-full ${designSystem.borders.radius.lg} border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden`,
       className
     )}>
       {/* Header */}

@@ -2,24 +2,23 @@
 
 import React, { useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
+import { UniversalMetricCard } from '@/components/shared/cards'
 import type { User } from '@/lib/supabase/index'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatNumber as formatNumberUtil } from '@/lib/formatters'
 import {
-  Users,
   Clock,
   MessageCircle,
-  Star,
   ExternalLink,
   X,
   Loader2,
-  Crown,
   MailCheck,
   Shield,
   Download,
   CheckSquare,
-  Activity
+  Crown,
+  Users
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { UserFilters } from '@/components/shared/UserFilters'
@@ -354,100 +353,33 @@ export default function UserAnalysisPage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5">
               {/* Total Users Card */}
-              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
-                    <Users className="h-4 w-4" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
-                    {formatNumber(stats?.total_users)}
-                  </div>
-                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
-                    Total Users
-                  </div>
-                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
-                    In Database
-                  </div>
-                </div>
-              </div>
+              <UniversalMetricCard
+                title="Total Users"
+                value={formatNumber(stats?.total_users)}
+                subtitle="Database"
+              />
 
               {/* Active Users Card */}
-              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
-                    <Activity className="h-4 w-4" />
-                  </div>
-                  {stats?.users_active_last_30_days && stats.users_active_last_30_days > 0 && (
-                    <div className={`w-1 h-1 ${designSystem.borders.radius.full}`}
-                      style={{
-                        background: 'linear-gradient(135deg, #FFB3C1, #FF99A9)',
-                        boxShadow: '0 1px 2px rgba(255, 179, 193, 0.2)',
-                      }}></div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
-                    {formatNumber(stats?.users_active_last_30_days)}
-                  </div>
-                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
-                    Active Users
-                  </div>
-                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
-                    Last 30 days
-                  </div>
-                </div>
-              </div>
+              <UniversalMetricCard
+                title="Active Users"
+                value={formatNumber(stats?.users_active_last_30_days)}
+                subtitle="30 days"
+              />
 
               {/* High Quality Users Card */}
-              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={cn(`p-2 ${designSystem.borders.radius.md} bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`, designSystem.typography.color.secondary)}>
-                    <Star className="h-4 w-4" />
-                  </div>
-                </div>
+              <UniversalMetricCard
+                title="High Quality"
+                value={formatNumber(stats?.high_quality_users)}
+                subtitle="Score ≥ 7.0"
+              />
 
-                <div className="space-y-1.5">
-                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
-                    {formatNumber(stats?.high_quality_users)}
-                  </div>
-                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
-                    High Quality
-                  </div>
-                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
-                    Score ≥ 7.0
-                  </div>
-                </div>
-              </div>
-
-              {/* Our Creators Card with Pink Accent */}
-              <div className={`${designSystem.borders.radius.lg} p-4 transition-all duration-300 ease-out h-full min-h-[100px] bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:bg-[rgba(248,250,252,0.8)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-1 ring-2 ring-primary/20`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 ${designSystem.borders.radius.md} text-primary bg-white/60 backdrop-blur-sm shadow-sm ring-1 ring-white/20`}>
-                    <Crown className="h-4 w-4" />
-                  </div>
-                  <div className={`w-1.5 h-1.5 ${designSystem.borders.radius.full}`}
-                    style={{
-                      background: 'linear-gradient(135deg, #FF8395, #FF7A85)',
-                      boxShadow: '0 1px 2px rgba(255, 131, 149, 0.25)',
-                    }}></div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className={cn("text-lg font-bold font-mac-display text-shadow-subtle", designSystem.typography.color.primary)}>
-                    {formatNumber(stats?.our_creators)}
-                  </div>
-                  <div className={cn("text-xs font-semibold font-mac-text", designSystem.typography.color.secondary)}>
-                    Our Creators
-                  </div>
-                  <div className={cn("text-xs font-mac-text", designSystem.typography.color.tertiary)}>
-                    {stats?.our_creators && stats?.our_creators > 0 ? 'Manually marked' : 'None yet'}
-                  </div>
-                </div>
-              </div>
+              {/* Our Creators Card */}
+              <UniversalMetricCard
+                title="Our Creators"
+                value={formatNumber(stats?.our_creators)}
+                subtitle={stats?.our_creators && stats?.our_creators > 0 ? 'Tracked' : 'None'}
+                highlighted
+              />
             </div>
           )}
         </ComponentErrorBoundary>

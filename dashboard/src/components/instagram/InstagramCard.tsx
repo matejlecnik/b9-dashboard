@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { designSystem } from '@/lib/design-system'
 
 interface InstagramCardProps {
   children: ReactNode
@@ -44,7 +45,7 @@ export function InstagramCard({
     <div
       className={cn(
         // Base layout
-        'rounded-2xl transition-all duration-300 ease-out',
+        `${designSystem.borders.radius.lg} transition-all duration-300 ease-out`,
         // Glassmorphism (replaces bg-[rgba(248,250,252,0.7)] backdrop-blur-[15px])
         'bg-slate-50/70 backdrop-blur-md',
         'border border-white/20',

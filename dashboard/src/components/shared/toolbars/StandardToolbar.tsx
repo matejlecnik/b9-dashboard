@@ -210,12 +210,18 @@ const StandardToolbar = memo(function StandardToolbar({
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setSearchFocused(false)}
           className={cn(
-            'pl-9 pr-9 h-9 w-full max-w-md',
-            designSystem.borders.radius.lg,
-            'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
-            'border border-default shadow-[0_4px_16px_var(--black-alpha-05)]',
-            designSystem.animation.transition.default,
-            searchFocused && 'ring-2 ring-primary/30'
+            'pl-9 pr-9 h-9 w-full max-w-md font-mac-text text-sm',
+            'rounded-xl',
+            'transition-all duration-300 ease-out',
+            'bg-gradient-to-br from-white/60 via-gray-50/50 to-white/60',
+            'backdrop-blur-2xl backdrop-saturate-150',
+            'border border-gray-300/40',
+            'shadow-[0_2px_8px_var(--black-alpha-04),0_1px_0_var(--white-alpha-60)_inset]',
+            'placeholder:text-gray-400 text-gray-900',
+            'outline-none focus:outline-none focus-visible:outline-none active:outline-none',
+            searchFocused
+              ? 'ring-4 ring-gray-400/20 border-gray-400/50 shadow-[0_4px_12px_var(--black-alpha-08)]'
+              : 'hover:border-gray-300/60 hover:shadow-[0_4px_10px_var(--black-alpha-06)]'
           )}
           disabled={loading}
         />
@@ -255,18 +261,20 @@ const StandardToolbar = memo(function StandardToolbar({
               style={{
                 background: isActive
                   ? 'linear-gradient(135deg, var(--pink-300-alpha-90), var(--pink-custom-alpha-90))'
-                  : 'linear-gradient(135deg, var(--pink-200-alpha-08), var(--pink-200-alpha-08))',
-                backdropFilter: 'blur(16px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  : 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+                backdropFilter: isActive ? 'blur(16px) saturate(180%)' : 'blur(24px) saturate(150%)',
+                WebkitBackdropFilter: isActive ? 'blur(16px) saturate(180%)' : 'blur(24px) saturate(150%)',
                 boxShadow: isActive
                   ? '0 8px 20px var(--pink-custom-alpha-40), inset 0 2px 2px 0 var(--white-alpha-40)'
-                  : '0 2px 8px var(--black-alpha-05), inset 0 1px 1px 0 var(--white-alpha-30)',
-                border: '1px solid var(--black-alpha-10)'
+                  : '0 8px 20px var(--black-alpha-08), inset 0 1px 0 var(--white-alpha-60)',
+                border: isActive
+                  ? '1px solid var(--black-alpha-10)'
+                  : '1px solid var(--slate-400-alpha-60)'
               }}
             >
               {/* Gradient overlay on hover */}
               <div className={cn(
-                "absolute inset-0 opacity-0 group-hover:opacity-100",
+                "absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100",
                 designSystem.animation.transition.default,
                 isActive
                   ? "bg-gradient-to-br from-primary/30 via-primary/30 to-primary-hover/30"
@@ -274,11 +282,11 @@ const StandardToolbar = memo(function StandardToolbar({
               )} />
 
               {/* Shine effect */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+              <div className="absolute inset-0 z-0 pointer-events-none -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
               {/* Glow effect for active state */}
               {isActive && (
-                <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100", designSystem.animation.transition.slow)}>
+                <div className={cn("absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100", designSystem.animation.transition.slow)}>
                   <div className={cn("absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-hover/20 blur-xl", designSystem.borders.radius.lg)} />
                 </div>
               )}
@@ -286,7 +294,7 @@ const StandardToolbar = memo(function StandardToolbar({
               {/* Content */}
               <div className={cn('relative z-10 flex items-center', designSystem.spacing.gap.tight)}>
                 <span className={cn(
-                  isActive && "bg-gradient-to-r from-primary/50 to-white bg-clip-text text-transparent font-semibold"
+                  isActive && "bg-gradient-to-r from-white/80 to-white bg-clip-text text-transparent font-semibold"
                 )}>
                   {filter.label}
                 </span>

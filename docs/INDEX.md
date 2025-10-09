@@ -1,7 +1,7 @@
 # B9 Dashboard Documentation Index
 
 ┌─ DOCUMENTATION HUB ─────────────────────────────────────┐
-│ ● OPERATIONAL │ 59 FILES │ 18.9K LINES │ 98% COMPLIANT │
+│ ● OPERATIONAL │ 61 FILES │ 18.9K LINES │ 99% COMPLIANT │
 └─────────────────────────────────────────────────────────┘
 
 ## Quick Navigation
@@ -11,9 +11,10 @@
   "start_here": "CLAUDE.md",
   "project_overview": "README.md",
   "current": "docs/INDEX.md",
-  "total_files": 59,
-  "compliance": "98%",
-  "last_updated": "2025-10-01"
+  "total_files": 61,
+  "compliance": "99%",
+  "last_updated": "2025-10-08",
+  "recent_changes": "Hetzner migration complete, backend directory renamed, documentation restructured"
 }
 ```
 
@@ -74,9 +75,9 @@
     "version": "3.4.5"
   },
   "scrapers": {
-    "reddit": "api-render/app/scrapers/reddit/README.md (248 lines) - v3.4.5",
-    "instagram": "api-render/app/scrapers/instagram/README.md (221 lines)",
-    "architecture": "api-render/app/scrapers/reddit/ARCHITECTURE.md"
+    "reddit": "backend/app/scrapers/reddit/README.md (248 lines) - v3.4.5",
+    "instagram": "backend/app/scrapers/instagram/README.md (221 lines)",
+    "architecture": "backend/app/scrapers/reddit/ARCHITECTURE.md"
   },
   "logging": {
     "file": "docs/backend/logging.md",
@@ -126,7 +127,7 @@
   },
   "workflows": {
     "github": ".github/workflows/README.md (245 lines)",
-    "api": ".github/workflows/api-render.yml",
+    "api": ".github/workflows/backend.yml",
     "ci": ".github/workflows/ci.yml"
   },
   "monitoring": {
@@ -182,13 +183,13 @@
 
 ### By Technology
 - **React/Next.js**: `docs/frontend/`, `COMPONENT_GUIDE.md`, `REACT_QUERY_*.md`
-- **Python/FastAPI**: `docs/backend/`, `api-render/`, `scrapers/`
+- **Python/FastAPI**: `docs/backend/`, `backend/`, `scrapers/`
 - **PostgreSQL/Supabase**: `docs/database/`, `SUPABASE_*.md`, `migrations/`
 - **Docker/Render**: `docs/deployment/`, `Dockerfile`, `render.yaml`
 
 ### By Task
 - **Setup Project**: `README.md` → `dashboard/README.md` → `.env.example`
-- **Add API Endpoint**: `api-render/main.py` → `routes/` → `docs/backend/API.md`
+- **Add API Endpoint**: `backend/main.py` → `routes/` → `docs/backend/API.md`
 - **Database Query**: `docs/database/SUPABASE_QUERIES.md` → `SUPABASE_FUNCTIONS.md`
 - **Deploy Changes**: `docs/deployment/DEPLOYMENT.md` → `CHECKLIST.md` → GitHub Actions
 - **Fix Bugs**: `docs/development/SESSION_LOG.md` → `system_logs` → `docs/backend/MONITORING.md`
@@ -221,7 +222,7 @@ b9_dashboard/
 │   ├── 📁 development/ (6 files, 1,316 lines)
 │   ├── 📁 scripts/ - Automation & validation
 │   └── 📁 archive/ - Historical snapshots
-├── 📁 api-render/ (26 files, 7,847 lines)
+├── 📁 backend/ (26 files, 7,847 lines)
 │   ├── 📄 README.md - API module overview
 │   └── 📁 app/ [scrapers, routes, services...]
 ├── 📁 dashboard/ (8 files, 3,499 lines)
@@ -238,15 +239,15 @@ b9_dashboard/
   "total_files": 25,
   "total_lines": 6500,
   "navigation": {
-    "overview": "api-render/README.md",
+    "overview": "backend/README.md",
     "architecture": "docs/backend/ARCHITECTURE.md",
     "api_reference": "docs/backend/API.md",
     "deployment": "docs/backend/RENDER_API_DEPLOYMENT.md",
     "monitoring": "docs/backend/MONITORING.md"
   },
   "scrapers": {
-    "reddit": "api-render/app/scrapers/reddit/ARCHITECTURE.md (1081 lines)",
-    "instagram": "api-render/app/scrapers/instagram/README.md"
+    "reddit": "backend/app/scrapers/reddit/ARCHITECTURE.md (1081 lines)",
+    "instagram": "backend/app/scrapers/instagram/README.md"
   }
 }
 ```

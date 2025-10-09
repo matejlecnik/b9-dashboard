@@ -393,7 +393,7 @@ _Version: X.X.X | Updated: YYYY-MM-DD_
     "create_when": [
       "Directory contains 3+ files with related functionality",
       "Complex module requiring overview",
-      "Entry point for developers (e.g., src/components/, api-render/app/)"
+      "Entry point for developers (e.g., src/components/, backend/app/)"
     ],
     "skip_when": [
       "Single-file directories",

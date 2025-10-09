@@ -11,7 +11,7 @@ function SkeletonCard({ variant = 'default' }: { variant?: 'default' | 'compact'
   const height = variant === 'compact' ? 'h-48' : variant === 'wide' ? 'h-64' : 'h-56'
 
   return (
-    <div className={cn(`${height} animate-pulse rounded-lg`, designSystem.background.surface.neutral)}>
+    <div className={cn(`${height} animate-pulse ${designSystem.borders.radius.sm}`, designSystem.background.surface.neutral)}>
       <div className="p-4 space-y-3">
         <div className={cn("h-4 rounded w-3/4", designSystem.background.surface.medium)}></div>
         <div className={cn("h-3 rounded", designSystem.background.surface.medium)}></div>
@@ -167,7 +167,7 @@ export function VirtualizedPostGrid({
 
       {/* No Results */}
       {posts.length === 0 && !loading && (
-        <div className="text-center py-24 bg-white/70 backdrop-blur-sm rounded-xl border border-light">
+        <div className={`text-center py-24 bg-white/70 backdrop-blur-sm ${designSystem.borders.radius.md} border border-light`}>
           <div className={cn("text-8xl mb-6", designSystem.typography.color.disabled)}>📱</div>
           <div className={cn("text-2xl mb-3 font-medium", designSystem.typography.color.subtle)}>No posts found</div>
           <div className={cn("max-w-md mx-auto", designSystem.typography.color.disabled)}>

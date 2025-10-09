@@ -27,14 +27,35 @@
     "public": {
       "NEXT_PUBLIC_SUPABASE_URL": "https://cetrhongdrjztsrsffuh.supabase.co",
       "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "NEXT_PUBLIC_API_URL": "https://api-render.onrender.com"
+      "NEXT_PUBLIC_API_URL": "https://backend.onrender.com"
     },
     "private": {
       "SUPABASE_SERVICE_ROLE_KEY": "[NEVER_COMMIT]",
       "JWT_SECRET": "[NEVER_COMMIT]"
     }
   },
-  "backend_render": {
+  "backend_hetzner": {
+    "required": {
+      "SUPABASE_URL": "https://cetrhongdrjztsrsffuh.supabase.co",
+      "SUPABASE_SERVICE_ROLE_KEY": "[NEVER_COMMIT]",
+      "OPENAI_API_KEY": "[NEVER_COMMIT]",
+      "RAPIDAPI_KEY": "[NEVER_COMMIT]",
+      "R2_ACCOUNT_ID": "[NEVER_COMMIT]",
+      "R2_ACCESS_KEY_ID": "[NEVER_COMMIT]",
+      "R2_SECRET_ACCESS_KEY": "[NEVER_COMMIT]",
+      "R2_BUCKET_NAME": "b9-instagram-media",
+      "REDIS_HOST": "127.0.0.1 (API) or 91.98.91.129 (Workers)",
+      "REDIS_PORT": "6379",
+      "REDIS_PASSWORD": "[NEVER_COMMIT]"
+    },
+    "optional": {
+      "PORT": "10000",
+      "ENVIRONMENT": "production",
+      "LOG_LEVEL": "info",
+      "WORKER_ID": "1 or 2 (for workers only)"
+    }
+  },
+  "backend_render_legacy": {
     "required": {
       "SUPABASE_URL": "https://cetrhongdrjztsrsffuh.supabase.co",
       "SUPABASE_SERVICE_ROLE_KEY": "[NEVER_COMMIT]",
@@ -45,7 +66,8 @@
       "PORT": "8000",
       "ENVIRONMENT": "production",
       "LOG_LEVEL": "INFO"
-    }
+    },
+    "status": "DEPRECATED"
   }
 }
 ```
@@ -84,11 +106,19 @@
     "access": "Team members only",
     "audit": "ENABLED"
   },
-  "render": {
+  "hetzner": {
+    "location": "/app/b9dashboard/.env (per server)",
+    "encryption": "None (file-based)",
+    "access": "SSH key required",
+    "audit": "Manual",
+    "files": [".env.hetzner.api", ".env.hetzner.worker"]
+  },
+  "render_legacy": {
     "location": "Dashboard → Environment → Environment Variables",
     "encryption": "At rest",
     "access": "Admin only",
-    "audit": "ENABLED"
+    "audit": "ENABLED",
+    "status": "DEPRECATED"
   },
   "local": {
     "location": ".env.local",
@@ -210,14 +240,18 @@ $ npm run build
 ## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Vercel    │────▶│   Render    │────▶│  Supabase   │
-│  (Frontend) │     │  (Backend)  │     │  (Database) │
-└─────────────┘     └─────────────┘     └─────────────┘
-      ▲                    ▲                    ▲
-      │                    │                    │
-   [Public]            [Private]            [Secret]
-    Keys                 Keys                 Keys
+┌─────────────┐     ┌──────────────────────┐     ┌─────────────┐
+│   Vercel    │────▶│  Hetzner Cloud       │────▶│  Supabase   │
+│  (Frontend) │     │  (3 servers)         │     │  (Database) │
+└─────────────┘     │  • API + Redis       │     └─────────────┘
+      ▲             │  • Worker 1          │            ▲
+      │             │  • Worker 2          │            │
+   [Public]         └──────────────────────┘        [Secret]
+    Keys                     ▲                        Keys
+                             │
+                         [Private]
+                          Keys +
+                        Redis Password
 ```
 
 ---

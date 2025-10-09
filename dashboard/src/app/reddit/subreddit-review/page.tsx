@@ -23,13 +23,10 @@ import { createSubredditReviewTable, type Subreddit as TableSubreddit } from '@/
 import type { Subreddit as DbSubreddit } from '@/lib/supabase'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
-import { MetricsCards } from '@/components/shared/cards/MetricsCards'
+import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCard'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { Plus, Check, UserX, X } from 'lucide-react'
-import { logger } from '@/lib/logger'
-import { designSystem } from '@/lib/design-system'
-import { cn } from '@/lib/utils'
 
 // Dynamic imports for heavy components
 const UniversalTable = dynamic(
@@ -39,6 +36,11 @@ const UniversalTable = dynamic(
 
 const AddSubredditModal = dynamic(
   () => import('@/components/common/modals/AddSubredditModal').then(mod => mod.AddSubredditModal),
+  { ssr: false }
+)
+
+const SubredditRulesModal = dynamic(
+  () => import('@/components/features/SubredditRulesModal').then(mod => ({ default: mod.SubredditRulesModal })),
   { ssr: false }
 )
 
@@ -293,29 +295,43 @@ export default function SubredditReviewPage() {
         {/* Metrics Cards with Add Button */}
         <div className="mb-6">
           <ComponentErrorBoundary>
-            <div className="flex items-center gap-3">
+            <div className="flex items-stretch gap-3 w-full">
               {isLoading ? (
                 <MetricsCardsSkeleton />
               ) : (
-                <div className="flex-1">
-                  <MetricsCards
-                    totalSubreddits={reviewCounts.total}
-                    statusCount={reviewCounts.unreviewed}
-                    statusTitle="Unreviewed"
-                    newTodayCount={newTodayCount}
-                    reviewCounts={reviewCounts}
-                    loading={false}
+                <>
+                  <UniversalMetricCard
+                    title="Total Subreddits"
+                    value={reviewCounts.total}
+                    subtitle="In Database"
+                    className="flex-1"
                   />
-                </div>
+                  <UniversalMetricCard
+                    title="Unreviewed"
+                    value={reviewCounts.unreviewed}
+                    subtitle="Pending Review"
+                    highlighted
+                    className="flex-1"
+                  />
+                  <UniversalMetricCard
+                    title="New Today"
+                    value={newTodayCount}
+                    subtitle="Last 24 Hours"
+                    className="flex-1"
+                  />
+                </>
               )}
               {/* Add Subreddit Button */}
               {!isLoading && (
-                <StandardActionButton
-                  onClick={() => setShowAddModal(true)}
-                  label="Add Subreddit"
-                  icon={Plus}
-                  variant="primary"
-                />
+                <div className="flex-1 max-w-[200px]">
+                  <StandardActionButton
+                    onClick={() => setShowAddModal(true)}
+                    label="Add Subreddit"
+                    icon={Plus}
+                    variant="primary"
+                    size="normal"
+                  />
+                </div>
               )}
             </div>
           </ComponentErrorBoundary>
@@ -403,164 +419,11 @@ export default function SubredditReviewPage() {
 
         {/* Rules Modal */}
         {rulesModal.isOpen && rulesModal.subreddit && (
-          <div
-            className="fixed inset-0 z-50 p-4 flex items-center justify-center"
-            style={{
-              background: 'rgba(255,255,255,0.25)',
-              backdropFilter: 'blur(6px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(6px) saturate(140%)'
-            }}
-            onClick={handleCloseRules}
-          >
-            <div
-              className="bg-white/95 {designSystem.borders.radius.lg} max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-6 border-b border-default">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 {designSystem.borders.radius.full} bg-b9-pink text-white flex items-center justify-center font-bold">
-                    {(() => {
-                      const dp = rulesModal.subreddit.display_name_prefixed || 'r/'
-                      const idx = dp.startsWith('r/') || dp.startsWith('u/') ? 2 : 0
-                      const ch = dp.length > idx ? dp.charAt(idx).toUpperCase() : 'R'
-                      return ch
-                    })()}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-black">
-                      {rulesModal.subreddit.display_name_prefixed} Rules
-                    </h2>
-                    <p className={cn("text-sm", designSystem.typography.color.tertiary)}>{rulesModal.subreddit.title}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCloseRules}
-                  className={cn("{designSystem.borders.radius.full} p-2", designSystem.background.hover.light)}
-                  title="Close (Esc)"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
-                {(() => {
-                  try {
-                    const rulesData: unknown = rulesModal.subreddit.rules_data as unknown
-                    let rules: Array<{
-                      short_name?: string;
-                      title?: string;
-                      description?: string;
-                      violation_reason?: string;
-                    }> = []
-
-                    if (rulesData != null) {
-                      if (typeof rulesData === 'string') {
-                        try {
-                          if (rulesData.trim() === '') {
-                            rules = []
-                          } else {
-                            const parsed = JSON.parse(rulesData)
-                            rules = Array.isArray(parsed) ? parsed : (parsed.rules && Array.isArray(parsed.rules)) ? parsed.rules : []
-                          }
-                        } catch (error) {
-                          logger.warn('Failed to parse rules data:', error)
-                          rules = []
-                        }
-                      } else if (Array.isArray(rulesData)) {
-                        rules = rulesData
-                      } else if (typeof rulesData === 'object' && rulesData !== null && 'rules' in (rulesData as Record<string, unknown>) && Array.isArray((rulesData as {rules: unknown}).rules)) {
-                        rules = (rulesData as {rules: typeof rules}).rules
-                      }
-                    }
-
-                    if (rules && rules.length > 0) {
-                      return (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className={cn("font-semibold", designSystem.typography.color.secondary)}>Subreddit Rules</h3>
-                            <a
-                              href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-b9-pink hover:underline"
-                            >
-                              View on Reddit →
-                            </a>
-                          </div>
-                          <div className="space-y-3">
-                            {rules.map((rule, index: number) => (
-                              <div key={index} className={cn("p-3 {designSystem.borders.radius.sm}", designSystem.background.surface.subtle)}>
-                                <div className="flex items-start gap-3">
-                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold {designSystem.borders.radius.full} flex items-center justify-center">
-                                    {index + 1}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className={cn("font-medium mb-1", designSystem.typography.color.primary)}>
-                                      {rule.short_name || rule.title || `Rule ${index + 1}`}
-                                    </h4>
-                                    {rule.description && (
-                                      <p className={cn("text-sm leading-relaxed", designSystem.typography.color.tertiary)}>
-                                        {rule.description}
-                                      </p>
-                                    )}
-                                    {rule.violation_reason && rule.violation_reason !== rule.short_name && (
-                                      <p className={cn("text-xs mt-1 italic", designSystem.typography.color.subtle)}>
-                                        Violation: {rule.violation_reason}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    } else {
-                      return (
-                        <div className="text-center py-8">
-                          <div className="mb-4">
-                            <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
-                              <span className={cn("text-2xl", designSystem.typography.color.disabled)}>📋</span>
-                            </div>
-                            <p className={cn(designSystem.typography.color.tertiary)}>No rules data available for this subreddit.</p>
-                            <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>Rules may not have been scraped yet or the subreddit has no posted rules.</p>
-                          </div>
-                          <a
-                            href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block text-b9-pink hover:underline"
-                          >
-                            View on Reddit →
-                          </a>
-                        </div>
-                      )
-                    }
-                  } catch (error) {
-                    logger.error('Error parsing rules data:', error)
-                    return (
-                      <div className="text-center py-8">
-                        <div className="mb-4">
-                          <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
-                            <span className={cn("text-2xl", designSystem.typography.color.secondary)}>⚠️</span>
-                          </div>
-                          <p className={cn(designSystem.typography.color.tertiary)}>Error loading rules data.</p>
-                          <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>The rules data may be malformed or corrupted.</p>
-                        </div>
-                        <a
-                          href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block text-b9-pink hover:underline"
-                        >
-                          View on Reddit →
-                        </a>
-                      </div>
-                    )
-                  }
-                })()}
-              </div>
-            </div>
-          </div>
+          <SubredditRulesModal
+            isOpen={rulesModal.isOpen}
+            onClose={handleCloseRules}
+            subreddit={rulesModal.subreddit}
+          />
         )}
 
         {/* Add Subreddit Modal */}

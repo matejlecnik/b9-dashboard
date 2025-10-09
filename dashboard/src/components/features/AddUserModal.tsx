@@ -184,7 +184,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     } finally {
       setIsSearching(false)
     }
-  }, [])
+  }, [API_URL])
 
   useEffect(() => {
     searchUsers(debouncedSearchQuery)
@@ -286,7 +286,6 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       title="Add User"
       subtitle="Search and add Reddit users to a model"
       icon={<Sparkles className="h-4 w-4" />}
-      variant="default"
       maxWidth="md"
       maxHeight="80vh"
     >

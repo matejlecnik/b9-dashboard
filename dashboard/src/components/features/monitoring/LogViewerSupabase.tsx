@@ -37,7 +37,7 @@ interface LogViewerSupabaseProps {
   maxLogs?: number
   minLogsToShow?: number
   tableName?: string
-  sourceFilter?: string
+  sourceFilter?: string | string[]  // Support single or multiple sources
   useSystemLogs?: boolean
   fadeHeight?: string
 }
@@ -52,7 +52,7 @@ export function LogViewerSupabase({
   tableName = 'reddit_scraper_logs',
   sourceFilter,
   useSystemLogs = false,
-  fadeHeight = '2%'
+  fadeHeight: _fadeHeight = '2%'
 }: LogViewerSupabaseProps) {
   const [logsMap, setLogsMap] = useState<Map<string, LogEntry>>(new Map())
   const [isPaused] = useState(false)
@@ -101,8 +101,15 @@ export function LogViewerSupabase({
             'user_discovery': 'user_discovery',
             'api_user_discovery': 'api_user_discovery'
           }
-          const mappedSource = sourceMap[sourceFilter] || sourceFilter
-          query = query.eq('source', mappedSource)
+
+          // Support both single source and array of sources
+          if (Array.isArray(sourceFilter)) {
+            const mappedSources = sourceFilter.map(s => sourceMap[s] || s)
+            query = query.in('source', mappedSources)
+          } else {
+            const mappedSource = sourceMap[sourceFilter] || sourceFilter
+            query = query.eq('source', mappedSource)
+          }
         }
 
         if (selectedLevel !== 'all') {
@@ -278,10 +285,20 @@ export function LogViewerSupabase({
             'user_discovery': 'user_discovery',
             'api_user_discovery': 'api_user_discovery'
           }
-          const mappedSource = sourceMap[sourceFilter] || sourceFilter
-          if (newLog.source !== mappedSource) return
+
+          if (Array.isArray(sourceFilter)) {
+            const mappedSources = sourceFilter.map(s => sourceMap[s] || s)
+            if (!mappedSources.includes(newLog.source || '')) return
+          } else {
+            const mappedSource = sourceMap[sourceFilter] || sourceFilter
+            if (newLog.source !== mappedSource) return
+          }
         } else if (!useSystemLogs && sourceFilter) {
-          if (newLog.source !== sourceFilter) return
+          if (Array.isArray(sourceFilter)) {
+            if (!sourceFilter.includes(newLog.source || '')) return
+          } else {
+            if (newLog.source !== sourceFilter) return
+          }
         }
 
         if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return
@@ -508,13 +525,13 @@ export function LogViewerSupabase({
     <LogTerminalBase
       title={title}
       height={height}
-      fadeHeight={fadeHeight}
-      topFadeOpacity="from-black/2 via-black/1"
-      bottomFadeOpacity="from-black/2 via-black/1"
+      fadeHeight="10%"
+      topFadeOpacity="from-gray-100 via-gray-100/70"
+      bottomFadeOpacity="from-gray-100 via-gray-100/70"
       statusBadges={
         <>
           {isPaused && (
-            <div className="absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+            <div className={`absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 ${designSystem.borders.radius.full}`}>
               Paused
             </div>
           )}
@@ -543,10 +560,10 @@ export function LogViewerSupabase({
               filteredLogs.map((log) => (
               <div
                 key={log.id}
-                className={`flex items-start gap-2 py-1 px-2 rounded group hover:${designSystem.background.hover.neutral}/40 transition-colors`}
+                className="flex items-start gap-2 py-1 px-2"
               >
                 <div className="flex items-center gap-1.5 min-w-fit">
-                  <span className={cn("text-[10px]", designSystem.typography.color.disabled)} title={new Date(log.timestamp).toLocaleString()}>
+                  <span className={cn("text-[10px]", designSystem.typography.color.disabled)}>
                     {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
                   </span>
                 </div>

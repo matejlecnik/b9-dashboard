@@ -1,0 +1,29 @@
+{
+  "summary": {
+    "total_files": 1,
+    "compliant_files": 0,
+    "compliance_rate": "0.0%",
+    "files_needing_update": 1
+  },
+  "metrics": {
+    "terminal_format": "1/1",
+    "navigation_json": "1/1"
+  },
+  "issues_by_severity": {
+    "ERROR": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 1
+  },
+  "files_needing_update": [
+    "api-render/docs/R2_STORAGE_SETUP.md"
+  ],
+  "issues": [
+    {
+      "file": "api-render/docs/R2_STORAGE_SETUP.md",
+      "issue": "Improper header hierarchy",
+      "severity": "LOW",
+      "fix": "Ensure headers follow # > ## > ### pattern"
+    }
+  ]
+}

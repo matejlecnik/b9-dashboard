@@ -17,22 +17,8 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className={`group relative w-full flex justify-center py-4 px-6 border border-transparent ${designSystem.borders.radius.lg} shadow-apple text-white font-semibold text-base tracking-wide transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
+      className={`login-button-gradient group relative w-full flex justify-center py-4 px-6 border border-transparent ${designSystem.borders.radius.lg} text-white font-semibold text-base tracking-wide overflow-hidden focus:outline-none focus:ring-4 focus:ring-b9-pink/30 disabled:opacity-50 disabled:cursor-not-allowed`}
       aria-describedby="signin-desc"
-      style={{
-        background: 'linear-gradient(135deg, #FF8395 0%, #E91E63 30%, #FF8395 60%, #F8BBD9 100%)',
-        backgroundSize: '300% 300%',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundPosition = '100% 0%';
-        e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-        e.currentTarget.style.boxShadow = '0 20px 40px rgba(255, 131, 149, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundPosition = '0% 0%';
-        e.currentTarget.style.transform = 'translateY(0px) scale(1)';
-        e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 131, 149, 0.2)';
-      }}
     >
       {/* Button shimmer effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 translate-x-[-100%] group-hover:translate-x-[100%] skew-x-12"></div>
@@ -95,19 +81,19 @@ export default function LoginPage() {
       {/* Interactive Pink-Themed Background Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Large floating orbs */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-b9-pink/25 to-rose-400/20 {designSystem.borders.radius.full} blur-3xl animate-float-slow"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-primary/40 to-rose-500/15 {designSystem.borders.radius.full} blur-3xl animate-float-reverse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-rose-200/15 to-primary/10 {designSystem.borders.radius.full} blur-3xl animate-pulse-gentle"></div>
+        <div className={`absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-b9-pink/25 to-rose-400/20 ${designSystem.borders.radius.full} blur-3xl animate-float-slow`}></div>
+        <div className={`absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-primary/40 to-rose-500/15 ${designSystem.borders.radius.full} blur-3xl animate-float-reverse`}></div>
+        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-rose-200/15 to-primary/10 ${designSystem.borders.radius.full} blur-3xl animate-pulse-gentle`}></div>
         
         {/* Medium accent orbs */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-b9-pink/30 to-transparent {designSystem.borders.radius.full} blur-2xl animate-float-medium"></div>
-        <div className="absolute bottom-32 right-24 w-24 h-24 bg-gradient-to-br from-rose-300/25 to-transparent {designSystem.borders.radius.full} blur-xl animate-float-slow-reverse"></div>
-        <div className="absolute top-3/4 left-10 w-20 h-20 bg-gradient-to-br from-primary/30 to-transparent {designSystem.borders.radius.full} blur-lg animate-bounce-gentle"></div>
+        <div className={`absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-b9-pink/30 to-transparent ${designSystem.borders.radius.full} blur-2xl animate-float-medium`}></div>
+        <div className={`absolute bottom-32 right-24 w-24 h-24 bg-gradient-to-br from-rose-300/25 to-transparent ${designSystem.borders.radius.full} blur-xl animate-float-slow-reverse`}></div>
+        <div className={`absolute top-3/4 left-10 w-20 h-20 bg-gradient-to-br from-primary/30 to-transparent ${designSystem.borders.radius.full} blur-lg animate-bounce-gentle`}></div>
         
         {/* Small sparkle particles */}
-        <div className="absolute top-1/4 right-1/3 w-8 h-8 bg-b9-pink/40 {designSystem.borders.radius.full} blur-sm animate-twinkle"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-6 h-6 bg-primary/40 {designSystem.borders.radius.full} blur-sm animate-twinkle-delay"></div>
-        <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-primary/30 {designSystem.borders.radius.full} blur-sm animate-float-tiny"></div>
+        <div className={`absolute top-1/4 right-1/3 w-8 h-8 bg-b9-pink/40 ${designSystem.borders.radius.full} blur-sm animate-twinkle`}></div>
+        <div className={`absolute bottom-1/3 left-1/4 w-6 h-6 bg-primary/40 ${designSystem.borders.radius.full} blur-sm animate-twinkle-delay`}></div>
+        <div className={`absolute top-2/3 right-1/4 w-4 h-4 bg-primary/30 ${designSystem.borders.radius.full} blur-sm animate-float-tiny`}></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md mx-auto">
@@ -115,7 +101,7 @@ export default function LoginPage() {
         <div className="text-center mb-12">
           <div className="flex justify-center">
             <div className="relative group">
-              <div className="absolute -inset-4 bg-gradient-to-r from-b9-pink/30 via-primary/20 to-primary/40 {designSystem.borders.radius.full} blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse"></div>
+              <div className={`absolute -inset-4 bg-gradient-to-r from-b9-pink/30 via-primary/20 to-primary/40 ${designSystem.borders.radius.full} blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse`}></div>
               <Image
                 src="/logo/logo.png"
                 alt="B9 Agency Logo"
@@ -132,14 +118,9 @@ export default function LoginPage() {
         {/* Pink-Themed Frosted Glass Login Form */}
         <div className="mt-8 w-full">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-b9-pink/30 via-rose-300/25 to-primary/20 {designSystem.borders.radius.lg} blur-xl"></div>
+            <div className={`absolute inset-0 bg-gradient-to-br from-b9-pink/30 via-rose-300/25 to-primary/20 ${designSystem.borders.radius.lg} blur-xl`}></div>
             <div
-              className="relative {designSystem.borders.radius.lg} p-10 shadow-apple-strong border border-primary/30"
-              style={{
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-                boxShadow: '0 8px 32px rgba(255, 131, 149, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-              }}
+              className={`login-form-container relative ${designSystem.borders.radius.lg} p-10 border border-primary/30`}
             >
               <form className="space-y-7" role="form" aria-labelledby="signin-title" action={safeFormAction}>
                 <div>
@@ -151,14 +132,9 @@ export default function LoginPage() {
                 {/* Environment Warning Display */}
                 {envWarning && (
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-100/60 to-yellow-200/40 {designSystem.borders.radius.md} blur-sm"></div>
+                    <div className={`absolute inset-0 bg-gradient-to-r from-yellow-100/60 to-yellow-200/40 ${designSystem.borders.radius.md} blur-sm`}></div>
                     <div
-                      className={cn("relative p-4 {designSystem.borders.radius.md} border border-yellow-300/50 text-sm font-medium", designSystem.typography.color.primary)}
-                      style={{
-                        backdropFilter: 'blur(16px)',
-                        WebkitBackdropFilter: 'blur(16px)',
-                        background: 'linear-gradient(135deg, rgba(254, 243, 199, 0.8), rgba(252, 211, 77, 0.6))',
-                      }}
+                      className={cn(`login-warning-banner relative p-4 ${designSystem.borders.radius.md} border border-yellow-300/50 text-sm font-medium`, designSystem.typography.color.primary)}
                       role="alert"
                     >
                       <div className="flex items-center">
@@ -174,14 +150,9 @@ export default function LoginPage() {
                 {/* Error Message Display */}
                 {state?.error && (
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/30 {designSystem.borders.radius.md} blur-sm"></div>
+                    <div className={`absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/30 ${designSystem.borders.radius.md} blur-sm`}></div>
                     <div
-                      className={cn("relative p-4 {designSystem.borders.radius.md} border border-gray-300/50 text-sm font-medium", designSystem.typography.color.primary)}
-                      style={{
-                        backdropFilter: 'blur(16px)',
-                        WebkitBackdropFilter: 'blur(16px)',
-                        background: 'linear-gradient(135deg, rgba(254, 226, 226, 0.8), rgba(252, 165, 165, 0.6))',
-                      }}
+                      className={cn(`login-error-banner relative p-4 ${designSystem.borders.radius.md} border border-gray-300/50 text-sm font-medium`, designSystem.typography.color.primary)}
                       role="alert"
                     >
                       <div className="flex items-center">
@@ -207,10 +178,10 @@ export default function LoginPage() {
                       required
                       aria-required="true"
                       aria-describedby="email-desc"
-                      className={cn("pink-glass-input w-full px-6 py-4 {designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow", designSystem.typography.color.secondary)}
+                      className={cn(`pink-glass-input w-full px-6 py-4 ${designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow`, designSystem.typography.color.secondary)}
                       placeholder="your@email.com"
                     />
-                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div className={`absolute inset-0 ${designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}></div>
                   </div>
                   <div id="email-desc" className="sr-only">
                     Enter your email address to sign in to your B9 Dashboard account
@@ -230,10 +201,10 @@ export default function LoginPage() {
                       required
                       aria-required="true"
                       aria-describedby="password-desc"
-                      className={cn("pink-glass-input w-full px-6 py-4 {designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow", designSystem.typography.color.secondary)}
+                      className={cn(`pink-glass-input w-full px-6 py-4 ${designSystem.borders.radius.lg} placeholder-rose-400/60 focus:outline-none font-medium transition-all duration-500 group-hover:shadow-pink-glow`, designSystem.typography.color.secondary)}
                       placeholder="••••••••••••"
                     />
-                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div className={`absolute inset-0 ${designSystem.borders.radius.lg} bg-gradient-to-r from-b9-pink/10 to-rose-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}></div>
                   </div>
                   <div id="password-desc" className="sr-only">
                     Enter your account password
@@ -254,12 +225,12 @@ export default function LoginPage() {
                     />
                     <label htmlFor="remember-me-checkbox" className="flex items-center cursor-pointer">
                       <div className="relative mr-3">
-                        <div className={`w-5 h-5 border-2 {designSystem.borders.radius.sm} transition-all duration-300 hover:border-b9-pink/80 ${
+                        <div className={`w-5 h-5 border-2 ${designSystem.borders.radius.sm} transition-all duration-300 hover:border-b9-pink/80 ${
                           rememberMe
                             ? 'bg-gradient-to-br from-b9-pink to-rose-400 border-b9-pink/80'
                             : 'bg-white/60 border-primary/30'
                         }`}></div>
-                        <div className={`absolute inset-0 w-5 h-5 bg-gradient-to-br from-b9-pink to-rose-400 {designSystem.borders.radius.sm} transition-opacity duration-300 pointer-events-none ${
+                        <div className={`absolute inset-0 w-5 h-5 bg-gradient-to-br from-b9-pink to-rose-400 ${designSystem.borders.radius.sm} transition-opacity duration-300 pointer-events-none ${
                           rememberMe ? 'opacity-0' : 'opacity-0 hover:opacity-20'
                         }`}></div>
                         <svg className={`absolute inset-0 w-3 h-3 m-1 text-white transition-opacity duration-200 pointer-events-none ${

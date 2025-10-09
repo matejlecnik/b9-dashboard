@@ -243,7 +243,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     "principle": "Show don't tell"
   },
   "constraints": {
-    "good": "Do not modify files in api-render/",
+    "good": "Do not modify files in backend/",
     "bad": "Be careful",
     "principle": "Explicit boundaries prevent errors"
   },
@@ -362,7 +362,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     "phase_2": "Loading 72 target files and directory context",
     "phase_3": "Processing files 1-10: dashboard/src/app/*/README.md",
     "phase_4": "Processing files 11-20: dashboard/src/components/*/README.md",
-    "phase_n": "Processing files 70-72: api-render/docs/*.md",
+    "phase_n": "Processing files 70-72: backend/docs/*.md",
     "validation": "Running validate-docs.py on generated files"
   },
   "agent_report": {
@@ -370,7 +370,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     "compliance": "95.8% (69/72)",
     "flagged_files": [
       "dashboard/src/app/models/[id]/README.md - complex nested navigation",
-      "api-render/docs/ARCHITECTURE.md - missing metrics data",
+      "backend/docs/ARCHITECTURE.md - missing metrics data",
       "docs/database/SUPABASE_FUNCTIONS.md - unusual structure"
     ],
     "next_steps": "Review flagged files, run final validation, merge changes"

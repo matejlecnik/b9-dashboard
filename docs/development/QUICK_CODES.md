@@ -23,7 +23,7 @@
 ```json
 {
   "fix:memory": {
-    "path": "/api-render/scrapers/README.md#memory-optimization",
+    "path": "/backend/scrapers/README.md#memory-optimization",
     "tokens": 300,
     "command": "python3 -m memory_profiler main.py",
     "solution": "Close database connections, implement connection pooling"
@@ -35,13 +35,13 @@
     "solution": "Clear node_modules, reinstall dependencies"
   },
   "fix:scraper": {
-    "path": "/api-render/scrapers/reddit/README.md#troubleshooting",
+    "path": "/backend/scrapers/reddit/README.md#troubleshooting",
     "tokens": 250,
     "command": "curl localhost:8000/api/scraper/status",
     "solution": "Check system_control table, restart scraper"
   },
   "fix:db": {
-    "path": "/api-render/services/README.md#database-issues",
+    "path": "/backend/services/README.md#database-issues",
     "tokens": 200,
     "command": "psql $DATABASE_URL -c 'SELECT 1'",
     "solution": "Check connection string, verify Supabase status"
@@ -137,12 +137,12 @@
     "topics": ["Hooks", "Query caching", "Mutations", "Optimistic updates"]
   },
   "learn:api": {
-    "path": "/api-render/README.md",
+    "path": "/backend/README.md",
     "tokens": 400,
     "topics": ["FastAPI", "Endpoints", "Authentication", "Rate limiting"]
   },
   "learn:supabase": {
-    "path": "/api-render/core/database/README.md",
+    "path": "/backend/core/database/README.md",
     "tokens": 400,
     "topics": ["RLS", "Realtime", "Auth", "Storage"]
   }
@@ -193,10 +193,11 @@
     "approval": "REQUIRED"
   },
   "deploy:api": {
-    "service": "Render",
-    "command": "git push render main",
-    "url": "api-render.onrender.com",
-    "auto": true
+    "service": "Hetzner Cloud",
+    "command": "See docs/deployment/HETZNER_QUICK_REFERENCE.md",
+    "url": "http://91.98.91.129:10000",
+    "manual": true,
+    "note": "Use tar + scp + docker compose rebuild"
   }
 }
 ```
@@ -216,7 +217,7 @@
     "browser": "Chrome"
   },
   "test:api": {
-    "command": "cd api-render && pytest",
+    "command": "cd backend && pytest",
     "coverage": 82,
     "endpoints": 36
   }
@@ -229,18 +230,23 @@
 {
   "monitor:logs": {
     "frontend": "vercel logs",
-    "backend": "render logs",
+    "backend_hetzner": "ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 'docker compose logs --tail=100'",
     "database": "supabase logs"
   },
   "monitor:health": {
     "frontend": "curl https://b9-dashboard.com/api/health",
-    "backend": "curl https://api-render.onrender.com/health",
+    "backend_hetzner": "curl http://91.98.91.129:10000/health",
     "database": "SELECT 1 FROM system_logs LIMIT 1"
   },
   "monitor:metrics": {
-    "command": "curl https://api-render.onrender.com/metrics",
+    "command": "curl http://91.98.91.129:10000/metrics",
     "format": "json",
     "interval": "5min"
+  },
+  "monitor:hetzner": {
+    "docker_status": "ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 'docker compose ps'",
+    "redis_queue": "ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 'redis-cli -a B9Dashboard2025SecureRedis! LLEN instagram_scraper_queue'",
+    "system_resources": "ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129 'docker stats --no-stream'"
   }
 }
 ```
@@ -249,7 +255,7 @@
 
 ```bash
 ## Start everything
-$ npm run dev & cd api-render && python3 main.py
+$ npm run dev & cd backend && python3 main.py
 
 ## Check status
 $ curl localhost:3000/api/health && curl localhost:8000/health
@@ -261,7 +267,7 @@ $ npm run lint && npx tsc --noEmit
 $ rm -rf .next node_modules && npm i --legacy-peer-deps && npm run build
 
 ## Full test
-$ npm test && npm run test:e2e && cd api-render && pytest
+$ npm test && npm run test:e2e && cd backend && pytest
 ```
 
 ## Execution Plan

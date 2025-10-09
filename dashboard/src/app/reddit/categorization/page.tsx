@@ -9,7 +9,6 @@ import { logger } from '@/lib/logger'
 import { designSystem } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
-import { createCategorizationTable } from '@/components/shared/tables/UniversalTable'
 import { queryKeys } from '@/lib/react-query'
 import { DashboardLayout } from '@/components/shared'
 import { Progress } from '@/components/ui/progress'
@@ -47,6 +46,11 @@ const UniversalTable = dynamic(
 
 const AICategorizationModal = dynamic(
   () => import('@/components/features/ai/AICategorizationModal').then(mod => ({ default: mod.AICategorizationModal })),
+  { ssr: false }
+)
+
+const SubredditRulesModal = dynamic(
+  () => import('@/components/features/SubredditRulesModal').then(mod => ({ default: mod.SubredditRulesModal })),
   { ssr: false }
 )
 
@@ -397,18 +401,18 @@ export default function CategorizationPage() {
           <ComponentErrorBoundary>
             {isLoading ? (
               <div className="flex gap-3">
-                <div className={cn("flex-1 h-20 {designSystem.borders.radius.md} animate-pulse", designSystem.background.surface.light)} />
-                <div className={cn("w-32 h-20 {designSystem.borders.radius.md} animate-pulse", designSystem.background.surface.light)} />
+                <div className={cn("flex-1 h-20 animate-pulse", designSystem.borders.radius.md, designSystem.background.surface.light)} />
+                <div className={cn("w-32 h-20 animate-pulse", designSystem.borders.radius.md, designSystem.background.surface.light)} />
               </div>
             ) : (
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full">
                 {/* Progress Bar Card - 80% width */}
-                <div className="flex-1 bg-white/80 backdrop-blur-sm border border-default {designSystem.borders.radius.md} p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className={cn("flex-1 min-w-0 bg-white/80 backdrop-blur-sm border border-default p-4 shadow-sm hover:shadow-md transition-shadow", designSystem.borders.radius.md)}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className={cn("text-sm font-semibold", designSystem.typography.color.primary)}>
+                    <h3 className={cn("text-sm font-semibold whitespace-nowrap", designSystem.typography.color.primary)}>
                       Categorization Progress
                     </h3>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0 ml-4">
                       {isLoadingCounts ? (
                         <div className="animate-pulse">
                           <div className={cn("h-6 w-12 rounded mb-1", designSystem.background.surface.neutral)}></div>
@@ -443,7 +447,7 @@ export default function CategorizationPage() {
                 <button
                   onClick={handleCategorizeAll}
                   disabled={isLoading || aiCategorizationMutation.isPending || !tagCounts || tagCounts.untagged === 0}
-                  className="group relative min-h-[100px] w-[140px] px-4 overflow-hidden {designSystem.borders.radius.lg} transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={cn("group relative min-h-[100px] w-[140px] px-4 overflow-hidden transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed", designSystem.borders.radius.lg)}
                   style={{
                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
                     backdropFilter: 'blur(16px) saturate(180%)',
@@ -460,7 +464,7 @@ export default function CategorizationPage() {
 
                   {/* Glow effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 {designSystem.borders.radius.lg} bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl" />
+                    <div className={cn("absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl", designSystem.borders.radius.lg)} />
                   </div>
 
                   {/* Content */}
@@ -545,193 +549,38 @@ export default function CategorizationPage() {
           ) : (
             <ComponentErrorBoundary>
               <UniversalTable
-                {...createCategorizationTable({
-                  subreddits,
-                  selectedSubreddits,
-                  setSelectedSubreddits,
-                  onBulkUpdateTags: updateBulkTags,
-                  onUpdateReview: updateReview,
-                  onUpdateSingleTag: updateSingleTag,
-                  onRemoveTag: removeTag,
-                  onAddTag: addTag,
-                  loading: isLoading,
-                  hasMore: hasNextPage || false,
-                  loadingMore: isFetchingNextPage,
-                  onReachEnd: handleReachEnd,
-                  searchQuery: debouncedSearchQuery,
-                  brokenIcons,
-                  handleIconError,
-                  onShowRules: handleShowRules,
-                  testId: 'categorization-table',
-                  removingIds
-                })}
+                variant="standard"
+                mode="category"
+                subreddits={subreddits}
+                selectedSubreddits={selectedSubreddits}
+                setSelectedSubreddits={setSelectedSubreddits}
+                onBulkUpdateTags={updateBulkTags}
+                onUpdateReview={updateReview}
+                onUpdateSingleTag={updateSingleTag}
+                onRemoveTag={removeTag}
+                onAddTag={addTag}
+                loading={isLoading}
+                hasMore={hasNextPage || false}
+                loadingMore={isFetchingNextPage}
+                onReachEnd={handleReachEnd}
+                searchQuery={debouncedSearchQuery}
+                brokenIcons={brokenIcons}
+                handleIconError={handleIconError}
+                onShowRules={handleShowRules}
+                testId="categorization-table"
+                removingIds={removingIds}
               />
             </ComponentErrorBoundary>
           )}
         </div>
 
-        {/* Enhanced Rules Modal */}
+        {/* Rules Modal */}
         {rulesModal.isOpen && rulesModal.subreddit && (
-          <div
-            className="fixed inset-0 z-50 p-4 flex items-center justify-center"
-            style={{
-              background: 'rgba(255,255,255,0.25)',
-              backdropFilter: 'blur(6px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(6px) saturate(140%)'
-            }}
-            onClick={handleCloseRules}
-          >
-            <div
-              className="bg-white/95 {designSystem.borders.radius.lg} max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-6 border-b border-default">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 {designSystem.borders.radius.full} bg-b9-pink text-white flex items-center justify-center font-bold">
-                    {(() => {
-                      const dp = rulesModal.subreddit.display_name_prefixed || 'r/'
-                      const idx = dp.startsWith('r/') || dp.startsWith('u/') ? 2 : 0
-                      const ch = dp.length > idx ? dp.charAt(idx).toUpperCase() : 'R'
-                      return ch
-                    })()}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-black">
-                      {rulesModal.subreddit.display_name_prefixed} Rules
-                    </h2>
-                    <p className={cn("text-sm", designSystem.typography.color.tertiary)}>{rulesModal.subreddit.title}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCloseRules}
-                  className={cn("{designSystem.borders.radius.full} p-2", designSystem.background.hover.light)}
-                  title="Close (Esc)"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
-                {(() => {
-                  try {
-                    // Parse rules_data if it exists
-                    const rulesData = rulesModal.subreddit.rules_data
-                    let rules: Array<{
-                      short_name?: string;
-                      title?: string;
-                      description?: string;
-                      violation_reason?: string;
-                    }> = []
-
-                    if (rulesData) {
-                      if (typeof rulesData === 'string') {
-                        try {
-                          // Skip empty strings entirely
-                          if (rulesData.trim() === '') {
-                            rules = []
-                          } else {
-                            const parsed = JSON.parse(rulesData)
-                            rules = Array.isArray(parsed) ? parsed : (parsed.rules && Array.isArray(parsed.rules)) ? parsed.rules : []
-                          }
-                        } catch (error) {
-                          logger.warn('Failed to parse rules data:', error)
-                          rules = []  // Default to empty array on parse error
-                        }
-                      } else if (Array.isArray(rulesData)) {
-                        rules = rulesData
-                      } else if (typeof rulesData === 'object' && rulesData !== null && 'rules' in rulesData && Array.isArray((rulesData as {rules: unknown}).rules)) {
-                        rules = (rulesData as {rules: typeof rules}).rules
-                      }
-                    }
-
-                    if (rules && rules.length > 0) {
-                      return (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className={cn("font-semibold", designSystem.typography.color.secondary)}>Subreddit Rules</h3>
-                            <a
-                              href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-b9-pink hover:underline"
-                            >
-                              View on Reddit →
-                            </a>
-                          </div>
-                          <div className="space-y-3">
-                            {rules.map((rule, index: number) => (
-                              <div key={index} className={cn("p-3 {designSystem.borders.radius.sm}", designSystem.background.surface.subtle)}>
-                                <div className="flex items-start gap-3">
-                                  <div className="flex-shrink-0 w-6 h-6 bg-b9-pink text-white text-xs font-bold {designSystem.borders.radius.full} flex items-center justify-center">
-                                    {index + 1}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className={cn("font-medium mb-1", designSystem.typography.color.primary)}>
-                                      {rule.short_name || rule.title || `Rule ${index + 1}`}
-                                    </h4>
-                                    {rule.description && (
-                                      <p className={cn("text-sm leading-relaxed", designSystem.typography.color.tertiary)}>
-                                        {rule.description}
-                                      </p>
-                                    )}
-                                    {rule.violation_reason && rule.violation_reason !== rule.short_name && (
-                                      <p className={cn("text-xs mt-1 italic", designSystem.typography.color.subtle)}>
-                                        Violation: {rule.violation_reason}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    } else {
-                      return (
-                        <div className="text-center py-8">
-                          <div className="mb-4">
-                            <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
-                              <span className={cn("text-2xl", designSystem.typography.color.disabled)}>📋</span>
-                            </div>
-                            <p className={cn(designSystem.typography.color.tertiary)}>No rules data available for this subreddit.</p>
-                            <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>Rules may not have been scraped yet or the subreddit has no posted rules.</p>
-                          </div>
-                          <a
-                            href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block text-b9-pink hover:underline"
-                          >
-                            View on Reddit →
-                          </a>
-                        </div>
-                      )
-                    }
-                  } catch (error) {
-                    logger.error('Error parsing rules data:', error)
-                    return (
-                      <div className="text-center py-8">
-                        <div className="mb-4">
-                          <div className={cn("w-16 h-16 {designSystem.borders.radius.full} flex items-center justify-center mx-auto mb-3", designSystem.background.surface.light)}>
-                            <span className={cn("text-2xl", designSystem.typography.color.secondary)}>⚠️</span>
-                          </div>
-                          <p className={cn(designSystem.typography.color.tertiary)}>Error loading rules data.</p>
-                          <p className={cn("text-sm mt-1", designSystem.typography.color.subtle)}>The rules data may be malformed or corrupted.</p>
-                        </div>
-                        <a
-                          href={`https://www.reddit.com/${rulesModal.subreddit.display_name_prefixed}/about/rules`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block text-b9-pink hover:underline"
-                        >
-                          View on Reddit →
-                        </a>
-                      </div>
-                    )
-                  }
-                })()}
-              </div>
-            </div>
-          </div>
+          <SubredditRulesModal
+            isOpen={rulesModal.isOpen}
+            onClose={handleCloseRules}
+            subreddit={rulesModal.subreddit}
+          />
         )}
 
         {/* AI Categorization Modal */}

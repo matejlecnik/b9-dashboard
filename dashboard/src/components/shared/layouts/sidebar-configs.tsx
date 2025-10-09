@@ -1,6 +1,5 @@
 import {
   Instagram,
-  Activity,
   Monitor,
   UserCircle2,
   Target,
@@ -12,7 +11,7 @@ import {
   Share2,
   type LucideIcon
 } from 'lucide-react'
-import { designSystem } from '@/lib/design-system'
+import { MonitorIcon } from '@/components/shared/icons/DashboardIcons'
 
 export interface SidebarItem {
   id: string
@@ -35,7 +34,7 @@ export const RedditIcon = ({ className = "h-6 w-6" }: { className?: string }) =>
 
 export interface SidebarConfig {
   title: string
-  icon: LucideIcon | React.ReactNode
+  icon: LucideIcon | React.ComponentType<{ className?: string }> | React.ReactNode
   backHref: string
   navigationItems: SidebarItem[]
   showTeamSection?: boolean
@@ -56,11 +55,7 @@ export const redditSidebarConfig: SidebarConfig = {
       id: 'subreddit-review',
       title: 'Review',
       href: '/reddit/subreddit-review',
-      icon: Search,
-      badge: {
-        type: 'new',
-        value: 'New'
-      }
+      icon: Search
     },
     {
       id: 'categorization',
@@ -127,43 +122,23 @@ export const modelsSidebarConfig: SidebarConfig = {
 // System Monitor Navigation
 export const monitorSidebarConfig: SidebarConfig = {
   title: 'System Monitor',
-  icon: Activity,
+  icon: MonitorIcon,
   backHref: '/dashboards',
   showTeamSection: true,
   showLogout: true,
-  dashboardColor: 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white',
+  dashboardColor: 'bg-gradient-to-br from-purple-700 via-purple-600 to-purple-500 text-white',
   navigationItems: [
     {
       id: 'reddit-monitor',
       title: 'Reddit Monitor',
       href: '/monitor/reddit',
-      icon: Monitor,
-      badge: {
-        type: 'status',
-        value: (
-          <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full ${designSystem.borders.radius.full} bg-orange-400 opacity-75`}></span>
-            <span className={`relative inline-flex ${designSystem.borders.radius.full} h-2 w-2 bg-orange-500`}></span>
-          </span>
-        ),
-        variant: 'custom'
-      }
+      icon: Monitor
     },
     {
       id: 'instagram-monitor',
       title: 'Instagram Monitor',
       href: '/monitor/instagram',
-      icon: Instagram,
-      badge: {
-        type: 'status',
-        value: (
-          <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full ${designSystem.borders.radius.full} bg-pink-400 opacity-75`}></span>
-            <span className={`relative inline-flex ${designSystem.borders.radius.full} h-2 w-2 bg-pink-500`}></span>
-          </span>
-        ),
-        variant: 'custom'
-      }
+      icon: Instagram
     }
   ]
 }

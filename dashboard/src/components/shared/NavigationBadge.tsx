@@ -15,7 +15,7 @@ export const NavigationBadge: React.FC<NavigationBadgeProps> = ({
   if (config.type === 'dot') {
     return (
       <span
-        className={cn(`absolute right-2 h-2 w-2 rounded-full`,
+        className={cn(`absolute right-2 h-2 w-2 ${designSystem.borders.radius.full}`,
           config.color === 'success' ? 'bg-primary' :
           config.color === 'warning' ? designSystem.background.surface.dark :
           config.color === 'error' ? designSystem.background.surface.inverse :
@@ -33,7 +33,7 @@ export const NavigationBadge: React.FC<NavigationBadgeProps> = ({
     return (
       <div className={cn(`flex items-center`, className || '')}>
         <span
-          className={cn(`h-2 w-2 rounded-full mr-2`,
+          className={cn(`h-2 w-2 ${designSystem.borders.radius.full} mr-2`,
             config.color === 'success' ? 'bg-primary' :
             config.color === 'warning' ? designSystem.background.surface.dark :
             config.color === 'error' ? designSystem.background.surface.inverse :

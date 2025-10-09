@@ -22,19 +22,20 @@
 
 ```json
 {
-  "type": "Monolithic FastAPI Application",
-  "deployment": "Render.com",
+  "type": "Distributed FastAPI Application + Workers",
+  "deployment": "Hetzner Cloud (3 servers)",
   "database": "Supabase PostgreSQL",
-  "runtime": "Python 3.11",
+  "runtime": "Python 3.12",
   "framework": "FastAPI + Uvicorn",
-  "architecture_pattern": "Layered Architecture"
+  "architecture_pattern": "Layered + Job Queue",
+  "queue": "Redis (BRPOP/LPUSH)"
 }
 ```
 
 ## Directory Structure
 
 ```
-api-render/
+backend/
 ├── /app/                        # Application code
 │   ├── /core/                   # Infrastructure layer
 │   │   ├── /cache/              # Caching utilities
@@ -94,9 +95,16 @@ api-render/
        ├────────┬──────────┐
        ▼        ▼          ▼
 ┌──────────┐ ┌──────┐ ┌────────┐
-│ Scrapers │ │Cache │ │Database│
-│(External)│ │(Redis)│ │(Supabase)
-└──────────┘ └──────┘ └────────┘
+│ Scrapers │ │ Redis│ │Database│
+│(External)│ │ Queue│ │(Supabase)
+└──────────┘ └───┬──┘ └────────┘
+                 │
+           ┌─────┴─────┐
+           ▼           ▼
+      ┌────────┐  ┌────────┐
+      │Worker 1│  │Worker 2│
+      │(CPX31) │  │(CPX31) │
+      └────────┘  └────────┘
 ```
 
 ## Layer Responsibilities
@@ -321,21 +329,22 @@ api-render/
   },
   "scaling_strategy": {
     "vertical": {
-      "current": "Render Standard",
-      "next": "Render Pro",
-      "trigger": "Memory > 1.5GB"
+      "current": "Hetzner CPX11 (API) + 2× CPX31 (Workers)",
+      "next": "Upgrade workers to CPX41 (8 vCPU, 16 GB RAM)",
+      "trigger": "Worker CPU > 80% sustained"
     },
     "horizontal": {
-      "current": "Single instance",
-      "next": "Multi-instance with load balancer",
-      "trigger": "RPS > 200"
+      "current": "2 worker instances",
+      "next": "Add Worker 3 & 4 (CPX31)",
+      "trigger": "Queue depth > 100 sustained, processing time > 6 hours/day"
     }
   },
   "optimization_opportunities": [
-    "Implement Redis caching",
+    "Add more worker servers for higher throughput",
+    "Implement Redis caching for API responses",
     "Add database read replicas",
-    "Use connection pooling",
-    "Implement request batching"
+    "Optimize Docker image sizes",
+    "Implement health check monitoring"
   ]
 }
 ```

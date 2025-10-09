@@ -131,7 +131,7 @@ export const StandardPostCard = memo(function StandardPostCard({
   return (
     <div
       className={cn(
-        "group relative bg-white/70 backdrop-blur-sm rounded-xl border border-default",
+        `group relative bg-white/70 backdrop-blur-sm ${designSystem.borders.radius.md} border border-default`,
         "shadow-sm hover:shadow-md transition-all duration-200",
         "hover:border-primary/30 overflow-hidden",
         className
@@ -158,7 +158,7 @@ export const StandardPostCard = memo(function StandardPostCard({
           {/* Video overlay */}
           {isVideo && !isGif && (
             <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-              <div className="bg-black/60 rounded-full p-3">
+              <div className={`bg-black/60 ${designSystem.borders.radius.full} p-3`}>
                 <Play className="h-8 w-8 text-white fill-white" />
               </div>
             </div>

@@ -1,4 +1,8 @@
-# TODO: Render Cron Job Implementation Guide
+# TODO: Cron Job Implementation Guide
+
+**⚠️ UPDATE (2025-10-08)**: Backend migrated to Hetzner Cloud. Cron jobs should now be configured on Hetzner servers using system cron or Docker-based scheduling.
+
+**Hetzner Setup**: SSH to API server (`ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129`) and use `crontab -e` to configure these jobs, or use Docker cron containers.
 
 ┌─ MODULE STATUS ─────────────────────────────────────────┐
 │ ● PRODUCTION │ ████████████████████ 100% COMPLETE       │
@@ -42,7 +46,7 @@
 
 ## Step 1: Create API Endpoints
 
-### Create `api-render/app/routes/maintenance_routes.py`
+### Create `backend/app/routes/maintenance_routes.py`
 ```python
 from fastapi import APIRouter, HTTPException, Depends, Header
 from supabase import Client
@@ -129,7 +133,7 @@ async def maintenance_status(authorized: bool = Depends(verify_maintenance_key))
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-### Update `api-render/main.py`
+### Update `backend/main.py`
 ```python
 ## Add to imports
 from app.routes.maintenance_routes import router as maintenance_router
@@ -190,7 +194,7 @@ In Render Dashboard (dashboard.render.com):
 
 ## Step 4: Optional - APScheduler Backup
 
-### Create `api-render/app/services/scheduler.py`
+### Create `backend/app/services/scheduler.py`
 ```python
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -273,7 +277,7 @@ apscheduler==3.10.4
 
 ## Step 5: Monitoring
 
-### Create monitoring endpoint in `api-render/app/routes/admin_routes.py`
+### Create monitoring endpoint in `backend/app/routes/admin_routes.py`
 ```python
 @router.get("/jobs")
 async def job_status():

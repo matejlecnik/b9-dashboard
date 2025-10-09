@@ -57,7 +57,7 @@ function JobCard({ jobId }: JobCardProps) {
   }[job.priority as JobPriority]
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow">
+    <div className={`border ${designSystem.borders.radius.sm} p-4 space-y-3 hover:shadow-md transition-shadow`}>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           {statusIcon}
@@ -340,7 +340,7 @@ export function JobQueueIndicator() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
+    <div className={`flex items-center gap-2 px-3 py-1 bg-blue-50 ${designSystem.borders.radius.full}`}>
       <Briefcase className="h-3 w-3 text-blue-600" />
       {metrics.activeJobs > 0 && (
         <>

@@ -294,7 +294,7 @@ async def cron_health():
   plan: starter
   region: oregon
   branch: main
-  rootDir: api-render
+  rootDir: backend
   autoDeploy: true
   envVars:
     - key: RENDER_SERVICE_URL
@@ -947,7 +947,7 @@ If singleton causes connection issues:
 - [ROADMAP.md](/ROADMAP.md) - Strategic plan
 - [SYSTEM_IMPROVEMENT_PLAN.md](/docs/development/SYSTEM_IMPROVEMENT_PLAN.md) - Technical blueprint
 - [SESSION_LOG.md](/docs/development/SESSION_LOG.md) - Activity log
-- [ARCHITECTURE.md](/api-render/ARCHITECTURE.md) - System architecture
+- [ARCHITECTURE.md](/backend/ARCHITECTURE.md) - System architecture
 - [API_RENDER_IMPROVEMENT_PLAN.md](/docs/backend/API_RENDER_IMPROVEMENT_PLAN.md) - Full 80-page improvement plan
 
 ---

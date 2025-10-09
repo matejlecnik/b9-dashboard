@@ -104,7 +104,7 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
             <span>{option.label}</span>
             {showCount && option.count !== undefined && (
               <span className={cn(
-                'ml-1 px-1.5 py-0.5 text-xs rounded-full',
+                `ml-1 px-1.5 py-0.5 text-xs ${designSystem.borders.radius.full}`,
                 isSelected
                   ? 'bg-white/20 text-white'
                   : cn(designSystem.background.surface.light, designSystem.typography.color.tertiary)
