@@ -440,17 +440,17 @@ async def get_reddit_api_stats():
 
 @router.get("/success-rate")
 async def get_reddit_success_rate():
-    """Get Reddit API success rate from last 1000 requests"""
+    """Get Reddit API success rate from actual API requests (not all logs)"""
     try:
         supabase = get_supabase()
 
-        # Get last 1000 logs from reddit_scraper
+        # Get last 2000 logs from reddit_scraper to find enough API request indicators
         all_logs = (
             supabase.table("system_logs")
             .select("id, level, message")
             .eq("source", "reddit_scraper")
             .order("timestamp", desc=True)
-            .limit(1000)
+            .limit(2000)
             .execute()
         )
 
@@ -465,12 +465,47 @@ async def get_reddit_success_rate():
                 },
             }
 
-        total_requests = len(all_logs.data)
+        # Count ONLY actual Reddit API requests, not all logs
+        successful_requests = 0
+        failed_requests = 0
 
-        # Count successes (has ✅ in message OR level is not error)
-        # Count failures (level == 'error')
-        failed_requests = sum(1 for log in all_logs.data if log.get("level") == "error")
-        successful_requests = total_requests - failed_requests
+        for log in all_logs.data:
+            message = log.get("message", "")
+            level = log.get("level", "")
+
+            # Successful user post fetches: "✅ X posts" (where X > 0)
+            if "✅" in message and "posts" in message and not "0 posts" in message:
+                successful_requests += 1
+
+            # Failed user post fetches: "⚠️ 0 posts" or "❌ failed"
+            elif ("⚠️" in message and "0 posts" in message) or ("❌" in message and "failed" in message):
+                failed_requests += 1
+
+            # API validation failures: "⚠️ subreddit_info is None" etc
+            elif "⚠️" in message and ("is None" in message or "has error" in message):
+                failed_requests += 1
+
+            # Retry attempts indicate a failure
+            elif "🔄 Retrying" in message and ("subreddit_info" in message or "rules" in message or "top_10_weekly" in message):
+                failed_requests += 1
+
+            # Explicit error level logs related to API calls
+            elif level == "error" and ("API" in message or "fetch" in message or "request" in message):
+                failed_requests += 1
+
+        total_requests = successful_requests + failed_requests
+
+        if total_requests == 0:
+            # No API requests found in logs yet
+            return {
+                "success": True,
+                "stats": {
+                    "total_requests": 0,
+                    "successful_requests": 0,
+                    "failed_requests": 0,
+                    "success_rate": 100.0,
+                },
+            }
 
         success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 100.0
 
