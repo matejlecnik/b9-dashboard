@@ -94,48 +94,69 @@ const ModelsTable = memo(function ModelsTable({
 
   if (models.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <UserCircle2 className={cn("h-12 w-12 mb-4", designSystem.typography.color.disabled)} />
-        <div className={cn("mb-4", designSystem.typography.color.subtle)}>
-          {searchQuery ? 'No models found matching your search' : 'No models created yet'}
+      <div
+        className={cn("flex-1 backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.lg)}
+        style={{
+          background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+          border: '1px solid var(--slate-400-alpha-60)',
+          boxShadow: '0 12px 32px var(--black-alpha-15)'
+        }}
+      >
+        <div className={cn("flex flex-col items-center justify-center py-16", designSystem.typography.color.subtle)}>
+          <UserCircle2 className={cn("h-12 w-12 mb-4", designSystem.typography.color.disabled)} />
+          <div className="mb-4 text-sm">
+            {searchQuery ? 'No models found matching your search' : 'No models created yet'}
+          </div>
+          {searchQuery && (
+            <span className="text-xs">Try adjusting your search query</span>
+          )}
         </div>
-        {!searchQuery && onEdit && (
-          <Button variant="outline" onClick={() => onEdit({} as Model)}>
-            <UserCircle2 className="h-4 w-4 mr-2" />
-            Create Your First Model
-          </Button>
-        )}
       </div>
     )
   }
 
   return (
-    <div className={cn(
-      `flex flex-col h-full ${designSystem.borders.radius.lg} border border-black/5 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden`,
-      className
-    )}>
-      {/* Header */}
-      <div className={cn("flex items-center px-4 py-3 border-b border-light font-medium text-sm sticky top-0 z-10", `${designSystem.background.surface.subtle}/80`, designSystem.typography.color.secondary)}>
-        {setSelectedModels && (
-          <div className="w-10 flex-shrink-0 flex justify-center">
-            <Checkbox
-              checked={selectedModels.size === models.length && models.length > 0}
-              onCheckedChange={handleSelectAll}
-              aria-label="Select all models"
-            />
-          </div>
-        )}
-        <div className="w-48 flex-shrink-0 px-3">Model</div>
-        <div className="w-48 flex-shrink-0 px-3">Description</div>
-        <div className="w-24 flex-shrink-0 flex justify-center">Status</div>
-        <div className="w-20 flex-shrink-0 flex justify-center">Accounts</div>
-        <div className="w-48 flex-shrink-0 px-3">Tags</div>
-        <div className="w-32 flex-shrink-0 flex justify-end pr-4">Actions</div>
+    <div className={cn("flex flex-col gap-3 h-full", className)}>
+      {/* Header Card - Frozen glassmorphic container */}
+      <div
+        className={cn("flex-shrink-0 backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.lg)}
+        style={{
+          background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+          border: '1px solid var(--slate-400-alpha-60)',
+          boxShadow: '0 8px 20px var(--black-alpha-08), inset 0 1px 0 var(--white-alpha-60)'
+        }}
+      >
+        <div className={cn("flex items-center px-4 py-3 font-medium text-sm", designSystem.typography.color.secondary)}>
+          {setSelectedModels && (
+            <div className="w-10 flex-shrink-0 flex justify-center">
+              <Checkbox
+                checked={selectedModels.size === models.length && models.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all models"
+              />
+            </div>
+          )}
+          <div className="w-48 flex-shrink-0 px-3">Model</div>
+          <div className="w-48 flex-shrink-0 px-3">Description</div>
+          <div className="w-24 flex-shrink-0 flex justify-center">Status</div>
+          <div className="w-20 flex-shrink-0 flex justify-center">Accounts</div>
+          <div className="w-48 flex-shrink-0 px-3">Tags</div>
+          <div className="w-32 flex-shrink-0 flex justify-end pr-4">Actions</div>
+        </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-auto min-h-[320px]">
-        {models.map((model) => {
+      {/* Body Card - Frozen glassmorphic container */}
+      <div
+        className={cn("flex-1 flex flex-col overflow-hidden backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.lg)}
+        style={{
+          background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+          border: '1px solid var(--slate-400-alpha-60)',
+          boxShadow: '0 12px 32px var(--black-alpha-15)'
+        }}
+      >
+        {/* Scrollable Body Content */}
+        <div className="flex-1 overflow-auto min-h-[320px]">
+          {models.map((model) => {
           const tagCategories = getTagCategories(model.assigned_tags)
           const isSelected = selectedModels.has(model.id)
 
@@ -143,10 +164,14 @@ const ModelsTable = memo(function ModelsTable({
             <div
               key={model.id}
               className={cn(
-                "flex items-center px-4 py-2 border-b border-light transition-all duration-300 cursor-pointer",
-                `hover:${designSystem.background.surface.subtle}/50`,
-                isSelected && "bg-secondary/10"
+                "flex items-center px-4 py-2 transition-colors duration-200 group/row cursor-pointer",
+                "hover:bg-pink-50/30",
+                isSelected && "bg-pink-50/50"
               )}
+              style={{
+                borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+                boxShadow: 'inset 0 -0.5px 0 rgba(255, 255, 255, 0.08)',
+              }}
               onClick={() => onEdit?.(model)}
             >
               {setSelectedModels && (
@@ -263,6 +288,7 @@ const ModelsTable = memo(function ModelsTable({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

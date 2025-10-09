@@ -1,11 +1,14 @@
 version: '3.8'
 
+# Docker Compose configuration for Hetzner Worker Servers
+# Runs Instagram scraper workers that pull jobs from Redis queue
+
 services:
   worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    container_name: b9-worker-${WORKER_ID}
+    container_name: b9-worker-${WORKER_ID:-1}
     restart: unless-stopped
     environment:
       # Supabase
@@ -27,18 +30,24 @@ services:
       - ENABLE_R2_STORAGE=true
 
       # Worker Config
-      - WORKER_ID=${WORKER_ID}
+      - WORKER_ID=${WORKER_ID:-1}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
 
-      # Redis Queue
+      # Redis Queue (points to API server)
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - /app/b9dashboard/logs:/app/logs
+      - ./logs:/app/logs
     networks:
       - b9-network
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "worker.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 networks:
   b9-network:

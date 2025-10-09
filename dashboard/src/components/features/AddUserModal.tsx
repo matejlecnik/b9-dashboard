@@ -63,11 +63,6 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps) {
-  // API URL configuration - memoized to satisfy ESLint exhaustive-deps
-  const API_URL = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com',
-    []
-  )
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
@@ -92,7 +87,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
   const fetchModels = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/models/list`)
+      const response = await fetch('/api/models/list')
       const data = await response.json()
       if (data.success) {
         const activeModels = data.models.filter((m: Model) => m.status === 'active')
@@ -115,7 +110,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
     setCreatingModel(true)
     try {
-      const response = await fetch(`${API_URL}/api/models/create`, {
+      const response = await fetch('/api/models/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,7 +148,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setNotFoundUsername(null)
 
     try {
-      const response = await fetch(`${API_URL}/api/reddit/users/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/reddit/users/search?q=${encodeURIComponent(query)}`)
       const data = await response.json()
 
       // Check for success field in response
@@ -184,7 +179,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     } finally {
       setIsSearching(false)
     }
-  }, [API_URL])
+  }, [])
 
   useEffect(() => {
     searchUsers(debouncedSearchQuery)
@@ -200,7 +195,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
 
       // Mark as our creator with model
       try {
-        const response = await fetch(`${API_URL}/api/reddit/users/toggle-creator`, {
+        const response = await fetch('/api/reddit/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -237,7 +232,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
     setIsFetching(true)
 
     try {
-      const response = await fetch(`${API_URL}/api/reddit/users/discover`, {
+      const response = await fetch('/api/reddit/users/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
@@ -251,7 +246,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
       const data = await response.json()
       if (data.success && data.user) {
         // Now update the user with our_creator and model_id
-        const updateResponse = await fetch(`${API_URL}/api/reddit/users/toggle-creator`, {
+        const updateResponse = await fetch('/api/reddit/users/toggle-creator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -309,7 +304,11 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                     size="sm"
                     onClick={createNewModel}
                     disabled={creatingModel}
-                    className="bg-primary hover:bg-primary-hover"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+                      color: 'var(--pink-600)',
+                      border: '1px solid var(--pink-600)'
+                    }}
                   >
                     {creatingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
                   </Button>
@@ -330,7 +329,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                     <select
                       value={selectedModelId || ''}
                       onChange={(e) => setSelectedModelId(Number(e.target.value))}
-                      className="w-full appearance-none bg-white border border-default {designSystem.borders.radius.sm} px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className={cn("w-full appearance-none bg-white border border-default px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent", designSystem.borders.radius.sm)}
                     >
                       <option value="">Select a model...</option>
                       {models.map(model => (
@@ -361,14 +360,14 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                 placeholder="Search for a Reddit username..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-8 text-sm border-primary/30 focus:border-primary focus:ring-primary bg-white/50"
+                className="pl-10 h-8 text-sm border-pink-200/40 focus:border-pink-500 focus:ring-pink-500/20 bg-white/50"
                 disabled={!selectedModelId}
               />
             </div>
 
             {!selectedModelId && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 {designSystem.borders.radius.sm}">
-                <p className="text-sm text-amber-800">Please select a model first before searching for users.</p>
+              <div className={cn("mb-4 p-3 bg-pink-50/50 border border-pink-200/40", designSystem.borders.radius.sm)}>
+                <p className="text-sm text-pink-700">Please select a model first before searching for users.</p>
               </div>
             )}
 
@@ -385,11 +384,14 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
                   disabled={!selectedModelId}
-                  className={`w-full {designSystem.borders.radius.sm} border p-3 text-left transition-colors ${
+                  className={cn(
+                    "w-full border p-3 text-left transition-colors",
+                    designSystem.borders.radius.sm,
                     user.our_creator
                       ? 'border-green-300 bg-green-50/50 hover:bg-green-100/50'
-                      : 'border-primary/30 bg-white/40 hover:bg-primary/10'
-                  } ${!selectedModelId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      : 'border-pink-200/40 bg-white/40 hover:bg-pink-50/30',
+                    !selectedModelId && 'opacity-50 cursor-not-allowed'
+                  )}
                 >
                   <div className="flex items-center gap-3">
                     {user.avatar_url ? (
@@ -398,10 +400,10 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                         alt={user.username}
                         width={40}
                         height={40}
-                        className="{designSystem.borders.radius.full}"
+                        className={designSystem.borders.radius.full}
                       />
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center {designSystem.borders.radius.full} bg-gradient-to-br from-primary/20 to-secondary/20 text-sm font-semibold text-primary-pressed">
+                      <div className={cn("flex h-10 w-10 items-center justify-center bg-gradient-to-br from-pink-100 to-pink-200 text-sm font-semibold text-pink-700", designSystem.borders.radius.full)}>
                         {user.username[0].toUpperCase()}
                       </div>
                     )}
@@ -409,7 +411,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
                       <div className="flex items-center gap-2">
                         <span className={cn("font-medium", designSystem.typography.color.primary)}>{user.username}</span>
                         {user.our_creator && (
-                          <span className="{designSystem.borders.radius.full} bg-green-500/20 px-2 py-0.5 text-xs text-green-600 font-medium">
+                          <span className={cn("bg-green-500/20 px-2 py-0.5 text-xs text-green-600 font-medium", designSystem.borders.radius.full)}>
                             ✓ Active Account
                           </span>
                         )}
@@ -424,8 +426,8 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
               ))}
             </div>
           ) : notFoundUsername && selectedModelId ? (
-            <div className="{designSystem.borders.radius.sm} bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 p-4">
-              <div className="mb-3 flex items-center gap-2 text-amber-600">
+            <div className={cn("bg-gradient-to-r from-pink-50/50 to-rose-50/30 border border-pink-200/40 p-4", designSystem.borders.radius.sm)}>
+              <div className="mb-3 flex items-center gap-2 text-pink-600">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">User not found in database</span>
               </div>
@@ -435,7 +437,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps
               <Button
                 onClick={() => handleFetchFromReddit(notFoundUsername)}
                 disabled={isFetching || !selectedModelId}
-                className="w-full bg-primary hover:bg-primary-hover"
+                className="w-full"
+                style={{
+                  background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+                  color: 'var(--pink-600)',
+                  border: '1px solid var(--pink-600)'
+                }}
               >
                 {isFetching ? (
                   <>

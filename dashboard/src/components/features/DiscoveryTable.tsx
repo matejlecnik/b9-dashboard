@@ -66,12 +66,12 @@ const RulesButton = ({ subreddit, onShowRules }: RulesButtonProps): JSX.Element 
   return (
     <button
       onClick={handleClick}
-      className={cn("p-1 hover:bg-b9-pink/20 {designSystem.borders.radius.sm}", designSystem.transitions.default)}
+      className={cn("p-1 hover:bg-pink-50/50", designSystem.borders.radius.sm, designSystem.transitions.default)}
       title="View Rules"
     >
       <BookOpen className={cn(
         "h-3.5 w-3.5",
-        hasRulesData ? 'text-b9-pink' : designSystem.typography.color.disabled
+        hasRulesData ? 'text-pink-600' : designSystem.typography.color.disabled
       )} />
     </button>
   )
@@ -232,7 +232,7 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
   const displayPosts = posts.slice(0, 10)
 
   return (
-    <div className="p-2">
+    <div className="p-2 min-h-[140px]">
       <Swiper
         modules={[FreeMode, Mousewheel]}
         spaceBetween={8}
@@ -240,7 +240,7 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
         freeMode={true}
         mousewheel={true}
         grabCursor={true}
-        className="h-full"
+        className="h-full [&_.swiper-slide]:bg-transparent"
         breakpoints={{
           0: { slidesPerView: 2, spaceBetween: 6 },
           480: { slidesPerView: 3, spaceBetween: 6 },
@@ -254,19 +254,19 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
           
           return (
             <SwiperSlide key={post.reddit_id || idx}>
-              <div className={cn("h-full group relative bg-white {designSystem.borders.radius.sm} border border-primary/20 hover:border-b9-pink hover:shadow-md overflow-hidden", designSystem.transitions.default)}>
+              <div className={cn("h-full group relative bg-transparent border border-gray-200/60 hover:border-pink-400/60 hover:shadow-md overflow-hidden", designSystem.borders.radius.sm, designSystem.transitions.default)}>
                 {/* Copy Button */}
                 <button
                   onClick={(e) => handleCopyTitle(e, post.reddit_id, post.title)}
                   className={cn(
-                    "absolute top-1 right-1 z-10 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-primary/10",
-                    designSystem.glass.light,
+                    "absolute top-1 right-1 z-10 p-1 opacity-0 group-hover:opacity-100 bg-gray-800/70 hover:bg-gray-900/80 backdrop-blur-sm",
+                    designSystem.borders.radius.sm,
                     designSystem.transitions.default
                   )}
                   title="Copy title"
                 >
                   {copiedId === post.reddit_id ? (
-                    <Check className="h-3 w-3 text-green-500" />
+                    <Check className="h-3 w-3 text-pink-600" />
                   ) : (
                     <Copy className={cn("h-3 w-3", designSystem.typography.color.tertiary)} />
                   )}
@@ -276,17 +276,17 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
                   href={`https://reddit.com/r/${subredditName}/comments/${post.reddit_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block h-full cursor-pointer"
+                  className="block h-full cursor-pointer bg-transparent"
                   title={post.title}
                 >
                   {/* Thumbnail/Preview */}
-                  <div className={cn("relative h-20", designSystem.background.surface.light)}>
+                  <div className="relative h-20 rounded-t-lg">
                   {thumbnail ? (
                     <Image
                       src={thumbnail}
                       alt=""
                       fill
-                      className="object-cover"
+                      className="object-cover rounded-t-lg"
                       unoptimized
                     />
                   ) : (
@@ -309,7 +309,7 @@ const PostGrid = memo(function PostGrid({ posts, loading, error, subredditName }
                 <div className="p-2 space-y-1">
                   <div className={cn(designSystem.layout.flex.rowBetween)}>
                     <div className={cn(designSystem.layout.flex.rowStart, "space-x-0.5 text-[10px] font-mac-text")}>
-                      <ArrowUpCircle className="h-3 w-3 text-orange-500" />
+                      <ArrowUpCircle className="h-3 w-3 text-pink-600" />
                       <span className="font-semibold">{formatScore(post.score)}</span>
                     </div>
                     <div className={cn(designSystem.layout.flex.rowStart, "space-x-0.5 text-[10px] font-mac-text", designSystem.typography.color.tertiary)}>
@@ -457,7 +457,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }
 
   // Mac-style relative time formatter
-  const formatRelativeTime = (dateString: string | undefined): string => {
+  const formatRelativeTime = (dateString: string | null | undefined): string => {
     if (!dateString) return 'Recently added'
 
     const date = new Date(dateString)
@@ -514,23 +514,29 @@ export const DiscoveryTable = memo(function DiscoveryTable({
   }
 
   return (
-    <div className="bg-white {designSystem.borders.radius.sm} shadow-sm border border-primary/30 overflow-hidden">
+    <div
+      className={cn("overflow-hidden backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.sm)}
+      style={{
+        background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+        border: '1px solid var(--slate-400-alpha-60)',
+        boxShadow: '0 12px 32px var(--black-alpha-15)'
+      }}
+    >
       {/* Table Body */}
-      <div className="divide-y divide-primary/20">
+      <div className="divide-y divide-gray-200/40">
         {subreddits.map((subreddit) => {
           const posts = postCache[subreddit.id] || []
           const isLoadingPosts = loadingPosts.has(subreddit.id)
           const postError = postErrors[subreddit.id]
           
           return (
-            <div key={subreddit.id} className={cn("hover:bg-primary/10", designSystem.transitions.default)}>
+            <div key={subreddit.id} className={cn("hover:bg-pink-50/30", designSystem.transitions.default)}>
               {/* Main Row - More Compact */}
-              <div className={cn(designSystem.layout.flex.rowStart, "items-stretch min-h-[140px]")}>
+              <div className={cn(designSystem.layout.flex.rowStart, "min-h-[140px]")}>
                 {/* Left Section - Subreddit Info (35%) - More Compact */}
-                <div className="w-[35%] p-3 border-r border-primary/20 relative">
-
+                <div className="w-[35%] p-3 pb-3 border-r border-gray-200/40 relative">
                   {/* Subreddit Header */}
-                  <div className={cn(designSystem.layout.flex.rowBetween, "items-start mb-2 pr-12")}>
+                  <div className={cn(designSystem.layout.flex.rowBetween, "items-start mb-2")}>
                     <a
                       href={`https://reddit.com/r/${subreddit.name}`}
                       target="_blank"
@@ -543,30 +549,48 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           alt={subreddit.name}
                           width={32}
                           height={32}
-                          className={cn("{designSystem.borders.radius.full} border border-default group-hover:border-b9-pink flex-shrink-0", designSystem.transitions.default)}
+                          className={cn("border border-gray-200/60 group-hover:border-pink-400/60 flex-shrink-0", designSystem.borders.radius.full, designSystem.transitions.default)}
                           unoptimized
                         />
                       ) : (
-                        <div className={cn("w-8 h-8 {designSystem.borders.radius.full} bg-gradient-to-br from-primary to-primary-hover text-white font-bold text-xs flex-shrink-0", designSystem.layout.flex.rowCenter)}>
-                          {subreddit.name.substring(0, 2).toUpperCase()}
+                        <div
+                          className={cn("w-8 h-8 flex items-center justify-center text-white font-bold text-xs flex-shrink-0", designSystem.borders.radius.full)}
+                          style={{
+                            background: `linear-gradient(135deg, ${(() => {
+                              const hash = subreddit.name.split('').reduce((acc, char) => {
+                                return char.charCodeAt(0) + ((acc << 5) - acc)
+                              }, 0)
+                              const variants = [
+                                'var(--pink-400), var(--pink-600)',
+                                'var(--pink-500), var(--pink-700)',
+                                'var(--pink-300), var(--pink-500)',
+                                'var(--pink-600), var(--pink-400)',
+                                'var(--pink-500), var(--pink-600)',
+                              ]
+                              return variants[Math.abs(hash) % variants.length]
+                            })()})`,
+                            border: '1px solid var(--pink-600-alpha-30)'
+                          }}
+                        >
+                          {subreddit.name.charAt(0)?.toUpperCase() || 'R'}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className={cn(designSystem.layout.flex.rowStart, "space-x-1.5 flex-wrap")}>
-                          <span className={cn("font-semibold text-sm group-hover:text-b9-pink font-mac-text", designSystem.typography.color.primary, designSystem.transitions.default)}>
+                          <span className={cn("font-semibold text-sm group-hover:text-pink-600 font-mac-text", designSystem.typography.color.primary, designSystem.transitions.default)}>
                             r/{subreddit.name}
                           </span>
                           {subreddit.verification_required && (
                             <span title="Verification Required">
-                              <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                              <BadgeCheck className="h-3.5 w-3.5 text-pink-600 flex-shrink-0" />
                             </span>
                           )}
                           {subreddit.over18 ? (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 bg-red-100 text-red-800 border-red-200 font-semibold">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 bg-pink-50/50 text-pink-600 border-pink-200/40 font-semibold">
                               NSFW
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 border-green-500 text-green-700 bg-green-50 font-semibold">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-4 bg-gray-50 text-gray-600 border-gray-200/40 font-semibold">
                               SFW
                             </Badge>
                           )}
@@ -579,8 +603,8 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                     </a>
                   </div>
 
-                  {/* Tags Display - Two Small Rows */}
-                  <div className="mb-1.5">
+                  {/* Tags Display - Limited to 2 rows max */}
+                  <div className="mb-1 max-h-[28px] overflow-hidden relative">
                     <TagsDisplay
                       tags={Array.isArray(subreddit.tags) ? subreddit.tags : []}
                       compactMode={true}
@@ -665,16 +689,19 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                   </div>
 
                   {/* Key Stats with Rules Button - Glass Morphism Style */}
-                  <div className="relative mb-1.5 {designSystem.borders.radius.sm} overflow-hidden">
-                    {/* Glass morphism background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-sm" />
-                    <div className="absolute inset-0 bg-white/30" />
-                    
-                    <div className={cn("relative gap-1 p-1.5 border border-primary/30", designSystem.layout.flex.rowStart)}>
+                  <div
+                    className={cn("relative mb-1 overflow-hidden backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.sm)}
+                    style={{
+                      background: 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+                      border: '1px solid var(--slate-400-alpha-60)',
+                      boxShadow: '0 4px 12px var(--black-alpha-08)'
+                    }}
+                  >
+                    <div className={cn("relative gap-1 p-1.5", designSystem.layout.flex.rowStart)}>
                       <div className="flex-1 grid grid-cols-3 gap-2">
                         {/* Members */}
                         <div className={cn(designSystem.layout.flex.rowCenter, "gap-1")}>
-                          <Users className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <Users className="h-3 w-3 text-pink-600 flex-shrink-0" />
                           <span className={cn("text-[11px] font-bold font-mac-text", designSystem.typography.color.primary)}>
                             {formatNumber(subreddit.subscribers || 0)}
                           </span>
@@ -682,7 +709,7 @@ export const DiscoveryTable = memo(function DiscoveryTable({
 
                         {/* Engagement */}
                         <div className={cn(designSystem.layout.flex.rowCenter, "gap-1")}>
-                          <TrendingUp className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <TrendingUp className="h-3 w-3 text-pink-600 flex-shrink-0" />
                           <span className={cn("text-[11px] font-bold font-mac-text", designSystem.typography.color.primary)}>
                             {((subreddit.engagement || 0) * 100).toFixed(1)}%
                           </span>
@@ -690,13 +717,13 @@ export const DiscoveryTable = memo(function DiscoveryTable({
 
                         {/* Avg Upvotes */}
                         <div className={cn(designSystem.layout.flex.rowCenter, "gap-1")}>
-                          <ArrowUpCircle className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                          <ArrowUpCircle className="h-3 w-3 text-pink-600 flex-shrink-0" />
                           <span className={cn("text-[11px] font-bold font-mac-text", designSystem.typography.color.primary)}>
                             {Math.round(subreddit.avg_upvotes_per_post || 0)}
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Rules Button with spacing */}
                       <div className="px-1">
                         <RulesButton subreddit={subreddit} onShowRules={handleShowRules} />
@@ -704,22 +731,43 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                     </div>
                   </div>
 
-                  {/* Best Posting Time */}
-                  {(subreddit.best_posting_hour !== null || subreddit.best_posting_day) && (
-                    <div className={cn("bg-gradient-to-r from-primary/10 to-primary/10 rounded border border-primary/30 px-2 py-1 mb-1.5 space-x-1.5", designSystem.layout.flex.rowCenter)}>
-                      <Clock className="h-3 w-3 text-b9-pink" />
-                      <span className={cn("text-[9px] font-medium font-mac-text", designSystem.typography.color.secondary)}>
-                        Best: {subreddit.best_posting_hour !== null ? `${subreddit.best_posting_hour}:00 UTC` : 'Any time'}
-                        {subreddit.best_posting_day && ` on ${subreddit.best_posting_day}`}
-                      </span>
-                    </div>
-                  )}
+                  {/* Best Posting Time - Always rendered for consistent alignment */}
+                  <div
+                    className={cn("px-2 py-1 mb-1 space-x-1.5 backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.sm, designSystem.layout.flex.rowCenter)}
+                    style={{
+                      background: 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+                      border: '1px solid var(--slate-400-alpha-60)'
+                    }}
+                  >
+                    {(subreddit.best_posting_hour !== null || subreddit.best_posting_day) ? (
+                      <>
+                        <Clock className="h-3 w-3 text-pink-600" />
+                        <span className={cn("text-[9px] font-medium font-mac-text", designSystem.typography.color.secondary)}>
+                          Best: {subreddit.best_posting_hour !== null ? `${subreddit.best_posting_hour}:00 UTC` : 'Any time'}
+                          {subreddit.best_posting_day && ` on ${subreddit.best_posting_day}`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3 text-gray-400" />
+                        <span className={cn("text-[9px] font-medium font-mac-text", designSystem.typography.color.disabled)}>
+                          No data available
+                        </span>
+                      </>
+                    )}
+                  </div>
 
-                  {/* Requirements (if any) */}
-                  {(subreddit.min_account_age_days || subreddit.min_comment_karma || subreddit.min_post_karma) && (
-                    <div className="bg-gradient-to-r from-primary/10 to-primary/10 rounded border border-primary/30 p-1.5 mb-1.5">
+                  {/* Requirements - Always rendered for consistent alignment */}
+                  <div
+                    className={cn("p-1.5 mb-0 backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.sm)}
+                    style={{
+                      background: 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+                      border: '1px solid var(--slate-400-alpha-60)'
+                    }}
+                  >
+                    {(subreddit.min_account_age_days || subreddit.min_comment_karma || subreddit.min_post_karma) ? (
                       <div className={cn(designSystem.layout.flex.rowStart, "space-x-2 text-[9px] font-mac-text", designSystem.typography.color.secondary)}>
-                        <Shield className="h-3 w-3 text-b9-pink flex-shrink-0" />
+                        <Shield className="h-3 w-3 text-pink-600 flex-shrink-0" />
                         <div className={cn(designSystem.layout.flex.rowStart, "space-x-2")}>
                           {subreddit.min_account_age_days && (
                             <span>{subreddit.min_account_age_days}d age</span>
@@ -732,19 +780,35 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                           )}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className={cn(designSystem.layout.flex.rowStart, "space-x-2 text-[9px] font-mac-text", designSystem.typography.color.disabled)}>
+                        <Shield className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                        <span>No requirements</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Last Updated Timestamp - Mac Style */}
-                  <div className="absolute bottom-2 left-3 right-3">
-                    <div className={cn("text-[9px] font-medium tracking-wide font-mac-text", designSystem.typography.color.disabled)}>
-                      Updated {formatRelativeTime(subreddit.created_at)}
+                  <div className="mt-2">
+                    <div
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-medium tracking-wide font-mac-text backdrop-blur-xl backdrop-saturate-150",
+                        designSystem.typography.color.disabled,
+                        designSystem.borders.radius.sm
+                      )}
+                      style={{
+                        background: 'linear-gradient(180deg, var(--gray-200-alpha-90) 0%, var(--gray-300-alpha-85) 100%)',
+                        border: '1px solid var(--slate-400-alpha-40)',
+                        boxShadow: '0 2px 8px var(--black-alpha-06)'
+                      }}
+                    >
+                      Updated {formatRelativeTime(subreddit.last_scraped_at || subreddit.created_at)}
                     </div>
                   </div>
                 </div>
 
                 {/* Right Section - Post Grid (65%) */}
-                <div className="w-[65%] bg-gradient-to-br from-primary/10 to-white">
+                <div className="w-[65%] bg-gradient-to-br from-gray-50/50 to-slate-50/30">
                   <PostGrid 
                     posts={posts} 
                     loading={isLoadingPosts}
@@ -767,13 +831,20 @@ export const DiscoveryTable = memo(function DiscoveryTable({
             className={cn("absolute inset-0 bg-black/40", designSystem.glass.heavy)}
             onClick={() => setRulesModal({ isOpen: false, subreddit: null })}
           />
-          <div className={cn("relative bg-gradient-to-br from-white/90 via-gray-50/85 to-white/80 {designSystem.borders.radius.lg} max-w-2xl w-full max-h-[80vh] overflow-hidden border border-white/20", designSystem.glass.heavy, designSystem.shadows.xl)}>
-            <div className="p-5 border-b border-light bg-gradient-to-r from-transparent via-white/10 to-transparent">
+          <div
+            className={cn("relative max-w-2xl w-full max-h-[80vh] overflow-hidden backdrop-blur-xl backdrop-saturate-150", designSystem.borders.radius.lg, designSystem.shadows.xl)}
+            style={{
+              background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+              border: '1px solid var(--slate-400-alpha-60)',
+              boxShadow: '0 20px 50px var(--black-alpha-20)'
+            }}
+          >
+            <div className="p-5 border-b border-gray-200/40">
               <h2 className={cn("text-lg font-semibold font-mac-display", designSystem.typography.color.primary)}>
                 r/{rulesModal.subreddit.name} Rules
               </h2>
             </div>
-            <div className="p-5 overflow-y-auto max-h-[calc(80vh-140px)] bg-gradient-to-b from-transparent via-gray-50/20 to-transparent font-mac-text">
+            <div className="p-5 overflow-y-auto max-h-[calc(80vh-140px)] font-mac-text">
               {(() => {
                 const rules = rulesModal.subreddit.rules_data
 
@@ -785,7 +856,13 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                   return (
                     <div className="space-y-3">
                       {rules.map((rule: { short_name?: string; title?: string; description?: string; violation_reason?: string }, index: number) => (
-                        <div key={index} className="border-b border-light pb-3 last:border-0 bg-white/30 {designSystem.borders.radius.sm} p-3 backdrop-blur-sm">
+                        <div
+                          key={index}
+                          className={cn("border-b border-gray-200/40 pb-3 last:border-0 p-3 backdrop-blur-sm", designSystem.borders.radius.sm)}
+                          style={{
+                            background: 'linear-gradient(180deg, var(--white-alpha-40) 0%, var(--white-alpha-30) 100%)'
+                          }}
+                        >
                           <h3 className={cn("font-medium", designSystem.typography.color.primary)}>
                             {index + 1}. {rule.short_name || rule.title || `Rule ${index + 1}`}
                           </h3>
@@ -806,15 +883,20 @@ export const DiscoveryTable = memo(function DiscoveryTable({
                 return <p className={cn("text-sm", designSystem.typography.color.subtle)}>No rules available</p>
               })()}
             </div>
-            <div className="p-4 border-t border-light bg-gradient-to-r from-transparent via-white/10 to-transparent">
+            <div className="p-4 border-t border-gray-200/40">
               <button
                 onClick={() => setRulesModal({ isOpen: false, subreddit: null })}
                 className={cn(
-                  "px-4 py-2 bg-white/50 hover:bg-white/70 {designSystem.borders.radius.sm} border border-light font-mac-text",
+                  "px-4 py-2 border font-mac-text hover:bg-pink-50/30",
+                  designSystem.borders.radius.sm,
                   designSystem.typography.color.secondary,
                   designSystem.glass.light,
                   designSystem.transitions.default
                 )}
+                style={{
+                  background: 'linear-gradient(180deg, var(--white-alpha-50) 0%, var(--white-alpha-40) 100%)',
+                  border: '1px solid var(--slate-400-alpha-60)'
+                }}
               >
                 Close
               </button>

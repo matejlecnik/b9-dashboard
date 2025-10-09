@@ -47,69 +47,68 @@ const CATEGORY_EMOJIS: { [key: string]: string } = {
 }
 
 /**
- * Brand-aligned color schemes for the 11 categories
- * Migrated to Design Token System v2.0 where applicable
+ * Standardized color schemes - Gray and Pink only
  */
 const CATEGORY_COLORS: { [key: string]: { bg: string; text: string; border: string } } = {
   'niche': {
-    bg: 'from-secondary/10 to-primary/10',
-    text: 'text-secondary-pressed',
-    border: 'border-secondary/30'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'focus': {
-    bg: 'from-primary/10 to-rose-50',
-    text: 'text-primary-pressed',
-    border: 'border-primary/30'
+    bg: 'from-gray-50 to-slate-50',
+    text: designSystem.typography.color.tertiary,
+    border: 'border-gray-200/40'
   },
   'body': {
-    bg: 'from-fuchsia-50 to-secondary/10',
-    text: 'text-fuchsia-700',
-    border: 'border-fuchsia-200/50'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'ass': {
-    bg: 'from-rose-50 to-primary/10',
-    text: 'text-rose-700',
-    border: 'border-rose-200/50'
+    bg: 'from-gray-50 to-slate-50',
+    text: designSystem.typography.color.tertiary,
+    border: 'border-gray-200/40'
   },
   'breasts': {
-    bg: 'from-primary/10 to-fuchsia-50',
-    text: 'text-primary-pressed',
-    border: 'border-primary/30'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'age': {
-    bg: 'from-indigo-50 to-secondary/10',
-    text: 'text-indigo-700',
-    border: 'border-indigo-200/50'
+    bg: 'from-gray-50 to-slate-50',
+    text: designSystem.typography.color.tertiary,
+    border: 'border-gray-200/40'
   },
   'ethnicity': {
-    bg: 'from-blue-50 to-indigo-50',
-    text: 'text-blue-700',
-    border: 'border-blue-200/50'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'style': {
-    bg: 'from-violet-50 to-secondary/10',
-    text: 'text-violet-700',
-    border: 'border-violet-200/50'
+    bg: 'from-gray-50 to-slate-50',
+    text: designSystem.typography.color.tertiary,
+    border: 'border-gray-200/40'
   },
   'hair': {
-    bg: 'from-amber-50 to-orange-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200/50'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'special': {
-    bg: 'from-emerald-50 to-teal-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200/50'
+    bg: 'from-gray-50 to-slate-50',
+    text: designSystem.typography.color.tertiary,
+    border: 'border-gray-200/40'
   },
   'content': {
-    bg: 'from-slate-50 to-gray-50',
-    text: 'text-slate-600',
-    border: 'border-slate-200/50'
+    bg: 'from-pink-50/50 to-rose-50/50',
+    text: 'text-pink-600',
+    border: 'border-pink-200/40'
   },
   'default': {
     bg: 'from-gray-50 to-slate-50',
     text: designSystem.typography.color.tertiary,
-    border: 'border-default/50'
+    border: 'border-gray-200/40'
   }
 }
 
@@ -213,8 +212,14 @@ function TagEditDropdown({
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed bg-white {designSystem.borders.radius.sm} shadow-lg border border-default py-1 min-w-[150px] z-50"
-          style={{ top: position.top, left: position.left }}
+          className={cn("fixed border-0 backdrop-blur-xl backdrop-saturate-150 py-1 min-w-[150px] z-50", designSystem.borders.radius.sm)}
+          style={{
+            top: position.top,
+            left: position.left,
+            background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+            border: '1px solid var(--slate-400-alpha-60)',
+            boxShadow: '0 12px 32px var(--black-alpha-15)'
+          }}
         >
           {isEditing ? (
             <div className="w-80">
@@ -250,7 +255,7 @@ function TagEditDropdown({
                       }
                     }}
                     placeholder={`Search ${tagCategory} options...`}
-                    className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-pink-500/20 focus:border-pink-200/40"
                   />
                 </div>
               </div>
@@ -270,11 +275,11 @@ function TagEditDropdown({
                         className={cn(
                           "w-full flex items-center gap-2 px-2 py-1 text-xs text-left rounded",
                           designSystem.background.hover.subtle,
-                          tagOption.value === tag && "bg-primary/10"
+                          tagOption.value === tag && "bg-pink-50/50"
                         )}
                       >
                         {tagOption.value === tag && (
-                          <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                          <Check className="w-3 h-3 text-pink-600 flex-shrink-0" />
                         )}
                         <span className="truncate">{tagOption.label}</span>
                         {tagOption.value === tag && (
@@ -317,7 +322,7 @@ function TagEditDropdown({
                     onRemove(tag)
                     setIsOpen(false)
                   }}
-                  className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-red-50 text-red-600 text-left"
+                  className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-pink-50/50 text-pink-600 text-left"
                 >
                   <X className="w-3 h-3" />
                   Remove tag
@@ -411,13 +416,12 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center p-0.5 {designSystem.borders.radius.sm}",
+          "inline-flex items-center p-0.5 rounded-full",
           "text-[9px] font-medium transition-all duration-200",
-          "hover:shadow-sm cursor-pointer",
-          "bg-gradient-to-r border",
-          "from-gray-50 to-slate-50 border-light",
+          "hover:shadow-sm cursor-pointer border",
+          "bg-white/30 border-gray-200/40",
           designSystem.typography.color.tertiary,
-          "hover:from-primary/10 hover:to-rose-50 hover:text-primary-hover hover:border-primary/30"
+          "hover:bg-pink-50/50 hover:text-pink-600 hover:border-pink-200/40"
         )}
         title="Add Tag"
       >
@@ -427,8 +431,14 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed bg-white {designSystem.borders.radius.sm} shadow-lg border border-default z-50 w-80"
-          style={{ top: position.top, left: position.left }}
+          className={cn("fixed border-0 backdrop-blur-xl backdrop-saturate-150 z-50 w-80", designSystem.borders.radius.sm)}
+          style={{
+            top: position.top,
+            left: position.left,
+            background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+            border: '1px solid var(--slate-400-alpha-60)',
+            boxShadow: '0 12px 32px var(--black-alpha-15)'
+          }}
         >
           {/* Search input */}
           <div className="p-2 border-b border-light">
@@ -447,7 +457,7 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                   }
                 }}
                 placeholder="Search tags to add..."
-                className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-7 pr-2 py-1 text-xs border border-default rounded focus:outline-none focus:ring-1 focus:ring-pink-500/20 focus:border-pink-200/40"
               />
             </div>
 
@@ -458,8 +468,8 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                 className={cn(
                   "px-2 py-0.5 text-[10px] rounded",
                   selectedCategory === null
-                    ? "bg-primary text-white"
-                    : cn(designSystem.background.surface.light, designSystem.background.hover.neutral, designSystem.typography.color.tertiary)
+                    ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white"
+                    : "bg-white/30 border-gray-200/40 hover:bg-pink-50/50"
                 )}
               >
                 All
@@ -471,8 +481,8 @@ function AddTagButton({ existingTags, onAddTag }: { existingTags: string[], onAd
                   className={cn(
                     "px-2 py-0.5 text-[10px] rounded",
                     selectedCategory === cat.name
-                      ? "bg-primary text-white"
-                      : cn(designSystem.background.surface.light, designSystem.background.hover.neutral, designSystem.typography.color.tertiary)
+                      ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white"
+                      : "bg-white/30 border-gray-200/40 hover:bg-pink-50/50"
                   )}
                 >
                   {cat.label}
@@ -569,7 +579,7 @@ export function TagsDisplay({
           <div
             key={`${tag.full}-${index}`}
             className={cn(
-              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 {designSystem.borders.radius.sm}",
+              "group relative inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full",
               "text-[9px] font-medium transition-all duration-200",
               "hover:shadow-sm cursor-default",
               "bg-gradient-to-r border",

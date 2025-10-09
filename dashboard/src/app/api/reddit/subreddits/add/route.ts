@@ -100,7 +100,7 @@ export const POST = protectedApi(async (request: NextRequest) => {
         logger.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
 
         // Call Python backend to fetch subreddit details
-        const backendUrl = process.env.PYTHON_BACKEND_URL || 'https://b9-dashboard.onrender.com'
+        const backendUrl = process.env.PYTHON_BACKEND_URL || 'http://91.98.91.129:10000'
         const response = await fetch(`${backendUrl}/api/subreddits/fetch-single`, {
           method: 'POST',
           headers: {

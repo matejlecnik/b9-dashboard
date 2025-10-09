@@ -1,5 +1,8 @@
 version: '3.8'
 
+# Docker Compose configuration for Hetzner API Server
+# Runs FastAPI application with Gunicorn + Uvicorn workers + Redis server
+
 services:
   api:
     build:
@@ -8,7 +11,7 @@ services:
     container_name: b9-api
     restart: unless-stopped
     ports:
-      - "10000:10000"
+      - "10000:10000"  # FastAPI port
     environment:
       # Supabase
       - SUPABASE_URL=${SUPABASE_URL}
@@ -32,15 +35,23 @@ services:
       - PORT=10000
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - WORKERS=8
+      - MAX_WORKERS=8
 
-      # Redis Queue (for worker coordination)
-      - REDIS_HOST=${REDIS_HOST}
+      # Cron Job Authentication
+      - CRON_SECRET=${CRON_SECRET}
+
+      # Redis (local to API server)
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - /app/b9dashboard/logs:/app/logs
+      - ./logs:/app/logs
     networks:
       - b9-network
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
       interval: 30s
@@ -48,6 +59,27 @@ services:
       retries: 3
       start_period: 40s
 
+  redis:
+    image: redis:7-alpine
+    container_name: b9-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"  # Exposed for workers to connect
+    volumes:
+      - redis-data:/data
+    networks:
+      - b9-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 networks:
   b9-network:
     driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

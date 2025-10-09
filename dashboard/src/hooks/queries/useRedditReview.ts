@@ -158,10 +158,9 @@ export function useReviewStats() {
         throw error
       }
 
-      // Run all counts in parallel - excluding User Feed from total
+      // Run all counts in parallel
       const today = new Date().toISOString().split('T')[0]
-      const [total, ok, noSeller, nonRelated, unreviewed, newToday] = await Promise.all([
-        supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).neq('review', 'User Feed'),
+      const [ok, noSeller, nonRelated, unreviewed, newToday] = await Promise.all([
         supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).eq('review', 'Ok'),
         supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).eq('review', 'No Seller'),
         supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).eq('review', 'Non Related'),
@@ -170,13 +169,18 @@ export function useReviewStats() {
         supabase.from('reddit_subreddits').select('id', { count: 'exact', head: true }).gte('created_at', today),
       ])
 
+      const okCount = ok.count || 0
+      const noSellerCount = noSeller.count || 0
+      const nonRelatedCount = nonRelated.count || 0
+      const unreviewedCount = unreviewed.count || 0
+
       return {
-        total: total.count || 0,
-        ok: ok.count || 0,
-        noSeller: noSeller.count || 0,
-        nonRelated: nonRelated.count || 0,
+        total: okCount + noSellerCount + nonRelatedCount + unreviewedCount,
+        ok: okCount,
+        noSeller: noSellerCount,
+        nonRelated: nonRelatedCount,
         userFeed: 0, // Not included in stats
-        unreviewed: unreviewed.count || 0,
+        unreviewed: unreviewedCount,
         newToday: newToday.count || 0,
       }
     },

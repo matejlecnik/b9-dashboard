@@ -1,31 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, UserCircle2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared'
+import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
 import { designSystem } from '@/lib/design-system'
-import { cn } from '@/lib/utils'
+import { createModelsColumns } from '@/components/shared/tables/configs/modelsColumns'
+import { UniversalTableV2 } from '@/components/shared/tables/UniversalTableV2'
+import type { TableConfig } from '@/components/shared/tables/types'
 
 // Lazy load heavy components
 const ModelFormModal = dynamic(
   () => import('@/components/features/ModelFormModal').then(mod => ({ default: mod.ModelFormModal })),
   { ssr: false }
-)
-
-const ModelsTable = dynamic(
-  () => import('@/components/features/ModelsTable'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-64">
-        <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-gray-900`}></div>
-      </div>
-    )
-  }
 )
 
 interface Model {
@@ -210,68 +201,53 @@ export default function ModelsPage() {
     )
   })
 
+  // Create table configuration with column definitions
+  const tableConfig: TableConfig<Model> = useMemo(() => ({
+    columns: createModelsColumns({
+      onEdit: handleOpenModal,
+      onDelete: handleDelete,
+      deletingModel
+    }),
+    showCheckbox: true,
+    onRowClick: handleOpenModal,
+    emptyState: {
+      icon: <UserCircle2 className="h-12 w-12 mb-4 text-gray-400" />,
+      title: searchQuery ? 'No models found matching your search' : 'No models created yet',
+      description: searchQuery ? 'Try adjusting your search query' : undefined
+    }
+  }), [deletingModel, searchQuery])
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full p-6">
-        {/* Combined Toolbar: Search on left, Add button on right - Slim Design */}
-        <div className={`flex items-stretch justify-between gap-3 mb-3 p-2 bg-white/90 backdrop-blur-sm ${designSystem.borders.radius.sm} border border-default shadow-sm`}>
-          {/* Search Section - Left Side - Compact */}
-          <div className="flex items-center flex-1 min-w-0 max-w-xs">
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-10">
-                <svg className={cn("h-4 w-4", designSystem.typography.color.subtle)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder=""
-                title="Search models by name, stage, or description"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                disabled={loading}
-                className={`w-full pl-8 pr-8 py-1.5 text-sm border border-default ${designSystem.borders.radius.sm} bg-white focus:outline-none focus:ring-1 focus:ring-secondary focus:border-transparent transition-all duration-200 h-8 relative`}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className={cn("absolute inset-y-0 right-0 pr-2 flex items-center", designSystem.typography.color.disabled, `hover:${designSystem.typography.color.tertiary}`)}
-                  aria-label="Clear search"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Action Button - Right Side */}
-          <div className="flex items-center">
-            <Button
-              onClick={() => handleOpenModal()}
-              className="bg-gradient-to-r from-secondary to-primary-hover hover:from-secondary-hover hover:to-primary-pressed text-white border-0 h-8 px-3 text-sm"
-            >
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Model
-            </Button>
-          </div>
-        </div>
-
-        {/* Table Content - Flex grow to fill remaining space */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <ModelsTable
-            models={filteredModels}
-            loading={loading}
-            selectedModels={selectedModels}
-            setSelectedModels={setSelectedModels}
-            onEdit={handleOpenModal}
-            onDelete={handleDelete}
-            deletingModel={deletingModel}
-            searchQuery={searchQuery}
+      <div className="flex flex-col gap-6">
+        {/* Action Button */}
+        <div className="flex items-center justify-end">
+          <StandardActionButton
+            onClick={() => handleOpenModal()}
+            label="Add Model"
+            icon={Plus}
+            variant="primary"
+            size="small"
           />
         </div>
+
+        {/* StandardToolbar with Search */}
+        <StandardToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          loading={loading}
+        />
+
+        {/* Table Content using UniversalTableV2 */}
+        <UniversalTableV2
+          data={filteredModels}
+          config={tableConfig}
+          loading={loading}
+          selectedItems={selectedModels}
+          onSelectionChange={(ids) => setSelectedModels(ids as Set<number>)}
+          getItemId={(model: Model) => model.id}
+          searchQuery={searchQuery}
+        />
       </div>
 
       {/* Model Form Modal */}

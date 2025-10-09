@@ -4,16 +4,14 @@
 // Tables
 export { UniversalTable, createSubredditReviewTable, createCategorizationTable, createCompactSubredditTable } from './tables/UniversalTable'
 export { UniversalCreatorTable } from './tables/UniversalCreatorTable'
-export { VirtualizedCreatorTable } from './tables/VirtualizedCreatorTable'
 export type { InstagramCreator as Creator } from './tables/UniversalCreatorTable'
+// Note: VirtualizedCreatorTable removed (unused)
 
 // Cards
 export { MetricsCards } from './cards/MetricsCards'
 
 // Filters
-export { CategoryFilterPills } from './filters/CategoryFilterPills'
-export { CategoryFilterDropdown } from './filters/CategoryFilterDropdown'
-export { UnifiedFilters } from './filters/UnifiedFilters'
+// Note: CategoryFilterPills, CategoryFilterDropdown, UnifiedFilters removed (unused)
 
 // Toolbars
 export { StandardToolbar } from './toolbars/StandardToolbar'

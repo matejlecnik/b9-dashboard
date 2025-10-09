@@ -29,21 +29,29 @@ export const StandardPostCard = memo(function StandardPostCard({
 }: StandardPostCardProps) {
   const [imageError, setImageError] = useState(false)
   const getContentTypeBadge = () => {
+    // Standardized gray gradient badges for all content types
+    const badgeClass = cn(
+      "text-xs",
+      "bg-gradient-to-r from-gray-50 to-slate-50",
+      "border-gray-200/40",
+      designSystem.typography.color.tertiary
+    )
+
     // Use content_type field which exists in the data
     switch (post.content_type) {
       case 'image':
-        return <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">Image</Badge>
+        return <Badge variant="outline" className={badgeClass}>Image</Badge>
       case 'video':
-        return <Badge variant="outline" className="text-xs bg-secondary/10 border-secondary/30">Video</Badge>
+        return <Badge variant="outline" className={badgeClass}>Video</Badge>
       case 'text':
-        return <Badge variant="outline" className={cn("text-xs border-default", designSystem.background.surface.subtle)}>Text</Badge>
+        return <Badge variant="outline" className={badgeClass}>Text</Badge>
       case 'link':
-        return <Badge variant="outline" className="text-xs bg-green-50 border-green-200">Link</Badge>
+        return <Badge variant="outline" className={badgeClass}>Link</Badge>
       default:
         // Fallback to checking other fields
-        if (post.is_video) return <Badge variant="outline" className="text-xs bg-secondary/10 border-secondary/30">Video</Badge>
-        if (post.is_self) return <Badge variant="outline" className={cn("text-xs border-default", designSystem.background.surface.subtle)}>Text</Badge>
-        return <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">Media</Badge>
+        if (post.is_video) return <Badge variant="outline" className={badgeClass}>Video</Badge>
+        if (post.is_self) return <Badge variant="outline" className={badgeClass}>Text</Badge>
+        return <Badge variant="outline" className={badgeClass}>Media</Badge>
     }
   }
 
@@ -131,11 +139,16 @@ export const StandardPostCard = memo(function StandardPostCard({
   return (
     <div
       className={cn(
-        `group relative bg-white/70 backdrop-blur-sm ${designSystem.borders.radius.md} border border-default`,
-        "shadow-sm hover:shadow-md transition-all duration-200",
-        "hover:border-primary/30 overflow-hidden",
+        "group relative overflow-hidden rounded-2xl border transition-all duration-200",
+        "backdrop-blur-xl backdrop-saturate-150",
+        "hover:scale-[1.01]",
         className
       )}
+      style={{
+        background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+        border: '1px solid var(--slate-400-alpha-60)',
+        boxShadow: '0 20px 50px var(--black-alpha-12)'
+      }}
     >
       {/* Media Preview - 3:4 aspect ratio with cropping */}
       {(mediaUrl && !imageError) ? (
@@ -148,13 +161,6 @@ export const StandardPostCard = memo(function StandardPostCard({
             onPostClick?.(post)
           }}
         >
-          {/* NSFW Badge - No blur */}
-          {isNSFW && (
-            <Badge variant="destructive" className="absolute top-2 right-2 text-xs z-30">
-              NSFW
-            </Badge>
-          )}
-
           {/* Video overlay */}
           {isVideo && !isGif && (
             <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
@@ -202,39 +208,42 @@ export const StandardPostCard = memo(function StandardPostCard({
       {/* Fallback for text posts, no media, or failed images - 3:4 aspect ratio */}
       {(!mediaUrl || imageError) && (
         <div
-          className="w-full aspect-[3/4] bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center cursor-pointer"
+          className="relative w-full aspect-[3/4] flex flex-col items-center justify-center cursor-pointer overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, var(--gray-100-alpha-90) 0%, var(--slate-100-alpha-85) 100%)'
+          }}
           onClick={() => {
             const redditUrl = `https://www.reddit.com/r/${post.subreddit_name}/comments/${post.reddit_id}/`
             window.open(redditUrl, '_blank')
             onPostClick?.(post)
           }}
         >
-          <FileText className={cn("h-8 w-8 mb-2", designSystem.typography.color.disabled)} />
-          <span className={cn("text-xs", designSystem.typography.color.subtle)}>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/30 via-transparent to-slate-200/20 pointer-events-none" />
+          <FileText className={cn("h-8 w-8 mb-2 relative z-10", designSystem.typography.color.disabled)} />
+          <span className={cn("text-xs relative z-10", designSystem.typography.color.subtle)}>
             {imageError ? 'Image unavailable' : 'Text post'}
           </span>
         </div>
       )}
 
-      <div className="p-4 space-y-3">
-        {/* Header with content type and subreddit */}
-        <div className="flex items-start justify-between gap-2">
+      <div className="p-4 flex flex-col gap-3">
+        {/* Header with subreddit - Fixed height */}
+        <div className="flex items-start justify-between gap-2 h-[60px]">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              {getContentTypeBadge()}
-              <span className={cn("text-xs", designSystem.typography.color.subtle)}>
+            <div className="flex items-center gap-2 mb-1 h-5">
+              <span className={cn("text-xs font-medium", designSystem.typography.color.subtle)}>
                 r/{post.subreddit_name}
               </span>
             </div>
-            {/* Post Title */}
-            <h3 className={cn("font-medium text-sm line-clamp-2 group-hover:text-primary-hover transition-colors", designSystem.typography.color.primary)}>
+            {/* Post Title - Exactly 2 lines, fixed height */}
+            <h3 className={cn("font-medium text-sm line-clamp-2 h-10 group-hover:text-primary-hover transition-colors", designSystem.typography.color.primary)}>
               {post.title}
             </h3>
           </div>
         </div>
 
-        {/* Metrics Row */}
-        <div className="flex items-center gap-4 text-xs">
+        {/* Metrics Row - Fixed height */}
+        <div className="flex items-center gap-4 text-xs h-6">
           <div className="flex items-center gap-1">
             <TrendingUp className={cn(
               "h-3.5 w-3.5",
@@ -254,20 +263,10 @@ export const StandardPostCard = memo(function StandardPostCard({
             <MessageCircle className={cn("h-3.5 w-3.5", designSystem.typography.color.disabled)} />
             <span className={cn(designSystem.typography.color.tertiary)}>{formatNumber(post.num_comments)}</span>
           </div>
-
-          {/* Engagement Rate */}
-          <div className={cn(
-            "px-1.5 py-0.5 rounded text-xs font-medium",
-            engagementRate > 15 ? "bg-success/10 text-success-pressed" :
-            engagementRate > 5 ? "bg-primary/10 text-primary-pressed" :
-            cn(designSystem.background.surface.subtle, designSystem.typography.color.tertiary)
-          )}>
-            {engagementRate.toFixed(1)}% eng
-          </div>
         </div>
 
-        {/* Footer with author and date */}
-        <div className={cn("flex items-center justify-between text-xs", designSystem.typography.color.subtle)}>
+        {/* Footer with author and date - Fixed height */}
+        <div className={cn("flex items-center justify-between text-xs h-5", designSystem.typography.color.subtle)}>
           <div className="flex items-center gap-1">
             <User className="h-3 w-3" />
             <span>u/{post.author_username}</span>

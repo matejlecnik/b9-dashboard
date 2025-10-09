@@ -709,7 +709,18 @@ export default function PostingPage() {
         {/* Confirmation Dialog */}
         {confirmRemove && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className={`bg-white ${designSystem.borders.radius.sm} p-6 max-w-sm w-full mx-4 shadow-xl`}>
+            <div
+              className={cn(
+                "relative overflow-hidden p-6 max-w-sm w-full mx-4",
+                "backdrop-blur-xl backdrop-saturate-150",
+                designSystem.borders.radius.xl
+              )}
+              style={{
+                background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+                border: '1px solid var(--slate-400-alpha-60)',
+                boxShadow: '0 20px 50px var(--black-alpha-12)'
+              }}
+            >
               <h3 className={cn("text-lg font-semibold mb-2", designSystem.typography.color.primary)}>Remove Account</h3>
               <p className={cn("text-sm mb-4", designSystem.typography.color.tertiary)}>
                 Are you sure you want to remove <strong>u/{confirmRemove.username}</strong> from posting accounts?
@@ -724,7 +735,11 @@ export default function PostingPage() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-red-500 hover:bg-red-600 text-white"
+                  className="text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #FF8395, #FF7A85)',
+                    border: '1px solid #FF8395'
+                  }}
                   onClick={async () => {
                     const { id } = confirmRemove
                     setRemovingCreator(id)
@@ -828,7 +843,6 @@ export default function PostingPage() {
               }}
 
               loading={loading}
-              accentColor="linear-gradient(135deg, #FF8395, #FF7A85)"
             />
           </div>
 
@@ -846,7 +860,17 @@ export default function PostingPage() {
 
         {/* Show message if no account selected or no matching subreddits */}
         {!selectedAccount ? (
-          <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
+          <Card
+            className={cn(
+              "relative overflow-hidden border-0",
+              "backdrop-blur-xl backdrop-saturate-150"
+            )}
+            style={{
+              background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+              border: '1px solid var(--slate-400-alpha-60)',
+              boxShadow: '0 20px 50px var(--black-alpha-12)'
+            }}
+          >
             <CardContent className="py-12 text-center">
               <AlertCircle className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
               <p className={cn("font-medium mb-2", designSystem.typography.color.tertiary)}>Select a posting account</p>
@@ -854,7 +878,17 @@ export default function PostingPage() {
             </CardContent>
           </Card>
         ) : sortedSubreddits.length === 0 ? (
-          <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl">
+          <Card
+            className={cn(
+              "relative overflow-hidden border-0",
+              "backdrop-blur-xl backdrop-saturate-150"
+            )}
+            style={{
+              background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+              border: '1px solid var(--slate-400-alpha-60)',
+              boxShadow: '0 20px 50px var(--black-alpha-12)'
+            }}
+          >
             <CardContent className="py-12 text-center">
               <AlertCircle className={cn("h-12 w-12 mx-auto mb-3", designSystem.typography.color.disabled)} />
               <p className={cn("font-medium mb-2", designSystem.typography.color.tertiary)}>No matching subreddits</p>
@@ -890,7 +924,7 @@ export default function PostingPage() {
             {/* Loading indicator for infinite scroll */}
             {loading && currentPage > 0 && (
               <div className="flex justify-center items-center py-8">
-                <div className={`animate-spin ${designSystem.borders.radius.full} h-8 w-8 border-b-2 border-b9-pink`}></div>
+                <div className={cn("animate-spin h-8 w-8 border-b-2 border-pink-500", designSystem.borders.radius.full)}></div>
                 <span className={cn("ml-3", designSystem.typography.color.tertiary)}>Loading more subreddits...</span>
               </div>
             )}

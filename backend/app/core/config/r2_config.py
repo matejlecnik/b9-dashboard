@@ -26,12 +26,12 @@ class R2Config:
     # If credentials are missing, uploads will fail fast and alert
     ENABLED: bool = True
 
-    # Compression settings
-    IMAGE_MAX_SIZE_KB: int = 300  # Target 300KB for photos
-    IMAGE_QUALITY: int = 85  # JPEG quality (1-100)
-    VIDEO_TARGET_SIZE_MB: int = 3  # Target 3MB for videos
-    VIDEO_RESOLUTION: str = "720"  # 720p output
-    VIDEO_CODEC: str = "libx264"  # H.264 for QuickTime/Safari compatibility
+    # Compression settings REMOVED (v3.11.0)
+    # We now upload original files directly to R2 for 60-80% faster processing
+    # Storage cost increase: ~$40/month initially, ~$407/month at 10k creators/year
+    # Previous settings:
+    #   IMAGE_MAX_SIZE_KB = 300KB, IMAGE_QUALITY = 85%
+    #   VIDEO_TARGET_SIZE_MB = 3MB, VIDEO_RESOLUTION = 720p, VIDEO_CODEC = libx264
 
     # Upload settings
     MAX_RETRIES: int = 3

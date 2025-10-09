@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Sparkles, Info } from 'lucide-react'
 import { LogViewerSupabase } from '@/components/features/monitoring/LogViewerSupabase'
@@ -120,22 +119,50 @@ export function AICategorizationModal({
       maxHeight="70vh"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
+          <button
             onClick={onClose}
             disabled={isProcessing}
-            className={cn("text-xs h-7 px-3 border-strong hover:border-strong", designSystem.background.hover.subtle)}
+            className={cn(
+              "text-xs h-8 px-4 font-mac-text rounded-lg",
+              "bg-white/60 backdrop-blur-sm",
+              "border border-gray-200/60",
+              "hover:bg-white/80 hover:border-gray-300/60",
+              "shadow-sm hover:shadow",
+              "transition-all duration-200"
+            )}
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSubmit}
             disabled={isProcessing || uncategorizedCount === 0}
-            className="text-xs h-7 px-3 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className={cn(
+              "inline-flex items-center text-xs h-8 px-4 font-mac-text font-medium rounded-lg whitespace-nowrap",
+              "transition-all duration-200",
+              "disabled:opacity-40 disabled:cursor-not-allowed"
+            )}
+            style={{
+              background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid var(--pink-600)',
+              boxShadow: '0 8px 32px var(--pink-alpha-40)',
+              color: 'var(--pink-600)'
+            }}
+            onMouseEnter={(e) => {
+              if (!isProcessing && uncategorizedCount > 0) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 131, 149, 0.7) 0%, var(--pink-alpha-50) 100%)'
+                e.currentTarget.style.boxShadow = '0 12px 40px var(--pink-alpha-50)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)'
+              e.currentTarget.style.boxShadow = '0 8px 32px var(--pink-alpha-40)'
+            }}
           >
             {isProcessing ? (
               <>
-                <div className="animate-spin {designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
+                <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 mr-1.5" style={{ borderColor: 'var(--pink-600)' }} />
                 Processing...
               </>
             ) : (
@@ -144,7 +171,7 @@ export function AICategorizationModal({
                 Start Categorization
               </>
             )}
-          </Button>
+          </button>
         </div>
       }
     >
@@ -159,7 +186,7 @@ export function AICategorizationModal({
                       Items to Process
                     </Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                      <span className={cn("text-sm font-bold", designSystem.typography.color.primary)}>
                         {settings.limit}
                       </span>
                       <span className={cn("text-[10px]", designSystem.typography.color.subtle)}>
@@ -184,35 +211,35 @@ export function AICategorizationModal({
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(50, uncategorizedCount) }))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-colors", "hover:bg-gray-200/60 hover:text-primary", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       50
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(100, uncategorizedCount) }))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-colors", "hover:bg-gray-200/60 hover:text-primary", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       100
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(250, uncategorizedCount) }))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-colors", "hover:bg-gray-200/60 hover:text-primary", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       250
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: Math.min(500, uncategorizedCount) }))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-colors", "hover:bg-gray-200/60 hover:text-primary", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       500
                     </button>
                     <button
                       type="button"
                       onClick={() => setSettings(prev => ({ ...prev, limit: uncategorizedCount }))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-colors", "hover:bg-gray-200/60 hover:text-primary", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       All
                     </button>
@@ -220,18 +247,22 @@ export function AICategorizationModal({
                 </div>
               </div>
               
-              {/* Cost Estimation with brand colors */}
-              <div className="p-3 {designSystem.borders.radius.sm} bg-gradient-to-br from-primary/10 via-secondary/10 to-blue-50 border border-primary/30">
+              {/* Cost Estimation */}
+              <div className={cn(
+                "p-3 border border-default",
+                designSystem.borders.radius.lg,
+                designSystem.background.surface.light
+              )}>
                 <div className="flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 text-primary mt-0.5" />
+                  <Info className={cn("h-3.5 w-3.5 mt-0.5", designSystem.typography.color.secondary)} />
                   <div className="flex-1">
-                    <p className="text-xs font-medium bg-gradient-to-r from-primary-hover to-secondary-hover bg-clip-text text-transparent">
+                    <p className={cn("text-xs font-medium", designSystem.typography.color.primary)}>
                       Estimated Cost
                     </p>
                     <p className={cn("text-[10px]", designSystem.typography.color.tertiary)}>
                       {Math.min(settings.limit, uncategorizedCount)} items
                     </p>
-                    <p className="text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    <p className={cn("text-sm font-bold", designSystem.typography.color.primary)}>
                       ${estimatedCost.toFixed(2)}
                     </p>
                   </div>

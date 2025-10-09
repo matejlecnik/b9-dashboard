@@ -483,13 +483,18 @@ class InstagramScraperUnified:
 
                 items = data.get("items", [])
 
-                # Retry if we get an empty response (but only once - some creators have 0 reels)
+                # Retry if we get an empty response (with exponential backoff)
                 if not items and empty_retries < config.instagram.retry_empty_response:
                     empty_retries += 1
-                    logger.warning(
-                        f"Empty response for reels, retry {empty_retries}/{config.instagram.retry_empty_response} (creator may have no reels)"
+                    # Exponential backoff: 2s → 5s → 12.5s
+                    backoff_delay = config.instagram.retry_wait_min * (
+                        config.instagram.retry_backoff_multiplier ** (empty_retries - 1)
                     )
-                    await asyncio.sleep(2)  # Wait 2 seconds before retry
+                    logger.warning(
+                        f"Empty response for reels, retry {empty_retries}/{config.instagram.retry_empty_response} "
+                        f"(waiting {backoff_delay:.1f}s before retry - creator may have no reels)"
+                    )
+                    await asyncio.sleep(backoff_delay)
                     continue
 
                 if not items:
@@ -556,13 +561,18 @@ class InstagramScraperUnified:
 
                 items = data.get("items", [])
 
-                # Retry if we get an empty response
+                # Retry if we get an empty response (with exponential backoff)
                 if not items and empty_retries < config.instagram.retry_empty_response:
                     empty_retries += 1
-                    logger.warning(
-                        f"Empty response for posts, retry {empty_retries}/{config.instagram.retry_empty_response}"
+                    # Exponential backoff: 2s → 5s → 12.5s
+                    backoff_delay = config.instagram.retry_wait_min * (
+                        config.instagram.retry_backoff_multiplier ** (empty_retries - 1)
                     )
-                    await asyncio.sleep(2)  # Wait 2 seconds before retry
+                    logger.warning(
+                        f"Empty response for posts, retry {empty_retries}/{config.instagram.retry_empty_response} "
+                        f"(waiting {backoff_delay:.1f}s before retry)"
+                    )
+                    await asyncio.sleep(backoff_delay)
                     continue
 
                 if not items:

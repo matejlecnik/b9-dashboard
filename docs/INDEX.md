@@ -61,7 +61,7 @@
 }
 ```
 
-### 🔌 API Documentation (11 files, 3,879 lines)
+### 🔌 API Documentation (14 files, ~4,500 lines)
 ```json
 {
   "main": {
@@ -69,13 +69,28 @@
     "lines": 495,
     "endpoints": 25
   },
+  "external_control": {
+    "file": "backend/docs/EXTERNAL_API_CONTROL_GUIDE.md",
+    "lines": 650,
+    "status": "NEW - Complete guide for triggering all operations externally"
+  },
+  "testing": {
+    "plan": "backend/docs/API_TEST_PLAN.md (486 lines) - Overview & history",
+    "execution": "backend/docs/API_TESTING_EXECUTION_PLAN.md (1200+ lines) - Step-by-step guide",
+    "quick_start": "backend/docs/API_TESTING_QUICK_START.sh - Helper script",
+    "status": "READY - Comprehensive testing suite for production"
+  },
+  "deployment": {
+    "report": "backend/docs/HETZNER_DEPLOYMENT_REPORT.md (335 lines)",
+    "fixes": "backend/docs/FIXES_APPLIED_2025-10-09.md (227 lines)"
+  },
   "architecture": {
     "file": "docs/backend/ARCHITECTURE.md",
     "lines": 391,
-    "version": "3.4.5"
+    "version": "3.7.0"
   },
   "scrapers": {
-    "reddit": "backend/app/scrapers/reddit/README.md (248 lines) - v3.4.5",
+    "reddit": "backend/app/scrapers/reddit/README.md (248 lines) - v3.6.3",
     "instagram": "backend/app/scrapers/instagram/README.md (221 lines)",
     "architecture": "backend/app/scrapers/reddit/ARCHITECTURE.md"
   },

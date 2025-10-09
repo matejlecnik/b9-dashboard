@@ -33,11 +33,10 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=10000 \
     ENVIRONMENT=production
 
-# Install runtime dependencies including FFmpeg for video compression
+# Install runtime dependencies (FFmpeg removed in v3.11.0 - no longer compressing videos)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
-    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

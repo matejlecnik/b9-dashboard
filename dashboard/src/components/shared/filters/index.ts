@@ -1,4 +1,2 @@
 // Shared filters barrel export
-export { CategoryFilterDropdown } from './CategoryFilterDropdown'
-export { CategoryFilterPills } from './CategoryFilterPills'
-export { UnifiedFilters } from './UnifiedFilters'
+// Note: Unused filter components have been removed (CategoryFilterDropdown, CategoryFilterPills, UnifiedFilters)

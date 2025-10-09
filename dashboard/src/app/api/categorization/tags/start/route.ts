@@ -9,7 +9,7 @@ interface TagCategorizationRequest {
 
 // Get the Render API URL
 function getRenderApiUrl(): string {
-  return process.env['NEXT_PUBLIC_API_URL'] || 'https://b9-dashboard.onrender.com'
+  return process.env['NEXT_PUBLIC_API_URL'] || 'http://91.98.91.129:10000'
 }
 
 // POST /api/categorization/tags/start - Start AI tag categorization

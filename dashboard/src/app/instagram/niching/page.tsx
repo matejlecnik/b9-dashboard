@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { Tag, UserPlus } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { StandardToolbar, UniversalCreatorTable, StandardActionButton } from '@/components/shared'
+import { StandardToolbar, StandardActionButton } from '@/components/shared'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { InstagramCard } from '@/components/instagram'
@@ -12,6 +13,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatNumber } from '@/lib/formatters'
 import { designSystem } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
+import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
 
 // Import React Query hooks
 import {
@@ -21,7 +23,15 @@ import {
   type NichingFilters
 } from '@/hooks/queries/useInstagramReview'
 
-import type { Creator } from '@/components/shared'
+// Import table configuration
+import { createInstagramNichingColumns, type InstagramCreator } from '@/components/shared/tables/configs/instagramNichingColumns'
+import type { TableConfig } from '@/components/shared/tables/types'
+
+// Dynamic import for table
+const UniversalTableV2 = dynamic(
+  () => import('@/components/shared/tables/UniversalTableV2').then(mod => mod.UniversalTableV2),
+  { ssr: false, loading: () => <TableSkeleton /> }
+)
 
 type FilterType = 'unniched' | 'niched' | 'all'
 
@@ -81,6 +91,52 @@ export default function NichingPage() {
     })
     setSelectedCreators(new Set())
   }, [selectedCreators, bulkUpdateMutation])
+
+  // Handler for single creator review update
+  const handleUpdateReview = useCallback((id: number, review: string) => {
+    // This is a placeholder - the niching page focuses on niche assignment, not review status
+    console.log('Review update:', id, review)
+  }, [])
+
+  // Transform creators for table - match InstagramCreator interface from niching columns
+  const transformedCreators = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return creators.map((creator: any): InstagramCreator => ({
+      id: creator.id,
+      ig_user_id: creator.ig_user_id || String(creator.id),
+      username: creator.username,
+      full_name: creator.full_name || null,
+      biography: creator.biography || null,
+      profile_pic_url: creator.profile_pic_url || null,
+      followers: creator.followers || 0,
+      posts_count: creator.posts_count || 0,
+      review_status: creator.review_status,
+      is_private: creator.is_private || false,
+      is_verified: creator.is_verified || false,
+      is_business_account: creator.is_business_account || false,
+      niche: creator.niche || null,
+      viral_content_count_cached: creator.viral_content_count_cached || null,
+      avg_views_per_reel_cached: creator.avg_views_per_reel_cached || null,
+      posting_frequency_per_week: creator.posting_frequency_per_week || null,
+      follower_growth_rate_weekly: creator.follower_growth_rate_weekly || null,
+      save_to_like_ratio: creator.save_to_like_ratio || null,
+      last_post_days_ago: creator.last_post_days_ago || null,
+      engagement_rate_cached: creator.engagement_rate_cached || null,
+      avg_likes_per_post: creator.avg_likes_per_post || null
+    }))
+  }, [creators])
+
+  // Create table configuration with column definitions
+  const tableConfig: TableConfig<InstagramCreator> = useMemo(() => ({
+    columns: createInstagramNichingColumns({
+      onUpdateReview: handleUpdateReview
+    }),
+    showCheckbox: true,
+    emptyState: {
+      title: searchQuery ? 'No creators found matching your search' : 'No creators to niche',
+      description: searchQuery ? 'Try adjusting your search query' : undefined
+    }
+  }), [searchQuery, handleUpdateReview])
 
   // Calculate stats for display
   const displayStats = {
@@ -183,22 +239,15 @@ export default function NichingPage() {
 
         {/* Extended Instagram Table */}
         <ComponentErrorBoundary>
-          <InstagramCard className="relative overflow-hidden" padding="none">
-            <UniversalCreatorTable
-              creators={creators as unknown as Creator[]}
-              loading={isLoading}
-              selectedCreators={selectedCreators}
-              setSelectedCreators={setSelectedCreators}
-              searchQuery={debouncedSearchQuery}
-              onReachEnd={fetchNextPage}
-              hasMore={hasNextPage || false}
-              loadingMore={isFetchingNextPage}
-              onUpdateReview={() => {
-                // Review status updates are handled via useUpdateCreatorStatus hook
-                // in the table component itself
-              }}
-            />
-          </InstagramCard>
+          <UniversalTableV2
+            data={transformedCreators}
+            config={tableConfig}
+            loading={isLoading}
+            selectedItems={selectedCreators}
+            onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
+            getItemId={(creator) => creator.id}
+            searchQuery={debouncedSearchQuery}
+          />
         </ComponentErrorBoundary>
       </div>
 

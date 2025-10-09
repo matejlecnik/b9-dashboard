@@ -3,11 +3,12 @@
 import { useRef, useEffect } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { PostAnalysisErrorBanner } from '@/components/common/PostAnalysisErrorBanner'
-import { PostAnalysisStats } from '@/components/common/PostAnalysisStats'
 import { StandardPostCard } from '@/components/shared/StandardPostCard'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCard'
 import { usePostAnalysis } from '@/hooks/usePostAnalysis'
 import type { Post } from '@/types/post'
+import { formatNumber } from '@/lib/formatters'
 import { designSystem } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,13 @@ export default function PostAnalysisPage() {
   } = usePostAnalysis({
     initialPostsPerPage: 20
   })
+
+  // Format hour to readable time with UTC
+  const formatHour = (hour: number) => {
+    const period = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+    return `${displayHour}:00 ${period} UTC`
+  }
 
   // Infinite scroll setup
   useEffect(() => {
@@ -67,26 +75,66 @@ export default function PostAnalysisPage() {
           onDismiss={() => setError(null)}
         />
 
-        {/* Metrics Dashboard */}
+        {/* Stats Dashboard */}
         <ComponentErrorBoundary>
-          <PostAnalysisStats
-            metrics={metrics}
-            loading={metricsLoading}
-          />
+          {metricsLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <UniversalMetricCard
+                  key={i}
+                  title="Loading..."
+                  value=""
+                  loading={true}
+                />
+              ))}
+            </div>
+          ) : metrics ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+              <UniversalMetricCard
+                title="Total Posts"
+                value={metrics.total_posts_count}
+                subtitle="Approved only"
+              />
+              <UniversalMetricCard
+                title="Best Subreddit"
+                value={`r/${metrics.best_avg_upvotes_subreddit}`}
+                subtitle={`${formatNumber(metrics.best_avg_upvotes_value)} upvotes`}
+              />
+              <UniversalMetricCard
+                title="Most Comments"
+                value={`r/${metrics.best_engagement_subreddit}`}
+                subtitle={`${formatNumber(metrics.best_engagement_value)} comments`}
+              />
+              <UniversalMetricCard
+                title="Best Time"
+                value={formatHour(metrics.best_performing_hour)}
+                subtitle="Peak engagement"
+              />
+            </div>
+          ) : null}
         </ComponentErrorBoundary>
-
 
         {/* Post Grid with Standardized Cards */}
         <ComponentErrorBoundary>
           {loading && posts.length === 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className={`${designSystem.background.surface.light} ${designSystem.borders.radius.md} h-48 animate-pulse`} />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+              {[...Array(12)].map((_, i) => (
+                <div
+                  key={i}
+                  className="relative overflow-hidden rounded-2xl h-[400px] animate-pulse"
+                  style={{
+                    background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+                    border: '1px solid var(--slate-400-alpha-60)',
+                    boxShadow: '0 20px 50px var(--black-alpha-12)'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-100/40 via-transparent to-slate-200/20" />
+                </div>
               ))}
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                 {posts.map((post, index) => (
                   <StandardPostCard
                     key={post.reddit_id || `${post.id}-${index}`}

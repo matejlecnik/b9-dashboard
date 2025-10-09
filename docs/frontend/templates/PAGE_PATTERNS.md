@@ -51,8 +51,8 @@ import {
 } from '@/components/shared'
 
 // Dynamic table import
-const UniversalTable = dynamic(
-  () => import('@/components/shared/tables/UniversalTable'),
+const UniversalTableV2 = dynamic(
+  () => import('@/components/shared/tables/UniversalTableV2').then(mod => mod.UniversalTableV2),
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
@@ -162,14 +162,16 @@ export default function ReviewPage() {
 
         {/* Table */}
         <ComponentErrorBoundary>
-          <UniversalTable
+          <UniversalTableV2
             data={items}
+            config={tableConfig}
             loading={isLoading}
             selectedItems={selectedItems}
-            setSelectedItems={setSelectedItems}
-            onUpdateItem={(id, status) => updateReviewMutation.mutate({ id, status })}
-            hasMore={hasNextPage}
+            onSelectionChange={setSelectedItems}
+            getItemId={(item) => item.id}
+            searchQuery={debouncedSearchQuery}
             onReachEnd={fetchNextPage}
+            hasMore={hasNextPage}
             loadingMore={isFetchingNextPage}
           />
         </ComponentErrorBoundary>
@@ -570,9 +572,9 @@ import { Tag, Users } from 'lucide-react'
 import {
   DashboardLayout,
   StandardToolbar,
-  UniversalTable,
   ErrorBoundary
 } from '@/components/shared'
+import { UniversalTableV2 } from '@/components/shared/tables/UniversalTableV2'
 import { NicheSelector } from '@/components/NicheSelector'
 import { useNichingData } from '@/hooks/queries/useNiching'
 
@@ -659,11 +661,13 @@ export default function NichingPage() {
 
         {/* Table */}
         <ErrorBoundary>
-          <UniversalTable
+          <UniversalTableV2
             data={data}
+            config={tableConfig}
             loading={isLoading}
             selectedItems={selectedItems}
-            setSelectedItems={setSelectedItems}
+            onSelectionChange={setSelectedItems}
+            getItemId={(item) => item.id}
           />
         </ErrorBoundary>
       </div>

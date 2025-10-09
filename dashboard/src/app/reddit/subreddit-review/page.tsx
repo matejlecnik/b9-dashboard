@@ -19,7 +19,7 @@ import {
 
 // Import components
 import { TableSkeleton, MetricsCardsSkeleton } from '@/components/shared/SkeletonLoaders'
-import { createSubredditReviewTable, type Subreddit as TableSubreddit } from '@/components/shared/tables/UniversalTable'
+import type { Subreddit as TableSubreddit } from '@/types/subreddit'
 import type { Subreddit as DbSubreddit } from '@/lib/supabase'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
@@ -27,10 +27,12 @@ import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCa
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { Plus, Check, UserX, X } from 'lucide-react'
+import { createRedditReviewColumns } from '@/components/shared/tables/configs/redditReviewColumns'
+import type { TableConfig } from '@/components/shared/tables/types'
 
 // Dynamic imports for heavy components
-const UniversalTable = dynamic(
-  () => import('@/components/shared/tables/UniversalTable').then(mod => mod.UniversalTable),
+const UniversalTableV2 = dynamic(
+  () => import('@/components/shared/tables/UniversalTableV2').then(mod => mod.UniversalTableV2),
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
@@ -287,6 +289,19 @@ export default function SubredditReviewPage() {
     { value: 'non_related' as FilterType, label: 'Non Related', count: reviewCounts.non_related },
   ], [reviewCounts])
 
+  // Create table configuration with column definitions
+  const tableConfig: TableConfig<TableSubreddit> = useMemo(() => ({
+    columns: createRedditReviewColumns({
+      onUpdateReview: (id: number, review: string) => updateReview(id, review as 'Ok' | 'No Seller' | 'Non Related' | 'Banned'),
+      onShowRules: handleShowRules
+    }),
+    showCheckbox: true,
+    emptyState: {
+      title: searchQuery ? 'No subreddits found matching your search' : 'No subreddits to review',
+      description: searchQuery ? 'Try adjusting your search query' : undefined
+    }
+  }), [searchQuery])
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-screen min-h-0">
@@ -382,39 +397,27 @@ export default function SubredditReviewPage() {
               onClearSelection={() => setSelectedSubreddits(new Set())}
 
               loading={isLoading || bulkUpdateMutation.isPending}
-              accentColor="linear-gradient(135deg, #FF8395, #FF7A85)"
+              accentColor="linear-gradient(135deg, var(--reddit-primary), var(--reddit-secondary))"
             />
           </ComponentErrorBoundary>
         </div>
 
         {/* Main Review Table */}
         <div className="flex-1 flex flex-col min-h-0">
-          {isLoading ? (
-            <div className="space-y-6">
-              <TableSkeleton />
-            </div>
-          ) : (
-            <ComponentErrorBoundary>
-              <UniversalTable
-                {...createSubredditReviewTable({
-                  subreddits: subreddits as unknown as TableSubreddit[],
-                  selectedSubreddits,
-                  setSelectedSubreddits,
-                  onUpdateReview: (id: number, reviewText: string) => updateReview(id, reviewText as 'Ok' | 'No Seller' | 'Non Related' | 'Banned'),
-                  loading: isLoading,
-                  hasMore: hasNextPage || false,
-                  loadingMore: isFetchingNextPage,
-                  onReachEnd: handleReachEnd,
-                  searchQuery: debouncedSearchQuery,
-                  brokenIcons: brokenIcons,
-                  handleIconError,
-                  onShowRules: handleShowRules,
-                  testId: 'subreddit-review-table',
-                  removingIds
-                })}
-              />
-            </ComponentErrorBoundary>
-          )}
+          <ComponentErrorBoundary>
+            <UniversalTableV2
+              data={subreddits as unknown as TableSubreddit[]}
+              config={tableConfig}
+              loading={isLoading}
+              selectedItems={selectedSubreddits}
+              onSelectionChange={(ids) => setSelectedSubreddits(ids as Set<number>)}
+              getItemId={(subreddit) => subreddit.id}
+              searchQuery={debouncedSearchQuery}
+              onReachEnd={handleReachEnd}
+              hasMore={hasNextPage}
+              loadingMore={isFetchingNextPage}
+            />
+          </ComponentErrorBoundary>
         </div>
 
         {/* Rules Modal */}

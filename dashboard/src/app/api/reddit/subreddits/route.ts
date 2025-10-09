@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
         logger.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
 
         // Call Render backend to fetch subreddit details
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com'
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000'
         const response = await fetch(`${backendUrl}/api/subreddits/fetch-single`, {
           method: 'POST',
           headers: {

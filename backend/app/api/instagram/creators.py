@@ -24,6 +24,7 @@ from supabase import Client
 try:
     from app.scrapers.instagram.services.instagram_config import Config
     from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
+    from app.core.config.r2_config import r2_config
 except ImportError:
     # Fallback for different import paths
     from api_render.app.scrapers.instagram.services.instagram_config import (  # type: ignore[no-redef]
@@ -32,6 +33,7 @@ except ImportError:
     from api_render.app.scrapers.instagram.services.instagram_scraper import (  # type: ignore[no-redef]
         InstagramScraperUnified,
     )
+    from api_render.app.core.config.r2_config import r2_config  # type: ignore[no-redef]
 
 # Import database singleton and unified logger
 from app.core.database import get_db
@@ -83,13 +85,28 @@ def create_scraper_instance() -> InstagramScraperUnified:
 
     This bypasses the system_control table checks that the main scraper uses,
     allowing us to use the same processing logic without running the full scraper.
+
+    IMPORTANT: R2 uploads are disabled for manual additions to prevent timeout.
+    Content is saved with CDN URLs which remain valid. R2 migration can happen
+    via background job later.
     """
     try:
+        # CRITICAL FIX: Disable R2 uploads BEFORE creating scraper (Bug #2)
+        # Processing 70 reels with R2 upload takes 17-23 minutes but worker timeout is 2 minutes
+        # Save content with CDN URLs instead - they remain valid indefinitely
+        original_r2_enabled = r2_config.ENABLED if r2_config else False
+        if r2_config:
+            r2_config.ENABLED = False
+            logger.info("✅ R2 uploads disabled for manual creator addition (prevents timeout)")
+
         scraper = InstagramScraperUnified()
 
         # Override should_continue() to always return True for manual additions
         # This prevents the scraper from checking system_control table
         scraper.should_continue = lambda: True  # type: ignore[method-assign]
+
+        # Store original R2 state to potentially restore later
+        scraper._original_r2_enabled = original_r2_enabled  # type: ignore[attr-defined]
 
         logger.info("Created standalone scraper instance for manual creator addition")
         return scraper
@@ -188,7 +205,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
         # 3. Fetch profile to get ig_user_id (CRITICAL - we need this ID)
         await log_creator_addition(username, "profile_fetch_started", True)
 
-        profile_data = scraper._fetch_profile(username)
+        profile_data = await scraper._fetch_profile(username)
 
         if not profile_data:
             await log_creator_addition(
@@ -226,38 +243,35 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
 
         # 4. Check if creator already exists in database
         try:
-            existing_creator = (
+            existing_result = (
                 _get_db()
                 .table("instagram_creators")
                 .select("id, ig_user_id, username, review_status")
                 .eq("username", username)
-                .maybe_single()
                 .execute()
             )
+            # Check if we got results
+            existing_creator = existing_result if (existing_result.data and len(existing_result.data) > 0) else None
         except Exception as e:
             logger.warning(f"Error checking for existing creator @{username}: {e}")
             existing_creator = None
 
-        if existing_creator and hasattr(existing_creator, "data") and existing_creator.data:
+        if existing_creator and existing_creator.data and len(existing_creator.data) > 0:
             logger.info(
-                f"Creator @{username} already exists (ID: {existing_creator.data['id']}), will update"
+                f"Creator @{username} already exists (ID: {existing_creator.data[0]['id']}), will update"
             )
             await log_creator_addition(
                 username,
                 "existing_creator_found",
                 True,
                 {
-                    "existing_id": existing_creator.data["id"],
-                    "current_review_status": existing_creator.data.get("review_status"),
+                    "existing_id": existing_creator.data[0]["id"],
+                    "current_review_status": existing_creator.data[0].get("review_status"),
                 },
             )
 
         # 5. INSERT or UPDATE minimal creator record
-        if (
-            not existing_creator
-            or not hasattr(existing_creator, "data")
-            or not existing_creator.data
-        ):
+        if not existing_creator or not existing_creator.data or len(existing_creator.data) == 0:
             # Create new creator record
             initial_data = {
                 "ig_user_id": ig_user_id,
@@ -322,7 +336,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
         api_calls_before = scraper.api_calls_made
 
         # Run the SAME processing workflow the scraper uses
-        processing_success = scraper.process_creator(creator_obj)
+        processing_success = await scraper.process_creator(creator_obj)
 
         # Calculate API calls used
         api_calls_used = scraper.api_calls_made - api_calls_before
@@ -394,7 +408,12 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             f"{api_calls_used} API calls, {processing_time}s processing time"
         )
 
-        # 9. Return success response
+        # 9. Restore R2 configuration (important for other operations)
+        if hasattr(scraper, '_original_r2_enabled') and r2_config:
+            r2_config.ENABLED = scraper._original_r2_enabled
+            logger.info(f"✅ R2 state restored to: {scraper._original_r2_enabled}")
+
+        # 10. Return success response
         return CreatorAddResponse(success=True, creator=final_creator.data, stats=stats)
 
     except Exception as e:
@@ -409,6 +428,14 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             error=error_msg,
             details={"error_type": type(e).__name__},
         )
+
+        # Restore R2 state even on error
+        try:
+            if 'scraper' in locals() and hasattr(scraper, '_original_r2_enabled') and r2_config:
+                r2_config.ENABLED = scraper._original_r2_enabled
+                logger.info(f"✅ R2 state restored after error to: {scraper._original_r2_enabled}")
+        except:
+            pass
 
         return CreatorAddResponse(success=False, error=f"An error occurred: {error_msg}")
 

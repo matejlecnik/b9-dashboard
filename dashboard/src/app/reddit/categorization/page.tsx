@@ -11,12 +11,14 @@ import { cn } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
 import { queryKeys } from '@/lib/react-query'
 import { DashboardLayout } from '@/components/shared'
-import { Progress } from '@/components/ui/progress'
 import { Sparkles, Tag } from 'lucide-react'
 import { formatNumber } from '@/lib/formatters'
 import { ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { TagFilterDropdown } from '@/components/shared/TagFilterDropdown'
+import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
+import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgressCard'
+import { UniversalInputModal } from '@/components/shared/modals/UniversalInputModal'
 
 // Import React Query hooks
 import {
@@ -30,6 +32,8 @@ import {
 
 // Import types
 import type { Subreddit } from '@/types/subreddit'
+import { createRedditCategorizationColumns } from '@/components/shared/tables/configs/redditCategorizationColumns'
+import type { TableConfig } from '@/components/shared/tables/types'
 
 interface AICategorizationSettings {
   limit: number
@@ -39,8 +43,8 @@ interface AICategorizationSettings {
 }
 
 // Dynamic imports for heavy components
-const UniversalTable = dynamic(
-  () => import('@/components/shared/tables/UniversalTable').then(mod => mod.UniversalTable),
+const UniversalTableV2 = dynamic(
+  () => import('@/components/shared/tables/UniversalTableV2').then(mod => mod.UniversalTableV2),
   { ssr: false, loading: () => <TableSkeleton /> }
 )
 
@@ -53,8 +57,6 @@ const SubredditRulesModal = dynamic(
   () => import('@/components/features/SubredditRulesModal').then(mod => ({ default: mod.SubredditRulesModal })),
   { ssr: false }
 )
-
-// Import createCategorizationTable statically since we need it immediately
 
 export default function CategorizationPage() {
   const { addToast } = useToast()
@@ -73,6 +75,7 @@ export default function CategorizationPage() {
   const [showAIModal, setShowAIModal] = useState(false)
   const [categorizationLogs, setCategorizationLogs] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [showTagModal, setShowTagModal] = useState(false)
 
   // Query client for cache management
   const queryClient = useQueryClient()
@@ -391,6 +394,22 @@ export default function CategorizationPage() {
     }
   }, [isFetchingNextPage, hasNextPage, fetchNextPage])
 
+  // Create table configuration with column definitions
+  const tableConfig: TableConfig<Subreddit> = React.useMemo(() => ({
+    columns: createRedditCategorizationColumns({
+      onUpdateReview: (id: number, review: string) => updateReview(id, review),
+      onShowRules: handleShowRules,
+      onUpdateSingleTag: updateSingleTag,
+      onRemoveTag: removeTag,
+      onAddTag: addTag
+    }),
+    showCheckbox: true,
+    emptyState: {
+      title: searchQuery ? 'No subreddits found matching your search' : 'No subreddits to categorize',
+      description: searchQuery ? 'Try adjusting your search query' : undefined
+    }
+  }), [searchQuery, updateReview, handleShowRules, updateSingleTag, removeTag, addTag])
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-screen min-h-0">
@@ -406,84 +425,35 @@ export default function CategorizationPage() {
               </div>
             ) : (
               <div className="flex gap-3 w-full">
-                {/* Progress Bar Card - 80% width */}
-                <div className={cn("flex-1 min-w-0 bg-white/80 backdrop-blur-sm border border-default p-4 shadow-sm hover:shadow-md transition-shadow", designSystem.borders.radius.md)}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className={cn("text-sm font-semibold whitespace-nowrap", designSystem.typography.color.primary)}>
-                      Categorization Progress
-                    </h3>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      {isLoadingCounts ? (
-                        <div className="animate-pulse">
-                          <div className={cn("h-6 w-12 rounded mb-1", designSystem.background.surface.neutral)}></div>
-                          <div className={cn("h-3 w-20 rounded", designSystem.background.surface.neutral)}></div>
-                        </div>
-                      ) : (
-                        <>
-                          <span className={cn("text-lg font-bold", designSystem.typography.color.primary)}>
-                            {tagCounts ? Math.round((tagCounts.tagged / Math.max(1, tagCounts.tagged + tagCounts.untagged)) * 100) : 0}%
-                          </span>
-                          <p className={cn("text-xs mt-0.5", designSystem.typography.color.subtle)}>
-                            {formatNumber(tagCounts?.tagged || 0)} / {formatNumber((tagCounts?.tagged || 0) + (tagCounts?.untagged || 0))}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {isLoadingCounts ? (
-                    <div className={cn("h-3 rounded animate-pulse", designSystem.background.surface.neutral)} />
-                  ) : (
-                    <Progress
-                      value={tagCounts && (tagCounts.tagged + tagCounts.untagged) > 0
-                        ? (tagCounts.tagged / (tagCounts.tagged + tagCounts.untagged)) * 100
-                        : 0
-                      }
-                      className="h-3"
-                    />
-                  )}
+                {/* Progress Card using UniversalProgressCard */}
+                <UniversalProgressCard
+                  title="Categorization Progress"
+                  value={`${tagCounts ? Math.floor((tagCounts.tagged / Math.max(1, tagCounts.tagged + tagCounts.untagged)) * 100) : 0}%`}
+                  subtitle={`${formatNumber(tagCounts?.tagged || 0)} / ${formatNumber((tagCounts?.tagged || 0) + (tagCounts?.untagged || 0))}`}
+                  percentage={tagCounts && (tagCounts.tagged + tagCounts.untagged) > 0
+                    ? Math.floor((tagCounts.tagged / (tagCounts.tagged + tagCounts.untagged)) * 100)
+                    : 0
+                  }
+                  loading={isLoadingCounts}
+                  className="flex-1"
+                />
+
+                {/* AI Review Button using StandardActionButton */}
+                <div className="flex-1 max-w-[200px]">
+                  <StandardActionButton
+                    onClick={handleCategorizeAll}
+                    label={aiCategorizationMutation.isPending
+                      ? 'Processing...'
+                      : !tagCounts || tagCounts.untagged === 0
+                      ? 'All done!'
+                      : 'AI Tagging'}
+                    icon={Sparkles}
+                    loading={aiCategorizationMutation.isPending}
+                    disabled={!tagCounts || tagCounts.untagged === 0}
+                    variant="primary"
+                    size="normal"
+                  />
                 </div>
-
-                {/* AI Review Button using standardized component */}
-                <button
-                  onClick={handleCategorizeAll}
-                  disabled={isLoading || aiCategorizationMutation.isPending || !tagCounts || tagCounts.untagged === 0}
-                  className={cn("group relative min-h-[100px] w-[140px] px-4 overflow-hidden transition-all duration-300 hover:scale-[1.02] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed", designSystem.borders.radius.lg)}
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                    backdropFilter: 'blur(16px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05)'
-                  }}
-                >
-                  {/* Gradient overlay on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-primary/25 via-secondary/25 to-blue-400/25" />
-
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-
-                  {/* Glow effect */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className={cn("absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl", designSystem.borders.radius.lg)} />
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col items-center">
-                    <Sparkles className="h-5 w-5 text-primary mb-1 group-hover:text-primary-hover transition-colors" />
-                    <span className="text-xs font-semibold bg-gradient-to-r from-primary-hover to-secondary-hover bg-clip-text text-transparent text-center">
-                      {aiCategorizationMutation.isPending
-                        ? 'Processing...'
-                        : !tagCounts || tagCounts.untagged === 0
-                        ? 'All done!'
-                        : `AI Tagging`}
-                    </span>
-                    {!aiCategorizationMutation.isPending && tagCounts && tagCounts.untagged > 0 && (
-                      <span className={cn("text-[10px] mt-0.5", designSystem.typography.color.subtle)}>
-                        {Math.min(tagCounts.untagged, 500)} items
-                      </span>
-                    )}
-                  </div>
-                </button>
               </div>
             )}
           </ComponentErrorBoundary>
@@ -507,23 +477,13 @@ export default function CategorizationPage() {
                       id: 'bulk-tag',
                       label: 'Add Tags',
                       icon: Tag,
-                      onClick: () => {
-                        // Show tag selection dialog
-                        const tagInput = prompt('Enter tags for selected items (comma-separated):')
-                        if (tagInput !== null) {
-                          const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
-                          if (tags.length > 0) {
-                            updateBulkTags(tags)
-                          }
-                        }
-                      },
+                      onClick: () => setShowTagModal(true),
                       variant: 'secondary'
                     }
                   ] : []}
                   onClearSelection={() => setSelectedSubreddits(new Set())}
 
                   loading={isLoading || bulkUpdateMutation.isPending}
-                  accentColor="linear-gradient(135deg, #FF8395, #FF7A85)"
                 />
               </div>
 
@@ -542,36 +502,20 @@ export default function CategorizationPage() {
 
         {/* Main Categorization Interface */}
         <div className="flex-1 flex flex-col min-h-0">
-          {isLoading ? (
-            <div className="space-y-6">
-              <TableSkeleton />
-            </div>
-          ) : (
-            <ComponentErrorBoundary>
-              <UniversalTable
-                variant="standard"
-                mode="category"
-                subreddits={subreddits}
-                selectedSubreddits={selectedSubreddits}
-                setSelectedSubreddits={setSelectedSubreddits}
-                onBulkUpdateTags={updateBulkTags}
-                onUpdateReview={updateReview}
-                onUpdateSingleTag={updateSingleTag}
-                onRemoveTag={removeTag}
-                onAddTag={addTag}
-                loading={isLoading}
-                hasMore={hasNextPage || false}
-                loadingMore={isFetchingNextPage}
-                onReachEnd={handleReachEnd}
-                searchQuery={debouncedSearchQuery}
-                brokenIcons={brokenIcons}
-                handleIconError={handleIconError}
-                onShowRules={handleShowRules}
-                testId="categorization-table"
-                removingIds={removingIds}
-              />
-            </ComponentErrorBoundary>
-          )}
+          <ComponentErrorBoundary>
+            <UniversalTableV2
+              data={subreddits}
+              config={tableConfig}
+              loading={isLoading}
+              selectedItems={selectedSubreddits}
+              onSelectionChange={(ids) => setSelectedSubreddits(ids as Set<number>)}
+              getItemId={(subreddit) => subreddit.id}
+              searchQuery={debouncedSearchQuery}
+              onReachEnd={handleReachEnd}
+              hasMore={hasNextPage}
+              loadingMore={isFetchingNextPage}
+            />
+          </ComponentErrorBoundary>
         </div>
 
         {/* Rules Modal */}
@@ -592,6 +536,25 @@ export default function CategorizationPage() {
           availableCategories={availableCategories}
           isProcessing={aiCategorizationMutation.isPending}
           logs={categorizationLogs}
+        />
+
+        {/* Tag Input Modal */}
+        <UniversalInputModal
+          isOpen={showTagModal}
+          onClose={() => setShowTagModal(false)}
+          onConfirm={(tagInput) => {
+            const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
+            if (tags.length > 0) {
+              updateBulkTags(tags)
+            }
+            setShowTagModal(false)
+          }}
+          title="Add Tags"
+          subtitle="Enter tags separated by commas"
+          placeholder="e.g., anime, gaming, technology"
+          suggestions={availableTags || []}
+          icon={Tag}
+          platform="reddit"
         />
       </div>
     </DashboardLayout>

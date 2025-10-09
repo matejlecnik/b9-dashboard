@@ -1,12 +1,16 @@
 'use client'
 
-
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, X, ChevronDown, ChevronUp, Info, Loader2, AlertCircle } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { TAG_CATEGORIES } from '@/lib/tagCategories'
 import { logger } from '@/lib/logger'
 import { createClient } from '@supabase/supabase-js'
@@ -187,305 +191,378 @@ export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-3">
       {/* Basic Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Model Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>
-                Stage Name <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.stage_name}
-                onChange={(e) => setFormData({ ...formData, stage_name: e.target.value })}
-                placeholder="Enter stage name"
-                className={errors.stage_name ? 'border-red-500' : ''}
-              />
-              {errors.stage_name && (
-                <p className="text-red-500 text-xs mt-1">{errors.stage_name}</p>
-              )}
-            </div>
+      <div className="space-y-3">
+        <h3 className={cn("text-sm font-semibold font-mac-display", designSystem.typography.color.primary)}>Model Information</h3>
 
-            <div>
-              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'onboarding' })}
-                className="w-full px-3 py-2 border border-default {designSystem.borders.radius.sm} focus:outline-none focus:ring-2 focus:ring-secondary"
+        {/* Stage Name - Full Width */}
+        <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+          <label htmlFor="stage-name" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
+            Stage Name <span className="text-primary">*</span>
+          </label>
+          <Input
+            id="stage-name"
+            value={formData.stage_name}
+            onChange={(e) => setFormData({ ...formData, stage_name: e.target.value })}
+            placeholder="e.g., Luna_Star"
+            className={cn(
+              "w-full h-9 text-sm font-mac-text",
+              "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+              "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+              "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+              "hover:border-gray-300/60",
+              "transition-all duration-200",
+              "outline-none focus:outline-none focus-visible:outline-none active:outline-none",
+              errors.stage_name && 'border-red-500'
+            )}
+            autoFocus
+          />
+          {errors.stage_name && (
+            <p className="text-red-500 text-[10px] font-mac-text mt-1">{errors.stage_name}</p>
+          )}
+        </div>
+
+        {/* Status + Commission - 2 Column Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Status */}
+          <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+            <label htmlFor="status" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>Status</label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value as 'active' | 'inactive' | 'onboarding' })}
+            >
+              <SelectTrigger
+                id="status"
+                className={cn(
+                  "w-full h-9 text-sm font-mac-text",
+                  "border border-gray-200/60 bg-gray-50/30 backdrop-blur-sm",
+                  "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                  "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                  "hover:border-gray-300/60 hover:bg-gray-50/40",
+                  "transition-all duration-200",
+                  "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+                )}
               >
-                <option value="inactive">Inactive</option>
-                <option value="onboarding">Onboarding</option>
-                <option value="active">Active</option>
-              </select>
-            </div>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent
+                className={cn(
+                  "bg-gradient-to-br from-gray-100/70 to-gray-200/60",
+                  "backdrop-blur-xl backdrop-saturate-150",
+                  "border border-gray-300/30",
+                  "shadow-lg"
+                )}
+              >
+                <SelectItem value="onboarding" className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text">
+                  Onboarding
+                </SelectItem>
+                <SelectItem value="active" className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text">
+                  Active
+                </SelectItem>
+                <SelectItem value="inactive" className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text">
+                  Inactive
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Commission Rate (%)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.commission_rate}
-                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
-                placeholder="e.g., 20"
-                className={errors.commission_rate ? 'border-red-500' : ''}
-              />
-              {errors.commission_rate && (
-                <p className="text-red-500 text-xs mt-1">{errors.commission_rate}</p>
+          {/* Commission Rate */}
+          <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+            <label htmlFor="commission-rate" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>Commission Rate (%)</label>
+            <Input
+              id="commission-rate"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.commission_rate}
+              onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
+              placeholder="20"
+              className={cn(
+                "w-full h-9 text-sm font-mac-text",
+                "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+                "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                "hover:border-gray-300/60",
+                "transition-all duration-200",
+                "outline-none focus:outline-none focus-visible:outline-none active:outline-none",
+                errors.commission_rate && 'border-red-500'
               )}
-            </div>
-
-            <div>
-              <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Payment Type</label>
-              <select
-                value={formData.payment_type}
-                onChange={(e) => setFormData({ ...formData, payment_type: e.target.value as 'bank' | 'crypto' })}
-                className="w-full px-3 py-2 border border-default {designSystem.borders.radius.sm} focus:outline-none focus:ring-2 focus:ring-secondary"
-              >
-                <option value="bank">Bank Transfer</option>
-                <option value="crypto">Cryptocurrency</option>
-              </select>
-            </div>
+            />
+            {errors.commission_rate && (
+              <p className="text-red-500 text-[10px] font-mac-text mt-1">{errors.commission_rate}</p>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Payment Type - Full Width */}
+        <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+          <label htmlFor="payment-type" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>Payment Type</label>
+          <Select
+            value={formData.payment_type}
+            onValueChange={(value) => setFormData({ ...formData, payment_type: value as 'bank' | 'crypto' })}
+          >
+            <SelectTrigger
+              id="payment-type"
+              className={cn(
+                "w-full h-9 text-sm font-mac-text",
+                "border border-gray-200/60 bg-gray-50/30 backdrop-blur-sm",
+                "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                "hover:border-gray-300/60 hover:bg-gray-50/40",
+                "transition-all duration-200",
+                "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+              )}
+            >
+              <SelectValue placeholder="Select payment type" />
+            </SelectTrigger>
+            <SelectContent
+              className={cn(
+                "bg-gradient-to-br from-gray-100/70 to-gray-200/60",
+                "backdrop-blur-xl backdrop-saturate-150",
+                "border border-gray-300/30",
+                "shadow-lg"
+              )}
+            >
+              <SelectItem value="bank" className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text">
+                Bank Transfer
+              </SelectItem>
+              <SelectItem value="crypto" className="focus:bg-gray-200/40 hover:bg-gray-200/30 text-gray-900 font-mac-text">
+                Cryptocurrency
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Reddit Accounts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reddit Accounts</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className={cn("text-sm font-medium", designSystem.typography.color.secondary)}>Connected Reddit Accounts</label>
-            <div className="flex gap-2">
-              <Input
-                value={newRedditAccount}
-                onChange={(e) => setNewRedditAccount(e.target.value)}
-                placeholder="Add Reddit username (without u/)"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addRedditAccount()
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addRedditAccount}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {formData.reddit_accounts.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.reddit_accounts.map(account => (
-                  <Badge
-                    key={account}
-                    variant="secondary"
-                    className="cursor-pointer"
-                    onClick={() => removeRedditAccount(account)}
-                  >
-                    u/{account}
-                    <X className="h-3 w-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <p className={cn("text-xs mt-1", designSystem.typography.color.subtle)}>
-              Adding a username will connect it to an existing Reddit account or create a new one
-            </p>
+      <div className="space-y-3">
+        <h3 className={cn("text-sm font-semibold font-mac-display", designSystem.typography.color.primary)}>Reddit Accounts</h3>
+        <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+          <label htmlFor="reddit-account" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>Connected Reddit Accounts</label>
+          <div className="flex gap-2">
+            <Input
+              id="reddit-account"
+              value={newRedditAccount}
+              onChange={(e) => setNewRedditAccount(e.target.value)}
+              placeholder="e.g., username_here"
+              className={cn(
+                "w-full h-9 text-sm font-mac-text",
+                "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+                "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+                "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+                "hover:border-gray-300/60",
+                "transition-all duration-200",
+                "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+              )}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addRedditAccount()
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={addRedditAccount}
+              className={cn(
+                "h-9 w-9 flex items-center justify-center rounded-lg",
+                "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+                "hover:border-gray-300/60 hover:bg-white/60",
+                "transition-all duration-200",
+                "shadow-sm hover:shadow"
+              )}
+            >
+              <Plus className="h-4 w-4 text-gray-700" />
+            </button>
           </div>
-        </CardContent>
-      </Card>
+          {formData.reddit_accounts.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.reddit_accounts.map(account => (
+                <Badge
+                  key={account}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-secondary-hover font-mac-text"
+                  onClick={() => removeRedditAccount(account)}
+                >
+                  u/{account}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              ))}
+            </div>
+          )}
+          <p className={cn("text-[10px] font-mac-text mt-1", designSystem.typography.color.subtle)}>
+            Adding a username will connect it to an existing Reddit account or create a new one
+          </p>
+        </div>
+      </div>
 
       {/* Tags */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <CardTitle>Content Tags</CardTitle>
-            <div className="flex items-center gap-2">
-              {/* Tag count indicator */}
-              <div className={cn("flex items-center gap-1.5 px-2 py-1 {designSystem.borders.radius.sm} text-xs font-medium",
-                formData.assigned_tags.length === 0 ? `${designSystem.background.surface.light} ${designSystem.typography.color.subtle}` :
-                formData.assigned_tags.length <= 3 ? 'bg-green-100 text-green-700' :
-                formData.assigned_tags.length <= 5 ? 'bg-yellow-100 text-yellow-700' :
-                'bg-red-100 text-red-700'
-              )}>
-                <span>{formData.assigned_tags.length}</span>
-                <span className="text-[10px]">tag{formData.assigned_tags.length !== 1 ? 's' : ''}</span>
-              </div>
+      <div className="space-y-3">
+        <div className="flex items-start justify-between">
+          <h3 className={cn("text-sm font-semibold font-mac-display", designSystem.typography.color.primary)}>Content Tags</h3>
+          <div className="flex items-center gap-2">
+            {/* Tag count indicator */}
+            <div className={cn("flex items-center gap-1.5 px-2 py-1 text-xs font-medium", designSystem.borders.radius.sm,
+              formData.assigned_tags.length === 0 ? `${designSystem.background.surface.light} ${designSystem.typography.color.subtle}` :
+              formData.assigned_tags.length <= 3 ? 'bg-green-100 text-green-700' :
+              formData.assigned_tags.length <= 5 ? 'bg-yellow-100 text-yellow-700' :
+              'bg-red-100 text-red-700'
+            )}>
+              <span>{formData.assigned_tags.length}</span>
+              <span className="text-[10px]">tag{formData.assigned_tags.length !== 1 ? 's' : ''}</span>
+            </div>
 
-              {/* Info tooltip */}
-              <div className="group relative">
-                <Info className={cn("w-4 h-4 cursor-help", `hover:${designSystem.typography.color.tertiary}`, designSystem.typography.color.disabled)} />
-                <div className="absolute right-0 top-6 w-64 p-3 bg-white {designSystem.borders.radius.sm} shadow-lg border border-default opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <h4 className={cn("text-xs font-semibold mb-1", designSystem.typography.color.secondary)}>Tag Guidelines</h4>
-                  <ul className={cn("text-[10px] space-y-1", designSystem.typography.color.tertiary)}>
-                    <li className="flex items-start gap-1">
-                      <span className="text-green-500 mt-0.5">✓</span>
-                      <span><strong>Optimal: 1-3 tags</strong> - Better matching with precise tags</span>
-                    </li>
-                    <li className="flex items-start gap-1">
-                      <span className="text-yellow-500 mt-0.5">⚠</span>
-                      <span><strong>Ok: 4-5 tags</strong> - May dilute matching effectiveness</span>
-                    </li>
-                    <li className="flex items-start gap-1">
-                      <span className="text-red-500 mt-0.5">✗</span>
-                      <span><strong>Too many: 6+ tags</strong> - Reduces precision significantly</span>
-                    </li>
-                    <li className="mt-2 pt-2 border-t border-light">
-                      <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model&apos;s content
-                    </li>
-                  </ul>
-                </div>
+            {/* Info tooltip */}
+            <div className="group relative">
+              <Info className={cn("w-4 h-4 cursor-help", `hover:${designSystem.typography.color.tertiary}`, designSystem.typography.color.disabled)} />
+              <div className={cn("absolute right-0 top-6 w-64 p-3 bg-white shadow-lg border border-default opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50", designSystem.borders.radius.sm)}>
+                <h4 className={cn("text-xs font-semibold mb-1", designSystem.typography.color.secondary)}>Tag Guidelines</h4>
+                <ul className={cn("text-[10px] space-y-1", designSystem.typography.color.tertiary)}>
+                  <li className="flex items-start gap-1">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <span><strong>Optimal: 1-3 tags</strong> - Better matching with precise tags</span>
+                  </li>
+                  <li className="flex items-start gap-1">
+                    <span className="text-yellow-500 mt-0.5">⚠</span>
+                    <span><strong>Ok: 4-5 tags</strong> - May dilute matching effectiveness</span>
+                  </li>
+                  <li className="flex items-start gap-1">
+                    <span className="text-red-500 mt-0.5">✗</span>
+                    <span><strong>Too many: 6+ tags</strong> - Reduces precision significantly</span>
+                  </li>
+                  <li className="mt-2 pt-2 border-t border-light">
+                    <strong>Strategy:</strong> Choose 1-2 primary characteristics that best define the model&apos;s content
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {TAG_CATEGORIES.map(category => (
-              <div key={category.name} className="border {designSystem.borders.radius.sm} p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleCategory(category.name)}
-                    className="flex items-center gap-2 text-sm font-medium hover:text-secondary-hover"
-                  >
-                    {expandedCategories.has(category.name) ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                    {category.label}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => selectAllInCategory(category.name)}
-                    className="text-xs text-secondary-hover hover:text-secondary-pressed"
-                  >
-                    Toggle All
-                  </button>
-                </div>
+        </div>
+        <div className="space-y-4">
+          {TAG_CATEGORIES.map(category => (
+            <div key={category.name} className={cn("border p-4", designSystem.borders.radius.sm)}>
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(category.name)}
+                  className="flex items-center gap-2 text-sm font-medium hover:text-secondary-hover"
+                >
+                  {expandedCategories.has(category.name) ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  {category.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectAllInCategory(category.name)}
+                  className="text-xs text-secondary-hover hover:text-secondary-pressed"
+                >
+                  Toggle All
+                </button>
+              </div>
 
-                {expandedCategories.has(category.name) && (
-                  <div className="mt-3">
-                    <div className="grid grid-cols-3 gap-2">
-                      {category.tags.map(tag => {
-                        const isSelected = formData.assigned_tags.includes(tag.value)
-                        return (
-                          <Badge
-                            key={tag.value}
-                            variant={isSelected ? "default" : "outline"}
-                            className={`cursor-pointer justify-start ${isSelected ? 'bg-secondary hover:bg-secondary-hover' : ''}`}
-                            onClick={() => toggleTag(tag.value)}
-                          >
-                            {tag.label}
-                          </Badge>
-                        )
-                      })}
-                    </div>
+              {expandedCategories.has(category.name) && (
+                <div className="mt-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    {category.tags.map(tag => {
+                      const isSelected = formData.assigned_tags.includes(tag.value)
+                      return (
+                        <Badge
+                          key={tag.value}
+                          variant={isSelected ? "default" : "outline"}
+                          className={`cursor-pointer justify-start ${isSelected ? 'bg-secondary hover:bg-secondary-hover' : ''}`}
+                          onClick={() => toggleTag(tag.value)}
+                        >
+                          {tag.label}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {formData.assigned_tags.length > 0 && (
+          <div className="space-y-3">
+            <div className={cn("p-3 bg-secondary/10", designSystem.borders.radius.sm)}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-secondary-pressed">
+                  Selected Tags ({formData.assigned_tags.length})
+                </p>
+                {formData.assigned_tags.length > 5 && (
+                  <div className="flex items-center gap-1 text-[10px] text-red-600">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Too many tags - consider removing some</span>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.assigned_tags.map(tag => {
+                  // Find the tag label
+                  let tagLabel = tag
+                  for (const category of TAG_CATEGORIES) {
+                    const found = category.tags.find(t => t.value === tag)
+                    if (found) {
+                      tagLabel = found.label
+                      break
+                    }
+                  }
+                  return (
+                    <Badge
+                      key={tag}
+                      variant="default"
+                      className="bg-secondary"
+                    >
+                      {tagLabel}
+                    </Badge>
+                  )
+                })}
+              </div>
+            </div>
 
-          {formData.assigned_tags.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <div className="p-3 bg-secondary/10 {designSystem.borders.radius.sm}">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-secondary-pressed">
-                    Selected Tags ({formData.assigned_tags.length})
+            {/* Matching subreddits preview */}
+            <div className={cn("p-3 bg-blue-50 border border-blue-200", designSystem.borders.radius.sm)}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-blue-700">Matching Subreddits</p>
+                  <p className="text-[10px] text-blue-600 mt-0.5">
+                    Approved subreddits that share at least one tag
                   </p>
-                  {formData.assigned_tags.length > 5 && (
-                    <div className="flex items-center gap-1 text-[10px] text-red-600">
-                      <AlertCircle className="w-3 h-3" />
-                      <span>Too many tags - consider removing some</span>
+                </div>
+                <div className="text-right">
+                  {isLoadingMatches ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                      <span className="text-xs text-blue-600">Loading...</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-2xl font-bold text-blue-700">{matchingSubreddits}</p>
+                      <p className="text-[10px] text-blue-600">
+                        {matchingSubreddits === 1 ? 'subreddit' : 'subreddits'}
+                      </p>
                     </div>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.assigned_tags.map(tag => {
-                    // Find the tag label
-                    let tagLabel = tag
-                    for (const category of TAG_CATEGORIES) {
-                      const found = category.tags.find(t => t.value === tag)
-                      if (found) {
-                        tagLabel = found.label
-                        break
-                      }
-                    }
-                    return (
-                      <Badge
-                        key={tag}
-                        variant="default"
-                        className="bg-secondary"
-                      >
-                        {tagLabel}
-                      </Badge>
-                    )
-                  })}
-                </div>
               </div>
-
-              {/* Matching subreddits preview */}
-              <div className="p-3 bg-blue-50 {designSystem.borders.radius.sm} border border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-blue-700">Matching Subreddits</p>
-                    <p className="text-[10px] text-blue-600 mt-0.5">
-                      Approved subreddits that share at least one tag
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {isLoadingMatches ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                        <span className="text-xs text-blue-600">Loading...</span>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-2xl font-bold text-blue-700">{matchingSubreddits}</p>
-                        <p className="text-[10px] text-blue-600">
-                          {matchingSubreddits === 1 ? 'subreddit' : 'subreddits'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+              {matchingSubreddits === 0 && !isLoadingMatches && formData.assigned_tags.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-blue-200">
+                  <p className="text-[10px] text-blue-600">
+                    <AlertCircle className="w-3 h-3 inline mr-1" />
+                    No matching subreddits found. Consider using different tags.
+                  </p>
                 </div>
-                {matchingSubreddits === 0 && !isLoadingMatches && formData.assigned_tags.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-blue-200">
-                    <p className="text-[10px] text-blue-600">
-                      <AlertCircle className="w-3 h-3 inline mr-1" />
-                      No matching subreddits found. Consider using different tags.
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {model ? 'Update Model' : 'Create Model'}
-        </Button>
+          </div>
+        )}
       </div>
+
     </form>
   )
 }

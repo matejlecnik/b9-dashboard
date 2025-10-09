@@ -146,35 +146,73 @@ export function TagFilterDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "min-w-[140px] h-9 px-3 bg-white border-strong",
-            designSystem.background.hover.subtle,
-            "flex items-center justify-between gap-2",
-            selectedCount > 0 && "border-primary ring-1 ring-primary/30"
-          )}
+        <button
           disabled={loading}
+          className={cn(
+            "group relative min-w-[140px] h-9 px-3 overflow-hidden",
+            "flex items-center justify-between gap-2",
+            designSystem.borders.radius.lg,
+            designSystem.animation.transition.default,
+            "hover:scale-[1.02]",
+            designSystem.typography.color.secondary
+          )}
+          style={{
+            background: selectedCount > 0
+              ? 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)'
+              : 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+            backdropFilter: 'blur(24px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+            boxShadow: selectedCount > 0
+              ? '0 8px 20px var(--pink-custom-alpha-40), inset 0 2px 2px 0 var(--white-alpha-40)'
+              : '0 8px 20px var(--black-alpha-08), inset 0 1px 0 var(--white-alpha-60)',
+            border: selectedCount > 0
+              ? '1px solid var(--pink-600)'
+              : '1px solid var(--slate-400-alpha-60)'
+          }}
         >
-          <span className="flex items-center gap-1.5">
-            <Filter className="h-3.5 w-3.5" />
-            <span className="text-sm">
-              {selectedCount > 0 ? (
-                <span className="font-medium">Tags ({selectedCount})</span>
-              ) : (
-                'Filter'
-              )}
+          {/* Shine effect */}
+          <div className="absolute inset-0 z-0 pointer-events-none -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+          {/* Content */}
+          <div className="relative z-10 flex items-center justify-between gap-2 w-full">
+            <span className="flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" />
+              <span className={cn(
+                "text-sm",
+                selectedCount > 0 ? "font-medium text-pink-600" : designSystem.typography.color.tertiary
+              )}>
+                {selectedCount > 0 ? (
+                  <span>Tags ({selectedCount})</span>
+                ) : (
+                  'Filter'
+                )}
+              </span>
             </span>
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        </Button>
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </div>
+        </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-[280px] p-0 bg-white" align="end">
+      <DropdownMenuContent
+        className={cn(
+          "w-[280px] p-0 border-0",
+          "backdrop-blur-xl backdrop-saturate-150",
+          designSystem.borders.radius.lg,
+          designSystem.shadows.lg
+        )}
+        style={{
+          background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+          border: '1px solid var(--slate-400-alpha-60)',
+          boxShadow: '0 12px 32px var(--black-alpha-15)'
+        }}
+        align="end"
+      >
         {/* Header with search and select buttons */}
-        <div className={cn("p-3 border-b", designSystem.background.surface.subtle)}>
+        <div className={cn(
+          "p-3 border-b border-gray-200/40"
+        )}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Filter by Tags</span>
+            <span className={cn("text-sm font-semibold", designSystem.typography.color.secondary)}>Filter by Tags</span>
             <span className={cn("text-xs", designSystem.typography.color.subtle)}>
               {showUntaggedOnly ? 'Untagged' : `${selectedCount}/${totalCount} selected`}
             </span>
@@ -182,7 +220,11 @@ export function TagFilterDropdown({
 
           {/* Show Untagged Only Option */}
           {onShowUntaggedChange && (
-            <div className="mb-2 p-2 bg-white rounded border border-default">
+            <div className={cn(
+              "mb-2 p-2",
+              "bg-white/30 border border-gray-200/40",
+              designSystem.borders.radius.md
+            )}>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox
                   checked={showUntaggedOnly}
@@ -206,7 +248,13 @@ export function TagFilterDropdown({
               variant="outline"
               size="sm"
               onClick={selectAll}
-              className="flex-1 h-7 text-xs bg-white"
+              className={cn(
+                "flex-1 h-7 text-xs",
+                "bg-white/30 border-gray-200/40",
+                "hover:bg-pink-50/50 hover:text-pink-600 hover:border-pink-200/40",
+                "transition-colors duration-200",
+                designSystem.typography.color.tertiary
+              )}
               disabled={selectedCount === totalCount}
             >
               Select All
@@ -215,7 +263,13 @@ export function TagFilterDropdown({
               variant="outline"
               size="sm"
               onClick={clearAll}
-              className="flex-1 h-7 text-xs bg-white"
+              className={cn(
+                "flex-1 h-7 text-xs",
+                "bg-white/30 border-gray-200/40",
+                "hover:bg-pink-50/50 hover:text-pink-600 hover:border-pink-200/40",
+                "transition-colors duration-200",
+                designSystem.typography.color.tertiary
+              )}
               disabled={selectedCount === 0}
             >
               Deselect All
@@ -227,16 +281,23 @@ export function TagFilterDropdown({
             placeholder="Search tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            className={cn(
+              "w-full px-2.5 py-1.5 text-xs",
+              "bg-white/30 border border-gray-200/40",
+              "focus:outline-none focus:ring-1 focus:ring-pink-500/20 focus:border-pink-200/40",
+              "focus:bg-pink-50/30",
+              "transition-all duration-200",
+              designSystem.borders.radius.md
+            )}
           />
         </div>
 
         {/* Tag categories */}
         <div className={cn(
-          "max-h-[350px] overflow-y-auto bg-white",
+          "max-h-[350px] overflow-y-auto",
           showUntaggedOnly && "opacity-50 pointer-events-none"
         )}>
-          {Object.entries(filteredGroups).map(([category, subcategories]) => {
+          {Object.entries(filteredGroups).map(([category, subcategories], categoryIndex) => {
             const isExpanded = expandedCategories.has(category)
             const categoryConfig = CATEGORY_CONFIG[category] || {
               label: category,
@@ -247,27 +308,38 @@ export function TagFilterDropdown({
               selectedTags.includes(tag)
             ).length
             const allSelected = selectedInCategory === subcategories.length
+            const isPinkCategory = categoryIndex % 2 === 0
 
             return (
-              <div key={category} className="border-b last:border-b-0">
+              <div key={category} className="border-b border-gray-200/40 last:border-b-0">
                 {/* Category header */}
-                <div className={cn("flex items-center justify-between px-2 py-1.5", designSystem.background.hover.subtle)}>
+                <div className={cn(
+                  "flex items-center justify-between px-2 py-1.5 transition-all duration-200",
+                  isPinkCategory
+                    ? "bg-gradient-to-r from-pink-50/30 to-rose-50/20 hover:from-pink-50/50 hover:to-rose-50/40"
+                    : "bg-gradient-to-r from-gray-50/50 to-slate-50/30 hover:from-gray-100/50 hover:to-slate-100/30",
+                  isPinkCategory && selectedInCategory > 0 && "from-pink-50/60 to-rose-50/40"
+                )}>
                   <button
                     onClick={() => toggleCategory(category)}
                     className="flex items-center gap-1.5 flex-1 text-left"
                   >
                     {isExpanded ? (
-                      <ChevronDown className="h-3 w-3" />
+                      <ChevronDown className="h-3 w-3 transition-transform duration-200" />
                     ) : (
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronRight className="h-3 w-3 transition-transform duration-200" />
                     )}
                     <span className="text-xs font-medium flex items-center gap-1">
                       <span className="text-base">{categoryConfig.emoji}</span>
-                      <span>{categoryConfig.label}</span>
+                      <span className={cn(designSystem.typography.color.secondary)}>{categoryConfig.label}</span>
                       {selectedInCategory > 0 && (
-                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                        <span className={cn(
+                          "ml-1 h-4 px-1.5 text-[10px] font-medium rounded-full",
+                          "bg-gradient-to-r from-pink-50/50 to-rose-50/50",
+                          "text-pink-600 border border-pink-200/40"
+                        )}>
                           {selectedInCategory}
-                        </Badge>
+                        </span>
                       )}
                     </span>
                   </button>
@@ -289,7 +361,11 @@ export function TagFilterDropdown({
                       return (
                         <div
                           key={fullTag}
-                          className={cn("flex items-center justify-between py-0.5 px-1 rounded", designSystem.background.hover.subtle)}
+                          className={cn(
+                            "flex items-center justify-between py-0.5 px-1 transition-colors duration-200",
+                            "hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-slate-50/60",
+                            designSystem.borders.radius.sm
+                          )}
                         >
                           <label
                             className="flex items-center gap-1.5 flex-1 cursor-pointer"
@@ -298,11 +374,11 @@ export function TagFilterDropdown({
                               checked={isSelected}
                               onCheckedChange={() => toggleTag(fullTag)}
                               aria-label={`Select ${subcategory}`}
-                              className="h-3.5 w-3.5"
+                              className="h-4 w-4"
                             />
                             <span className={cn(
-                              "text-xs capitalize",
-                              isSelected && "font-medium text-primary-hover"
+                              "text-xs capitalize transition-colors duration-200",
+                              isSelected ? "font-medium text-pink-600" : designSystem.typography.color.tertiary
                             )}>
                               {subcategory.replace(/_/g, ' ')}
                             </span>
@@ -319,16 +395,23 @@ export function TagFilterDropdown({
 
         {/* Footer with selected count */}
         {selectedCount > 0 && (
-          <div className={cn("px-3 py-2 border-t", designSystem.background.surface.subtle)}>
+          <div className={cn(
+            "px-3 py-2 border-t border-gray-200/40"
+          )}>
             <div className="flex items-center justify-between">
-              <span className={cn("text-xs", designSystem.typography.color.tertiary)}>
+              <span className="text-xs font-medium text-pink-600">
                 {selectedCount} tag{selectedCount !== 1 ? 's' : ''} selected
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearAll}
-                className="h-6 px-2 text-xs hover:text-primary-hover"
+                className={cn(
+                  "h-6 px-2 text-xs",
+                  "hover:text-pink-600 hover:bg-pink-50/50",
+                  "transition-colors duration-200",
+                  designSystem.typography.color.tertiary
+                )}
               >
                 Clear
               </Button>

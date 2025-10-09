@@ -24,7 +24,7 @@ export interface StandardActionButtonProps {
   disabled?: boolean
   variant?: 'primary' | 'stop' | 'danger' | 'secondary' | 'reddit' | 'instagram'
   className?: string
-  size?: 'normal' | 'large'
+  size?: 'small' | 'normal' | 'large'
 }
 
 const StandardActionButton = memo(function StandardActionButton({
@@ -108,11 +108,13 @@ const StandardActionButton = memo(function StandardActionButton({
   }
 
   const sizeStyles = {
+    small: 'h-8 px-3 py-1.5',
     normal: 'h-[90px] w-full px-4 py-3',
     large: 'h-[90px] w-full px-4 py-3'
   }
 
   const iconSizes = {
+    small: 'h-3.5 w-3.5',
     normal: 'h-6 w-6',
     large: 'h-6 w-6'
   }
@@ -126,7 +128,7 @@ const StandardActionButton = memo(function StandardActionButton({
       disabled={isDisabled}
       className={cn(
         `group relative overflow-hidden ${designSystem.borders.radius.lg} transition-all duration-300`,
-        'flex flex-col items-center justify-center gap-2',
+        size === 'small' ? 'flex flex-row items-center justify-center gap-1.5' : 'flex flex-col items-center justify-center gap-2',
         'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
         'hover:scale-[1.02] active:scale-[0.98]',
         'font-mac-text',

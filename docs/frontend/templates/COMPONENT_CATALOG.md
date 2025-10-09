@@ -87,56 +87,82 @@ import { MetricsCards } from '@/components/shared/cards/MetricsCards'
 - Reddit: Orange/red theme
 - Models: Purple theme
 
-#### UniversalTable
-Flexible data table with infinite scroll.
+#### UniversalTableV2
+Modern config-based data table with infinite scroll and field types.
 
 ```typescript
-import { UniversalTable } from '@/components/shared/tables/UniversalTable'
+import { UniversalTableV2 } from '@/components/shared/tables/UniversalTableV2'
+import { createRedditReviewColumns } from '@/components/shared/tables/configs/redditReviewColumns'
 
-<UniversalTable
+// Create column configuration
+const tableConfig: TableConfig<YourDataType> = {
+  columns: createRedditReviewColumns({
+    onUpdateReview: (id, review) => handleReview(id, review),
+    onShowRules: (item) => handleShowRules(item)
+  }),
+  showCheckbox: true,
+  emptyState: {
+    title: 'No items found',
+    description: 'Try adjusting your filters'
+  }
+}
+
+// Render table
+<UniversalTableV2
   data={items}                        // Data array
-  columns={columns}                   // Column definitions
+  config={tableConfig}                // Column configuration
   loading={isLoading}                 // Loading state
   selectedItems={selectedSet}         // Set of selected IDs
-  setSelectedItems={setSelectedSet}   // Selection handler
-  onUpdateItem={handleUpdate}         // Update callback
-  hasMore={hasNextPage}              // More data available
-  onReachEnd={fetchNextPage}         // Load more callback
-  loadingMore={isFetchingNextPage}  // Loading more state
-  emptyMessage="No items found"     // Empty state message
+  onSelectionChange={setSelectedSet}  // Selection handler
+  getItemId={(item) => item.id}       // ID extractor
+  searchQuery={searchQuery}           // Current search
+  onReachEnd={fetchNextPage}          // Load more callback
+  hasMore={hasNextPage}               // More data available
+  loadingMore={isFetchingNextPage}    // Loading more state
 />
 ```
 
-**Column Definition:**
+**Field Types:**
+- `text`: Basic text with optional subtitle and badges
+- `number`: Formatted numbers (abbreviated, decimals)
+- `percentage`: Percentage with color thresholds
+- `badge`: Status badges with variant mapping
+- `tags`: Tag lists with categories
+- `avatar`: Profile images with fallbacks
+- `actions`: Action buttons dropdown
+- `custom`: Custom render function
+
+**Example Column Config:**
 ```typescript
-const columns = [
-  {
-    key: 'name',
-    label: 'Name',
-    sortable: true,
-    width: '200px',
-    render: (value, row) => <CustomCell value={value} />
-  }
-]
-```
-
-#### UniversalCreatorTable
-Specialized table for Instagram creators.
-
-```typescript
-import { UniversalCreatorTable } from '@/components/shared/tables/UniversalCreatorTable'
-
-<UniversalCreatorTable
-  creators={creators}                 // Creator data
-  loading={isLoading}                // Loading state
-  selectedCreators={selectedSet}     // Selection set
-  setSelectedCreators={setSelected}  // Selection handler
-  onUpdateReview={handleReview}      // Review update
-  postsMetrics={metricsMap}         // Post metrics map
-  hasMore={hasNextPage}             // More data
-  onReachEnd={fetchNextPage}        // Load more
-  loadingMore={isFetchingMore}      // Loading more state
-/>
+export function createMyColumns(config: MyConfig): ColumnDefinition[] {
+  return [
+    {
+      id: 'name',
+      header: 'Name',
+      accessor: 'display_name',
+      width: 'w-64 flex-shrink-0',
+      field: {
+        type: 'text',
+        bold: true,
+        color: 'primary',
+        subtitle: (item) => item.email,
+        subtitleColor: 'tertiary'
+      }
+    },
+    {
+      id: 'engagement',
+      header: 'Engagement',
+      accessor: (item) => item.engagement_rate * 100,
+      width: 'w-24 flex-shrink-0',
+      align: 'center',
+      field: {
+        type: 'percentage',
+        decimals: 1,
+        colorThresholds: PercentagePresets.engagement
+      }
+    }
+  ]
+}
 ```
 
 ### 3. Input & Control Components

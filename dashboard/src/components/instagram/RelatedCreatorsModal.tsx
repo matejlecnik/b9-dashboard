@@ -30,7 +30,7 @@ interface ProcessingStatus {
 export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalProps) {
   // API URL configuration - memoized to satisfy ESLint exhaustive-deps
   const API_URL = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'https://b9-dashboard.onrender.com',
+    () => process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000',
     []
   )
 

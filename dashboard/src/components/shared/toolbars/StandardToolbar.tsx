@@ -378,27 +378,48 @@ const StandardToolbar = memo(function StandardToolbar({
         {sortOptions && sortOptions.length > 0 && (
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                'h-9',
-                designSystem.spacing.gap.default,
-                'bg-[var(--slate-50-alpha-70)] backdrop-blur-[15px]',
-                'border border-default shadow-[0_4px_16px_var(--black-alpha-05)]'
-              )}
+            <button
               disabled={loading}
+              className={cn(
+                'group relative px-3 py-1.5 h-9 overflow-hidden',
+                'flex items-center',
+                designSystem.spacing.gap.default,
+                designSystem.borders.radius.lg,
+                designSystem.typography.size.xs,
+                designSystem.typography.weight.medium,
+                designSystem.animation.transition.default,
+                'hover:scale-[1.02]',
+                designSystem.typography.color.secondary
+              )}
+              style={{
+                background: 'linear-gradient(180deg, var(--gray-100-alpha-90) 0%, var(--gray-200-alpha-85) 100%)',
+                backdropFilter: 'blur(24px) saturate(150%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+                boxShadow: '0 8px 20px var(--black-alpha-08), inset 0 1px 0 var(--white-alpha-60)',
+                border: '1px solid var(--slate-400-alpha-60)'
+              }}
             >
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {currentSortOption?.label || 'Sort'}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
+              {/* Shine effect */}
+              <div className="absolute inset-0 z-0 pointer-events-none -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+              {/* Content */}
+              <div className={cn('relative z-10 flex items-center', designSystem.spacing.gap.default)}>
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {currentSortOption?.label || 'Sort'}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </div>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className={cn('w-48 bg-white border border-default backdrop-blur-[15px]', designSystem.shadows.lg)}
+            className={cn('w-48 border-0 backdrop-blur-xl backdrop-saturate-150', designSystem.shadows.lg)}
+            style={{
+              background: 'linear-gradient(180deg, var(--gray-200-alpha-85) 0%, var(--gray-300-alpha-80) 100%)',
+              border: '1px solid var(--slate-400-alpha-60)',
+              boxShadow: '0 12px 32px var(--black-alpha-15)'
+            }}
           >
             {sortOptions.map((option) => {
               const Icon = option.icon
@@ -406,14 +427,17 @@ const StandardToolbar = memo(function StandardToolbar({
                 <DropdownMenuItem
                   key={option.id}
                   onClick={() => onSortChange?.(option.id)}
-                  className="flex items-center justify-between"
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer",
+                    "hover:bg-pink-50/50 transition-colors"
+                  )}
                 >
                   <div className={cn('flex items-center', designSystem.spacing.gap.default)}>
                     {Icon && <Icon className="h-3.5 w-3.5" />}
                     {option.label}
                   </div>
                   {currentSort === option.id && (
-                    <Check className="h-3.5 w-3.5 text-primary" />
+                    <Check className="h-3.5 w-3.5 text-pink-600" />
                   )}
                 </DropdownMenuItem>
               )
