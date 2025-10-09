@@ -144,7 +144,7 @@ const MetricsCards = memo(function MetricsCards({
 
 
   return (
-    <div className={cn('grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1.5', className)} data-testid={`${platform}-metrics-cards`}>
+    <div className={cn('grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3', className)} data-testid={`${platform}-metrics-cards`}>
       {metrics.map((metric, index) => {
         return (
           <div

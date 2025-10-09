@@ -1,75 +1,145 @@
 {
-  "timestamp": "2025-10-08T14:20:40.784515",
+  "timestamp": "2025-10-09T20:53:47.237718",
   "checks": {
     "typescript": {
       "tool": "TypeScript",
       "errors": [
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 455,
-          "column": 20,
-          "code": "TS2304",
-          "message": "Cannot find name 'Crown'."
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 310,
+          "column": 13,
+          "code": "TS2769",
+          "message": "No overload matches this call."
         },
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 574,
-          "column": 36,
-          "code": "TS2304",
-          "message": "Cannot find name 'Crown'."
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 314,
+          "column": 37,
+          "code": "TS18046",
+          "message": "'creator' is of type 'unknown'."
         },
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 622,
-          "column": 22,
-          "code": "TS2304",
-          "message": "Cannot find name 'Users'."
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 244,
+          "column": 13,
+          "code": "TS2769",
+          "message": "No overload matches this call."
         },
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 695,
-          "column": 34,
-          "code": "TS2304",
-          "message": "Cannot find name 'Crown'."
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 248,
+          "column": 37,
+          "code": "TS18046",
+          "message": "'creator' is of type 'unknown'."
         },
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 707,
-          "column": 34,
-          "code": "TS2304",
-          "message": "Cannot find name 'Crown'."
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 508,
+          "column": 15,
+          "code": "TS2769",
+          "message": "No overload matches this call."
         },
         {
-          "file": "src/components/features/index.ts",
-          "line": 15,
-          "column": 32,
-          "code": "TS2307",
-          "message": "Cannot find module './monitoring/ApiActivityLog' or its corresponding type declarations."
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 512,
+          "column": 41,
+          "code": "TS18046",
+          "message": "'subreddit' is of type 'unknown'."
         },
         {
-          "file": "src/components/features/monitoring/index.ts",
-          "line": 2,
-          "column": 32,
-          "code": "TS2307",
-          "message": "Cannot find module './ApiActivityLog' or its corresponding type declarations."
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 410,
+          "column": 15,
+          "code": "TS2769",
+          "message": "No overload matches this call."
         },
         {
-          "file": "src/components/features/monitoring/LogViewerSupabase.tsx",
-          "line": 288,
-          "column": 42,
-          "code": "TS2538",
-          "message": "Type 'string[]' cannot be used as an index type."
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 414,
+          "column": 41,
+          "code": "TS18046",
+          "message": "'subreddit' is of type 'unknown'."
         },
         {
-          "file": "src/components/shared/layouts/sidebar-configs.tsx",
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
           "line": 130,
           "column": 9,
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'variant' does not exist in type 'BadgeFieldConfig'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 147,
+          "column": 9,
           "code": "TS2322",
-          "message": "Type '({ className }: { className?: string; }) => JSX.Element' is not assignable to type 'ReactNode | LucideIcon'."
+          "message": "Type '\"pink\"' is not assignable to type '\"secondary\" | \"primary\" | \"tertiary\" | \"subtle\" | undefined'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 177,
+          "column": 28,
+          "code": "TS2322",
+          "message": "Type '{ type: string; text: string; color: string; bold: boolean; } | { type: string; text: string; color: string; bold?: undefined; }' is not assignable to type 'ReactNode'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 197,
+          "column": 28,
+          "code": "TS2322",
+          "message": "Type '{ type: string; text: string; color: string; bold: boolean; } | { type: string; text: string; color: string; bold?: undefined; }' is not assignable to type 'ReactNode'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 233,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type '\"date\"' is not assignable to type '\"number\" | \"text\" | \"percentage\" | \"badge\" | \"tags\" | \"avatar\" | \"actions\" | \"custom\"'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 234,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type '{ maxDays: number; color: string; }[]' is not assignable to type '{ min: number; color: string; }[]'."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramReviewColumns.tsx",
+          "line": 90,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type '(creator: any) => { type: string; url: any; showHostname: boolean; } | undefined' is not assignable to type 'string | ((item: any) => string | undefined) | undefined'."
+        },
+        {
+          "file": "src/components/shared/tables/fields/DateField.tsx",
+          "line": 48,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
+        },
+        {
+          "file": "src/components/shared/tables/fields/DateField.tsx",
+          "line": 54,
+          "column": 7,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
+        },
+        {
+          "file": "src/components/shared/tables/fields/PercentageField.tsx",
+          "line": 44,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
+        },
+        {
+          "file": "src/components/shared/tables/fields/TextField.tsx",
+          "line": 98,
+          "column": 9,
+          "code": "TS2322",
+          "message": "Type 'string | LinkSubtitle' is not assignable to type 'ReactNode'."
         }
       ],
       "warnings": [],
-      "error_count": 9,
+      "error_count": 19,
       "warning_count": 0,
       "passed": false
     },
@@ -77,100 +147,261 @@
       "tool": "ESLint",
       "errors": [
         {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 455,
-          "column": 20,
-          "code": "react/jsx-no-undef",
-          "message": "'Crown' is not defined."
-        },
-        {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 574,
-          "column": 36,
-          "code": "react/jsx-no-undef",
-          "message": "'Crown' is not defined."
-        },
-        {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 622,
-          "column": 22,
-          "code": "react/jsx-no-undef",
-          "message": "'Users' is not defined."
-        },
-        {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 695,
-          "column": 34,
-          "code": "react/jsx-no-undef",
-          "message": "'Crown' is not defined."
-        },
-        {
-          "file": "src/app/reddit/user-analysis/page.tsx",
-          "line": 707,
-          "column": 34,
-          "code": "react/jsx-no-undef",
-          "message": "'Crown' is not defined."
-        },
-        {
-          "file": "src/components/features/monitoring/LogTerminalBase.tsx",
-          "line": 37,
-          "column": 3,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'fadeHeight' is assigned a value but never used. Allowed unused args must match /^_/u."
-        },
-        {
-          "file": "src/components/features/monitoring/LogTerminalBase.tsx",
-          "line": 38,
-          "column": 3,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'topFadeOpacity' is assigned a value but never used. Allowed unused args must match /^_/u."
-        },
-        {
-          "file": "src/components/features/monitoring/LogTerminalBase.tsx",
-          "line": 39,
-          "column": 3,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'bottomFadeOpacity' is assigned a value but never used. Allowed unused args must match /^_/u."
-        },
-        {
-          "file": "src/components/features/monitoring/LogViewerSupabase.tsx",
-          "line": 55,
-          "column": 3,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'fadeHeight' is assigned a value but never used. Allowed unused args must match /^_/u."
-        },
-        {
-          "file": "src/components/shared/cards/UniversalMetricCard.tsx",
-          "line": 3,
-          "column": 16,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'ReactNode' is defined but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/components/shared/layouts/sidebar-configs.tsx",
-          "line": 15,
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 12,
           "column": 10,
           "code": "@typescript-eslint/no-unused-vars",
           "message": "'designSystem' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 72,
+          "column": 5,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'isFetchingNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 74,
+          "column": 5,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'fetchNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 70,
+          "column": 5,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'isFetchingNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 71,
+          "column": 5,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'hasNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 72,
+          "column": 5,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'fetchNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/models/page.tsx",
+          "line": 11,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'designSystem' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 69,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'brokenIcons' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 70,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'removingIds' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 169,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'handleIconError' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 85,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'brokenIcons' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 167,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'handleIconError' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/features/AddUserModal.tsx",
+          "line": 3,
+          "column": 44,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'useMemo' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/features/ModelForm.tsx",
+          "line": 41,
+          "column": 44,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'saving' is defined but never used. Allowed unused args must match /^_/u."
+        },
+        {
+          "file": "src/components/features/ModelForm.tsx",
+          "line": 41,
+          "column": 52,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'onCancel' is defined but never used. Allowed unused args must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/StandardPostCard.tsx",
+          "line": 31,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'getContentTypeBadge' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/StandardPostCard.tsx",
+          "line": 73,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'engagementRate' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/StandardPostCard.tsx",
+          "line": 137,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'isNSFW' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/TagFilterDropdown.tsx",
+          "line": 8,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'Badge' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/layouts/sidebar-configs.tsx",
+          "line": 3,
+          "column": 3,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'Monitor' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/modals/UniversalInputModal.tsx",
+          "line": 43,
+          "column": 3,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'platform' is assigned a value but never used. Allowed unused args must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 30,
+          "column": 18,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramReviewColumns.tsx",
+          "line": 21,
+          "column": 18,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/fields/AvatarField.tsx",
+          "line": 64,
+          "column": 9,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'iconSizes' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/fields/BadgeField.tsx",
+          "line": 9,
+          "column": 11,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'BadgeConfig' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 28,
+          "column": 31,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 30,
+          "column": 30,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 80,
+          "column": 22,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 85,
+          "column": 18,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 99,
+          "column": 39,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 102,
+          "column": 37,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 113,
+          "column": 34,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 126,
+          "column": 78,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/components/shared/tables/types.ts",
+          "line": 126,
+          "column": 85,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
         }
       ],
       "warnings": [
         {
-          "file": "src/components/features/AddUserModal.tsx",
-          "line": 187,
-          "column": 6,
+          "file": "src/app/models/page.tsx",
+          "line": 251,
+          "column": 7,
           "code": "react-hooks/exhaustive-deps",
-          "message": "React Hook useCallback has a missing dependency: 'API_URL'. Either include it or remove the dependency array."
+          "message": "React Hook useMemo has missing dependencies: 'handleDelete' and 'handleUpdateStatus'. Either include them or remove the dependency array."
         },
         {
-          "file": "src/lib/performance-monitor.tsx",
-          "line": 297,
-          "column": 117,
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 303,
+          "column": 7,
           "code": "react-hooks/exhaustive-deps",
-          "message": "The ref value 'renderCount.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'renderCount.current' to a variable inside the effect, and use that variable in the cleanup function."
+          "message": "React Hook useMemo has missing dependencies: 'handleShowRules' and 'updateReview'. Either include them or remove the dependency array."
         }
       ],
-      "error_count": 11,
+      "error_count": 34,
       "warning_count": 2,
       "passed": false
     },
@@ -178,25 +409,137 @@
       "tool": "Ruff",
       "errors": [
         {
-          "file": "debug_r2.py",
-          "line": 6,
-          "column": 1,
-          "code": "I001",
-          "message": "Import block is un-sorted or un-formatted"
+          "file": "app/api/instagram/creators.py",
+          "line": 437,
+          "column": 9,
+          "code": "E722",
+          "message": "Do not use bare `except`"
         },
         {
-          "file": "debug_r2.py",
-          "line": 10,
+          "file": "app/scrapers/instagram/services/test_integrated_scraper.py",
+          "line": 17,
           "column": 1,
-          "code": "I001",
-          "message": "Import block is un-sorted or un-formatted"
+          "code": "E402",
+          "message": "Module level import not at top of file"
         },
         {
-          "file": "fix_force_stop.py",
-          "line": 6,
+          "file": "app/scrapers/instagram/services/test_modular_integration.py",
+          "line": 16,
           "column": 1,
-          "code": "I001",
-          "message": "Import block is un-sorted or un-formatted"
+          "code": "E402",
+          "message": "Module level import not at top of file"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_modular_integration.py",
+          "line": 17,
+          "column": 1,
+          "code": "E402",
+          "message": "Module level import not at top of file"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_modular_integration.py",
+          "line": 18,
+          "column": 1,
+          "code": "E402",
+          "message": "Module level import not at top of file"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_modular_integration.py",
+          "line": 21,
+          "column": 1,
+          "code": "E402",
+          "message": "Module level import not at top of file"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_reels_api.py",
+          "line": 312,
+          "column": 20,
+          "code": "invalid-syntax",
+          "message": "Expected a newline after line continuation character"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_reels_api.py",
+          "line": 312,
+          "column": 21,
+          "code": "invalid-syntax",
+          "message": "Expected FStringEnd, found int"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_reels_api.py",
+          "line": 312,
+          "column": 22,
+          "code": "invalid-syntax",
+          "message": "f-string: single '}' is not allowed"
+        },
+        {
+          "file": "app/scrapers/instagram/services/test_reels_api.py",
+          "line": 312,
+          "column": 23,
+          "code": "invalid-syntax",
+          "message": "Expected ',', found FStringEnd"
+        },
+        {
+          "file": "app/scrapers/reddit/reddit_scraper.py",
+          "line": 184,
+          "column": 13,
+          "code": "N806",
+          "message": "Variable `BATCH_SIZE` in function should be lowercase"
+        },
+        {
+          "file": "app/scrapers/reddit/reddit_scraper.py",
+          "line": 212,
+          "column": 35,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `batch_start`"
+        },
+        {
+          "file": "app/scrapers/reddit/reddit_scraper.py",
+          "line": 240,
+          "column": 21,
+          "code": "B007",
+          "message": "Loop control variable `subreddit_name` not used within loop body"
+        },
+        {
+          "file": "app/scrapers/reddit/reddit_scraper.py",
+          "line": 342,
+          "column": 78,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `regular_subs`"
+        },
+        {
+          "file": "app/scrapers/reddit/reddit_scraper.py",
+          "line": 469,
+          "column": 13,
+          "code": "F841",
+          "message": "Local variable `rows_returned` is assigned to but never used"
+        },
+        {
+          "file": "scripts/migrate_print_to_logger.py",
+          "line": 30,
+          "column": 44,
+          "code": "RUF012",
+          "message": "Mutable class attributes should be annotated with `typing.ClassVar`"
+        },
+        {
+          "file": "scripts/verify_database.py",
+          "line": 77,
+          "column": 38,
+          "code": "RUF013",
+          "message": "PEP 484 prohibits implicit `Optional`"
+        },
+        {
+          "file": "scripts/verify_database.py",
+          "line": 138,
+          "column": 35,
+          "code": "RUF013",
+          "message": "PEP 484 prohibits implicit `Optional`"
+        },
+        {
+          "file": "scripts/verify_database.py",
+          "line": 188,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `nasa_creator` is assigned to but never used"
         },
         {
           "file": "test_local.py",
@@ -225,10 +568,17 @@
           "column": 1,
           "code": "E402",
           "message": "Module level import not at top of file"
+        },
+        {
+          "file": "tests/test_sample.py",
+          "line": 21,
+          "column": 18,
+          "code": "invalid-syntax",
+          "message": "Expected an identifier, but found a keyword 'async' that cannot be used here"
         }
       ],
       "warnings": [],
-      "error_count": 7,
+      "error_count": 24,
       "warning_count": 0,
       "passed": false
     },
@@ -237,511 +587,14 @@
       "errors": [
         {
           "file": "app/scrapers/instagram/services/test_reels_api.py",
-          "line": 179,
+          "line": 312,
           "column": 0,
           "code": "mypy",
-          "message": "\"Collection[str]\" has no attribute \"append\"  [attr-defined]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/test_reels_api.py",
-          "line": 188,
-          "column": 0,
-          "code": "mypy",
-          "message": "\"Collection[str]\" has no attribute \"append\"  [attr-defined]"
-        },
-        {
-          "file": "app/utils/media_storage.py",
-          "line": 161,
-          "column": 0,
-          "code": "mypy",
-          "message": "Incompatible types in assignment (expression has type \"Image\", variable has type \"ImageFile\")  [assignment]"
-        },
-        {
-          "file": "app/utils/media_storage.py",
-          "line": 163,
-          "column": 0,
-          "code": "mypy",
-          "message": "Incompatible types in assignment (expression has type \"Image\", variable has type \"ImageFile\")  [assignment]"
-        },
-        {
-          "file": "app/utils/media_storage.py",
-          "line": 261,
-          "column": 0,
-          "code": "mypy",
-          "message": "Missing return statement  [return]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 92,
-          "column": 0,
-          "code": "mypy",
-          "message": "Incompatible types in assignment (expression has type \"Logger\", variable has type \"UnifiedLogger\")  [assignment]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 697,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 697,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 698,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 740,
-          "column": 0,
-          "code": "mypy",
-          "message": "Generator has incompatible item type \"int\"; expected \"bool\"  [misc]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 741,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 743,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for * (\"None\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 743,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for * (\"str\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 744,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 830,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for < (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 830,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for > (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 831,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 833,
-          "column": 0,
-          "code": "mypy",
-          "message": "Generator has incompatible item type \"int\"; expected \"bool\"  [misc]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 834,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 835,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for * (\"None\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 835,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for * (\"str\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 836,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 862,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 863,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 868,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 869,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"float\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"str\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported left operand type for / (\"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"float\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 874,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for / (\"None\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 875,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 879,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for < (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 879,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for > (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 880,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 882,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for < (\"int\" and \"None\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 882,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unsupported operand types for > (\"str\" and \"int\")  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 883,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1034,
-          "column": 0,
-          "code": "mypy",
-          "message": "Function \"process_and_upload_video\" could always be true in boolean context  [truthy-function]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1256,
-          "column": 0,
-          "code": "mypy",
-          "message": "Incompatible types in assignment (expression has type \"None\", variable has type \"list[Any]\")  [assignment]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1263,
-          "column": 0,
-          "code": "mypy",
-          "message": "Function \"process_and_upload_image\" could always be true in boolean context  [truthy-function]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1585,
-          "column": 0,
-          "code": "mypy",
-          "message": "Function \"process_and_upload_profile_picture\" could always be true in boolean context  [truthy-function]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1984,
-          "column": 0,
-          "code": "mypy",
-          "message": "Item \"None\" of \"Optional[Any]\" has no attribute \"isoformat\"  [union-attr]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 1985,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 2075,
-          "column": 0,
-          "code": "mypy",
-          "message": "No overload variant of \"__sub__\" of \"datetime\" matches argument type \"None\"  [operator]"
-        },
-        {
-          "file": "app/scrapers/instagram/services/instagram_scraper.py",
-          "line": 2076,
-          "column": 0,
-          "code": "mypy",
-          "message": "Unused \"type: ignore\" comment  [unused-ignore]"
-        },
-        {
-          "file": "app/jobs/cdn_to_r2_migration.py",
-          "line": 358,
-          "column": 0,
-          "code": "mypy",
-          "message": "Value of type \"object\" is not indexable  [index]"
-        },
-        {
-          "file": "app/jobs/cdn_to_r2_migration.py",
-          "line": 359,
-          "column": 0,
-          "code": "mypy",
-          "message": "Value of type \"object\" is not indexable  [index]"
-        },
-        {
-          "file": "app/jobs/cdn_to_r2_migration.py",
-          "line": 360,
-          "column": 0,
-          "code": "mypy",
-          "message": "Value of type \"object\" is not indexable  [index]"
+          "message": "F-string expression part cannot include a backslash  [syntax]"
         }
       ],
       "warnings": [],
-      "error_count": 72,
+      "error_count": 1,
       "warning_count": 0,
       "passed": false
     },
@@ -755,7 +608,7 @@
     }
   },
   "summary": {
-    "total_errors": 99,
+    "total_errors": 78,
     "total_warnings": 2,
     "passed": [
       "design_system"

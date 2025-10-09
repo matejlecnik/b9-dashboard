@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-08T14:20:51.299400",
+  "timestamp": "2025-10-09T20:53:59.090548",
   "violations": [
     {
       "file": "src/app/api/reddit/categories/route.ts",
@@ -9,74 +9,60 @@
       "code_snippet": "color: '#FF8395',"
     },
     {
-      "file": "src/app/reddit/categorization/page.tsx",
-      "line": 448,
+      "file": "src/app/dashboards/page.tsx",
+      "line": 147,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247"
+      "code_snippet": "\"shadow-[0_8px_24px_rgba(0,0,0,0.06)]\""
     },
     {
-      "file": "src/app/reddit/categorization/page.tsx",
-      "line": 451,
+      "file": "src/app/dashboards/page.tsx",
+      "line": 192,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "border: '1px solid rgba(255, 255, 255, 0.3)',"
+      "code_snippet": "\"shadow-[0_2px_8px_rgba(0,0,0,0.04)]\","
     },
     {
-      "file": "src/app/reddit/categorization/page.tsx",
-      "line": 452,
+      "file": "src/app/dashboards/page.tsx",
+      "line": 196,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 12px 32px -8px rgba(236, 72, 153, 0.25), inset 0 2px 2px 0 rgba(25"
+      "code_snippet": "\"hover:shadow-[0_4px_12px_rgba(239,68,68,0.15)]\","
     },
     {
-      "file": "src/app/reddit/categorization/page.tsx",
-      "line": 578,
+      "file": "src/app/dashboards/page.tsx",
+      "line": 266,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'rgba(255,255,255,0.25)',"
+      "code_snippet": "\"shadow-[0_8px_24px_rgba(0,0,0,0.06)]\""
     },
     {
-      "file": "src/app/reddit/subreddit-review/page.tsx",
-      "line": 409,
+      "file": "src/app/dashboards/page.tsx",
+      "line": 291,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'rgba(255,255,255,0.25)',"
+      "code_snippet": "\"shadow-[0_8px_24px_rgba(0,0,0,0.06)]\""
     },
     {
       "file": "src/app/reddit/user-analysis/page.tsx",
-      "line": 640,
+      "line": 642,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
       "code_snippet": "background: 'rgba(0,0,0,0.4)',"
     },
     {
-      "file": "src/components/common/PostAnalysisMetrics.tsx",
-      "line": 47,
+      "file": "src/components/features/ModelsTable.tsx",
+      "line": 172,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "className={`${designSystem.borders.radius.lg} p-4 h-full min-h-[100px] bg-[rgba("
+      "code_snippet": "borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',"
     },
     {
-      "file": "src/components/common/modals/AddSubredditModal.tsx",
-      "line": 134,
+      "file": "src/components/features/ModelsTable.tsx",
+      "line": 173,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 2"
-    },
-    {
-      "file": "src/components/common/modals/AddSubredditModal.tsx",
-      "line": 137,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "border: '1px solid rgba(0, 0, 0, 0.1)',"
-    },
-    {
-      "file": "src/components/common/modals/AddSubredditModal.tsx",
-      "line": 138,
-      "rule": "no-hardcoded-rgba",
-      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0,"
+      "code_snippet": "boxShadow: 'inset 0 -0.5px 0 rgba(255, 255, 255, 0.08)',"
     },
     {
       "file": "src/components/instagram/InstagramCard.tsx",
@@ -142,38 +128,129 @@
       "code_snippet": "className={`w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-white/50 f"
     },
     {
-      "file": "src/components/shared/modals/StandardModal.tsx",
-      "line": 67,
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 229,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(243, 244, 2"
+      "code_snippet": "background: 'rgba(249, 250, 251, 0.85)',"
     },
     {
-      "file": "src/components/shared/modals/StandardModal.tsx",
-      "line": 70,
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 231,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "border: '1px solid rgba(0, 0, 0, 0.1)',"
+      "code_snippet": "border: '1px solid rgba(203, 213, 225, 0.6)',"
     },
     {
-      "file": "src/components/shared/modals/StandardModal.tsx",
-      "line": 71,
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 232,
       "rule": "no-hardcoded-rgba",
       "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
-      "code_snippet": "boxShadow: '0 25px 70px -10px rgba(0, 0, 0, 0.2), 0 10px 25px -5px rgba(0, 0, 0,"
+      "code_snippet": "boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0."
     },
     {
-      "file": "src/components/ui/ToolbarComponents.tsx",
-      "line": 132,
-      "rule": "no-hardcoded-hex-colors",
-      "message": "Hardcoded hex color detected. Use CSS variables (var(--color-name)) instead",
-      "code_snippet": "color: '#ffffff',"
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 238,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "filter: 'drop-shadow(0 0 8px rgba(236, 72, 153, 0.3))'"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 256,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "background: 'rgba(249, 250, 251, 0.85)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 258,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "border: '1px solid rgba(203, 213, 225, 0.6)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 259,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0."
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 279,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "background: 'linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 281,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "border: '1px solid rgba(203, 213, 225, 0.6)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 282,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 316,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "background: 'rgba(241, 245, 249, 0.92)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 318,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "border: '1px solid rgba(203, 213, 225, 0.6)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 319,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0."
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 340,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "? 'linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(239, 68, 68, 0.06))'"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 341,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": ": 'rgba(248, 250, 252, 0.4)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 342,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "borderBottom: '1px solid rgba(226, 232, 240, 0.5)',"
+    },
+    {
+      "file": "src/components/shared/tables/UniversalTableV2.tsx",
+      "line": 344,
+      "rule": "no-hardcoded-rgba",
+      "message": "Hardcoded rgba value detected. Use CSS variables (var(--color-alpha-XX)) instead",
+      "code_snippet": "? '0 0 0 1px rgba(236, 72, 153, 0.12), 0 4px 12px rgba(236, 72, 153, 0.06)'"
     }
   ],
   "summary": {
-    "total_violations": 24,
-    "files_checked": 212,
-    "files_with_violations": 11,
+    "total_violations": 35,
+    "files_checked": 197,
+    "files_with_violations": 8,
     "passed": false
   }
 }

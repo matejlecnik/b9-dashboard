@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase'
 import { logger } from '@/lib/logger'
 import { useToast } from '@/components/ui/toast'
 import { useInfiniteSupabaseQuery, useSupabaseQuery } from '@/hooks/queries/base'
-import type { ViralReel, ViralReelsFilters } from '@/lib/supabase/viral-reels'
 
 const PAGE_SIZE = 50
 

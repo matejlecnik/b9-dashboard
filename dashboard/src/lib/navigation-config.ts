@@ -107,13 +107,6 @@ export const instagramDashboard: DashboardConfig = {
       description: 'Niche analysis and targeting'
     },
     {
-      id: 'viral-content',
-      title: 'Viral Content',
-      href: '/instagram/viral-content',
-      icon: Instagram,
-      description: 'Track viral trends'
-    },
-    {
       id: 'creator-review',
       title: 'Creator Review',
       href: '/instagram/creator-review',

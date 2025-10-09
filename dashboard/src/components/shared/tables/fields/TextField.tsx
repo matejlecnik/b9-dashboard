@@ -5,6 +5,12 @@ import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 import { BadgesField, type Badge } from './BadgesField'
 
+interface LinkSubtitle {
+  type: 'link'
+  url: string
+  showHostname?: boolean
+}
+
 interface TextFieldProps {
   value: string | null | undefined
   className?: string
@@ -13,7 +19,7 @@ interface TextFieldProps {
   placeholder?: string
   bold?: boolean
   color?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
-  subtitle?: string | undefined
+  subtitle?: string | LinkSubtitle | undefined
   subtitleColor?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
   badges?: Badge[]
   dangerouslySetHTML?: boolean
@@ -58,26 +64,58 @@ export const TextField = memo(function TextField({
     colorClass
   )
 
+  // Render subtitle - handle both string and link types
+  const renderSubtitle = () => {
+    if (!subtitle) return null
+
+    // Check if subtitle is a link object
+    if (typeof subtitle === 'object' && 'type' in subtitle && subtitle.type === 'link') {
+      const linkText = subtitle.showHostname
+        ? new URL(subtitle.url).hostname.replace('www.', '')
+        : subtitle.url
+
+      return (
+        <a
+          href={subtitle.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'text-xs',
+            truncate && 'truncate',
+            'text-blue-500 hover:text-blue-600 hover:underline',
+            'transition-colors duration-200'
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {linkText}
+        </a>
+      )
+    }
+
+    // Regular string subtitle
+    return (
+      <div className={cn('text-xs', truncate && 'truncate', subtitleColorClass)}>
+        {subtitle}
+      </div>
+    )
+  }
+
   // If we have subtitle or badges, use a flex container
   if (subtitle || (badges && badges.length > 0)) {
     return (
-      <div className={cn('flex flex-col gap-0.5', className)}>
-        <div className="flex items-center gap-2">
+      <div className={cn('flex flex-col gap-0.5 min-w-0', className)}>
+        <div className="flex items-center gap-2 min-w-0">
           {dangerouslySetHTML && value ? (
             <div
-              className={baseClassName}
+              className={cn(baseClassName, 'min-w-0')}
               dangerouslySetInnerHTML={{ __html: truncatedValue }}
             />
           ) : (
-            <div className={baseClassName}>{truncatedValue}</div>
+            <div className={cn(baseClassName, 'min-w-0')}>{truncatedValue}</div>
           )}
           {badges && badges.length > 0 && <BadgesField badges={badges} size="sm" />}
         </div>
-        {subtitle && (
-          <div className={cn('text-xs', truncate && 'truncate', subtitleColorClass)}>
-            {subtitle}
-          </div>
-        )}
+        {renderSubtitle()}
       </div>
     )
   }
@@ -86,14 +124,14 @@ export const TextField = memo(function TextField({
   if (dangerouslySetHTML && value) {
     return (
       <div
-        className={cn(baseClassName, className)}
+        className={cn(baseClassName, 'min-w-0', className)}
         dangerouslySetInnerHTML={{ __html: truncatedValue }}
       />
     )
   }
 
   return (
-    <div className={cn(baseClassName, className)}>
+    <div className={cn(baseClassName, 'min-w-0', className)}>
       {truncatedValue}
     </div>
   )

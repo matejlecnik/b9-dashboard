@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { UserPlus, Sparkles } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { useToast } from '@/components/ui/toast'
+import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { UserPlus, AlertCircle, Loader2 } from 'lucide-react'
 import { StandardModal } from '@/components/shared/modals/StandardModal'
-import { toast } from 'sonner'
-import { logger } from '@/lib/logger'
-import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 interface AddCreatorModalProps {
   isOpen: boolean
@@ -17,21 +18,51 @@ interface AddCreatorModalProps {
 }
 
 export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorModalProps) {
+  const { addToast } = useToast()
   const [username, setUsername] = useState('')
   const [niche, setNiche] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async () => {
-    // Validation
-    if (!username.trim()) {
-      toast.error('Username is required')
+  const validateUsername = (name: string): string | null => {
+    // Remove @ prefix if present
+    const cleanName = name.replace(/^@/, '').trim()
+
+    if (!cleanName) {
+      return 'Username is required'
+    }
+
+    // Check for valid Instagram username characters (alphanumeric, underscore, period)
+    if (!/^[a-zA-Z0-9_.]+$/.test(cleanName)) {
+      return 'Username can only contain letters, numbers, underscores, and periods'
+    }
+
+    // Check length
+    if (cleanName.length < 1) {
+      return 'Username must be at least 1 character long'
+    }
+
+    if (cleanName.length > 30) {
+      return 'Username cannot be longer than 30 characters'
+    }
+
+    return null
+  }
+
+  const handleSubmit = useCallback(async () => {
+    setError(null)
+
+    // Validate input
+    const validationError = validateUsername(username)
+    if (validationError) {
+      setError(validationError)
       return
     }
 
-    // Clean username (remove @ if present)
-    const cleanUsername = username.trim().replace(/^@/, '')
+    // Clean the username (remove @ prefix if present)
+    const cleanUsername = username.replace(/^@/, '').trim()
 
-    setIsSubmitting(true)
+    setLoading(true)
 
     try {
       // Call backend endpoint to add creator
@@ -53,11 +84,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
         throw new Error(data.error || 'Failed to add creator')
       }
 
-      // Success! Show detailed toast
-      toast.success('Creator added successfully!', {
-        description: `Fetched ${data.stats.reels_fetched} reels and ${data.stats.posts_fetched} posts in ${data.stats.processing_time_seconds}s`
-      })
-
+      // Success
       logger.info('Creator added successfully:', {
         username: cleanUsername,
         creator: data.creator,
@@ -68,7 +95,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
       setUsername('')
       setNiche('')
 
-      // Callback to refresh data (this will reload the Creator Review table)
+      // Callback to refresh data
       if (onCreatorAdded) {
         onCreatorAdded()
       }
@@ -76,14 +103,31 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
       // Close modal
       onClose()
 
-    } catch (error) {
-      logger.error('Error adding creator:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add creator'
-      toast.error(errorMessage, {
-        description: 'Please check the username and try again'
+      // Show success toast
+      addToast({
+        type: 'success',
+        title: 'Creator added successfully!',
+        description: `Fetched ${data.stats.reels_fetched} reels and ${data.stats.posts_fetched} posts in ${data.stats.processing_time_seconds}s`,
+        duration: 5000
+      })
+
+    } catch (err) {
+      logger.error('Failed to add creator:', err)
+      setError(err instanceof Error ? err.message : 'Failed to add creator')
+      addToast({
+        type: 'error',
+        title: 'Failed to add creator',
+        description: err instanceof Error ? err.message : 'An unexpected error occurred',
+        duration: 5000
       })
     } finally {
-      setIsSubmitting(false)
+      setLoading(false)
+    }
+  }, [username, niche, onCreatorAdded, onClose, addToast])
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !loading) {
+      handleSubmit()
     }
   }
 
@@ -92,89 +136,154 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
       isOpen={isOpen}
       onClose={onClose}
       title="Add Instagram Creator"
-      subtitle="Manually add a creator to track"
-      icon={<Sparkles className="h-4 w-4" />}
-      loading={isSubmitting}
+      subtitle="Fetches data from Instagram automatically"
+      icon={<UserPlus className="h-4 w-4 text-primary" />}
+      loading={loading}
       maxWidth="md"
+      maxHeight="70vh"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="outline"
             onClick={onClose}
-            disabled={isSubmitting}
-            className={`text-xs h-8 px-3 border-strong hover:${designSystem.background.hover.subtle} hover:border-strong`}
+            disabled={loading}
+            className={cn(
+              "text-xs h-8 px-4 font-mac-text",
+              "bg-white/60 backdrop-blur-sm",
+              "border border-gray-200/60",
+              "hover:bg-white/80 hover:border-gray-300/60",
+              "shadow-sm hover:shadow",
+              "transition-all duration-200"
+            )}
           >
             Cancel
           </Button>
-          <Button
+          <button
             onClick={handleSubmit}
-            disabled={isSubmitting || !username.trim()}
-            className="text-xs h-8 px-3 bg-gradient-to-r from-primary via-primary-hover to-platform-accent text-white shadow-primary-lg hover:shadow-primary-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !username.trim()}
+            className={cn(
+              "text-xs h-8 px-4 font-mac-text font-medium",
+              "rounded-lg transition-all duration-200",
+              "flex items-center justify-center gap-1.5",
+              "disabled:opacity-40 disabled:cursor-not-allowed"
+            )}
+            style={{
+              background: 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid var(--pink-600)',
+              boxShadow: '0 8px 32px var(--pink-alpha-40)',
+              color: 'var(--pink-600)'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && username.trim()) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 131, 149, 0.7) 0%, var(--pink-alpha-50) 100%)'
+                e.currentTarget.style.boxShadow = '0 12px 40px var(--pink-alpha-50)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, var(--pink-alpha-50) 0%, var(--pink-alpha-40) 100%)'
+              e.currentTarget.style.boxShadow = '0 8px 32px var(--pink-alpha-40)'
+            }}
           >
-            {isSubmitting ? (
+            {loading ? (
               <>
-                <div className={`animate-spin ${designSystem.borders.radius.full} h-3 w-3 border-b-2 border-white mr-1.5`} />
+                <div className={`animate-spin ${designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-current mr-1.5`} />
                 Adding...
               </>
             ) : (
               <>
-                <UserPlus className="h-3 w-3 mr-1.5" />
+                <UserPlus className="h-3 w-3" />
                 Add Creator
               </>
             )}
-          </Button>
+          </button>
         </div>
       }
     >
-      {/* Content */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Username Input */}
-        <div className="space-y-2">
-          <label className={cn("block text-sm font-medium", designSystem.typography.color.secondary)}>
-            Instagram Username <span className="text-primary">*</span>
-          </label>
+        <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+          <Label htmlFor="creator-username" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
+            Instagram Username
+          </Label>
           <Input
+            id="creator-username"
             type="text"
             placeholder="e.g., @username or username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="h-9 border-strong focus:border-primary focus:ring-2 focus:ring-primary/20"
-            disabled={isSubmitting}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && username.trim()) {
-                handleSubmit()
-              }
-            }}
+            onKeyPress={handleKeyPress}
+            disabled={loading}
+            className={cn(
+              "w-full h-9 text-sm font-mac-text",
+              "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+              "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+              "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+              "hover:border-gray-300/60",
+              "transition-all duration-200",
+              "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+            )}
             autoFocus
           />
+          <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
+            Enter the username with or without the @ symbol
+          </p>
         </div>
 
         {/* Niche Input */}
-        <div className="space-y-2">
-          <label className={cn("block text-sm font-medium", designSystem.typography.color.secondary)}>
+        <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
+          <Label htmlFor="creator-niche" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
             Niche <span className={cn("text-xs", designSystem.typography.color.disabled)}>(optional)</span>
-          </label>
+          </Label>
           <Input
+            id="creator-niche"
             type="text"
             placeholder="e.g., Fitness, Beauty, Fashion..."
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
-            className="h-9 border-strong focus:border-primary focus:ring-2 focus:ring-primary/20"
-            disabled={isSubmitting}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && username.trim()) {
-                handleSubmit()
-              }
-            }}
+            onKeyPress={handleKeyPress}
+            disabled={loading}
+            className={cn(
+              "w-full h-9 text-sm font-mac-text",
+              "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
+              "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
+              "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
+              "hover:border-gray-300/60",
+              "transition-all duration-200",
+              "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
+            )}
           />
-        </div>
-
-        {/* Info Message */}
-        <div className={`p-3 bg-primary/10 border border-primary/30 ${designSystem.borders.radius.sm}`}>
-          <p className={cn("text-xs", designSystem.typography.color.secondary)}>
-            💡 The creator will be added to your tracking list. You can assign a niche now or update it later from the Niching page.
+          <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
+            Assign a niche category for this creator
           </p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className={cn(
+            `flex items-start gap-2 p-2.5 ${designSystem.borders.radius.sm}`,
+            "bg-red-50/80 border border-red-200"
+          )}>
+            <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
+            <p className={cn("text-xs font-mac-text text-red-600")}>{error}</p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className={cn(
+            `p-3 ${designSystem.borders.radius.sm}`,
+            "bg-primary/5 border border-primary/20"
+          )}>
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              <p className={cn("text-xs font-medium font-mac-text", designSystem.typography.color.primary)}>
+                Fetching creator data from Instagram...
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </StandardModal>
   )

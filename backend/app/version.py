@@ -4,13 +4,13 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.12.1"
+API_VERSION = "3.12.2"
 
 # Component versions
 REDDIT_SCRAPER_VERSION = (
     "3.11.0"  # Auto-cycling with configurable cooldown (eliminates manual restarts)
 )
-INSTAGRAM_SCRAPER_VERSION = "3.12.1"  # Fixed R2 domain checks to support both old and new R2 URLs
+INSTAGRAM_SCRAPER_VERSION = "3.12.2"  # Removed unused save/share metrics (Instagram API doesn't provide this data)
 
 # Build info
 BUILD_DATE = "2025-10-09"

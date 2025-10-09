@@ -37,8 +37,8 @@ class Config:
         os.getenv("INSTAGRAM_BATCH_SIZE", "50")
     )  # Process 50 creators per batch - reduced for stability
     CONCURRENT_CREATORS = int(
-        os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10")
-    )  # Process 10 creators simultaneously - optimized for performance
+        os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "20")
+    )  # Process 20 creators simultaneously (v3.12.0 - 2x increase for 10-20x speedup)
 
     # Connection Pooling
     CONNECTION_POOL_SIZE = int(

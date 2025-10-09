@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { X, type LucideIcon } from 'lucide-react'
 import { designSystem } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
@@ -44,8 +44,6 @@ export function UniversalInputModal({
   multiline = false
 }: UniversalInputModalProps) {
   const [value, setValue] = useState(defaultValue)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
 
   // Reset value when modal opens/closes
@@ -57,12 +55,10 @@ export function UniversalInputModal({
     }
   }, [isOpen, defaultValue])
 
-  // Filter suggestions based on current input
-  useEffect(() => {
+  // Filter suggestions based on current input (memoized to prevent infinite loops)
+  const filteredSuggestions = useMemo(() => {
     if (!value.trim() || suggestions.length === 0) {
-      setFilteredSuggestions([])
-      setShowSuggestions(false)
-      return
+      return []
     }
 
     // Get the last comma-separated value for autocomplete
@@ -70,26 +66,22 @@ export function UniversalInputModal({
     const lastValue = values[values.length - 1].toLowerCase()
 
     if (!lastValue) {
-      setFilteredSuggestions([])
-      setShowSuggestions(false)
-      return
+      return []
     }
 
-    const filtered = suggestions
+    return suggestions
       .filter(s => s.toLowerCase().includes(lastValue))
       .filter(s => !values.slice(0, -1).includes(s)) // Exclude already added tags
       .slice(0, 5) // Limit to 5 suggestions
-
-    setFilteredSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
   }, [value, suggestions])
+
+  const showSuggestions = filteredSuggestions.length > 0
 
   // Handle suggestion selection
   const handleSelectSuggestion = useCallback((suggestion: string) => {
     const values = value.split(',').map(v => v.trim())
     values[values.length - 1] = suggestion
     setValue(values.join(', ') + ', ')
-    setShowSuggestions(false)
     inputRef.current?.focus()
   }, [value])
 

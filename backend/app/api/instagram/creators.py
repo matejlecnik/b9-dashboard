@@ -22,18 +22,18 @@ from supabase import Client
 
 # Import scraper and config
 try:
+    from app.core.config.r2_config import r2_config
     from app.scrapers.instagram.services.instagram_config import Config
     from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
-    from app.core.config.r2_config import r2_config
 except ImportError:
     # Fallback for different import paths
+    from api_render.app.core.config.r2_config import r2_config  # type: ignore[no-redef]
     from api_render.app.scrapers.instagram.services.instagram_config import (  # type: ignore[no-redef]
         Config,
     )
     from api_render.app.scrapers.instagram.services.instagram_scraper import (  # type: ignore[no-redef]
         InstagramScraperUnified,
     )
-    from api_render.app.core.config.r2_config import r2_config  # type: ignore[no-redef]
 
 # Import database singleton and unified logger
 from app.core.database import get_db

@@ -22,19 +22,37 @@
 
 ```json
 {
-  "2025-10-09-badge-rendering-fix": {
-    "duration": "1.5h",
-    "status": "\u2705 COMPLETE",
-    "impact": "Fixed NSFW/SFW badge rendering bug - hybrid badge system implementation",
+  "2025-10-09-r2-domain-migration": {
+    "duration": "3h",
+    "status": "✅ COMPLETE",
+    "impact": "R2 domain migration complete - domain-agnostic checks prevent re-uploads + bucket cleanup",
     "changes": [
-      "Created BadgesField.tsx: Hybrid badge component supporting icon + text badges (98 lines)",
-      "Fixed TextField.tsx: Updated to use new Badge type instead of IconBadge",
-      "Fixed badge configs: Removed null icon from NSFW/SFW badges (redditCategorizationColumns + redditReviewColumns)",
-      "Badge sizing: Reduced NSFW/SFW badges (px-2\u2192px-1.5, text-xs\u2192text-[10px])"
+      "Fixed hardcoded R2 domain checks: 'r2.cloudflarestorage.com' → 'b9-instagram-media' (bucket-specific)",
+      "Updated 3 files: instagram_scraper.py (line 1036), storage.py (lines 128, 341), version.py",
+      "R2 bucket cleanup: Deleted 664 remaining objects via boto3 script (bucket now empty)",
+      "Configured R2 dev URL: https://pub-497baa9dc05748f98aaed739c2a5ef08.r2.dev",
+      "Rate limits confirmed safe for 3-user scale (150 requests vs 'hundreds per second' limit)"
     ],
-    "files": "BadgesField.tsx (new), TextField.tsx (lines 6,18,74), redditCategorizationColumns.tsx (lines 3,65-69), redditReviewColumns.tsx (lines 3,61-65)",
-    "root_cause": "IconBadge type required Lucide icon, but NSFW/SFW badge had icon:()=>null causing rendering failure",
-    "next": "Continue Phase 4 - Instagram Dashboard"
+    "files": "instagram_scraper.py (line 1036), storage.py (lines 128,341), version.py (line 13), .env",
+    "technical": "Bucket name pattern matching enables domain-agnostic R2 URL detection (supports both old and new domains)",
+    "deployment": "Hetzner server updated, API container restarted, health check verified",
+    "version": "v3.12.1",
+    "next": "Monitor media uploads with new R2 dev URL domain"
+  },
+  "2025-10-09-instagram-table-refinement": {
+    "duration": "2h",
+    "status": "✅ COMPLETE",
+    "impact": "Instagram creator review table UX improvements + R2 storage cleanup (2,117 URLs removed)",
+    "changes": [
+      "R2 cleanup: Removed all 2,117 R2 URLs from database (instagram_creators: 245, instagram_posts: 405, instagram_reels: 1,467)",
+      "Column reorder: Moved Bio + Link column before Followers column for better layout",
+      "Width optimization: Reduced Bio column from w-80 (320px) → w-64 (256px)",
+      "Text truncation fix: Added min-w-0 to TextField containers to enforce width constraints",
+      "Root cause: Flex items default to min-width:auto causing overflow beyond parent width"
+    ],
+    "files": "TextField.tsx (lines 106,107,110,114,127,134), instagramReviewColumns.tsx (lines 64-96), creator-review/page.tsx (lines 11-12,68-77)",
+    "technical": "min-w-0 utility overrides flex item min-width:auto, forcing content to respect parent w-64 constraint + truncate class",
+    "next": "R2 bucket deletion and public URL configuration (separate Claude session)"
   },
   "2025-10-09-table-v2-migration": {
     "duration": "2.5h",
@@ -61,6 +79,24 @@
     "files": "DiscoveryTable.tsx (lines 243,257,263,279,283,289,309)",
     "next": "Phase 4 - Instagram Dashboard"
   },
+  "2025-10-09-reddit-auto-cycling": {
+    "duration": "1.5h",
+    "status": "\u2705 DEPLOYED",
+    "impact": "Reddit scraper auto-cycling v3.11.0 - eliminates manual restarts after cycle completion",
+    "changes": [
+      "Restructured run() method: Wrapped Phase 2+3 in while self.running loop",
+      "Phase 1 (proxy setup): One-time initialization outside loop",
+      "Phase 2 (target loading): Refreshes each cycle inside loop",
+      "Database-driven cooldown: Reads cycle_cooldown_seconds from system_control.config (default 5 minutes)",
+      "Cycle tracking: Logs 'Cycle #X complete' with next start time calculation",
+      "Removed infinite sleep loop: Replaced with configurable wait + auto-restart"
+    ],
+    "files": "reddit_scraper.py (lines 115-419), version.py (line 10)",
+    "performance": "4.27s avg per subreddit, 2.55h per full cycle (2,151 subreddits)",
+    "commit": "338ee7d - Reddit scraper auto-cycling v3.11.0",
+    "deployment": "Hetzner CPX11 API container rebuilt + recreated",
+    "next": "Monitor auto-cycling behavior when scraper next completes a full cycle"
+  },
   "2025-10-09-hetzner-migration": {
     "duration": "2.5h",
     "status": "\u2705 CODE COMPLETE",
@@ -84,32 +120,55 @@
     ],
     "commit": "b2ce812 - CRON-001 Complete + Dashboard Updates"
   },
+  "2025-10-09-concurrent-optimization": {
+    "duration": "1.5h",
+    "status": "\u2705 COMPLETE",
+    "impact": "Instagram scraper concurrency optimization - 10 concurrent is optimal (R2 bottleneck identified)",
+    "changes": [
+      "Tested 20 concurrent creators: 0.86 creators/min (5 creators in 5.81 min)",
+      "Baseline 10 concurrent: 0.90 creators/min (5.6% faster)",
+      "Root cause: R2 upload bandwidth saturation at 20 concurrent",
+      "Server resources NOT bottleneck: CPU 0.77%, RAM 21%",
+      "Deployed v3.12.0 with optimal 10 concurrent setting"
+    ],
+    "files": "backend/app/config.py (lines 151, 310), backend/app/version.py (line 11)",
+    "deployment": "4 Docker rebuilds + container recreation (restart insufficient)",
+    "verdict": "10 concurrent creators is optimal for current R2 bandwidth",
+    "next": "Monitor baseline performance at 10 concurrent"
+  },
+  "2025-10-09-badge-rendering-fix": {
+    "duration": "1.5h",
+    "status": "\u2705 COMPLETE",
+    "impact": "Fixed NSFW/SFW badge rendering bug - hybrid badge system implementation",
+    "changes": [
+      "Created BadgesField.tsx: Hybrid badge component supporting icon + text badges (98 lines)",
+      "Fixed TextField.tsx: Updated to use new Badge type instead of IconBadge",
+      "Fixed badge configs: Removed null icon from NSFW/SFW badges (redditCategorizationColumns + redditReviewColumns)",
+      "Badge sizing: Reduced NSFW/SFW badges (px-2\u2192px-1.5, text-xs\u2192text-[10px])"
+    ],
+    "files": "BadgesField.tsx (new), TextField.tsx (lines 6,18,74), redditCategorizationColumns.tsx (lines 3,65-69), redditReviewColumns.tsx (lines 3,61-65)",
+    "root_cause": "IconBadge type required Lucide icon, but NSFW/SFW badge had icon:()=>null causing rendering failure",
+    "next": "Continue Phase 4 - Instagram Dashboard"
+  },
   "2025-10-09-auto-session": {
     "duration": "auto-tracked",
     "commits": 1,
-    "files_modified": 142,
-    "lines_added": 12711,
-    "lines_deleted": 15645,
+    "files_modified": 3,
+    "lines_added": 10,
+    "lines_deleted": 16,
     "status": "LOGGED",
-    "timestamp": "2025-10-09T19:18:19.649998",
+    "timestamp": "2025-10-09T21:30:07.765764",
     "achievements": [
       {
-        "task": "Added 1 new features",
-        "status": "COMPLETE"
-      },
-      {
-        "task": "Updated 9 documentation files",
+        "task": "Fixed 1 issues",
         "status": "COMPLETE"
       }
     ],
     "categories_affected": [
-      "frontend",
-      "backend",
-      "documentation",
-      "config"
+      "backend"
     ],
     "commit_messages": [
-      "\ud83d\ude80 FEAT: v3.11.0 - Remove R2 Upload Compression (Instagram Scraper)"
+      "\ud83d\udd27 FIX: R2 domain checks now support both old and new URLs (v3.12.1)"
     ]
   },
   "2025-10-06-instagram-manual-add": {
@@ -249,17 +308,17 @@ _Historical sessions before v3.4.0 archived. See git history for details._
 
 ```json
 {
-  "total_sessions": 17,
-  "total_hours": 56.5,
-  "commits": 13,
-  "files_created": 46,
-  "files_modified": 135,
+  "total_sessions": 21,
+  "total_hours": 64.5,
+  "commits": 15,
+  "files_created": 47,
+  "files_modified": 146,
   "files_deleted": 2,
-  "lines_added": 18750,
-  "lines_removed": 10600,
+  "lines_added": 18897,
+  "lines_removed": 10684,
   "documentation_compliance": "100%",
   "reddit_dashboard_status": "LOCKED - 100% Complete",
-  "instagram_dashboard_status": "25% Complete (Phase 4)",
+  "instagram_dashboard_status": "30% Complete (Phase 4)",
   "current_phase": "Phase 4 - Instagram Dashboard (v4.0.0)"
 }
 ```
@@ -276,5 +335,5 @@ _Historical sessions before v3.4.0 archived. See git history for details._
 
 ---
 
-_Session Log v2.0.0 (Compacted) | Updated: 2025-10-09 | Entries: 16 | Token Count: ~370_
+_Session Log v2.0.0 (Compacted) | Updated: 2025-10-09 | Entries: 19 | Token Count: ~440_
 _Navigate: [→ CLAUDE.md](../../CLAUDE.md) | [→ ROADMAP.md](../../ROADMAP.md) | [→ INDEX.md](../INDEX.md)_

@@ -6,9 +6,10 @@ Queries Supabase to verify test results and data integrity
 import os
 import sys
 from datetime import datetime, timedelta
+
 from dotenv import load_dotenv
-from supabase import create_client, Client
-import json
+from supabase import Client, create_client
+
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), '../../.env.api')
@@ -63,7 +64,7 @@ def verify_instagram_creator(username: str):
         reels_count = supabase.table("instagram_reels").select("id", count="exact").eq("creator_id", creator['id']).execute()
         posts_count = supabase.table("instagram_posts").select("id", count="exact").eq("creator_id", creator['id']).execute()
 
-        print(f"\n   📊 Content Stats:")
+        print("\n   📊 Content Stats:")
         print(f"   Reels in DB: {reels_count.count}")
         print(f"   Posts in DB: {posts_count.count}")
 
@@ -147,14 +148,14 @@ def check_api_call_logs(username: str = None):
         result = query.execute()
 
         if not result.data:
-            print(f"❌ No Instagram API logs found")
+            print("❌ No Instagram API logs found")
             return []
 
         # Filter for API requests/responses
         api_logs = [log for log in result.data if "API Request" in log.get('message', '') or "API Response" in log.get('message', '')]
 
         if not api_logs:
-            print(f"❌ No API request/response logs found")
+            print("❌ No API request/response logs found")
             return []
 
         print(f"✅ Found {len(api_logs)} API call logs")

@@ -3,16 +3,14 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Tag, UserPlus } from 'lucide-react'
-import { Progress } from '@/components/ui/progress'
 import { StandardToolbar, StandardActionButton } from '@/components/shared'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { InstagramCard } from '@/components/instagram'
 import { AddCreatorModal } from '@/components/instagram/AddCreatorModal'
+import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgressCard'
+import { UniversalInputModal } from '@/components/shared/modals/UniversalInputModal'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatNumber } from '@/lib/formatters'
-import { designSystem } from '@/lib/design-system'
-import { cn } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
 
 // Import React Query hooks
@@ -20,6 +18,7 @@ import {
   useNichingStats,
   useNichingCreators,
   useBulkUpdateCreatorNiche,
+  useUpdateCreatorNiche,
   type NichingFilters
 } from '@/hooks/queries/useInstagramReview'
 
@@ -36,11 +35,12 @@ const UniversalTableV2 = dynamic(
 type FilterType = 'unniched' | 'niched' | 'all'
 
 export default function NichingPage() {
-  // Simplified state - only 4 useState hooks
+  // Simplified state - only 5 useState hooks
   const [searchQuery, setSearchQuery] = useState('')
   const [currentFilter, setCurrentFilter] = useState<FilterType>('unniched')
   const [selectedCreators, setSelectedCreators] = useState<Set<number>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showNicheModal, setShowNicheModal] = useState(false)
 
   // Debounced search
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -80,6 +80,7 @@ export default function NichingPage() {
 
   // Mutations
   const bulkUpdateMutation = useBulkUpdateCreatorNiche()
+  const updateNicheMutation = useUpdateCreatorNiche()
 
   // Bulk update handler
   const bulkUpdateNiche = useCallback(async (niche: string | null) => {
@@ -92,11 +93,26 @@ export default function NichingPage() {
     setSelectedCreators(new Set())
   }, [selectedCreators, bulkUpdateMutation])
 
+  // Handler for single creator niche update
+  const handleUpdateNiche = useCallback((id: number, niche: string | null) => {
+    updateNicheMutation.mutate({
+      creatorId: id,
+      niche
+    })
+  }, [updateNicheMutation])
+
   // Handler for single creator review update
   const handleUpdateReview = useCallback((id: number, review: string) => {
     // This is a placeholder - the niching page focuses on niche assignment, not review status
     console.log('Review update:', id, review)
   }, [])
+
+  // Handle reaching end of list for infinite scroll
+  const handleReachEnd = useCallback(() => {
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage()
+    }
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage])
 
   // Transform creators for table - match InstagramCreator interface from niching columns
   const transformedCreators = useMemo(() => {
@@ -129,14 +145,16 @@ export default function NichingPage() {
   // Create table configuration with column definitions
   const tableConfig: TableConfig<InstagramCreator> = useMemo(() => ({
     columns: createInstagramNichingColumns({
-      onUpdateReview: handleUpdateReview
+      onUpdateReview: handleUpdateReview,
+      onUpdateNiche: handleUpdateNiche,
+      availableNiches: stats?.availableNiches || []
     }),
     showCheckbox: true,
     emptyState: {
       title: searchQuery ? 'No creators found matching your search' : 'No creators to niche',
       description: searchQuery ? 'Try adjusting your search query' : undefined
     }
-  }), [searchQuery, handleUpdateReview])
+  }), [searchQuery, handleUpdateReview, handleUpdateNiche, stats?.availableNiches])
 
   // Calculate stats for display
   const displayStats = {
@@ -151,35 +169,29 @@ export default function NichingPage() {
         {/* Progress Card with Add Creator Button */}
         <ComponentErrorBoundary>
           <div className="flex gap-3">
-            {/* Progress Bar Card */}
-            <InstagramCard className="flex-1">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={cn("text-sm font-semibold", designSystem.typography.color.primary)}>Niching Progress</h3>
-                <div className="text-right">
-                  <span className={cn("text-lg font-bold", designSystem.typography.color.primary)}>
-                    {Math.round(((displayStats.niched) / Math.max(1, displayStats.all)) * 100)}%
-                  </span>
-                  <p className={cn("text-xs mt-0.5", designSystem.typography.color.subtle)}>
-                    {formatNumber(displayStats.niched)} / {formatNumber(displayStats.all)}
-                  </p>
-                </div>
-              </div>
-              <Progress
-                value={displayStats.all > 0
-                  ? (displayStats.niched / displayStats.all) * 100
-                  : 0
-                }
-                className="h-3"
-              />
-            </InstagramCard>
-
-            {/* Add Creator Button */}
-            <StandardActionButton
-              onClick={() => setShowAddModal(true)}
-              label="Add Creator"
-              icon={UserPlus}
-              variant="primary"
+            {/* Progress Bar Card using UniversalProgressCard */}
+            <UniversalProgressCard
+              title="Niching Progress"
+              value={`${Math.round(((displayStats.niched) / Math.max(1, displayStats.all)) * 100)}%`}
+              subtitle={`${formatNumber(displayStats.niched)} / ${formatNumber(displayStats.all)}`}
+              percentage={displayStats.all > 0
+                ? Math.round((displayStats.niched / displayStats.all) * 100)
+                : 0
+              }
+              loading={false}
+              className="flex-1"
             />
+
+            {/* Add Creator Button with proper wrapper */}
+            <div className="flex-1 max-w-[200px]">
+              <StandardActionButton
+                onClick={() => setShowAddModal(true)}
+                label="Add Creator"
+                icon={UserPlus}
+                variant="primary"
+                size="normal"
+              />
+            </div>
           </div>
         </ComponentErrorBoundary>
 
@@ -221,12 +233,7 @@ export default function NichingPage() {
                 id: 'set-niche',
                 label: 'Set Niche',
                 icon: Tag,
-                onClick: () => {
-                  const niche = prompt('Enter niche for selected creators:')
-                  if (niche !== null) {
-                    bulkUpdateNiche(niche.trim() || null)
-                  }
-                },
+                onClick: () => setShowNicheModal(true),
                 variant: 'secondary' as const
               }
             ] : []}
@@ -247,6 +254,9 @@ export default function NichingPage() {
             onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
             getItemId={(creator) => creator.id}
             searchQuery={debouncedSearchQuery}
+            onReachEnd={handleReachEnd}
+            hasMore={hasNextPage}
+            loadingMore={isFetchingNextPage}
           />
         </ComponentErrorBoundary>
       </div>
@@ -259,6 +269,21 @@ export default function NichingPage() {
           // Refresh the creators list after adding
           // The query will auto-refetch due to cache invalidation
         }}
+      />
+
+      {/* Niche Input Modal */}
+      <UniversalInputModal
+        isOpen={showNicheModal}
+        onClose={() => setShowNicheModal(false)}
+        onConfirm={(niche) => {
+          bulkUpdateNiche(niche.trim() || null)
+          setShowNicheModal(false)
+        }}
+        title="Set Niche"
+        subtitle="Enter niche for selected creators"
+        placeholder="e.g., fitness, beauty, travel"
+        icon={Tag}
+        platform="instagram"
       />
     </DashboardLayout>
   )

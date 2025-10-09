@@ -1,8 +1,6 @@
 'use client'
 
 import { memo, useState } from 'react'
-import Image from 'next/image'
-import { UserCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 
@@ -88,13 +86,11 @@ export const AvatarField = memo(function AvatarField({
 
     return (
       <div className={baseClassName} style={{ background: gradient }}>
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={decodedSrc}
           alt={alt}
-          width={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
-          height={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
           className="object-cover w-full h-full"
-          unoptimized
           onError={() => setImageError(true)}
         />
       </div>

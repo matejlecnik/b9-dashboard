@@ -667,17 +667,12 @@ class InstagramStorage:
                 "avg_views_per_reel_cached": analytics.get("avg_reel_views"),
                 "avg_likes_per_reel_cached": analytics.get("avg_likes_per_reel_cached"),
                 "avg_comments_per_reel_cached": analytics.get("avg_comments_per_reel_cached"),
-                "avg_saves_per_reel_cached": analytics.get("avg_saves_per_reel_cached"),
-                "avg_shares_per_reel_cached": analytics.get("avg_shares_per_reel_cached"),
                 # Post metrics
                 "avg_likes_per_post_cached": analytics.get("avg_likes_per_post_cached"),
                 "avg_comments_per_post_cached": analytics.get("avg_comments_per_post_cached"),
-                "avg_saves_per_post_cached": analytics.get("avg_saves_per_post_cached"),
-                "avg_shares_per_post_cached": analytics.get("avg_shares_per_post_cached"),
                 # Engagement metrics
                 "avg_engagement_rate": analytics.get("avg_engagement_rate"),
                 "engagement_rate_cached": analytics.get("engagement_rate"),
-                "save_to_like_ratio": analytics.get("save_to_like_ratio"),
                 # Content analysis
                 "best_content_type": analytics.get("best_content_type"),
                 "viral_content_count_cached": analytics.get("viral_content_count"),

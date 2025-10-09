@@ -6,9 +6,9 @@ import { Check, X, Users } from 'lucide-react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
-import { MetricsCards } from '@/components/shared/cards/MetricsCards'
+import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgressCard'
+import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCard'
 import { useDebounce } from '@/hooks/useDebounce'
-import { designSystem } from '@/lib/design-system'
 
 // Import data hooks directly
 import {
@@ -68,8 +68,8 @@ export default function CreatorReviewPage() {
   const {
     data: infiniteData,
     isLoading,
-    isFetchingNextPage,
     hasNextPage,
+    isFetchingNextPage,
     fetchNextPage
   } = useInstagramCreators({
     search: debouncedSearchQuery,
@@ -186,6 +186,13 @@ export default function CreatorReviewPage() {
     setSelectedCreators(new Set())
   }, [selectedCreators, bulkUpdateMutation])
 
+  // Handle reaching end of list for infinite scroll
+  const handleReachEnd = useCallback(() => {
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage()
+    }
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage])
+
   // Transform creators for table - simplified to only include required fields for review columns
   const transformedCreators = React.useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,25 +232,48 @@ export default function CreatorReviewPage() {
       <DashboardLayout>
         <div className="flex flex-col gap-6">
           {/* Stats with Action Button */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <MetricsCards
-                platform="instagram"
-                totalCreators={stats?.total || 0}
-                pendingCount={stats?.pending || 0}
-                approvedCount={stats?.approved || 0}
-                nonRelatedCount={stats?.rejected || 0}
+          <div className="flex gap-3">
+            {/* Universal Metrics Cards */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <UniversalProgressCard
+                title="Review Progress"
+                value={`${stats?.total && (stats.approved + stats.rejected) > 0
+                  ? Math.floor(((stats.approved + stats.rejected) / stats.total) * 100)
+                  : 0}%`}
+                subtitle={`${(stats?.approved || 0) + (stats?.rejected || 0)} / ${stats?.total || 0}`}
+                percentage={stats?.total && (stats.approved + stats.rejected) > 0
+                  ? Math.floor(((stats.approved + stats.rejected) / stats.total) * 100)
+                  : 0}
                 loading={isLoading}
               />
+
+              <UniversalMetricCard
+                title="Total Creators"
+                value={stats?.total || 0}
+                subtitle="In Database"
+                loading={isLoading}
+              />
+
+              <UniversalMetricCard
+                title="Approved"
+                value={stats?.approved || 0}
+                subtitle="Ready to Track"
+                loading={isLoading}
+                highlighted
+              />
             </div>
+
             {/* Get Related Creators Button */}
             {!isLoading && (
-              <StandardActionButton
-                onClick={() => setShowRelatedModal(true)}
-                label="Get Related Creators"
-                icon={Users}
-                variant="primary"
-              />
+              <div className="flex-1 max-w-[200px]">
+                <StandardActionButton
+                  onClick={() => setShowRelatedModal(true)}
+                  label="Get Related Creators"
+                  icon={Users}
+                  variant="primary"
+                  size="normal"
+                />
+              </div>
             )}
           </div>
 
@@ -289,6 +319,9 @@ export default function CreatorReviewPage() {
             onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
             getItemId={(creator) => creator.id}
             searchQuery={debouncedSearchQuery}
+            onReachEnd={handleReachEnd}
+            hasMore={hasNextPage}
+            loadingMore={isFetchingNextPage}
           />
         </div>
       </DashboardLayout>

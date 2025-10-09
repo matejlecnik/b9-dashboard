@@ -120,7 +120,7 @@ const StandardModal = memo(function StandardModal({
           {/* Content */}
           <div
             className={cn(
-              'px-5 py-3 overflow-y-auto',
+              'px-5 py-4 overflow-y-auto',
               contentClassName
             )}
             style={{

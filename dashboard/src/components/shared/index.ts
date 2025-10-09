@@ -2,10 +2,8 @@
 // This file provides centralized exports for all shared components
 
 // Tables
-export { UniversalTable, createSubredditReviewTable, createCategorizationTable, createCompactSubredditTable } from './tables/UniversalTable'
-export { UniversalCreatorTable } from './tables/UniversalCreatorTable'
-export type { InstagramCreator as Creator } from './tables/UniversalCreatorTable'
-// Note: VirtualizedCreatorTable removed (unused)
+export { UniversalTableV2 } from './tables/UniversalTableV2'
+// Note: Legacy tables removed (UniversalTable, UniversalCreatorTable)
 
 // Cards
 export { MetricsCards } from './cards/MetricsCards'

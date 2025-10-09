@@ -148,7 +148,7 @@ class InstagramScraperConfig:
     # Performance Settings
     max_workers: int = 10
     requests_per_second: int = 55
-    concurrent_creators: int = 10
+    concurrent_creators: int = 10  # v3.12.0: Tested 20 (0.86/min) vs 10 (0.90/min) - 10 is optimal
 
     # Batch Processing
     batch_size: int = 50
@@ -307,7 +307,7 @@ class Config:
             rapidapi_host=os.getenv("RAPIDAPI_HOST", "instagram-looter2.p.rapidapi.com"),
             max_workers=int(os.getenv("INSTAGRAM_MAX_WORKERS", "10")),
             requests_per_second=int(os.getenv("INSTAGRAM_REQUESTS_PER_SECOND", "55")),
-            concurrent_creators=int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10")),
+            concurrent_creators=int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10")),  # v3.12.0: Tested - 10 is optimal
             batch_size=int(os.getenv("INSTAGRAM_BATCH_SIZE", "50")),
             update_frequency=int(os.getenv("UPDATE_FREQUENCY", "10800")),
             connection_pool_size=int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "20")),

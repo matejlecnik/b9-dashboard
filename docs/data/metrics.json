@@ -1,20 +1,18 @@
 {
-  "timestamp": "2025-10-09T11:41:20.584430",
+  "timestamp": "2025-10-09T21:29:23.542205",
   "system": {
-    "cpu_percent": 100.0,
-    "memory_percent": 80.9,
-    "disk_percent": 16.9,
+    "cpu_percent": 42.2,
+    "memory_percent": 83.4,
+    "disk_percent": 17.4,
     "network": {
-      "bytes_sent": 5696291840,
-      "bytes_recv": 3688561664
+      "bytes_sent": 2313802752,
+      "bytes_recv": 2764407808
     }
   },
   "api": {
-    "status": "LIVE",
+    "status": "DOWN",
     "response_time": "N/A",
     "uptime": "99.99%",
-    "requests_total": 0,
-    "errors_total": 0,
     "p50_latency": "12ms",
     "p95_latency": "89ms"
   },
@@ -42,14 +40,14 @@
   },
   "git": {
     "branch": "main",
-    "total_commits": 429,
-    "last_commit": "7747730 - \ud83d\udc1b FIX: Instagram scraper thread hanging & database save issues (21 hours ago)",
-    "modified_files": 208,
+    "total_commits": 446,
+    "last_commit": "338ee7d - \ud83d\udd04 FEAT: Reddit scraper auto-cycling v3.11.0 (36 minutes ago)",
+    "modified_files": 22,
     "status": "modified"
   },
   "documentation": {
-    "total_files": 112,
-    "total_lines": 13427,
+    "total_files": 125,
+    "total_lines": 13994,
     "compliance_rate": "100.0%",
     "status": "DONE",
     "pending_files": 0
@@ -59,14 +57,14 @@
       "status": "OK",
       "version": "v3.5.0",
       "error_rate": "<2%",
-      "last_run": "2025-10-09T11:41:22.930237",
+      "last_run": "2025-10-09T21:29:25.706639",
       "items_processed": 15234
     },
     "instagram": {
       "status": "OK",
       "version": "v2.1.0",
       "error_rate": "<1%",
-      "last_run": "2025-10-09T11:41:22.930259",
+      "last_run": "2025-10-09T21:29:25.706649",
       "creators_tracked": 303889
     }
   }

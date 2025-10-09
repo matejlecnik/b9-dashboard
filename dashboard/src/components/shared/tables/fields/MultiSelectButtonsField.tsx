@@ -87,5 +87,12 @@ export const SelectOptionPresets = {
       { value: 'non_related', label: 'Non Related', displayLabel: 'NR' },
       { value: 'pending', label: 'Unreviewed', displayLabel: 'U' }
     ]
+  },
+  models: {
+    status: [
+      { value: 'active', label: 'Active', displayLabel: 'A' },
+      { value: 'inactive', label: 'Inactive', displayLabel: 'I' },
+      { value: 'onboarding', label: 'Onboarding', displayLabel: 'O' }
+    ]
   }
 }

@@ -1,8 +1,10 @@
 import { type ColumnDefinition } from '../types'
 import { BadgePresetConfigs } from '../fields/IconBadgesField'
 import { PercentagePresets } from '../fields/PercentageField'
-import { DatePresets } from '../fields/DateField'
+import { DatePresets, DateField } from '../fields/DateField'
+import { TextField } from '../fields/TextField'
 import { SelectOptionPresets, MultiSelectButtonsField } from '../fields/MultiSelectButtonsField'
+import { InstagramNicheField } from '../fields/InstagramNicheField'
 
 // Instagram creator type (matches the transformed structure from Instagram pages)
 export interface InstagramCreator {
@@ -32,6 +34,8 @@ export interface InstagramCreator {
 
 export interface InstagramNichingColumnConfig {
   onUpdateReview: (id: number, review: string) => void
+  onUpdateNiche?: (id: number, niche: string | null) => void
+  availableNiches?: string[]
 }
 
 export function createInstagramNichingColumns(config: InstagramNichingColumnConfig): ColumnDefinition<InstagramCreator>[] {
@@ -39,7 +43,7 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
     // Avatar column
     {
       id: 'avatar',
-      header: 'Icon',
+      header: 'PFP',
       accessor: (creator) => creator.profile_pic_url,
       width: 'w-16 flex-shrink-0',
       align: 'center',
@@ -73,7 +77,7 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
     // Members/Followers
     {
       id: 'subscribers',
-      header: 'Members',
+      header: 'Followers',
       accessor: 'followers',
       width: 'w-24 flex-shrink-0',
       align: 'center',
@@ -115,36 +119,6 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
         type: 'number',
         format: 'abbreviated',
         color: 'secondary',
-        bold: true
-      }
-    },
-
-    // Niche badge
-    {
-      id: 'niche',
-      header: 'Niche',
-      accessor: 'niche',
-      width: 'w-28 flex-shrink-0',
-      field: {
-        type: 'badge',
-        variant: 'gradient',
-        classNameMap: {
-          // Empty map - will use default gradient styling
-        }
-      }
-    },
-
-    // Viral content count
-    {
-      id: 'viral',
-      header: 'Viral',
-      accessor: 'viral_content_count_cached',
-      width: 'w-20 flex-shrink-0',
-      align: 'center',
-      field: {
-        type: 'number',
-        format: 'number',
-        color: 'pink',
         bold: true,
         placeholder: '—'
       }
@@ -161,78 +135,27 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
         type: 'number',
         format: 'abbreviated',
         color: 'secondary',
-        bold: true
+        bold: true,
+        placeholder: '—'
       }
     },
 
-    // Posting frequency per week
+    // Niche field with inline editing
     {
-      id: 'posting_freq',
-      header: 'Posting Freq',
-      accessor: 'posting_frequency_per_week',
-      width: 'w-24 flex-shrink-0',
-      align: 'center',
+      id: 'niche',
+      header: 'Niche',
+      accessor: 'niche',
+      width: 'w-32 flex-shrink-0',
       field: {
         type: 'custom',
-        render: (value) => value !== null && value !== undefined
-          ? {
-              type: 'text',
-              text: `${value.toFixed(1)}/wk`,
-              color: value > 7 ? 'pink' : value > 3 ? 'secondary' : 'tertiary',
-              bold: true
-            }
-          : { type: 'text', text: '—', color: 'disabled' }
-      }
-    },
-
-    // Growth rate
-    {
-      id: 'growth_rate',
-      header: 'Growth',
-      accessor: 'follower_growth_rate_weekly',
-      width: 'w-24 flex-shrink-0',
-      align: 'center',
-      field: {
-        type: 'custom',
-        render: (value) => value !== null && value !== undefined
-          ? {
-              type: 'text',
-              text: `${value > 0 ? '↑' : '↓'} ${Math.abs(value).toFixed(1)}%`,
-              color: value > 0 ? 'pink' : 'tertiary',
-              bold: true
-            }
-          : { type: 'text', text: '—', color: 'disabled' }
-      }
-    },
-
-    // Save/Like ratio
-    {
-      id: 'save_ratio',
-      header: 'Save/Like',
-      accessor: (creator) => creator.save_to_like_ratio !== null && creator.save_to_like_ratio !== undefined
-        ? creator.save_to_like_ratio * 100
-        : null,
-      width: 'w-20 flex-shrink-0',
-      align: 'center',
-      field: {
-        type: 'percentage',
-        decimals: 1,
-        colorThresholds: PercentagePresets.saveRatio,
-        bold: true
-      }
-    },
-
-    // Last posted
-    {
-      id: 'last_posted',
-      header: 'Last Posted',
-      accessor: 'last_post_days_ago',
-      width: 'w-24 flex-shrink-0',
-      align: 'center',
-      field: {
-        type: 'date',
-        colorThresholds: DatePresets.lastPosted,
-        bold: true
+        render: (creator) => (
+          <InstagramNicheField
+            niche={creator.niche}
+            onUpdate={config.onUpdateNiche ? (newNiche) => config.onUpdateNiche!(creator.id, newNiche) : undefined}
+            onRemove={config.onUpdateNiche ? () => config.onUpdateNiche!(creator.id, null) : undefined}
+            availableNiches={config.availableNiches || []}
+          />
+        )
       }
     },
 

@@ -191,6 +191,38 @@ export default function ModelsPage() {
     }
   }
 
+  const handleUpdateStatus = async (id: number, status: string) => {
+    try {
+      const response = await fetch('/api/models/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        addToast({
+          type: 'success',
+          title: 'Status Updated',
+          description: 'Model status has been updated successfully',
+          duration: 2000
+        })
+        await fetchModels()
+      } else {
+        throw new Error(data.error || 'Failed to update status')
+      }
+    } catch (error) {
+      logger.error('Error updating status:', error)
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        description: error instanceof Error ? error.message : 'Failed to update status',
+        duration: 5000
+      })
+    }
+  }
+
   const filteredModels = models.filter(model => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -206,7 +238,8 @@ export default function ModelsPage() {
     columns: createModelsColumns({
       onEdit: handleOpenModal,
       onDelete: handleDelete,
-      deletingModel
+      deletingModel,
+      onUpdateStatus: handleUpdateStatus
     }),
     showCheckbox: true,
     onRowClick: handleOpenModal,

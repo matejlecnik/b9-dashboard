@@ -102,6 +102,16 @@ function UniversalTableV2Component<T>({
 
     switch (field.type) {
       case 'text':
+        // Resolve subtitle if it's a function
+        const subtitle = typeof field.subtitle === 'function'
+          ? field.subtitle(item)
+          : field.subtitle
+
+        // Resolve badges if it's a function
+        const badges = typeof field.badges === 'function'
+          ? field.badges(item)
+          : field.badges
+
         return (
           <TextField
             value={value}
@@ -110,6 +120,9 @@ function UniversalTableV2Component<T>({
             placeholder={field.placeholder}
             bold={field.bold}
             color={field.color}
+            subtitle={subtitle}
+            subtitleColor={field.subtitleColor}
+            badges={badges}
             dangerouslySetHTML={field.dangerouslySetHTML}
             className={column.className}
           />

@@ -30,7 +30,7 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
     // Avatar column
     {
       id: 'avatar',
-      header: 'Icon',
+      header: 'PFP',
       accessor: (creator) => creator.profile_pic_url,
       width: 'w-16 flex-shrink-0',
       align: 'center',
@@ -61,6 +61,25 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
       }
     },
 
+    // Bio + Link
+    {
+      id: 'bio',
+      header: 'Bio + Link',
+      accessor: 'biography',
+      width: 'w-64 flex-shrink-0',
+      field: {
+        type: 'text',
+        color: 'secondary',
+        maxLength: 100,
+        placeholder: 'No bio',
+        subtitle: (creator) => creator.external_url ? {
+          type: 'link',
+          url: creator.external_url,
+          showHostname: true
+        } : undefined
+      }
+    },
+
     // Followers
     {
       id: 'followers',
@@ -73,25 +92,6 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
         format: 'abbreviated',
         color: 'secondary',
         bold: true
-      }
-    },
-
-    // Bio + Link
-    {
-      id: 'bio',
-      header: 'Bio + Link',
-      accessor: 'biography',
-      width: 'w-80 flex-shrink-0',
-      field: {
-        type: 'text',
-        color: 'secondary',
-        maxLines: 2,
-        placeholder: 'No bio',
-        subtitle: (creator) => creator.external_url ? {
-          type: 'link',
-          url: creator.external_url,
-          showHostname: true
-        } : undefined
       }
     },
 
