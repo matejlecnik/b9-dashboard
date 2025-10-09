@@ -1032,8 +1032,8 @@ class InstagramScraperUnified:
                 )
                 for row in result.data or []:
                     existing_pks.add(row["media_pk"])
-                    # Check if video already has R2 URL
-                    if row.get("video_url") and "r2.cloudflarestorage.com" in row["video_url"]:
+                    # Check if video already has R2 URL (supports both old and new R2 domains)
+                    if row.get("video_url") and "b9-instagram-media" in row["video_url"]:
                         existing_r2_urls[row["media_pk"]] = row["video_url"]
                         logger.info(
                             f"🔄 Skipping R2 upload for reel {row['media_pk']} (already in R2)"
@@ -1740,9 +1740,7 @@ class InstagramScraperUnified:
             posts_saved, posts_new, posts_existing = 0, 0, 0
 
             try:
-                logger.info(
-                    f"💾 [{thread_id}] Saving {len(reels)} reels to database for {username}"
-                )
+                logger.info(f"💾 [{thread_id}] Saving {len(reels)} reels to database for {username}")
                 # Use modular storage if available, otherwise fallback to monolithic
                 if self.use_modules:
                     reels_saved, reels_new, reels_existing = self.storage_module.store_reels(
@@ -1761,9 +1759,7 @@ class InstagramScraperUnified:
                 )
 
             try:
-                logger.info(
-                    f"💾 [{thread_id}] Saving {len(posts)} posts to database for {username}"
-                )
+                logger.info(f"💾 [{thread_id}] Saving {len(posts)} posts to database for {username}")
                 # Use modular storage if available, otherwise fallback to monolithic
                 if self.use_modules:
                     posts_saved, posts_new, posts_existing = self.storage_module.store_posts(

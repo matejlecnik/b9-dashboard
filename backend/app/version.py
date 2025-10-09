@@ -4,15 +4,13 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.12.0"
+API_VERSION = "3.12.1"
 
 # Component versions
 REDDIT_SCRAPER_VERSION = (
     "3.11.0"  # Auto-cycling with configurable cooldown (eliminates manual restarts)
 )
-INSTAGRAM_SCRAPER_VERSION = (
-    "3.12.0"  # 20 concurrent creators - 10-20x speedup (7.7 days → 9.25 hours for 10k)
-)
+INSTAGRAM_SCRAPER_VERSION = "3.12.1"  # Fixed R2 domain checks to support both old and new R2 URLs
 
 # Build info
 BUILD_DATE = "2025-10-09"
