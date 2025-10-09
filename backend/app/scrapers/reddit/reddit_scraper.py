@@ -189,16 +189,31 @@ class RedditScraper:
                                 f"\n   🔍 Processing {len(filtered)} discovered subreddits immediately..."
                             )
 
-                            for discovery_idx, new_sub in enumerate(filtered, 1):
+                            # Staggered parallel discovery processing (v3.8.0 optimization)
+                            # Discoveries start 100-200ms apart to avoid simultaneous requests while enabling concurrency
+                            filtered_list = list(filtered)
+                            random.shuffle(filtered_list)  # Randomize order for additional safety
+
+                            logger.info(
+                                f"      📥 Processing {len(filtered_list)} discoveries (staggered parallel)..."
+                            )
+
+                            # Helper function to process one discovery with stagger delay
+                            async def process_discovery_staggered(subreddit_name: str, discovery_idx: int, start_delay: float):
+                                """Process discovered subreddit with staggered start"""
+                                # Add random jitter to start delay (±50-100ms)
+                                jitter = random.uniform(-0.05, 0.1)
+                                await asyncio.sleep(start_delay + jitter)
+
                                 try:
                                     if not self.running:
-                                        break
+                                        return False
 
                                     # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
-                                    if new_sub not in self.subreddit_metadata_cache:
+                                    if subreddit_name not in self.subreddit_metadata_cache:
                                         # u_ = user profile feeds (skip full processing, just save to DB)
-                                        if new_sub.startswith("u_"):
-                                            self.subreddit_metadata_cache[new_sub] = {
+                                        if subreddit_name.startswith("u_"):
+                                            self.subreddit_metadata_cache[subreddit_name] = {
                                                 "review": "User Feed",
                                                 "primary_category": None,
                                                 "tags": [],
@@ -207,22 +222,22 @@ class RedditScraper:
                                             try:
                                                 self.supabase.table("reddit_subreddits").upsert(
                                                     {
-                                                        "name": new_sub,
+                                                        "name": subreddit_name,
                                                         "review": "User Feed",
                                                     },
                                                     on_conflict="name",
                                                 ).execute()
                                                 logger.info(
-                                                    f"      [{discovery_idx}/{len(filtered)}] 💾 r/{new_sub} (User Feed)"
+                                                    f"         [{discovery_idx + 1}/{len(filtered_list)}] 💾 r/{subreddit_name} (User Feed)"
                                                 )
                                             except Exception as e:
                                                 logger.debug(
-                                                    f"      ⚠️  Failed to save u_ subreddit r/{new_sub}: {e}"
+                                                    f"      ⚠️  Failed to save u_ subreddit r/{subreddit_name}: {e}"
                                                 )
-                                            continue  # Skip full processing for u_ subreddits
+                                            return True  # u_ subreddit saved, skip full processing
                                         else:
                                             # Regular subreddit = NULL for full analysis
-                                            self.subreddit_metadata_cache[new_sub] = {
+                                            self.subreddit_metadata_cache[subreddit_name] = {
                                                 "review": None,  # NULL = new discovery, needs full analysis
                                                 "primary_category": None,
                                                 "tags": [],
@@ -230,31 +245,43 @@ class RedditScraper:
 
                                     # Skip processing if already in cache (already processed or is u_ subreddit)
                                     if (
-                                        new_sub in self.subreddit_metadata_cache
-                                        and new_sub.startswith("u_")
+                                        subreddit_name in self.subreddit_metadata_cache
+                                        and subreddit_name.startswith("u_")
                                     ):
-                                        continue
+                                        return True
 
                                     logger.info(
-                                        f"      [{discovery_idx}/{len(filtered)}] 🆕 r/{new_sub}"
+                                        f"         [{discovery_idx + 1}/{len(filtered_list)}] 🆕 r/{subreddit_name}"
                                     )
-                                    await self.process_discovered_subreddit(new_sub)
-                                    await asyncio.sleep(random.uniform(0.15, 0.45))
+                                    await self.process_discovered_subreddit(subreddit_name)
+                                    return True
 
                                 except Exception as e:
-                                    logger.error(f"❌ Error processing discovery r/{new_sub}: {e}")
-                                    continue  # Continue to next discovery instead of breaking entire loop
+                                    logger.error(f"❌ Error processing discovery r/{subreddit_name}: {e}")
+                                    return False
 
+                            # Create tasks with staggered start delays (100-200ms between starts for heavier requests)
+                            tasks = []
+                            for idx, new_sub in enumerate(filtered_list):
+                                base_stagger = idx * random.uniform(0.1, 0.2)  # 100-200ms stagger
+                                task = process_discovery_staggered(new_sub, idx, base_stagger)
+                                tasks.append(task)
+
+                            # Execute all tasks concurrently (each starts with its own delay)
+                            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                            # Count successes
+                            successful = sum(1 for r in results if r is True)
                             logger.info(
-                                f"   ✅ Completed processing {len(filtered)} discoveries from r/{subreddit_name}\n"
+                                f"   ✅ Completed processing {successful}/{len(filtered_list)} discoveries from r/{subreddit_name}\n"
                             )
 
                 except Exception as e:
                     logger.error(f"❌ Error processing Ok subreddit {subreddit_name}: {e}")
 
-                # Delay between subreddits (avoid rate limit pattern)
+                # Delay between subreddits (avoid rate limit pattern) - v3.8.0: reduced from 1-2s to 0.3-0.9s
                 if idx < len(ok_subreddits) - 1:
-                    delay = random.uniform(1.0, 2.0)
+                    delay = random.uniform(0.3, 0.9)
                     await asyncio.sleep(delay)
 
             # Process No Seller subreddits sequentially (data update only)
@@ -278,9 +305,9 @@ class RedditScraper:
                             f"❌ Error processing No Seller subreddit {subreddit_name}: {e}"
                         )
 
-                    # Delay between subreddits
+                    # Delay between subreddits - v3.8.0: reduced from 1-2s to 0.3-0.9s
                     if idx < len(no_seller_subreddits) - 1:
-                        delay = random.uniform(1.0, 2.0)
+                        delay = random.uniform(0.3, 0.9)
                         await asyncio.sleep(delay)
 
             logger.info("\n✅ All subreddits processed")
@@ -789,21 +816,28 @@ class RedditScraper:
             if cached_count > 0:
                 logger.info(f"      🔄 Skipping {cached_count} already-fetched users (cache hit)")
 
-            # Fetch posts sequentially (one user at a time) - Reddit requires sequential requests
-            user_posts_results = []
+            # Fetch posts with staggered parallel execution (v3.8.0 optimization)
+            # Users start 50-150ms apart to avoid simultaneous requests while enabling concurrency
             authors_list = list(new_users)
+            random.shuffle(authors_list)  # Randomize order for additional safety
 
             logger.info(
-                f"      📥 Fetching last 10 posts from {len(authors_list)} users sequentially..."
+                f"      📥 Fetching last 10 posts from {len(authors_list)} users (staggered parallel)..."
             )
 
-            for idx, username in enumerate(authors_list, 1):
-                try:
-                    posts = None
-                    max_retries = 2  # Retry up to 2 more times if 0 posts
+            # Helper function to fetch posts for one user with stagger delay and retry
+            async def fetch_user_posts_staggered(username: str, user_idx: int, start_delay: float):
+                """Fetch user posts with staggered start and retry logic"""
+                # Add random jitter to start delay (±20-50ms)
+                jitter = random.uniform(-0.02, 0.05)
+                await asyncio.sleep(start_delay + jitter)
 
-                    # Attempt to fetch posts with retry logic
-                    for attempt in range(max_retries + 1):  # 0, 1, 2 = 3 total attempts
+                posts = None
+                max_retries = 2  # Retry up to 2 more times if 0 posts
+
+                # Attempt to fetch posts with retry logic
+                for attempt in range(max_retries + 1):  # 0, 1, 2 = 3 total attempts
+                    try:
                         posts = await self.api.get_user_posts(
                             username,
                             limit=10,
@@ -812,41 +846,53 @@ class RedditScraper:
 
                         # If we got posts, break out of retry loop
                         if isinstance(posts, list) and len(posts) > 0:
-                            break
+                            self.session_fetched_users.add(username)  # Cache successful fetch
+                            logger.info(f"         [{user_idx + 1}/{len(authors_list)}] {username}: ✅ {len(posts)} posts")
+                            return posts
 
-                        # If 0 posts and not last attempt, retry
+                        # If 0 posts and not last attempt, retry with exponential backoff
                         if attempt < max_retries:
+                            backoff = random.uniform(0.1, 0.3) * (1.5 ** attempt)
                             logger.info(
-                                f"         [{idx}/{len(authors_list)}] {username}: ⚠️  0 posts, retrying (attempt {attempt + 2}/{max_retries + 1})..."
+                                f"         [{user_idx + 1}/{len(authors_list)}] {username}: ⚠️  0 posts, retrying (attempt {attempt + 2}/{max_retries + 1})..."
                             )
-                            await asyncio.sleep(random.uniform(0.1, 0.3))  # Small delay before retry
+                            await asyncio.sleep(backoff)
 
-                    user_posts_results.append(posts if posts else [])
+                    except Exception as e:
+                        # Only log error on final attempt
+                        if attempt == max_retries:
+                            logger.info(
+                                f"         [{user_idx + 1}/{len(authors_list)}] {username}: ❌ error: {str(e)[:50]}"
+                            )
+                        else:
+                            # Retry after brief delay
+                            await asyncio.sleep(random.uniform(0.1, 0.3))
 
-                    if isinstance(posts, list) and len(posts) > 0:
-                        # Cache user to prevent duplicate fetches in this session
-                        self.session_fetched_users.add(username)
-                        logger.info(
-                            f"         [{idx}/{len(authors_list)}] {username}: ✅ {len(posts)} posts"
-                        )
-                    elif isinstance(posts, list):
-                        logger.info(
-                            f"         [{idx}/{len(authors_list)}] {username}: ⚠️  no posts after {max_retries + 1} attempts"
-                        )
-                    else:
-                        logger.info(
-                            f"         [{idx}/{len(authors_list)}] {username}: ❌ failed"
-                        )
-                except Exception as e:
+                # All attempts failed or returned 0 posts
+                if isinstance(posts, list):
                     logger.info(
-                        f"         [{idx}/{len(authors_list)}] {username}: ❌ error: {str(e)[:50]}"
+                        f"         [{user_idx + 1}/{len(authors_list)}] {username}: ⚠️  no posts after {max_retries + 1} attempts"
                     )
-                    user_posts_results.append([])
+                else:
+                    logger.info(f"         [{user_idx + 1}/{len(authors_list)}] {username}: ❌ failed")
 
-                # Minimal delay between each user (10-50ms)
-                if idx < len(authors_list):
-                    delay = random.uniform(0.01, 0.05)
-                    await asyncio.sleep(delay)
+                return []
+
+            # Create tasks with staggered start delays (50-150ms between starts)
+            tasks = []
+            for idx, username in enumerate(authors_list):
+                base_stagger = idx * random.uniform(0.05, 0.15)  # 50-150ms stagger
+                task = fetch_user_posts_staggered(username, idx, base_stagger)
+                tasks.append(task)
+
+            # Execute all tasks concurrently (each starts with its own delay)
+            user_posts_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Filter out exceptions (already logged in helper function)
+            user_posts_results = [
+                posts if isinstance(posts, list) else []
+                for posts in user_posts_results
+            ]
 
             # Extract subreddits from posts
             for posts in user_posts_results:

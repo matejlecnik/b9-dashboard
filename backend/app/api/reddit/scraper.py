@@ -428,14 +428,14 @@ async def get_reddit_api_stats():
 
         return {
             "daily_calls": api_calls.count if api_calls.count else 0,
-            "daily_limit": 10000,
-            "remaining": 10000 - (api_calls.count if api_calls.count else 0),
+            "daily_limit": None,  # No artificial limit
+            "remaining": "unlimited",
             "reset_at": (today.replace(hour=0, minute=0, second=0) + timedelta(days=1)).isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Failed to get Reddit API stats: {e}")
-        return {"daily_calls": 0, "daily_limit": 10000, "remaining": 10000, "error": str(e)}
+        return {"daily_calls": 0, "daily_limit": None, "remaining": "unlimited", "error": str(e)}
 
 
 @router.get("/success-rate")
