@@ -1,5 +1,6 @@
 import { type ActionButton } from './fields/ActionsField'
 import { type BadgeVariant } from './fields/BadgeField'
+import { type Badge } from './fields/BadgesField'
 
 // Base column alignment and sizing
 export type ColumnAlign = 'left' | 'center' | 'right'
@@ -24,6 +25,9 @@ export interface TextFieldConfig {
   placeholder?: string
   bold?: boolean
   color?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
+  subtitle?: string | ((item: any) => string | undefined)
+  subtitleColor?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
+  badges?: Badge[] | ((item: any) => Badge[])
   dangerouslySetHTML?: boolean
 }
 

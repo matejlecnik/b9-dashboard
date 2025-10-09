@@ -1,6 +1,6 @@
 import { type ColumnDefinition } from '../types'
 import { type Subreddit } from '@/types/subreddit'
-import { BadgePresetConfigs } from '../fields/IconBadgesField'
+import { BadgePresetConfigs } from '../fields/BadgesField'
 import { PercentagePresets } from '../fields/PercentageField'
 import { SelectOptionPresets, MultiSelectButtonsField } from '../fields/MultiSelectButtonsField'
 import { RulesButtonField } from '../fields/RulesButtonField'
@@ -58,12 +58,11 @@ export function createRedditReviewColumns(config: RedditReviewColumnConfig): Col
         badges: (subreddit) => [
           BadgePresetConfigs.reddit.verified(subreddit.verification_required || false),
           {
-            icon: () => null as any,
             show: typeof subreddit.is_nsfw === 'boolean' || typeof subreddit.over18 === 'boolean',
             title: (subreddit.is_nsfw ?? subreddit.over18) ? 'NSFW' : 'SFW',
             className: (subreddit.is_nsfw ?? subreddit.over18)
-              ? 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-pink-50/50 text-pink-600 border border-pink-200/40'
-              : 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-50 text-gray-600 border border-gray-200/40'
+              ? 'inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-pink-50/50 text-pink-600 border border-pink-200/40'
+              : 'inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-50 text-gray-600 border border-gray-200/40'
           }
         ].filter(b => b.show)
       }
