@@ -4,10 +4,10 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.8.2"
+API_VERSION = "3.9.0"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = "3.8.2"  # Cleaner pagination logs + retry logic for all Reddit API calls
+REDDIT_SCRAPER_VERSION = "3.9.0"  # Concurrent subreddit processing (5x speedup) + user feed PK fix
 INSTAGRAM_SCRAPER_VERSION = "2.1.0"
 
 # Build info
