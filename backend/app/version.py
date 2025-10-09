@@ -4,10 +4,10 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.8.0"
+API_VERSION = "3.8.1"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = "3.8.0"  # Staggered parallel optimization: 3-4x faster (15h→4-6h runtime)
+REDDIT_SCRAPER_VERSION = "3.8.1"  # User feeds no longer processed (instant save), staggered parallel for regular subs only
 INSTAGRAM_SCRAPER_VERSION = "2.1.0"
 
 # Build info

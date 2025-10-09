@@ -189,92 +189,95 @@ class RedditScraper:
                                 f"\n   🔍 Processing {len(filtered)} discovered subreddits immediately..."
                             )
 
-                            # Staggered parallel discovery processing (v3.8.0 optimization)
-                            # Discoveries start 100-200ms apart to avoid simultaneous requests while enabling concurrency
+                            # Separate u_ subreddits (user feeds) from regular subreddits
+                            # User feeds should be immediately marked as "User Feed" without any processing
                             filtered_list = list(filtered)
-                            random.shuffle(filtered_list)  # Randomize order for additional safety
+                            user_feed_subs = [sub for sub in filtered_list if sub.startswith("u_")]
+                            regular_subs = [sub for sub in filtered_list if not sub.startswith("u_")]
 
-                            logger.info(
-                                f"      📥 Processing {len(filtered_list)} discoveries (staggered parallel)..."
-                            )
-
-                            # Helper function to process one discovery with stagger delay
-                            async def process_discovery_staggered(subreddit_name: str, discovery_idx: int, start_delay: float):
-                                """Process discovered subreddit with staggered start"""
-                                # Add random jitter to start delay (±50-100ms)
-                                jitter = random.uniform(-0.05, 0.1)
-                                await asyncio.sleep(start_delay + jitter)
-
+                            # Process user feed subreddits immediately (no delays, no API calls, no processing)
+                            if user_feed_subs:
+                                logger.info(
+                                    f"      👥 Saving {len(user_feed_subs)} user feed subreddits immediately..."
+                                )
+                                user_feed_payloads = [
+                                    {"name": sub, "review": "User Feed"} for sub in user_feed_subs
+                                ]
                                 try:
-                                    if not self.running:
-                                        return False
+                                    self.supabase.table("reddit_subreddits").upsert(
+                                        user_feed_payloads, on_conflict="name"
+                                    ).execute()
 
-                                    # Mark u_ subreddits as User Feed (skip processing), others as NULL (full analysis)
-                                    if subreddit_name not in self.subreddit_metadata_cache:
-                                        # u_ = user profile feeds (skip full processing, just save to DB)
-                                        if subreddit_name.startswith("u_"):
-                                            self.subreddit_metadata_cache[subreddit_name] = {
-                                                "review": "User Feed",
-                                                "primary_category": None,
-                                                "tags": [],
-                                            }
-                                            # Save u_ subreddit directly to DB (skip process_discovered_subreddit to avoid duplicates)
-                                            try:
-                                                self.supabase.table("reddit_subreddits").upsert(
-                                                    {
-                                                        "name": subreddit_name,
-                                                        "review": "User Feed",
-                                                    },
-                                                    on_conflict="name",
-                                                ).execute()
-                                                logger.info(
-                                                    f"         [{discovery_idx + 1}/{len(filtered_list)}] 💾 r/{subreddit_name} (User Feed)"
-                                                )
-                                            except Exception as e:
-                                                logger.debug(
-                                                    f"      ⚠️  Failed to save u_ subreddit r/{subreddit_name}: {e}"
-                                                )
-                                            return True  # u_ subreddit saved, skip full processing
-                                        else:
-                                            # Regular subreddit = NULL for full analysis
+                                    # Add to cache
+                                    for sub in user_feed_subs:
+                                        self.subreddit_metadata_cache[sub] = {
+                                            "review": "User Feed",
+                                            "primary_category": None,
+                                            "tags": [],
+                                        }
+                                        self.user_feed_cache.add(sub)  # Add to cache to skip future processing
+
+                                    logger.info(
+                                        f"      ✅ Saved {len(user_feed_subs)} user feed subreddits (no processing required)"
+                                    )
+                                except Exception as e:
+                                    logger.error(f"❌ Failed to save user feed subreddits: {e}")
+
+                            # Staggered parallel discovery processing (v3.8.0 optimization) - ONLY for regular subreddits
+                            # Discoveries start 100-200ms apart to avoid simultaneous requests while enabling concurrency
+                            if regular_subs:
+                                random.shuffle(regular_subs)  # Randomize order for additional safety
+
+                                logger.info(
+                                    f"      📥 Processing {len(regular_subs)} regular subreddits (staggered parallel)..."
+                                )
+
+                                # Helper function to process one discovery with stagger delay
+                                async def process_discovery_staggered(
+                                    subreddit_name: str, discovery_idx: int, start_delay: float
+                                ):
+                                    """Process discovered subreddit with staggered start"""
+                                    # Add random jitter to start delay (±50-100ms)
+                                    jitter = random.uniform(-0.05, 0.1)
+                                    await asyncio.sleep(start_delay + jitter)
+
+                                    try:
+                                        if not self.running:
+                                            return False
+
+                                        # Mark as NULL for full analysis (cache entry)
+                                        if subreddit_name not in self.subreddit_metadata_cache:
                                             self.subreddit_metadata_cache[subreddit_name] = {
                                                 "review": None,  # NULL = new discovery, needs full analysis
                                                 "primary_category": None,
                                                 "tags": [],
                                             }
 
-                                    # Skip processing if already in cache (already processed or is u_ subreddit)
-                                    if (
-                                        subreddit_name in self.subreddit_metadata_cache
-                                        and subreddit_name.startswith("u_")
-                                    ):
+                                        logger.info(
+                                            f"         [{discovery_idx + 1}/{len(regular_subs)}] 🆕 r/{subreddit_name}"
+                                        )
+                                        await self.process_discovered_subreddit(subreddit_name)
                                         return True
 
-                                    logger.info(
-                                        f"         [{discovery_idx + 1}/{len(filtered_list)}] 🆕 r/{subreddit_name}"
-                                    )
-                                    await self.process_discovered_subreddit(subreddit_name)
-                                    return True
+                                    except Exception as e:
+                                        logger.error(f"❌ Error processing discovery r/{subreddit_name}: {e}")
+                                        return False
 
-                                except Exception as e:
-                                    logger.error(f"❌ Error processing discovery r/{subreddit_name}: {e}")
-                                    return False
+                                # Create tasks with staggered start delays (100-200ms between starts for heavier requests)
+                                tasks = []
+                                for idx, new_sub in enumerate(regular_subs):
+                                    base_stagger = idx * random.uniform(0.1, 0.2)  # 100-200ms stagger
+                                    task = process_discovery_staggered(new_sub, idx, base_stagger)
+                                    tasks.append(task)
 
-                            # Create tasks with staggered start delays (100-200ms between starts for heavier requests)
-                            tasks = []
-                            for idx, new_sub in enumerate(filtered_list):
-                                base_stagger = idx * random.uniform(0.1, 0.2)  # 100-200ms stagger
-                                task = process_discovery_staggered(new_sub, idx, base_stagger)
-                                tasks.append(task)
+                                # Execute all tasks concurrently (each starts with its own delay)
+                                results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                            # Execute all tasks concurrently (each starts with its own delay)
-                            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-                            # Count successes
-                            successful = sum(1 for r in results if r is True)
-                            logger.info(
-                                f"   ✅ Completed processing {successful}/{len(filtered_list)} discoveries from r/{subreddit_name}\n"
-                            )
+                                # Count successes
+                                successful = sum(1 for r in results if r is True)
+                                logger.info(
+                                    f"   ✅ Completed processing {successful}/{len(regular_subs)} regular subreddits from r/{subreddit_name}\n"
+                                )
 
                 except Exception as e:
                     logger.error(f"❌ Error processing Ok subreddit {subreddit_name}: {e}")
