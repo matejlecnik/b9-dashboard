@@ -7,7 +7,7 @@ Single source of truth for all version numbers
 API_VERSION = "3.7.0"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = "3.6.3"
+REDDIT_SCRAPER_VERSION = "3.7.0"  # Optimized discovery: top weekly only, 10 posts/user, retry logic
 INSTAGRAM_SCRAPER_VERSION = "2.1.0"
 
 # Build info

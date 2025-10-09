@@ -672,14 +672,13 @@ class RedditScraper:
 
         # ========== PASS 1: Fetch & Save Subreddit + Posts ==========
 
-        # 1. Parallelize all API calls (3-5x speedup: 2.5-5s → 0.8-1.2s)
+        # 1. Parallelize all API calls (3-4x speedup: 2.5-5s → 0.8-1.2s)
         # Add 60s timeout to prevent infinite hangs (v3.6.3 bugfix)
         try:
-            subreddit_info, rules, hot_10, top_10_weekly = await asyncio.wait_for(
+            subreddit_info, rules, top_10_weekly = await asyncio.wait_for(
                 asyncio.gather(
                     self.api.get_subreddit_info(subreddit_name, proxy),
                     self.api.get_subreddit_rules(subreddit_name, proxy),
-                    self.api.get_subreddit_hot_posts(subreddit_name, 10, proxy),
                     self.api.get_subreddit_top_posts(subreddit_name, "week", 10, proxy),
                 ),
                 timeout=60.0,
@@ -737,19 +736,6 @@ class RedditScraper:
                 logger.warning(f"⚠️  Using empty rules list after {max_retries} retries")
                 rules = []
 
-        # Validate hot_10 (retry if None)
-        if not self.validate_api_data(hot_10, "hot_10"):
-            for attempt in range(max_retries):
-                logger.info(f"   🔄 Retrying hot_10 (attempt {attempt + 1}/{max_retries})...")
-                hot_10 = await self.api.get_subreddit_hot_posts(
-                    subreddit_name, 10, self.proxy_manager.get_next_proxy()
-                )
-                if self.validate_api_data(hot_10, "hot_10"):
-                    break
-            else:
-                logger.warning(f"⚠️  Using empty hot_10 list after {max_retries} retries")
-                hot_10 = []
-
         # Validate top_10_weekly (retry if None)
         if not self.validate_api_data(top_10_weekly, "top_10_weekly"):
             for attempt in range(max_retries):
@@ -777,7 +763,7 @@ class RedditScraper:
         self.session_processed.add(subreddit_name)
 
         # 4. Collect posts but DON'T save yet (authors must be saved first)
-        all_posts = hot_10 + top_10_weekly
+        all_posts = list(top_10_weekly)
         unique_posts = {post.get("id"): post for post in all_posts if post.get("id")}
 
         logger.info(f"   ✅ Saved r/{subreddit_name} (posts will be saved after users)")
@@ -788,65 +774,77 @@ class RedditScraper:
             logger.info(f"   📊 r/{subreddit_name} complete (No Seller - skipped users)")
             return set()  # No discoveries for No Seller subreddits
 
-        # 5a. Extract authors from hot posts for discovery
-        hot_authors = self.extract_authors(hot_10)
+        # Extract authors from top weekly posts for discovery and username saving
+        authors = self.extract_authors(top_10_weekly)
+        logger.info(f"   👥 Found {len(authors)} unique authors from top weekly posts")
 
-        # 5b. Extract authors from all posts for username saving
-        all_authors = self.extract_authors(all_posts)
-        logger.info(
-            f"   👥 Found {len(all_authors)} unique authors ({len(hot_authors)} from hot posts)"
-        )
-
-        # 6. Discover subreddits from hot post authors (if enabled)
+        # 6. Discover subreddits from top weekly post authors (if enabled)
         discovered_subreddits = set()
-        if allow_discovery and hot_authors:
-            logger.info(f"   🔍 Discovering subreddits from {len(hot_authors)} hot post authors...")
+        if allow_discovery and authors:
+            logger.info(f"   🔍 Discovering subreddits from {len(authors)} top weekly post authors...")
 
             # Filter out already-fetched users (optimization - prevents duplicate API calls)
-            new_users = hot_authors - self.session_fetched_users
-            cached_count = len(hot_authors) - len(new_users)
+            new_users = authors - self.session_fetched_users
+            cached_count = len(authors) - len(new_users)
             if cached_count > 0:
                 logger.info(f"      🔄 Skipping {cached_count} already-fetched users (cache hit)")
 
             # Fetch posts sequentially (one user at a time) - Reddit requires sequential requests
             user_posts_results = []
-            hot_authors_list = list(new_users)
+            authors_list = list(new_users)
 
             logger.info(
-                f"      📥 Fetching posts from {len(hot_authors_list)} users sequentially..."
+                f"      📥 Fetching last 10 posts from {len(authors_list)} users sequentially..."
             )
 
-            for idx, username in enumerate(hot_authors_list, 1):
+            for idx, username in enumerate(authors_list, 1):
                 try:
-                    posts = await self.api.get_user_posts(
-                        username,
-                        limit=30,
-                        proxy_config=self.proxy_manager.get_next_proxy(),
-                    )
-                    user_posts_results.append(posts)
+                    posts = None
+                    max_retries = 2  # Retry up to 2 more times if 0 posts
+
+                    # Attempt to fetch posts with retry logic
+                    for attempt in range(max_retries + 1):  # 0, 1, 2 = 3 total attempts
+                        posts = await self.api.get_user_posts(
+                            username,
+                            limit=10,
+                            proxy_config=self.proxy_manager.get_next_proxy(),
+                        )
+
+                        # If we got posts, break out of retry loop
+                        if isinstance(posts, list) and len(posts) > 0:
+                            break
+
+                        # If 0 posts and not last attempt, retry
+                        if attempt < max_retries:
+                            logger.info(
+                                f"         [{idx}/{len(authors_list)}] {username}: ⚠️  0 posts, retrying (attempt {attempt + 2}/{max_retries + 1})..."
+                            )
+                            await asyncio.sleep(random.uniform(0.1, 0.3))  # Small delay before retry
+
+                    user_posts_results.append(posts if posts else [])
 
                     if isinstance(posts, list) and len(posts) > 0:
                         # Cache user to prevent duplicate fetches in this session
                         self.session_fetched_users.add(username)
                         logger.info(
-                            f"         [{idx}/{len(hot_authors_list)}] {username}: ✅ {len(posts)} posts"
+                            f"         [{idx}/{len(authors_list)}] {username}: ✅ {len(posts)} posts"
                         )
                     elif isinstance(posts, list):
                         logger.info(
-                            f"         [{idx}/{len(hot_authors_list)}] {username}: ⚠️  no posts"
+                            f"         [{idx}/{len(authors_list)}] {username}: ⚠️  no posts after {max_retries + 1} attempts"
                         )
                     else:
                         logger.info(
-                            f"         [{idx}/{len(hot_authors_list)}] {username}: ❌ failed"
+                            f"         [{idx}/{len(authors_list)}] {username}: ❌ failed"
                         )
                 except Exception as e:
                     logger.info(
-                        f"         [{idx}/{len(hot_authors_list)}] {username}: ❌ error: {str(e)[:50]}"
+                        f"         [{idx}/{len(authors_list)}] {username}: ❌ error: {str(e)[:50]}"
                     )
                     user_posts_results.append([])
 
                 # Minimal delay between each user (10-50ms)
-                if idx < len(hot_authors_list):
+                if idx < len(authors_list):
                     delay = random.uniform(0.01, 0.05)
                     await asyncio.sleep(delay)
 
@@ -916,8 +914,8 @@ class RedditScraper:
             else:
                 logger.info("   ✅ Discovered 0 new subreddits (all filtered)")
 
-        # 7. Save usernames in batch (all authors)
-        self.save_users_batch(all_authors)
+        # 7. Save usernames in batch (authors from top weekly posts)
+        self.save_users_batch(authors)
 
         # 8. Save posts and return discoveries
         await self.save_posts(list(unique_posts.values()), subreddit_name)
