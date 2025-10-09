@@ -444,13 +444,29 @@ async def get_reddit_success_rate():
     try:
         supabase = get_supabase()
 
-        # Get last 2000 logs from reddit_scraper to find enough API request indicators
+        # Get current run's start time from system_control
+        control_result = (
+            supabase.table("system_control")
+            .select("started_at")
+            .eq("script_name", "reddit_scraper")
+            .execute()
+        )
+
+        # Default to last 24 hours if no started_at found
+        if control_result.data and len(control_result.data) > 0 and control_result.data[0].get("started_at"):
+            start_time = control_result.data[0]["started_at"]
+        else:
+            # Fallback to 24 hours ago
+            start_time = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+        # Get logs from current run only (since started_at)
         all_logs = (
             supabase.table("system_logs")
             .select("id, level, message")
             .eq("source", "reddit_scraper")
+            .gte("timestamp", start_time)
             .order("timestamp", desc=True)
-            .limit(2000)
+            .limit(5000)  # Increased limit for longer runs
             .execute()
         )
 
