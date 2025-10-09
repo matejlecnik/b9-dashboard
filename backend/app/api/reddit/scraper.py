@@ -473,24 +473,27 @@ async def get_reddit_success_rate():
             message = log.get("message", "")
             level = log.get("level", "")
 
-            # Successful user post fetches: "✅ X posts" (where X > 0)
-            if "✅" in message and "posts" in message and not "0 posts" in message:
-                successful_requests += 1
+            # User post fetch results (format: "[X/Y] username: ✅ N posts")
+            # Only count if it has the [X/Y] format indicating it's a user fetch line
+            if "[" in message and "]" in message and ":" in message:
+                # Successful user post fetches: "[1/6] username: ✅ 10 posts"
+                if "✅" in message and "posts" in message:
+                    successful_requests += 1
 
-            # Failed user post fetches: "⚠️ 0 posts" or "❌ failed"
-            elif ("⚠️" in message and "0 posts" in message) or ("❌" in message and "failed" in message):
-                failed_requests += 1
+                # Failed user post fetches: "[2/6] username: ⚠️ 0 posts"
+                elif "⚠️" in message and "0 posts" in message:
+                    failed_requests += 1
 
             # API validation failures: "⚠️ subreddit_info is None" etc
             elif "⚠️" in message and ("is None" in message or "has error" in message):
                 failed_requests += 1
 
-            # Retry attempts indicate a failure
+            # Retry attempts for API data (subreddit info, rules, posts)
             elif "🔄 Retrying" in message and ("subreddit_info" in message or "rules" in message or "top_10_weekly" in message):
                 failed_requests += 1
 
             # Explicit error level logs related to API calls
-            elif level == "error" and ("API" in message or "fetch" in message or "request" in message):
+            elif level == "error" and ("API" in message or "fetch" in message or "request" in message or "Error processing" in message):
                 failed_requests += 1
 
         total_requests = successful_requests + failed_requests
