@@ -96,12 +96,12 @@ class RedditScraper:
         self.ok_cache: Set[str] = set()  # Ok subreddits (Loop 1 targets)
         self.no_seller_cache: Set[str] = set()  # No Seller subreddits (Loop 2 targets)
         self.null_review_cache: Set[str] = set()  # NULL review subreddits (awaiting manual review)
-        self.session_processed: Set[str] = (
-            set()
-        )  # Subreddits processed in this session (prevents re-discovery)
-        self.session_fetched_users: Set[str] = (
-            set()
-        )  # Users whose posts we've already fetched (prevents duplicate fetches)
+        self.session_processed: Set[
+            str
+        ] = set()  # Subreddits processed in this session (prevents re-discovery)
+        self.session_fetched_users: Set[
+            str
+        ] = set()  # Users whose posts we've already fetched (prevents duplicate fetches)
         self.skip_cache_time = None
         self.cache_ttl = timedelta(hours=1)  # Refresh cache every hour
 
@@ -113,13 +113,13 @@ class RedditScraper:
         self.all_subreddits_cache: Set[str] = set()
 
     async def run(self):
-        """Main scraper loop"""
+        """Main scraper loop with auto-cycling (v3.11.0)"""
         logger.info(f"🚀 Starting Reddit Scraper v{SCRAPER_VERSION}")
         logger.info(
             f"📝 Version: {SCRAPER_VERSION} | Dual logging: console + Supabase system_logs\n"
         )
 
-        # Phase 1: Load and test proxies
+        # Phase 1: Load and test proxies (one-time setup)
         logger.info("📡 Phase 1: Proxy Setup")
 
         # Load proxies from database
@@ -138,29 +138,40 @@ class RedditScraper:
             f"   ✅ {working_proxies}/{proxy_count} proxies working | {working_proxies} threads ready\n"
         )
 
-        # Phase 2: Load target subreddits
-        logger.info("📋 Phase 2: Target Subreddits")
-
-        # Load skip caches first (Non Related, User Feed, Banned)
-        await self.load_skip_caches()
-
-        # v3.10.0: Load ALL subreddit names for instant filtering (zero DB queries during processing)
-        await self.load_all_subreddits_cache()
-
-        # Get target subreddits by review status
-        subreddits_by_status = await self.get_target_subreddits()
-        ok_subreddits = subreddits_by_status.get("ok", [])
-        no_seller_subreddits = subreddits_by_status.get("no_seller", [])
-
-        if not ok_subreddits and not no_seller_subreddits:
-            logger.warning("⚠️ No target subreddits found - nothing to scrape")
-            raise RuntimeError("Cannot start scraper: No target subreddits configured")
-
         # Mark as running
         self.running = True
 
-        # Phase 3: Process subreddits
-        logger.info("📋 Phase 3: Processing Subreddits")
+        # Auto-cycling loop (v3.11.0 - automatic restart after completion)
+        cycle_number = 1
+        while self.running:
+            if cycle_number > 1:
+                logger.info(f"\n{'='*60}")
+                logger.info(f"🔄 CYCLE #{cycle_number}")
+                logger.info(f"{'='*60}\n")
+
+            # Phase 2: Load target subreddits (refreshed each cycle)
+            logger.info("📋 Phase 2: Target Subreddits")
+
+            # Load skip caches first (Non Related, User Feed, Banned)
+            await self.load_skip_caches()
+
+            # v3.10.0: Load ALL subreddit names for instant filtering (zero DB queries during processing)
+            await self.load_all_subreddits_cache()
+
+            # Get target subreddits by review status
+            subreddits_by_status = await self.get_target_subreddits()
+            ok_subreddits = subreddits_by_status.get("ok", [])
+            no_seller_subreddits = subreddits_by_status.get("no_seller", [])
+
+            if not ok_subreddits and not no_seller_subreddits:
+                logger.warning("⚠️ No target subreddits found - nothing to scrape")
+                # Sleep and retry instead of raising exception
+                logger.info("⏳ Waiting 300s before retrying...")
+                await asyncio.sleep(300)
+                continue
+
+            # Phase 3: Process subreddits
+            logger.info("📋 Phase 3: Processing Subreddits")
 
         # Initialize API clients:
         # - Async API for subreddit processing (not rate-limited, works fine)
@@ -171,19 +182,23 @@ class RedditScraper:
             # Process OK subreddits concurrently in batches (v3.9.0 optimization)
             # Process 5 subreddits at a time with 0.5s stagger between starts
             BATCH_SIZE = 5
-            logger.info(f"\n🎯 Processing {len(ok_subreddits)} OK subreddits (batches of {BATCH_SIZE})...")
+            logger.info(
+                f"\n🎯 Processing {len(ok_subreddits)} OK subreddits (batches of {BATCH_SIZE})..."
+            )
 
             for batch_start in range(0, len(ok_subreddits), BATCH_SIZE):
                 if not self.running:
                     break
 
-                batch = ok_subreddits[batch_start:batch_start + BATCH_SIZE]
+                batch = ok_subreddits[batch_start : batch_start + BATCH_SIZE]
                 batch_end = min(batch_start + BATCH_SIZE, len(ok_subreddits))
 
                 logger.info(f"\n📦 Batch [{batch_start + 1}-{batch_end}/{len(ok_subreddits)}]")
 
                 # Helper function to process one OK subreddit with staggered start
-                async def process_ok_subreddit_staggered(subreddit_name: str, idx: int, start_delay: float):
+                async def process_ok_subreddit_staggered(
+                    subreddit_name: str, idx: int, start_delay: float
+                ):
                     """Process OK subreddit with staggered start and discovery handling"""
                     # Add random jitter to start delay (±100-200ms)
                     jitter = random.uniform(-0.1, 0.2)
@@ -193,7 +208,9 @@ class RedditScraper:
                         if not self.running:
                             return None
 
-                        logger.info(f"🔄 [{batch_start + idx + 1}/{len(ok_subreddits)}] r/{subreddit_name}")
+                        logger.info(
+                            f"🔄 [{batch_start + idx + 1}/{len(ok_subreddits)}] r/{subreddit_name}"
+                        )
 
                         # Process subreddit and get discovered subreddits
                         discovered = await self.process_subreddit(
@@ -228,15 +245,15 @@ class RedditScraper:
                 self.session_processed.update(all_discoveries)
 
                 if all_discoveries:
-                    logger.info(f"\n   🔍 Processing {len(all_discoveries)} total discoveries from batch...")
+                    logger.info(
+                        f"\n   🔍 Processing {len(all_discoveries)} total discoveries from batch..."
+                    )
 
                     # Filter once using cache (zero DB queries!)
                     filtered = self.filter_using_cache_only(all_discoveries)
 
                     if filtered:
-                        logger.info(
-                            f"      ✅ {len(filtered)} NEW subreddits after filtering"
-                        )
+                        logger.info(f"      ✅ {len(filtered)} NEW subreddits after filtering")
 
                         # Separate u_ subreddits (user feeds) from regular subreddits
                         # User feeds should be immediately marked as "User Feed" without any processing
@@ -264,7 +281,9 @@ class RedditScraper:
                                         "primary_category": None,
                                         "tags": [],
                                     }
-                                    self.user_feed_cache.add(sub)  # Add to cache to skip future processing
+                                    self.user_feed_cache.add(
+                                        sub
+                                    )  # Add to cache to skip future processing
                                     self.all_subreddits_cache.add(sub)  # Update global cache
 
                                 logger.info(
@@ -275,7 +294,7 @@ class RedditScraper:
                                 error_str = str(e)
                                 if "23505" in error_str or "duplicate key" in error_str.lower():
                                     logger.info(
-                                        f"      ✅ User feed subreddits already exist (added to cache)"
+                                        "      ✅ User feed subreddits already exist (added to cache)"
                                     )
                                     # Still add to cache even if DB insert failed
                                     for sub in user_feed_subs:
@@ -330,18 +349,26 @@ class RedditScraper:
                                     return True
 
                                 except Exception as e:
-                                    logger.error(f"❌ Error processing discovery r/{subreddit_name}: {e}")
+                                    logger.error(
+                                        f"❌ Error processing discovery r/{subreddit_name}: {e}"
+                                    )
                                     return False
 
                             # Create tasks with staggered start delays (100-200ms between starts for heavier requests)
                             discovery_tasks = []
                             for discovery_idx, new_sub in enumerate(regular_subs):
-                                base_stagger = discovery_idx * random.uniform(0.1, 0.2)  # 100-200ms stagger
-                                discovery_task = process_discovery_staggered(new_sub, discovery_idx, base_stagger)
+                                base_stagger = discovery_idx * random.uniform(
+                                    0.1, 0.2
+                                )  # 100-200ms stagger
+                                discovery_task = process_discovery_staggered(
+                                    new_sub, discovery_idx, base_stagger
+                                )
                                 discovery_tasks.append(discovery_task)
 
                             # Execute all discovery tasks concurrently (each starts with its own delay)
-                            discovery_results = await asyncio.gather(*discovery_tasks, return_exceptions=True)
+                            discovery_results = await asyncio.gather(
+                                *discovery_tasks, return_exceptions=True
+                            )
 
                             # Count successes
                             successful = sum(1 for r in discovery_results if r is True)
@@ -382,9 +409,30 @@ class RedditScraper:
 
             logger.info("\n✅ All subreddits processed")
 
-            # Keep running (will be stopped by controller)
-            while self.running:
-                await asyncio.sleep(60)
+            # Auto-cycling: Get cooldown from system_control.config (default 5 minutes)
+            cooldown_seconds = 300
+            try:
+                control = (
+                    self.supabase.table("system_control")
+                    .select("config")
+                    .eq("script_name", "reddit_scraper")
+                    .single()
+                    .execute()
+                )
+                if control.data and control.data.get("config"):
+                    cooldown_seconds = control.data["config"].get("cycle_cooldown_seconds", 300)
+            except Exception:
+                pass  # Use default on error
+
+            next_start = datetime.now(timezone.utc) + timedelta(seconds=cooldown_seconds)
+            logger.info(
+                f"🔄 Cycle #{cycle_number} complete. Next cycle starts at {next_start.strftime('%H:%M:%S UTC')} ({cooldown_seconds}s cooldown)"
+            )
+
+            await asyncio.sleep(cooldown_seconds)
+
+            # Increment cycle counter for next iteration
+            cycle_number += 1
 
     async def _fetch_subreddits_paginated(
         self, review_status: str, fields: str = "name"
@@ -436,9 +484,7 @@ class RedditScraper:
             offset += len(response.data)  # Use actual rows returned
 
         # Log completion with total
-        logger.info(
-            f"      ✅ Loaded {len(all_data):,} {review_status} ({iteration} iterations)"
-        )
+        logger.info(f"      ✅ Loaded {len(all_data):,} {review_status} ({iteration} iterations)")
         return all_data
 
     async def get_target_subreddits(self) -> Dict[str, List[str]]:
@@ -894,7 +940,9 @@ class RedditScraper:
         # Validate subreddit_info (critical - retry if None)
         if not self.validate_api_data(subreddit_info, "subreddit_info"):
             for attempt in range(max_retries):
-                logger.info(f"   🔄 Retrying subreddit_info (attempt {attempt + 1}/{max_retries})...")
+                logger.info(
+                    f"   🔄 Retrying subreddit_info (attempt {attempt + 1}/{max_retries})..."
+                )
                 subreddit_info = await self.api.get_subreddit_info(
                     subreddit_name, self.proxy_manager.get_next_proxy()
                 )
@@ -902,7 +950,9 @@ class RedditScraper:
                     break
             else:
                 # subreddit_info is CRITICAL - cannot continue without it
-                logger.error(f"❌ Invalid subreddit_info for r/{subreddit_name} after {max_retries} retries")
+                logger.error(
+                    f"❌ Invalid subreddit_info for r/{subreddit_name} after {max_retries} retries"
+                )
                 return set()
 
         # Validate rules (retry if None)
@@ -921,9 +971,7 @@ class RedditScraper:
         # Validate top_10_weekly (retry if None)
         if not self.validate_api_data(top_10_weekly, "top_10_weekly"):
             for attempt in range(max_retries):
-                logger.info(
-                    f"   🔄 Retrying top_10_weekly (attempt {attempt + 1}/{max_retries})..."
-                )
+                logger.info(f"   🔄 Retrying top_10_weekly (attempt {attempt + 1}/{max_retries})...")
                 top_10_weekly = await self.api.get_subreddit_top_posts(
                     subreddit_name, "week", 10, self.proxy_manager.get_next_proxy()
                 )
@@ -963,7 +1011,9 @@ class RedditScraper:
         # 6. Discover subreddits from top weekly post authors (if enabled)
         discovered_subreddits = set()
         if allow_discovery and authors:
-            logger.info(f"   🔍 Discovering subreddits from {len(authors)} top weekly post authors...")
+            logger.info(
+                f"   🔍 Discovering subreddits from {len(authors)} top weekly post authors..."
+            )
 
             # Filter out already-fetched users (optimization - prevents duplicate API calls)
             new_users = authors - self.session_fetched_users
@@ -1002,12 +1052,14 @@ class RedditScraper:
                         # If we got posts, break out of retry loop
                         if isinstance(posts, list) and len(posts) > 0:
                             self.session_fetched_users.add(username)  # Cache successful fetch
-                            logger.info(f"         [{user_idx + 1}/{len(authors_list)}] {username}: ✅ {len(posts)} posts")
+                            logger.info(
+                                f"         [{user_idx + 1}/{len(authors_list)}] {username}: ✅ {len(posts)} posts"
+                            )
                             return posts
 
                         # If 0 posts and not last attempt, retry with exponential backoff
                         if attempt < max_retries:
-                            backoff = random.uniform(0.1, 0.3) * (1.5 ** attempt)
+                            backoff = random.uniform(0.1, 0.3) * (1.5**attempt)
                             logger.info(
                                 f"         [{user_idx + 1}/{len(authors_list)}] {username}: ⚠️  0 posts, retrying (attempt {attempt + 2}/{max_retries + 1})..."
                             )
@@ -1029,7 +1081,9 @@ class RedditScraper:
                         f"         [{user_idx + 1}/{len(authors_list)}] {username}: ⚠️  no posts after {max_retries + 1} attempts"
                     )
                 else:
-                    logger.info(f"         [{user_idx + 1}/{len(authors_list)}] {username}: ❌ failed")
+                    logger.info(
+                        f"         [{user_idx + 1}/{len(authors_list)}] {username}: ❌ failed"
+                    )
 
                 return []
 
@@ -1045,8 +1099,7 @@ class RedditScraper:
 
             # Filter out exceptions (already logged in helper function)
             user_posts_results = [
-                posts if isinstance(posts, list) else []
-                for posts in user_posts_results
+                posts if isinstance(posts, list) else [] for posts in user_posts_results
             ]
 
             # Extract subreddits from posts
@@ -1544,7 +1597,9 @@ class RedditScraper:
                                 f"   i Subreddit r/{post_subreddit} already exists (added to cache)"
                             )
                         else:
-                            logger.debug(f"   ⚠️  Failed to create stub for r/{post_subreddit}: {e}")
+                            logger.debug(
+                                f"   ⚠️  Failed to create stub for r/{post_subreddit}: {e}"
+                            )
                         continue
 
                 cached = self.subreddit_metadata_cache.get(post_subreddit, {})

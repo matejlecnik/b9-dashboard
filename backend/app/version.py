@@ -4,11 +4,15 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.11.0"
+API_VERSION = "3.12.0"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = "3.10.0"  # Cache-first filtering + batched discovery (saves 90-200s)
-INSTAGRAM_SCRAPER_VERSION = "3.11.0"  # Compression removed - 60-80% faster uploads, 90% fewer R2 errors
+REDDIT_SCRAPER_VERSION = (
+    "3.11.0"  # Auto-cycling with configurable cooldown (eliminates manual restarts)
+)
+INSTAGRAM_SCRAPER_VERSION = (
+    "3.12.0"  # 20 concurrent creators - 10-20x speedup (7.7 days → 9.25 hours for 10k)
+)
 
 # Build info
 BUILD_DATE = "2025-10-09"
