@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Plus, AlertCircle, Loader2, UserPlus, Sparkles, Search, ChevronDown } from 'lucide-react'
@@ -20,15 +20,14 @@ interface ToastFunctions {
 
 const useToast = (): ToastFunctions => {
   return {
-    showSuccess: (message: string) => {
-      // You can implement actual toast here or use console for now
-      console.log('Success:', message)
+    showSuccess: (_message: string) => {
+      // Toast implementation removed - using real toast system instead
     },
-    showError: (message: string) => {
-      console.error('Error:', message)
+    showError: (_message: string) => {
+      // Toast implementation removed - using real toast system instead
     },
-    showInfo: (message: string) => {
-      console.info('Info:', message)
+    showInfo: (_message: string) => {
+      // Toast implementation removed - using real toast system instead
     }
   }
 }

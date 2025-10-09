@@ -8,7 +8,6 @@ import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { useToast } from '@/components/ui/toast'
 import { logger } from '@/lib/logger'
-import { designSystem } from '@/lib/design-system'
 import { createModelsColumns } from '@/components/shared/tables/configs/modelsColumns'
 import { UniversalTableV2 } from '@/components/shared/tables/UniversalTableV2'
 import type { TableConfig } from '@/components/shared/tables/types'
@@ -155,7 +154,7 @@ export default function ModelsPage() {
     }
   }
 
-  const handleDelete = async (modelId: number) => {
+  const handleDelete = useCallback(async (modelId: number) => {
     if (!window.confirm('Are you sure you want to delete this model?')) {
       return
     }
@@ -189,9 +188,9 @@ export default function ModelsPage() {
     } finally {
       setDeletingModel(null)
     }
-  }
+  }, [addToast, fetchModels])
 
-  const handleUpdateStatus = async (id: number, status: string) => {
+  const handleUpdateStatus = useCallback(async (id: number, status: string) => {
     try {
       const response = await fetch('/api/models/update', {
         method: 'PUT',
@@ -221,7 +220,7 @@ export default function ModelsPage() {
         duration: 5000
       })
     }
-  }
+  }, [addToast, fetchModels])
 
   const filteredModels = models.filter(model => {
     if (!searchQuery) return true
@@ -248,7 +247,7 @@ export default function ModelsPage() {
       title: searchQuery ? 'No models found matching your search' : 'No models created yet',
       description: searchQuery ? 'Try adjusting your search query' : undefined
     }
-  }), [deletingModel, searchQuery])
+  }), [deletingModel, searchQuery, handleDelete, handleUpdateStatus])
 
   return (
     <DashboardLayout>

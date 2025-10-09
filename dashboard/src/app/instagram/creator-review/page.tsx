@@ -300,14 +300,13 @@ export default function CreatorReviewPage() {
           />
 
           {/* Table */}
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <UniversalTableV2
             data={transformedCreators}
-            config={tableConfig as any}
+            config={tableConfig as any} // eslint-disable-line @typescript-eslint/no-explicit-any
             loading={isLoading}
             selectedItems={selectedCreators}
             onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
-            getItemId={(creator: any) => creator.id}
+            getItemId={(creator: any) => creator.id} // eslint-disable-line @typescript-eslint/no-explicit-any
             searchQuery={debouncedSearchQuery}
             onReachEnd={handleReachEnd}
             hasMore={hasNextPage}

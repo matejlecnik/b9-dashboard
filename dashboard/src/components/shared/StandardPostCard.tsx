@@ -28,32 +28,6 @@ export const StandardPostCard = memo(function StandardPostCard({
   className = ''
 }: StandardPostCardProps) {
   const [imageError, setImageError] = useState(false)
-  const getContentTypeBadge = () => {
-    // Standardized gray gradient badges for all content types
-    const badgeClass = cn(
-      "text-xs",
-      "bg-gradient-to-r from-gray-50 to-slate-50",
-      "border-gray-200/40",
-      designSystem.typography.color.tertiary
-    )
-
-    // Use content_type field which exists in the data
-    switch (post.content_type) {
-      case 'image':
-        return <Badge variant="outline" className={badgeClass}>Image</Badge>
-      case 'video':
-        return <Badge variant="outline" className={badgeClass}>Video</Badge>
-      case 'text':
-        return <Badge variant="outline" className={badgeClass}>Text</Badge>
-      case 'link':
-        return <Badge variant="outline" className={badgeClass}>Link</Badge>
-      default:
-        // Fallback to checking other fields
-        if (post.is_video) return <Badge variant="outline" className={badgeClass}>Video</Badge>
-        if (post.is_self) return <Badge variant="outline" className={badgeClass}>Text</Badge>
-        return <Badge variant="outline" className={badgeClass}>Media</Badge>
-    }
-  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -68,9 +42,6 @@ export const StandardPostCard = memo(function StandardPostCard({
     if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
     return `${Math.floor(diffDays / 365)}y ago`
   }
-
-  // Calculate engagement rate (comments to upvotes ratio)
-  const engagementRate = post.score > 0 ? (post.num_comments / post.score * 100) : 0
 
   // Determine media type and URL
   const getMediaInfo = () => {
@@ -134,7 +105,6 @@ export const StandardPostCard = memo(function StandardPostCard({
                   mediaInfo.type === 'reddit-video' ||
                   mediaInfo.type === 'external-video'
   const isGif = mediaInfo.type === 'gif'
-  const isNSFW = post.over_18 || post.sub_over18
 
   return (
     <div

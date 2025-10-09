@@ -1,6 +1,5 @@
 import {
   Instagram,
-  Monitor,
   Target,
   TrendingUp,
   Layers,

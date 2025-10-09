@@ -18,7 +18,7 @@ export interface InstagramCreator {
   is_verified: boolean
   is_business_account: boolean
   external_url: string | null
-  [key: string]: any
+  [key: string]: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface InstagramReviewColumnConfig {

@@ -61,12 +61,6 @@ export const AvatarField = memo(function AvatarField({
     lg: 'w-12 h-12 text-base'
   }
 
-  const iconSizes = {
-    sm: 'h-4 w-4',
-    md: 'h-5 w-5',
-    lg: 'h-6 w-6'
-  }
-
   const baseClassName = cn(
     sizeClasses[size],
     'flex items-center justify-center flex-shrink-0',

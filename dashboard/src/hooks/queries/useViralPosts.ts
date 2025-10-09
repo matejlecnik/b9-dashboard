@@ -40,7 +40,7 @@ export function useViralPosts(params: ViralPostsParams = {}) {
       let filtered = data || []
       if (searchQuery?.trim()) {
         const query = searchQuery.toLowerCase()
-        filtered = filtered.filter((post: any) =>
+        filtered = filtered.filter((post: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
           post.title?.toLowerCase().includes(query) ||
           post.subreddit_name?.toLowerCase().includes(query)
         )

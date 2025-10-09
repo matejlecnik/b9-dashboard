@@ -38,7 +38,7 @@ interface ModelFormProps {
   onCancel: () => void
 }
 
-export function ModelForm({ model, onSave, saving, onCancel }: ModelFormProps) {
+export function ModelForm({ model, onSave, saving: _saving, onCancel: _onCancel }: ModelFormProps) {
   const [formData, setFormData] = useState({
     stage_name: model?.stage_name || '',
     status: model?.status || 'inactive' as 'active' | 'inactive' | 'onboarding',

@@ -40,7 +40,7 @@ export function UniversalInputModal({
   defaultValue = '',
   suggestions = [],
   icon: Icon,
-  platform = 'default',
+  platform: _platform = 'default',
   multiline = false
 }: UniversalInputModalProps) {
   const [value, setValue] = useState(defaultValue)

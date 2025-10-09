@@ -6,12 +6,6 @@ import { cn } from '@/lib/utils'
 
 export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'
 
-interface BadgeConfig {
-  label: string
-  variant?: BadgeVariant
-  className?: string
-}
-
 interface BadgeFieldProps {
   value: string | number | null | undefined
   className?: string

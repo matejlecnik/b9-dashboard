@@ -1,8 +1,6 @@
 import { type ColumnDefinition } from '../types'
 import { BadgePresetConfigs } from '../fields/IconBadgesField'
 import { PercentagePresets } from '../fields/PercentageField'
-import { DatePresets, DateField } from '../fields/DateField'
-import { TextField } from '../fields/TextField'
 import { SelectOptionPresets, MultiSelectButtonsField } from '../fields/MultiSelectButtonsField'
 import { InstagramNicheField } from '../fields/InstagramNicheField'
 
@@ -29,7 +27,7 @@ export interface InstagramCreator {
   last_post_days_ago: number | null
   engagement_rate_cached: number | null
   avg_likes_per_post: number | null
-  [key: string]: any
+  [key: string]: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface InstagramNichingColumnConfig {

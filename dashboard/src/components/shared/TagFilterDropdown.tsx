@@ -5,7 +5,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { Button } from '@/components/ui/button'
 import { Filter, ChevronDown, ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 

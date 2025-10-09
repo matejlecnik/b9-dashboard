@@ -388,14 +388,13 @@ export default function SubredditReviewPage() {
         {/* Main Review Table */}
         <div className="flex-1 flex flex-col min-h-0">
           <ComponentErrorBoundary>
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <UniversalTableV2
               data={subreddits as unknown as TableSubreddit[]}
-              config={tableConfig as any}
+              config={tableConfig as any} // eslint-disable-line @typescript-eslint/no-explicit-any
               loading={isLoading}
               selectedItems={selectedSubreddits}
               onSelectionChange={(ids) => setSelectedSubreddits(ids as Set<number>)}
-              getItemId={(subreddit: any) => subreddit.id}
+              getItemId={(subreddit: any) => subreddit.id} // eslint-disable-line @typescript-eslint/no-explicit-any
               searchQuery={debouncedSearchQuery}
               onReachEnd={handleReachEnd}
               hasMore={hasNextPage}
