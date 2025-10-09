@@ -55,9 +55,7 @@ class Config:
     REQUEST_TIMEOUT = int(
         os.getenv("REQUEST_TIMEOUT", "60")
     )  # 30s → 60s: Handle slow API responses (Instagram can take 15-19s)
-    RETRY_MAX_ATTEMPTS = int(
-        os.getenv("RETRY_MAX_ATTEMPTS", "3")
-    )  # Keep at 3 (faster failure)
+    RETRY_MAX_ATTEMPTS = int(os.getenv("RETRY_MAX_ATTEMPTS", "3"))  # Keep at 3 (faster failure)
     RETRY_WAIT_MIN = float(os.getenv("RETRY_WAIT_MIN", "2"))  # Initial backoff delay
     RETRY_WAIT_MAX = float(os.getenv("RETRY_WAIT_MAX", "10"))  # Max backoff delay
     RETRY_EMPTY_RESPONSE = int(

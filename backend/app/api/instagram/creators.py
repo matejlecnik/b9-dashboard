@@ -251,7 +251,11 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
                 .execute()
             )
             # Check if we got results
-            existing_creator = existing_result if (existing_result.data and len(existing_result.data) > 0) else None
+            existing_creator = (
+                existing_result
+                if (existing_result.data and len(existing_result.data) > 0)
+                else None
+            )
         except Exception as e:
             logger.warning(f"Error checking for existing creator @{username}: {e}")
             existing_creator = None
@@ -409,7 +413,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
         )
 
         # 9. Restore R2 configuration (important for other operations)
-        if hasattr(scraper, '_original_r2_enabled') and r2_config:
+        if hasattr(scraper, "_original_r2_enabled") and r2_config:
             r2_config.ENABLED = scraper._original_r2_enabled
             logger.info(f"✅ R2 state restored to: {scraper._original_r2_enabled}")
 
@@ -431,10 +435,10 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
 
         # Restore R2 state even on error
         try:
-            if 'scraper' in locals() and hasattr(scraper, '_original_r2_enabled') and r2_config:
+            if "scraper" in locals() and hasattr(scraper, "_original_r2_enabled") and r2_config:
                 r2_config.ENABLED = scraper._original_r2_enabled
                 logger.info(f"✅ R2 state restored after error to: {scraper._original_r2_enabled}")
-        except:
+        except Exception:
             pass
 
         return CreatorAddResponse(success=False, error=f"An error occurred: {error_msg}")

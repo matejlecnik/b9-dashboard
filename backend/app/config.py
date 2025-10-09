@@ -307,7 +307,9 @@ class Config:
             rapidapi_host=os.getenv("RAPIDAPI_HOST", "instagram-looter2.p.rapidapi.com"),
             max_workers=int(os.getenv("INSTAGRAM_MAX_WORKERS", "10")),
             requests_per_second=int(os.getenv("INSTAGRAM_REQUESTS_PER_SECOND", "55")),
-            concurrent_creators=int(os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10")),  # v3.12.0: Tested - 10 is optimal
+            concurrent_creators=int(
+                os.getenv("INSTAGRAM_CONCURRENT_CREATORS", "10")
+            ),  # v3.12.0: Tested - 10 is optimal
             batch_size=int(os.getenv("INSTAGRAM_BATCH_SIZE", "50")),
             update_frequency=int(os.getenv("UPDATE_FREQUENCY", "10800")),
             connection_pool_size=int(os.getenv("INSTAGRAM_CONNECTION_POOL_SIZE", "20")),

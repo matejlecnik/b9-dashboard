@@ -10,7 +10,9 @@ API_VERSION = "3.12.2"
 REDDIT_SCRAPER_VERSION = (
     "3.11.0"  # Auto-cycling with configurable cooldown (eliminates manual restarts)
 )
-INSTAGRAM_SCRAPER_VERSION = "3.12.2"  # Removed unused save/share metrics (Instagram API doesn't provide this data)
+INSTAGRAM_SCRAPER_VERSION = (
+    "3.12.2"  # Removed unused save/share metrics (Instagram API doesn't provide this data)
+)
 
 # Build info
 BUILD_DATE = "2025-10-09"

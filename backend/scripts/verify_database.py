@@ -12,7 +12,7 @@ from supabase import Client, create_client
 
 
 # Load environment variables
-env_path = os.path.join(os.path.dirname(__file__), '../../.env.api')
+env_path = os.path.join(os.path.dirname(__file__), "../../.env.api")
 load_dotenv(env_path)
 
 # Initialize Supabase client
@@ -25,11 +25,13 @@ if not supabase_url or not supabase_key:
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
+
 def print_header(title):
     """Print a formatted header"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"  {title}")
-    print("="*60)
+    print("=" * 60)
+
 
 def verify_instagram_creator(username: str):
     """Verify an Instagram creator exists and check their data"""
@@ -48,9 +50,9 @@ def verify_instagram_creator(username: str):
         print(f"   IG User ID: {creator.get('ig_user_id')}")
         print(f"   Full Name: {creator.get('full_name') or 'NULL'}")
 
-        followers = creator.get('followers_count')
-        following = creator.get('following_count')
-        posts = creator.get('posts_count')
+        followers = creator.get("followers_count")
+        following = creator.get("following_count")
+        posts = creator.get("posts_count")
 
         print(f"   Followers: {followers:,}" if followers is not None else "   Followers: NULL")
         print(f"   Following: {following:,}" if following is not None else "   Following: NULL")
@@ -61,8 +63,18 @@ def verify_instagram_creator(username: str):
         print(f"   Last Scraped: {creator.get('last_scraped_at') or 'NULL'}")
 
         # Check associated content
-        reels_count = supabase.table("instagram_reels").select("id", count="exact").eq("creator_id", creator['id']).execute()
-        posts_count = supabase.table("instagram_posts").select("id", count="exact").eq("creator_id", creator['id']).execute()
+        reels_count = (
+            supabase.table("instagram_reels")
+            .select("id", count="exact")
+            .eq("creator_id", creator["id"])
+            .execute()
+        )
+        posts_count = (
+            supabase.table("instagram_posts")
+            .select("id", count="exact")
+            .eq("creator_id", creator["id"])
+            .execute()
+        )
 
         print("\n   📊 Content Stats:")
         print(f"   Reels in DB: {reels_count.count}")
@@ -74,14 +86,21 @@ def verify_instagram_creator(username: str):
         print(f"❌ Error querying creator: {e}")
         return None
 
-def check_recent_system_logs(source: str = None, minutes: int = 10, limit: int = 20):
+
+def check_recent_system_logs(source: str | None = None, minutes: int = 10, limit: int = 20):
     """Check recent system logs"""
     print_header(f"Recent System Logs (last {minutes} minutes)")
 
     try:
         cutoff_time = (datetime.utcnow() - timedelta(minutes=minutes)).isoformat()
 
-        query = supabase.table("system_logs").select("*").gte("timestamp", cutoff_time).order("timestamp", desc=True).limit(limit)
+        query = (
+            supabase.table("system_logs")
+            .select("*")
+            .gte("timestamp", cutoff_time)
+            .order("timestamp", desc=True)
+            .limit(limit)
+        )
 
         if source:
             query = query.eq("source", source)
@@ -96,13 +115,13 @@ def check_recent_system_logs(source: str = None, minutes: int = 10, limit: int =
 
         print(f"✅ Found {len(result.data)} log entries")
         print(f"\n{'Timestamp':<20} {'Source':<30} {'Level':<8} {'Message'[:40]}")
-        print("-"*100)
+        print("-" * 100)
 
         for log in result.data:
-            timestamp = log.get('timestamp', '')[:19]
-            source_name = log.get('source', '')[:28]
-            level = log.get('level', '')[:6]
-            message = log.get('message', '')[:60]
+            timestamp = log.get("timestamp", "")[:19]
+            source_name = log.get("source", "")[:28]
+            level = log.get("level", "")[:6]
+            message = log.get("message", "")[:60]
             print(f"{timestamp:<20} {source_name:<30} {level:<8} {message}")
 
         return result.data
@@ -111,12 +130,15 @@ def check_recent_system_logs(source: str = None, minutes: int = 10, limit: int =
         print(f"❌ Error querying logs: {e}")
         return []
 
+
 def check_scraper_status(scraper_name: str):
     """Check scraper control status"""
     print_header(f"Scraper Status: {scraper_name}")
 
     try:
-        result = supabase.table("system_control").select("*").eq("script_name", scraper_name).execute()
+        result = (
+            supabase.table("system_control").select("*").eq("script_name", scraper_name).execute()
+        )
 
         if not result.data:
             print(f"❌ Scraper '{scraper_name}' NOT FOUND in system_control")
@@ -135,12 +157,19 @@ def check_scraper_status(scraper_name: str):
         print(f"❌ Error querying scraper status: {e}")
         return None
 
-def check_api_call_logs(username: str = None):
+
+def check_api_call_logs(username: str | None = None):
     """Check API call logs from system_logs"""
     print_header("API Calls from System Logs")
 
     try:
-        query = supabase.table("system_logs").select("*").eq("source", "instagram_scraper").order("timestamp", desc=True).limit(30)
+        query = (
+            supabase.table("system_logs")
+            .select("*")
+            .eq("source", "instagram_scraper")
+            .order("timestamp", desc=True)
+            .limit(30)
+        )
 
         if username:
             query = query.ilike("message", f"%{username}%")
@@ -152,7 +181,11 @@ def check_api_call_logs(username: str = None):
             return []
 
         # Filter for API requests/responses
-        api_logs = [log for log in result.data if "API Request" in log.get('message', '') or "API Response" in log.get('message', '')]
+        api_logs = [
+            log
+            for log in result.data
+            if "API Request" in log.get("message", "") or "API Response" in log.get("message", "")
+        ]
 
         if not api_logs:
             print("❌ No API request/response logs found")
@@ -161,11 +194,11 @@ def check_api_call_logs(username: str = None):
         print(f"✅ Found {len(api_logs)} API call logs")
 
         print(f"\n{'Timestamp':<20} {'Message'[:70]}")
-        print("-"*95)
+        print("-" * 95)
 
         for log in api_logs[:15]:  # Show first 15
-            timestamp = log.get('timestamp', '')[:19]
-            message = log.get('message', '')[:68]
+            timestamp = log.get("timestamp", "")[:19]
+            message = log.get("message", "")[:68]
             print(f"{timestamp:<20} {message}")
 
         return api_logs
@@ -174,18 +207,19 @@ def check_api_call_logs(username: str = None):
         print(f"❌ Error querying API logs: {e}")
         return []
 
+
 def main():
     """Main verification routine"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  B9 Dashboard - Database Verification")
     print("  Production Environment")
-    print("="*60)
+    print("=" * 60)
     print(f"  Supabase URL: {supabase_url}")
     print(f"  Timestamp: {datetime.utcnow().isoformat()}Z")
-    print("="*60)
+    print("=" * 60)
 
     # Check NASA creator from Phase 3 tests
-    nasa_creator = verify_instagram_creator("nasa")
+    verify_instagram_creator("nasa")
 
     # Check scraper statuses
     check_scraper_status("reddit_scraper")
@@ -197,9 +231,10 @@ def main():
     # Check API call logs for NASA
     check_api_call_logs(username="nasa")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  Verification Complete")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
+
 
 if __name__ == "__main__":
     main()
