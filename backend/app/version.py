@@ -4,14 +4,14 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.8.1"
+API_VERSION = "3.8.2"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = "3.8.1"  # User feeds no longer processed (instant save), staggered parallel for regular subs only
+REDDIT_SCRAPER_VERSION = "3.8.2"  # Cleaner pagination logs + retry logic for all Reddit API calls
 INSTAGRAM_SCRAPER_VERSION = "2.1.0"
 
 # Build info
-BUILD_DATE = "2025-10-03"
+BUILD_DATE = "2025-10-09"
 GIT_COMMIT = None  # Auto-populated by CI/CD
 
 

@@ -336,9 +336,11 @@ class RedditScraper:
         max_page_size = None  # Will be detected from first response
         iteration = 0
 
+        # Log start
+        logger.info(f"   📄 Loading {review_status} subreddits...")
+
         while True:
             iteration += 1
-            logger.info(f"📄 Pagination [{review_status}] iteration {iteration}: offset={offset}")
 
             # No .limit() - let Supabase use its default max (range is large to not restrict)
             response = (
@@ -350,34 +352,25 @@ class RedditScraper:
             )
 
             rows_returned = len(response.data) if response.data else 0
-            logger.info(
-                f"📄 [{review_status}] Got {rows_returned} rows, total so far: {len(all_data) + rows_returned}"
-            )
 
             if not response.data:
-                logger.info(f"📄 [{review_status}] BREAK: No data (empty response)")
                 break
 
             # First page: detect Supabase's actual max page size
             if max_page_size is None:
                 max_page_size = len(response.data)
-                logger.info(
-                    f"📄 [{review_status}] Detected Supabase max page size: {max_page_size}"
-                )
 
             all_data.extend(response.data)
 
             # If we got less than first page size, we've reached the end
             if len(response.data) < max_page_size:
-                logger.info(
-                    f"📄 [{review_status}] BREAK: Got {len(response.data)} < {max_page_size} (last page)"
-                )
                 break
 
             offset += len(response.data)  # Use actual rows returned
 
+        # Log completion with total
         logger.info(
-            f"📄 Pagination complete for review={review_status}: {len(all_data)} total rows in {iteration} iterations"
+            f"      ✅ Loaded {len(all_data):,} {review_status} ({iteration} iterations)"
         )
         return all_data
 
@@ -485,9 +478,11 @@ class RedditScraper:
             max_page_size = None
             iteration = 0
 
+            # Log start
+            logger.info("   📄 Loading NULL review subreddits...")
+
             while True:
                 iteration += 1
-                logger.info(f"📄 Pagination [NULL] iteration {iteration}: offset={offset}")
 
                 response = (
                     self.supabase.table("reddit_subreddits")
@@ -497,33 +492,24 @@ class RedditScraper:
                     .execute()
                 )
 
-                rows_returned = len(response.data) if response.data else 0
-                logger.info(
-                    f"📄 [NULL] Got {rows_returned} rows, total so far: {len(null_review_data) + rows_returned}"
-                )
-
                 if not response.data:
-                    logger.info("📄 [NULL] BREAK: No data (empty response)")
                     break
 
                 # First page: detect Supabase's actual max page size
                 if max_page_size is None:
                     max_page_size = len(response.data)
-                    logger.info(f"📄 [NULL] Detected Supabase max page size: {max_page_size}")
 
                 null_review_data.extend(response.data)
 
                 # If we got less than first page size, we've reached the end
                 if len(response.data) < max_page_size:
-                    logger.info(
-                        f"📄 [NULL] BREAK: Got {len(response.data)} < {max_page_size} (last page)"
-                    )
                     break
 
                 offset += len(response.data)
 
+            # Log completion with total
             logger.info(
-                f"📄 Pagination complete for review=NULL: {len(null_review_data)} total rows in {iteration} iterations"
+                f"      ✅ Loaded {len(null_review_data):,} NULL review ({iteration} iterations)"
             )
             self.null_review_cache = (
                 {item["name"] for item in null_review_data} if null_review_data else set()
@@ -748,10 +734,19 @@ class RedditScraper:
         # 3. Validate and retry individual API responses
         max_retries = 3
 
-        # Validate subreddit_info (critical)
+        # Validate subreddit_info (critical - retry if None)
         if not self.validate_api_data(subreddit_info, "subreddit_info"):
-            logger.error(f"❌ Invalid subreddit_info for r/{subreddit_name} after retries")
-            return set()
+            for attempt in range(max_retries):
+                logger.info(f"   🔄 Retrying subreddit_info (attempt {attempt + 1}/{max_retries})...")
+                subreddit_info = await self.api.get_subreddit_info(
+                    subreddit_name, self.proxy_manager.get_next_proxy()
+                )
+                if self.validate_api_data(subreddit_info, "subreddit_info"):
+                    break
+            else:
+                # subreddit_info is CRITICAL - cannot continue without it
+                logger.error(f"❌ Invalid subreddit_info for r/{subreddit_name} after {max_retries} retries")
+                return set()
 
         # Validate rules (retry if None)
         if not self.validate_api_data(rules, "rules"):
