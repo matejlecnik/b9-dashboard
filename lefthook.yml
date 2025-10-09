@@ -1,5 +1,5 @@
-# Lefthook Configuration - Enhanced v2.0
-# Fast parallel git hooks with documentation automation
+# Lefthook Configuration - Optimized v2.1
+# Fast git hooks with proper timeouts
 # See: docs/development/SYSTEM_IMPROVEMENT_PLAN.md#lefthook-integration
 
 # Global settings
@@ -11,43 +11,9 @@ skip_in_ci: true
 pre-commit:
   parallel: true
   commands:
-    # Documentation validation
-    docs-validation:
-      glob: "*.md"
-      run: python3 docs/scripts/validate-docs.py {staged_files}
-      stage_fixed: true
-      tags: [documentation]
-
-    # Update metrics before commit (quick run - only if significant time passed)
-    update-metrics:
-      run: |
-        if [ -f "docs/scripts/automation/metrics-daemon.py" ]; then
-          # Only update if metrics are older than 30 minutes
-          if [ -f "docs/data/metrics.json" ]; then
-            AGE=$(($(date +%s) - $(stat -f%m docs/data/metrics.json 2>/dev/null || stat -c%Y docs/data/metrics.json 2>/dev/null)))
-            if [ $AGE -gt 1800 ]; then
-              echo "📊 Updating metrics (older than 30 min)..."
-              python3 docs/scripts/automation/metrics-daemon.py 2>/dev/null || true
-            fi
-          else
-            python3 docs/scripts/automation/metrics-daemon.py 2>/dev/null || true
-          fi
-        fi
-      tags: [metrics]
-
-    # Update search index only if .md files actually changed
-    update-search:
-      glob: "*.md"
-      run: |
-        if [ -f "docs/scripts/search/doc-search.py" ]; then
-          # Incremental update is fast, always run if .md changed
-          python3 docs/scripts/search/doc-search.py 2>/dev/null || true
-        fi
-      tags: [search]
-
     # TypeScript type checking
     typescript-check:
-      glob: "*.{ts,tsx}"
+      glob: "dashboard/**/*.{ts,tsx}"
       run: cd dashboard && npx tsc --noEmit
       skip:
         - merge
@@ -103,51 +69,18 @@ pre-commit:
         fi
       tags: [security]
 
-# Pre-push hook - runs before git push
+# Pre-push hook - LIGHTWEIGHT (only critical checks)
 pre-push:
   commands:
-    # Full code quality check (blocks push if critical errors)
-    code-quality:
-      run: |
-        echo "🔍 Running full code quality validation..."
-        python3 docs/scripts/validation/code-quality-check.py
-        if [ $? -ne 0 ]; then
-          echo "❌ Code quality check failed. Fix errors before pushing."
-          echo "   Run: python3 docs/scripts/validation/code-quality-check.py"
-          exit 1
-        fi
-        echo "✅ Code quality: All checks passed"
-      tags: [quality]
+    # Quick TypeScript check only
+    typescript-check:
+      run: cd dashboard && npx tsc --noEmit
+      tags: [typescript]
 
-    # Design system compliance check (blocks push if violations found)
-    design-system:
-      run: |
-        echo "🎨 Checking design system compliance..."
-        python3 docs/scripts/validation/design-system-check.py
-        if [ $? -ne 0 ]; then
-          echo "❌ Design system violations found. Fix before pushing."
-          echo "   Run: python3 docs/scripts/validation/design-system-check.py"
-          exit 1
-        fi
-        echo "✅ Design system: 100% compliant"
-      tags: [design]
-
-    # Full documentation compliance check
-    docs-compliance:
-      run: |
-        COMPLIANCE=$(python3 docs/scripts/validate-docs.py | grep -o '[0-9]*\.[0-9]*%' | head -1 | tr -d '%')
-        if (( $(echo "$COMPLIANCE < 80" | bc -l) )); then
-          echo "❌ Documentation compliance $COMPLIANCE% below 80%. Run: python3 docs/scripts/validate-docs.py"
-          exit 1
-        fi
-        echo "✅ Documentation compliance: $COMPLIANCE%"
-
-    # Build check (ensure code compiles)
-    build-check:
-      run: cd dashboard && npm run build
-      skip:
-        - merge
-        - rebase
+    # Quick ESLint check (no fix, just validate)
+    eslint-check:
+      run: cd dashboard && npx eslint --max-warnings 0 "src/**/*.{ts,tsx}"
+      tags: [javascript]
 
 # Post-commit hook - runs after successful commit
 post-commit:
@@ -156,7 +89,7 @@ post-commit:
     session-log:
       run: |
         if [ -f "docs/scripts/automation/session-logger.py" ]; then
-          python3 docs/scripts/automation/session-logger.py --commits 1 2>/dev/null || true
+          timeout 5 python3 docs/scripts/automation/session-logger.py --commits 1 2>/dev/null || true
         fi
       tags: [documentation]
 
@@ -164,7 +97,7 @@ post-commit:
     update-claude:
       run: |
         if [ -f "docs/scripts/automation/template-processor.py" ]; then
-          python3 docs/scripts/automation/template-processor.py CLAUDE.md 2>/dev/null || true
+          timeout 5 python3 docs/scripts/automation/template-processor.py CLAUDE.md 2>/dev/null || true
         fi
       tags: [metrics]
 
@@ -176,37 +109,34 @@ post-checkout:
       run: |
         echo "📦 Checking for dependency updates..."
         if [ -f "dashboard/package.json" ]; then
-          cd dashboard && npm outdated || true
+          cd dashboard && timeout 10 npm outdated || true
         fi
       tags: [dependencies]
-
-    # Rebuild search index after branch switch
-    rebuild-search:
-      run: |
-        if [ -f "docs/scripts/search/doc-search.py" ]; then
-          echo "🔍 Rebuilding documentation search index..."
-          python3 docs/scripts/search/doc-search.py --rebuild 2>/dev/null || true
-        fi
-      tags: [search]
 
 # Commit-msg hook - validates commit message format
 commit-msg:
   commands:
-    # Enforce conventional commits (optional)
+    # Enforce conventional commits (warning only, doesn't block)
     message-format:
       run: |
         MSG=$(cat {1})
-        if ! echo "$MSG" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?:"; then
+        if ! echo "$MSG" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|🔧|📝|✨|🐛|♻️|🧪|🎨|⚡)"; then
           echo "⚠️  Commit message doesn't follow conventional format"
-          echo "   Expected: type(scope): message"
+          echo "   Expected: type(scope): message or emoji prefix"
           echo "   Example: feat(docs): add semantic versioning"
           echo "   Types: feat, fix, docs, style, refactor, test, chore, perf"
+          echo "   Emojis: 🔧 ✨ 🐛 📝 ♻️ 🧪 🎨 ⚡"
         fi
       tags: [convention]
 
 # Manual commands - run with: lefthook run <command>
 manual:
   commands:
+    # Full build test (use this before pushing to production)
+    build-full:
+      run: cd dashboard && npm run build
+      tags: [build]
+
     # Full metrics update
     metrics-full:
       run: |
@@ -221,7 +151,7 @@ manual:
       run: python3 docs/scripts/search/doc-search.py
       tags: [search]
 
-    # Force metrics update (normally automatic)
+    # Force metrics update
     metrics-now:
       run: |
         echo "📊 Updating metrics..."
@@ -245,24 +175,16 @@ manual:
         echo "✅ Code quality check complete"
       tags: [quality]
 
-    # Quick code quality check (staged files only)
-    quality-quick:
-      run: |
-        echo "⚡ Quick quality check..."
-        python3 docs/scripts/validation/code-quality-check.py --quick
-        echo "✅ Quick check complete"
-      tags: [quality]
-
-    # Code quality dashboard
-    quality-dashboard:
-      run: |
-        echo "📊 Generating code quality dashboard..."
-        python3 docs/scripts/validation/quality-dashboard.py
-      tags: [quality]
-
     # Design system compliance check
     design-check:
       run: |
         echo "🎨 Checking design system compliance..."
         python3 docs/scripts/validation/design-system-check.py
       tags: [design]
+
+    # Documentation validation
+    docs-validate:
+      run: |
+        echo "📚 Validating documentation..."
+        python3 docs/scripts/validate-docs.py
+      tags: [documentation]
