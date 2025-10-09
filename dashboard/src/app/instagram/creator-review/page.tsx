@@ -300,6 +300,7 @@ export default function CreatorReviewPage() {
           />
 
           {/* Table */}
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <UniversalTableV2
             data={transformedCreators}
             config={tableConfig as any}

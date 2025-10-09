@@ -56,17 +56,19 @@ pre-commit:
 
     # ESLint with auto-fix
     eslint:
-      glob: "*.{ts,tsx,js,jsx}"
-      run: cd dashboard && npx eslint {staged_files} --fix --max-warnings 0
+      glob: "dashboard/**/*.{ts,tsx,js,jsx}"
+      run: |
+        FILES=$(echo {staged_files} | sed 's|dashboard/||g')
+        cd dashboard && npx eslint --fix --max-warnings 0 $FILES
       stage_fixed: true
       tags: [javascript]
 
     # Console.log detection (block commits with console statements)
     console-check:
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: "dashboard/**/*.{ts,tsx,js,jsx}"
       exclude: ".*\\.test\\.(ts|tsx|js|jsx)$"
       run: |
-        if grep -n 'console\.' {staged_files}; then
+        if grep -n 'console\.' {staged_files} 2>/dev/null; then
           echo "❌ Console statements detected. Remove them or add to exceptions."
           exit 1
         fi
@@ -96,7 +98,7 @@ pre-commit:
       glob: "*"
       exclude: ".*\\.(md|json|lock)$"
       run: |
-        if grep -E '(api_key|secret_key|password|token)\\s*=\\s*["\'][^"\']+["\']' {staged_files} 2>/dev/null; then
+        if grep -E '(api_key|secret_key|password|token)\s*=\s*["'"'"'][^"'"'"']+["'"'"']' {staged_files} 2>/dev/null; then
           echo "⚠️  Warning: Potential hardcoded secret found"
         fi
       tags: [security]

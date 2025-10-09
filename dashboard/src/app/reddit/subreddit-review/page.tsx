@@ -81,9 +81,6 @@ export default function SubredditReviewPage() {
   // Removed undo state; undo action not exposed in UI
   const [showAddModal, setShowAddModal] = useState(false)
 
-  // Set for broken icons to prevent repeated attempts (clear periodically to prevent memory leaks)
-  const [brokenIcons, setBrokenIcons] = useState<Set<number | string>>(new Set())
-
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
@@ -161,20 +158,6 @@ export default function SubredditReviewPage() {
     setCurrentFilter(filter)
     setSelectedSubreddits(new Set()) // Clear selections when switching filters
     setRemovingIds(new Set()) // Clear removing items when switching filters
-  }, [])
-
-  // Handle broken icon URLs
-  const handleIconError = useCallback((id: string | number) => {
-    const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-    setBrokenIcons(prev => {
-      const next = new Set(prev)
-      if (Number.isFinite(numericId)) {
-        next.add(numericId as number)
-      } else {
-        next.add(String(id))
-      }
-      return next
-    })
   }, [])
 
   // Show rules modal for a subreddit
@@ -300,7 +283,7 @@ export default function SubredditReviewPage() {
       title: searchQuery ? 'No subreddits found matching your search' : 'No subreddits to review',
       description: searchQuery ? 'Try adjusting your search query' : undefined
     }
-  }), [searchQuery])
+  }), [searchQuery, updateReview, handleShowRules])
 
   return (
     <DashboardLayout>
@@ -405,6 +388,7 @@ export default function SubredditReviewPage() {
         {/* Main Review Table */}
         <div className="flex-1 flex flex-col min-h-0">
           <ComponentErrorBoundary>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <UniversalTableV2
               data={subreddits as unknown as TableSubreddit[]}
               config={tableConfig as any}

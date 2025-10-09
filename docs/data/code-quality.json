@@ -1,116 +1,59 @@
 {
-  "timestamp": "2025-10-09T22:50:30.692974",
+  "timestamp": "2025-10-09T23:47:25.108001",
   "checks": {
     "typescript": {
       "tool": "TypeScript",
-      "errors": [
-        {
-          "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 316,
-          "column": 13,
-          "code": "TS2769",
-          "message": "No overload matches this call."
-        },
-        {
-          "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 320,
-          "column": 37,
-          "code": "TS18046",
-          "message": "'creator' is of type 'unknown'."
-        },
-        {
-          "file": "src/app/instagram/niching/page.tsx",
-          "line": 251,
-          "column": 13,
-          "code": "TS2769",
-          "message": "No overload matches this call."
-        },
-        {
-          "file": "src/app/instagram/niching/page.tsx",
-          "line": 255,
-          "column": 37,
-          "code": "TS18046",
-          "message": "'creator' is of type 'unknown'."
-        },
-        {
-          "file": "src/app/reddit/categorization/page.tsx",
-          "line": 508,
-          "column": 15,
-          "code": "TS2769",
-          "message": "No overload matches this call."
-        },
-        {
-          "file": "src/app/reddit/categorization/page.tsx",
-          "line": 512,
-          "column": 41,
-          "code": "TS18046",
-          "message": "'subreddit' is of type 'unknown'."
-        },
-        {
-          "file": "src/app/reddit/subreddit-review/page.tsx",
-          "line": 410,
-          "column": 15,
-          "code": "TS2769",
-          "message": "No overload matches this call."
-        },
-        {
-          "file": "src/app/reddit/subreddit-review/page.tsx",
-          "line": 414,
-          "column": 41,
-          "code": "TS18046",
-          "message": "'subreddit' is of type 'unknown'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramReviewColumns.tsx",
-          "line": 75,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type '(creator: any) => { type: string; url: any; showHostname: boolean; } | undefined' is not assignable to type 'string | ((item: any) => string | undefined) | undefined'."
-        },
-        {
-          "file": "src/components/shared/tables/fields/DateField.tsx",
-          "line": 48,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
-        },
-        {
-          "file": "src/components/shared/tables/fields/DateField.tsx",
-          "line": 54,
-          "column": 7,
-          "code": "TS2322",
-          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
-        },
-        {
-          "file": "src/components/shared/tables/fields/PercentageField.tsx",
-          "line": 44,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type 'string' is not assignable to type '\"text-gray-700\"'."
-        },
-        {
-          "file": "src/components/shared/tables/fields/TextField.tsx",
-          "line": 98,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type 'string | LinkSubtitle' is not assignable to type 'ReactNode'."
-        },
-        {
-          "file": "src/hooks/usePostAnalysis.ts",
-          "line": 2,
-          "column": 31,
-          "code": "TS2307",
-          "message": "Cannot find module './queries/useViralPosts' or its corresponding type declarations."
-        }
-      ],
+      "errors": [],
       "warnings": [],
-      "error_count": 14,
+      "error_count": 0,
       "warning_count": 0,
-      "passed": false
+      "passed": true
     },
     "eslint": {
       "tool": "ESLint",
       "errors": [
+        {
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 305,
+          "column": 36,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/app/instagram/creator-review/page.tsx",
+          "line": 309,
+          "column": 34,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 105,
+          "column": 43,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'id' is defined but never used. Allowed unused args must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 105,
+          "column": 55,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'review' is defined but never used. Allowed unused args must match /^_/u."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 251,
+          "column": 36,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/app/instagram/niching/page.tsx",
+          "line": 255,
+          "column": 34,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
         {
           "file": "src/app/models/page.tsx",
           "line": 11,
@@ -140,6 +83,20 @@
           "message": "'handleIconError' is assigned a value but never used. Allowed unused vars must match /^_/u."
         },
         {
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 508,
+          "column": 38,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/app/reddit/categorization/page.tsx",
+          "line": 512,
+          "column": 38,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
           "file": "src/app/reddit/subreddit-review/page.tsx",
           "line": 85,
           "column": 10,
@@ -152,6 +109,20 @@
           "column": 9,
           "code": "@typescript-eslint/no-unused-vars",
           "message": "'handleIconError' is assigned a value but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 410,
+          "column": 38,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/app/reddit/subreddit-review/page.tsx",
+          "line": 414,
+          "column": 38,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/features/AddUserModal.tsx",
@@ -267,64 +238,71 @@
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 28,
-          "column": 31,
+          "line": 35,
+          "column": 46,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 30,
+          "line": 37,
           "column": 30,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 80,
+          "line": 87,
           "column": 22,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 85,
+          "line": 92,
           "column": 18,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 99,
+          "line": 106,
           "column": 39,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 102,
+          "line": 109,
           "column": 37,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 113,
+          "line": 120,
           "column": 34,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 126,
+          "line": 133,
           "column": 78,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         },
         {
           "file": "src/components/shared/tables/types.ts",
-          "line": 126,
+          "line": 133,
           "column": 85,
+          "code": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        },
+        {
+          "file": "src/hooks/queries/useViralPosts.ts",
+          "line": 43,
+          "column": 43,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
         }
@@ -345,20 +323,13 @@
           "message": "React Hook useMemo has missing dependencies: 'handleShowRules' and 'updateReview'. Either include them or remove the dependency array."
         }
       ],
-      "error_count": 31,
+      "error_count": 42,
       "warning_count": 2,
       "passed": false
     },
     "ruff": {
       "tool": "Ruff",
       "errors": [
-        {
-          "file": "app/api/instagram/creators.py",
-          "line": 437,
-          "column": 9,
-          "code": "E722",
-          "message": "Do not use bare `except`"
-        },
         {
           "file": "app/scrapers/instagram/services/test_integrated_scraper.py",
           "line": 17,
@@ -465,27 +436,6 @@
           "message": "Mutable class attributes should be annotated with `typing.ClassVar`"
         },
         {
-          "file": "scripts/verify_database.py",
-          "line": 77,
-          "column": 38,
-          "code": "RUF013",
-          "message": "PEP 484 prohibits implicit `Optional`"
-        },
-        {
-          "file": "scripts/verify_database.py",
-          "line": 138,
-          "column": 35,
-          "code": "RUF013",
-          "message": "PEP 484 prohibits implicit `Optional`"
-        },
-        {
-          "file": "scripts/verify_database.py",
-          "line": 188,
-          "column": 5,
-          "code": "F841",
-          "message": "Local variable `nasa_creator` is assigned to but never used"
-        },
-        {
           "file": "test_local.py",
           "line": 39,
           "column": 21,
@@ -522,7 +472,7 @@
         }
       ],
       "warnings": [],
-      "error_count": 24,
+      "error_count": 20,
       "warning_count": 0,
       "passed": false
     },
@@ -552,9 +502,10 @@
     }
   },
   "summary": {
-    "total_errors": 70,
+    "total_errors": 63,
     "total_warnings": 2,
     "passed": [
+      "typescript",
       "design_system"
     ]
   }

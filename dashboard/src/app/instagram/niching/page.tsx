@@ -102,7 +102,7 @@ export default function NichingPage() {
   }, [updateNicheMutation])
 
   // Handler for single creator review update
-  const handleUpdateReview = useCallback((id: number, review: string) => {
+  const handleUpdateReview = useCallback((_id: number, _review: string) => {
     // This is a placeholder - the niching page focuses on niche assignment, not review status
     // Review updates are handled on the creator-review page
   }, [])
@@ -246,6 +246,7 @@ export default function NichingPage() {
 
         {/* Extended Instagram Table */}
         <ComponentErrorBoundary>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <UniversalTableV2
             data={transformedCreators}
             config={tableConfig as any}

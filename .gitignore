@@ -137,3 +137,4 @@ secrets/
 # Old/Legacy Directories (cleanup reference)
 # config/  # Removed - archived to docs/database/
 # dashboard_development/  # If exists, should be removed.mcp.json
+.claude/

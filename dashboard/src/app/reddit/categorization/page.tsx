@@ -66,8 +66,6 @@ export default function CategorizationPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [showUntaggedOnly, setShowUntaggedOnly] = useState(true) // Default to showing untagged
   const [selectedSubreddits, setSelectedSubreddits] = useState<Set<number>>(new Set())
-  const [brokenIcons, setBrokenIcons] = useState<Set<number>>(new Set())
-  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set())
   const [rulesModal, setRulesModal] = useState<{ isOpen: boolean; subreddit: Subreddit | null }>({
     isOpen: false,
     subreddit: null
@@ -165,24 +163,6 @@ export default function CategorizationPage() {
     }
   }, [])
 
-  // Handle broken icon URLs
-  const handleIconError = useCallback((id: string | number) => {
-    setBrokenIcons(prev => {
-      const next = new Set(prev)
-      const numericId = typeof id === 'string' ? Number.parseInt(id, 10) : id
-      if (!Number.isNaN(numericId)) {
-        next.add(numericId)
-      }
-      // Auto cleanup when hitting limit to prevent memory leak
-      if (next.size > 100) {
-        // Keep only the most recent 50 entries
-        const sorted = Array.from(next).slice(-50)
-        return new Set(sorted)
-      }
-      return next
-    })
-  }, [])
-
   // Show rules modal for a subreddit
   const handleShowRules = useCallback((subreddit: Subreddit) => {
     setRulesModal({ isOpen: true, subreddit })
@@ -195,47 +175,12 @@ export default function CategorizationPage() {
 
   // Update tags for single subreddit using React Query mutation
   const updateTags = useCallback(async (id: number, tags: string[]) => {
-
-    // Check if item should be removed from current view after update
-    const nowTagged = tags.length > 0
-
-    // Determine if we should remove the item from view
-    let shouldRemove = false
-
-    if (selectedTags.length === 0) {
-      // When no specific tags are selected
-      if (showUntaggedOnly) {
-        // If showing untagged only, remove when item becomes tagged
-        shouldRemove = nowTagged
-      } else {
-        // If showing all, never remove
-        shouldRemove = false
-      }
-    } else {
-      // When specific tags are selected, remove if item no longer has selected tags
-      shouldRemove = !tags.some(tag => selectedTags.includes(tag))
-    }
-
-    if (shouldRemove) {
-      // Add to removing list for fade effect
-      setRemovingIds(prev => new Set([...prev, id]))
-
-      // Delay actual removal for smooth transition
-      setTimeout(() => {
-        setRemovingIds(prev => {
-          const next = new Set(prev)
-          next.delete(id)
-          return next
-        })
-      }, 300)
-    }
-
     // Execute mutation
     updateTagsMutation.mutate({
       subredditId: id,
       tags
     })
-  }, [selectedTags, showUntaggedOnly, updateTagsMutation])
+  }, [updateTagsMutation])
 
   // Update review for single subreddit (using API as we don't have a mutation for this yet)
   const updateReview = useCallback(async (id: number, reviewText: string) => {
@@ -257,25 +202,8 @@ export default function CategorizationPage() {
         throw new Error(result.error || 'Failed to update review')
       }
 
-      // Check if we should remove item from categorization view
-      // In categorization, we only show "Ok" items, so remove if not Ok
-      const shouldRemove = review !== 'Ok'
-
-      if (shouldRemove) {
-        // Add to removing list for fade effect
-        setRemovingIds(prev => new Set([...prev, id]))
-
-        // Delay actual removal for smooth transition
-        setTimeout(() => {
-          setRemovingIds(prev => {
-            const next = new Set(prev)
-            next.delete(id)
-            return next
-          })
-          // Refetch to update the list
-          refetchSubreddits()
-        }, 300)
-      }
+      // Refetch to update the list
+      refetchSubreddits()
 
       addToast({
         type: 'success',
@@ -503,6 +431,7 @@ export default function CategorizationPage() {
         {/* Main Categorization Interface */}
         <div className="flex-1 flex flex-col min-h-0">
           <ComponentErrorBoundary>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <UniversalTableV2
               data={subreddits}
               config={tableConfig as any}
