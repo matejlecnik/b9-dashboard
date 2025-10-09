@@ -35,7 +35,7 @@ export const PercentageField = memo(function PercentageField({
   }
 
   // Determine color based on thresholds
-  let colorClass = designSystem.typography.color.secondary
+  let colorClass: string = designSystem.typography.color.secondary
   if (colorThresholds) {
     // Sort thresholds by min value descending to check highest first
     const sorted = [...colorThresholds].sort((a, b) => b.min - a.min)

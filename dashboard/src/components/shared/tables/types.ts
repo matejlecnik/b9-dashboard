@@ -2,6 +2,13 @@ import { type ActionButton } from './fields/ActionsField'
 import { type BadgeVariant } from './fields/BadgeField'
 import { type Badge } from './fields/BadgesField'
 
+// Link subtitle type for text fields
+export interface LinkSubtitle {
+  type: 'link'
+  url: string
+  showHostname?: boolean
+}
+
 // Base column alignment and sizing
 export type ColumnAlign = 'left' | 'center' | 'right'
 export type ColumnWidth = string | number // e.g., 'w-48', '200px', 200
@@ -25,7 +32,7 @@ export interface TextFieldConfig {
   placeholder?: string
   bold?: boolean
   color?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
-  subtitle?: string | ((item: any) => string | undefined)
+  subtitle?: string | LinkSubtitle | ((item: any) => string | LinkSubtitle | undefined)
   subtitleColor?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
   badges?: Badge[] | ((item: any) => Badge[])
   dangerouslySetHTML?: boolean

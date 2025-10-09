@@ -104,7 +104,7 @@ export default function NichingPage() {
   // Handler for single creator review update
   const handleUpdateReview = useCallback((id: number, review: string) => {
     // This is a placeholder - the niching page focuses on niche assignment, not review status
-    console.log('Review update:', id, review)
+    // Review updates are handled on the creator-review page
   }, [])
 
   // Handle reaching end of list for infinite scroll
@@ -248,11 +248,11 @@ export default function NichingPage() {
         <ComponentErrorBoundary>
           <UniversalTableV2
             data={transformedCreators}
-            config={tableConfig}
+            config={tableConfig as any}
             loading={isLoading}
             selectedItems={selectedCreators}
             onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
-            getItemId={(creator) => creator.id}
+            getItemId={(creator: any) => creator.id}
             searchQuery={debouncedSearchQuery}
             onReachEnd={handleReachEnd}
             hasMore={hasNextPage}

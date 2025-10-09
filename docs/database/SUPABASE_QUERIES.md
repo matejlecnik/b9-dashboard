@@ -32,11 +32,12 @@
 }
 ```
 
-## 🔥 Viral Content Queries
+## 🔥 Reddit High-Performance Post Queries
+**Purpose**: Identify trending Reddit posts using advanced scoring algorithm
 
 ### Get Viral Posts (Complex Algorithm)
 ```sql
--- Advanced viral scoring with CTEs
+-- Advanced Reddit viral scoring with CTEs
 WITH ok_subreddits AS (
   SELECT name, over18, primary_category
   FROM reddit_subreddits
@@ -212,9 +213,9 @@ WHERE c.is_private = false
 ORDER BY true_engagement_rate DESC;
 ```
 
-### Viral Reel Detection
+### Viral Reel Detection [DEPRECATED]
 ```sql
--- Find high-performing reels
+-- Find high-performing reels [DEPRECATED - Reference only]
 SELECT
   r.code as reel_code,
   c.username,

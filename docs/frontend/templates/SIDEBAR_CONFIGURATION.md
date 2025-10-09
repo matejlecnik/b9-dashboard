@@ -304,17 +304,6 @@ export const instagramSidebarConfig: SidebarConfig = {
         value: 84,  // Unniched creators
         variant: 'default'
       }
-    },
-    {
-      id: 'viral-content',
-      title: 'Viral Content',
-      href: '/instagram/viral-content',
-      icon: TrendingUp,
-      badge: {
-        type: 'new',
-        value: 'Beta',
-        variant: 'secondary'
-      }
     }
   ]
 }

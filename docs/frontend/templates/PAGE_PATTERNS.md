@@ -331,7 +331,7 @@ export default function AnalyticsPage() {
 
 ### 3. Content Management Page Pattern
 
-Used for: Viral content, posts, media management
+Used for: Posts, media management, content analysis
 
 ```typescript
 // content/page.tsx

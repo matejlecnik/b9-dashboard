@@ -700,17 +700,6 @@
       "effort": "8h"
     },
     {
-      "name": "Viral detection algorithm",
-      "desc": "Identify posts with viral potential early",
-      "signals": [
-        "Above-average initial engagement velocity",
-        "Share/save ratio",
-        "Comment sentiment positivity",
-        "Hashtag reach potential"
-      ],
-      "effort": "12h"
-    },
-    {
       "name": "Advanced filtering UI",
       "desc": "Multi-criteria creator search and filtering",
       "filters": [
@@ -725,7 +714,6 @@
   ],
   "api_endpoints": {
     "/api/instagram/creators/score": "Calculate quality scores",
-    "/api/instagram/posts/viral": "Get viral potential posts",
     "/api/instagram/analytics/trends": "Trending content analysis"
   },
   "timeline": "2025-Q4",
@@ -1093,7 +1081,7 @@
   "2025_Q4": {
     "phase": "Phase 4",
     "focus": "Instagram Dashboard Completion",
-    "deliverables": ["Quality scoring", "Viral detection", "Creator management"],
+    "deliverables": ["Quality scoring", "Creator management", "Niche categorization"],
     "version": "v4.0.0"
   },
   "2026_Q1": {

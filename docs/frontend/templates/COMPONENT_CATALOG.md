@@ -385,34 +385,6 @@ import { NicheSelector } from '@/components/instagram/NicheSelector'
 />
 ```
 
-#### ViralReelCard
-Display viral reel information.
-
-```typescript
-import { ViralReelCard } from '@/components/instagram/ViralReelCard'
-
-<ViralReelCard
-  reel={reelData}
-  onPlay={handlePlay}
-  onAnalyze={handleAnalyze}
-  showMetrics={true}
-/>
-```
-
-#### ViralFilters
-Filter viral content.
-
-```typescript
-import { ViralFilters } from '@/components/instagram/ViralFilters'
-
-<ViralFilters
-  filters={currentFilters}
-  onFiltersChange={handleFiltersChange}
-  minViews={50000}
-  sortOptions={['views', 'likes', 'comments']}
-/>
-```
-
 ### 8. Reddit-Specific Components
 
 #### SubredditCard

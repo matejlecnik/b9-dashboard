@@ -115,17 +115,6 @@ export default function CreatorReviewPage() {
     }
   }, [infiniteData, removingIds.size])
 
-  // DEBUG: Log data
-  useEffect(() => {
-    console.log('🎯 Instagram Creators Page Data:', {
-      creatorsCount: creators.length,
-      isLoading,
-      hasNextPage,
-      currentFilter,
-      stats
-    })
-  }, [creators.length, isLoading, hasNextPage, currentFilter, stats])
-
   // Handle single item update
   const handleItemUpdate = useCallback(async (id: number, review: 'ok' | 'non_related' | 'pending') => {
     let status: CreatorStatus = null  // 'pending' → NULL
@@ -313,11 +302,11 @@ export default function CreatorReviewPage() {
           {/* Table */}
           <UniversalTableV2
             data={transformedCreators}
-            config={tableConfig}
+            config={tableConfig as any}
             loading={isLoading}
             selectedItems={selectedCreators}
             onSelectionChange={(ids) => setSelectedCreators(ids as Set<number>)}
-            getItemId={(creator) => creator.id}
+            getItemId={(creator: any) => creator.id}
             searchQuery={debouncedSearchQuery}
             onReachEnd={handleReachEnd}
             hasMore={hasNextPage}

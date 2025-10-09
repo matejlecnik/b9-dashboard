@@ -567,7 +567,7 @@ SELECT proxy health and performance metrics
   },
   "critical_functions": [
     "cleanup_old_logs() - DELETES logs > 2 days",
-    "get_viral_posts() - Complex viral scoring",
+    "get_viral_posts() - Reddit high-performance post analysis",
     "update_all_instagram_creator_stats() - Rollup stats"
   ],
   "documentation": "See SUPABASE_FUNCTIONS.md for details"
@@ -599,7 +599,7 @@ SELECT proxy health and performance metrics
 ```json
 {
   "common_queries": {
-    "viral_posts": "Complex CTE with scoring algorithm",
+    "viral_posts": "Reddit high-performance posts via CTE scoring algorithm",
     "user_quality": "Multi-factor scoring system",
     "subreddit_filtering": "Tag-based with GIN indexes"
   },

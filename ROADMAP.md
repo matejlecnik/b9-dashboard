@@ -243,7 +243,6 @@
   "type": "MAJOR",
   "dependencies": ["Phase 3 complete"],
   "goals": {
-    "viral_detection": "AI-powered viral content identification",
     "creator_scoring": "Comprehensive creator quality metrics",
     "niche_analysis": "Advanced niche categorization",
     "automation": "Automated posting pipeline",
@@ -251,13 +250,11 @@
   },
   "tasks": [
     {"id": "INST-411", "task": "Manual Instagram creator addition endpoint (POST /api/instagram/creator/add)", "progress": 100, "status": "COMPLETE", "completed": "2025-10-06"},
-    {"id": "INST-401", "task": "Viral content detection algorithm", "progress": 0},
     {"id": "INST-402", "task": "Creator quality scoring system", "progress": 20},
     {"id": "INST-403", "task": "Niche categorization engine", "progress": 15},
     {"id": "INST-404", "task": "Automated posting workflow", "progress": 0},
     {"id": "INST-405", "task": "Analytics dashboard enhancements", "progress": 10},
     {"id": "INST-406", "task": "Complete creator review interface", "progress": 65},
-    {"id": "INST-407", "task": "Finalize viral content detection", "progress": 0},
     {"id": "INST-408", "task": "Add last updated timestamp (Mac style) to posting subreddit cards", "progress": 0},
     {"id": "INST-409", "task": "Fix profile pictures not loading in Creator Review page", "progress": 0},
     {"id": "SCRAPER-001", "task": "Expand proxy pool and optimize Reddit scraper (20% speed boost)", "progress": 0}

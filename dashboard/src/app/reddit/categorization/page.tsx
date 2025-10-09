@@ -505,11 +505,11 @@ export default function CategorizationPage() {
           <ComponentErrorBoundary>
             <UniversalTableV2
               data={subreddits}
-              config={tableConfig}
+              config={tableConfig as any}
               loading={isLoading}
               selectedItems={selectedSubreddits}
               onSelectionChange={(ids) => setSelectedSubreddits(ids as Set<number>)}
-              getItemId={(subreddit) => subreddit.id}
+              getItemId={(subreddit: any) => subreddit.id}
               searchQuery={debouncedSearchQuery}
               onReachEnd={handleReachEnd}
               hasMore={hasNextPage}

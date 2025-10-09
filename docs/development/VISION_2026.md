@@ -49,14 +49,14 @@
   "target_users": ["Brands", "Agencies", "Content creators"],
   "key_features": [
     "Creator quality scoring algorithm",
-    "Viral content detection",
+    "Niche categorization system",
     "Advanced filtering and search",
     "Campaign management"
   ],
   "success_metrics": {
     "creators_tracked": ">10,000",
     "quality_score_accuracy": ">85%",
-    "viral_detection_rate": ">60%",
+    "niche_accuracy": ">80%",
     "user_satisfaction": ">4.5/5"
   }
 }

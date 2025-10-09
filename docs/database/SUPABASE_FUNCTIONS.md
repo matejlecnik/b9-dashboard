@@ -84,6 +84,8 @@ FUNCTION reset_daily_request_counts() RETURNS void
 ## 📊 Analytics Functions
 
 ### `get_viral_posts()`
+**Purpose**: Reddit high-performance post analysis (NOT Instagram viral reels)
+
 ```sql
 FUNCTION get_viral_posts(
   time_range_hours INTEGER DEFAULT 72,
@@ -91,7 +93,7 @@ FUNCTION get_viral_posts(
   total_limit INTEGER DEFAULT 500
 ) RETURNS TABLE
 {
-  "purpose": "Advanced viral content algorithm",
+  "purpose": "Advanced Reddit viral content algorithm",
   "scoring_algorithm": {
     "normalized_score": "40% weight",
     "engagement_rate": "40% weight",
@@ -179,13 +181,15 @@ FUNCTION get_posting_page_counts() RETURNS TABLE
 ```
 
 ### `get_viral_posts_paginated()`
+**Purpose**: Paginated version of Reddit viral posts query
+
 ```sql
 FUNCTION get_viral_posts_paginated(
   page INTEGER,
   per_page INTEGER
 ) RETURNS TABLE
 {
-  "wrapper_for": "get_viral_posts()",
+  "wrapper_for": "get_viral_posts() for Reddit",
   "adds": "Pagination support"
 }
 ```
@@ -457,7 +461,7 @@ SELECT cleanup_old_logs();
 SELECT cleanup_old_rate_limits();
 SELECT reset_daily_request_counts();
 
--- Get viral content
+-- Get Reddit high-performance posts
 SELECT * FROM get_viral_posts(
   time_range_hours := 48,
   posts_per_subreddit := 5,

@@ -22,37 +22,19 @@
 
 ```json
 {
-  "2025-10-09-r2-domain-migration": {
-    "duration": "3h",
+  "2025-10-09-viral-content-removal": {
+    "duration": "1.5h",
     "status": "✅ COMPLETE",
-    "impact": "R2 domain migration complete - domain-agnostic checks prevent re-uploads + bucket cleanup",
+    "impact": "Instagram viral content page removed - simplified dashboard to 3 core pages",
     "changes": [
-      "Fixed hardcoded R2 domain checks: 'r2.cloudflarestorage.com' → 'b9-instagram-media' (bucket-specific)",
-      "Updated 3 files: instagram_scraper.py (line 1036), storage.py (lines 128, 341), version.py",
-      "R2 bucket cleanup: Deleted 664 remaining objects via boto3 script (bucket now empty)",
-      "Configured R2 dev URL: https://pub-497baa9dc05748f98aaed739c2a5ef08.r2.dev",
-      "Rate limits confirmed safe for 3-user scale (150 requests vs 'hundreds per second' limit)"
+      "Deleted 8 files: viral-content page, ViralFilters, ViralReelCard, ViralReelsGrid, useViralPosts hook, viral-reels utility",
+      "Updated 6 files: navigation config, component exports, query keys, useInstagramReview hooks",
+      "Removed 320+ lines from useInstagramReview.ts (viral hooks section)",
+      "Instagram dashboard now: Analytics, Niching, Creator Review (3 pages only)"
     ],
-    "files": "instagram_scraper.py (line 1036), storage.py (lines 128,341), version.py (line 13), .env",
-    "technical": "Bucket name pattern matching enables domain-agnostic R2 URL detection (supports both old and new domains)",
-    "deployment": "Hetzner server updated, API container restarted, health check verified",
-    "version": "v3.12.1",
-    "next": "Monitor media uploads with new R2 dev URL domain"
-  },
-  "2025-10-09-instagram-table-refinement": {
-    "duration": "2h",
-    "status": "✅ COMPLETE",
-    "impact": "Instagram creator review table UX improvements + R2 storage cleanup (2,117 URLs removed)",
-    "changes": [
-      "R2 cleanup: Removed all 2,117 R2 URLs from database (instagram_creators: 245, instagram_posts: 405, instagram_reels: 1,467)",
-      "Column reorder: Moved Bio + Link column before Followers column for better layout",
-      "Width optimization: Reduced Bio column from w-80 (320px) → w-64 (256px)",
-      "Text truncation fix: Added min-w-0 to TextField containers to enforce width constraints",
-      "Root cause: Flex items default to min-width:auto causing overflow beyond parent width"
-    ],
-    "files": "TextField.tsx (lines 106,107,110,114,127,134), instagramReviewColumns.tsx (lines 64-96), creator-review/page.tsx (lines 11-12,68-77)",
-    "technical": "min-w-0 utility overrides flex item min-width:auto, forcing content to respect parent w-64 constraint + truncate class",
-    "next": "R2 bucket deletion and public URL configuration (separate Claude session)"
+    "files": "page.tsx (deleted), navigation-config.ts (lines 94-109), react-query.ts (lines 85-87), useInstagramReview.ts (lines 557-879)",
+    "rationale": "Viral detection not core to Phase 4 MVP - defer to future phases",
+    "next": "Focus on creator quality scoring & niche categorization"
   },
   "2025-10-09-table-v2-migration": {
     "duration": "2.5h",
@@ -96,6 +78,38 @@
     "commit": "338ee7d - Reddit scraper auto-cycling v3.11.0",
     "deployment": "Hetzner CPX11 API container rebuilt + recreated",
     "next": "Monitor auto-cycling behavior when scraper next completes a full cycle"
+  },
+  "2025-10-09-r2-domain-migration": {
+    "duration": "3h",
+    "status": "\u2705 COMPLETE",
+    "impact": "R2 domain migration complete - domain-agnostic checks prevent re-uploads + bucket cleanup",
+    "changes": [
+      "Fixed hardcoded R2 domain checks: 'r2.cloudflarestorage.com' \u2192 'b9-instagram-media' (bucket-specific)",
+      "Updated 3 files: instagram_scraper.py (line 1036), storage.py (lines 128, 341), version.py",
+      "R2 bucket cleanup: Deleted 664 remaining objects via boto3 script (bucket now empty)",
+      "Configured R2 dev URL: https://pub-497baa9dc05748f98aaed739c2a5ef08.r2.dev",
+      "Rate limits confirmed safe for 3-user scale (150 requests vs 'hundreds per second' limit)"
+    ],
+    "files": "instagram_scraper.py (line 1036), storage.py (lines 128,341), version.py (line 13), .env",
+    "technical": "Bucket name pattern matching enables domain-agnostic R2 URL detection (supports both old and new domains)",
+    "deployment": "Hetzner server updated, API container restarted, health check verified",
+    "version": "v3.12.1",
+    "next": "Monitor media uploads with new R2 dev URL domain"
+  },
+  "2025-10-09-instagram-table-refinement": {
+    "duration": "2h",
+    "status": "\u2705 COMPLETE",
+    "impact": "Instagram creator review table UX improvements + R2 storage cleanup (2,117 URLs removed)",
+    "changes": [
+      "R2 cleanup: Removed all 2,117 R2 URLs from database (instagram_creators: 245, instagram_posts: 405, instagram_reels: 1,467)",
+      "Column reorder: Moved Bio + Link column before Followers column for better layout",
+      "Width optimization: Reduced Bio column from w-80 (320px) \u2192 w-64 (256px)",
+      "Text truncation fix: Added min-w-0 to TextField containers to enforce width constraints",
+      "Root cause: Flex items default to min-width:auto causing overflow beyond parent width"
+    ],
+    "files": "TextField.tsx (lines 106,107,110,114,127,134), instagramReviewColumns.tsx (lines 64-96), creator-review/page.tsx (lines 11-12,68-77)",
+    "technical": "min-w-0 utility overrides flex item min-width:auto, forcing content to respect parent w-64 constraint + truncate class",
+    "next": "R2 bucket deletion and public URL configuration (separate Claude session)"
   },
   "2025-10-09-hetzner-migration": {
     "duration": "2.5h",
@@ -153,11 +167,11 @@
   "2025-10-09-auto-session": {
     "duration": "auto-tracked",
     "commits": 1,
-    "files_modified": 3,
-    "lines_added": 10,
-    "lines_deleted": 16,
+    "files_modified": 5,
+    "lines_added": 78,
+    "lines_deleted": 37,
     "status": "LOGGED",
-    "timestamp": "2025-10-09T21:30:07.765764",
+    "timestamp": "2025-10-09T22:54:40.112495",
     "achievements": [
       {
         "task": "Fixed 1 issues",
@@ -168,7 +182,7 @@
       "backend"
     ],
     "commit_messages": [
-      "\ud83d\udd27 FIX: R2 domain checks now support both old and new URLs (v3.12.1)"
+      "\ud83d\udd27 FIX: Backend linting issues (Ruff + Black)"
     ]
   },
   "2025-10-06-instagram-manual-add": {
@@ -308,12 +322,12 @@ _Historical sessions before v3.4.0 archived. See git history for details._
 
 ```json
 {
-  "total_sessions": 21,
-  "total_hours": 64.5,
+  "total_sessions": 22,
+  "total_hours": 66,
   "commits": 15,
   "files_created": 47,
-  "files_modified": 146,
-  "files_deleted": 2,
+  "files_modified": 152,
+  "files_deleted": 10,
   "lines_added": 18897,
   "lines_removed": 10684,
   "documentation_compliance": "100%",

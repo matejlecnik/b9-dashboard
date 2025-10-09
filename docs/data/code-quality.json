@@ -1,33 +1,33 @@
 {
-  "timestamp": "2025-10-09T20:53:47.237718",
+  "timestamp": "2025-10-09T22:50:30.692974",
   "checks": {
     "typescript": {
       "tool": "TypeScript",
       "errors": [
         {
           "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 310,
+          "line": 316,
           "column": 13,
           "code": "TS2769",
           "message": "No overload matches this call."
         },
         {
           "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 314,
+          "line": 320,
           "column": 37,
           "code": "TS18046",
           "message": "'creator' is of type 'unknown'."
         },
         {
           "file": "src/app/instagram/niching/page.tsx",
-          "line": 244,
+          "line": 251,
           "column": 13,
           "code": "TS2769",
           "message": "No overload matches this call."
         },
         {
           "file": "src/app/instagram/niching/page.tsx",
-          "line": 248,
+          "line": 255,
           "column": 37,
           "code": "TS18046",
           "message": "'creator' is of type 'unknown'."
@@ -61,50 +61,8 @@
           "message": "'subreddit' is of type 'unknown'."
         },
         {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 130,
-          "column": 9,
-          "code": "TS2353",
-          "message": "Object literal may only specify known properties, and 'variant' does not exist in type 'BadgeFieldConfig'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 147,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type '\"pink\"' is not assignable to type '\"secondary\" | \"primary\" | \"tertiary\" | \"subtle\" | undefined'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 177,
-          "column": 28,
-          "code": "TS2322",
-          "message": "Type '{ type: string; text: string; color: string; bold: boolean; } | { type: string; text: string; color: string; bold?: undefined; }' is not assignable to type 'ReactNode'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 197,
-          "column": 28,
-          "code": "TS2322",
-          "message": "Type '{ type: string; text: string; color: string; bold: boolean; } | { type: string; text: string; color: string; bold?: undefined; }' is not assignable to type 'ReactNode'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 233,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type '\"date\"' is not assignable to type '\"number\" | \"text\" | \"percentage\" | \"badge\" | \"tags\" | \"avatar\" | \"actions\" | \"custom\"'."
-        },
-        {
-          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 234,
-          "column": 9,
-          "code": "TS2322",
-          "message": "Type '{ maxDays: number; color: string; }[]' is not assignable to type '{ min: number; color: string; }[]'."
-        },
-        {
           "file": "src/components/shared/tables/configs/instagramReviewColumns.tsx",
-          "line": 90,
+          "line": 75,
           "column": 9,
           "code": "TS2322",
           "message": "Type '(creator: any) => { type: string; url: any; showHostname: boolean; } | undefined' is not assignable to type 'string | ((item: any) => string | undefined) | undefined'."
@@ -136,58 +94,23 @@
           "column": 9,
           "code": "TS2322",
           "message": "Type 'string | LinkSubtitle' is not assignable to type 'ReactNode'."
+        },
+        {
+          "file": "src/hooks/usePostAnalysis.ts",
+          "line": 2,
+          "column": 31,
+          "code": "TS2307",
+          "message": "Cannot find module './queries/useViralPosts' or its corresponding type declarations."
         }
       ],
       "warnings": [],
-      "error_count": 19,
+      "error_count": 14,
       "warning_count": 0,
       "passed": false
     },
     "eslint": {
       "tool": "ESLint",
       "errors": [
-        {
-          "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 12,
-          "column": 10,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'designSystem' is defined but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 72,
-          "column": 5,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'isFetchingNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/app/instagram/creator-review/page.tsx",
-          "line": 74,
-          "column": 5,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'fetchNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/app/instagram/niching/page.tsx",
-          "line": 70,
-          "column": 5,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'isFetchingNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/app/instagram/niching/page.tsx",
-          "line": 71,
-          "column": 5,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'hasNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
-        },
-        {
-          "file": "src/app/instagram/niching/page.tsx",
-          "line": 72,
-          "column": 5,
-          "code": "@typescript-eslint/no-unused-vars",
-          "message": "'fetchNextPage' is assigned a value but never used. Allowed unused vars must match /^_/u."
-        },
         {
           "file": "src/app/models/page.tsx",
           "line": 11,
@@ -295,7 +218,28 @@
         },
         {
           "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
-          "line": 30,
+          "line": 4,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'DatePresets' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 4,
+          "column": 23,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'DateField' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 5,
+          "column": 10,
+          "code": "@typescript-eslint/no-unused-vars",
+          "message": "'TextField' is defined but never used. Allowed unused vars must match /^_/u."
+        },
+        {
+          "file": "src/components/shared/tables/configs/instagramNichingColumns.tsx",
+          "line": 32,
           "column": 18,
           "code": "@typescript-eslint/no-explicit-any",
           "message": "Unexpected any. Specify a different type."
@@ -401,7 +345,7 @@
           "message": "React Hook useMemo has missing dependencies: 'handleShowRules' and 'updateReview'. Either include them or remove the dependency array."
         }
       ],
-      "error_count": 34,
+      "error_count": 31,
       "warning_count": 2,
       "passed": false
     },
@@ -608,7 +552,7 @@
     }
   },
   "summary": {
-    "total_errors": 78,
+    "total_errors": 70,
     "total_warnings": 2,
     "passed": [
       "design_system"

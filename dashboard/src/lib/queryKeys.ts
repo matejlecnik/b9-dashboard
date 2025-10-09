@@ -32,6 +32,7 @@ export const queryKeys = {
       detail: (id: number) => ['reddit', 'posts', 'detail', id] as const,
       trending: () => ['reddit', 'posts', 'trending'] as const,
     },
+    viralPosts: (filters?: unknown) => ['reddit', 'viral-posts', filters] as const,
   },
 
   // Instagram keys

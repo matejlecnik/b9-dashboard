@@ -4,12 +4,7 @@ import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
 import { BadgesField, type Badge } from './BadgesField'
-
-interface LinkSubtitle {
-  type: 'link'
-  url: string
-  showHostname?: boolean
-}
+import { type LinkSubtitle } from '../types'
 
 interface TextFieldProps {
   value: string | null | undefined
@@ -95,7 +90,7 @@ export const TextField = memo(function TextField({
     // Regular string subtitle
     return (
       <div className={cn('text-xs', truncate && 'truncate', subtitleColorClass)}>
-        {subtitle}
+        {subtitle as string}
       </div>
     )
   }

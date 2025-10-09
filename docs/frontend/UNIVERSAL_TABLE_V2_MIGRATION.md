@@ -528,11 +528,6 @@ export function createColumns(
 
 ## Related Changes
 
-### Database Updates
-- Viral scoring algorithm updated: recency boost 15% → 35%
-- SQL function: `get_viral_posts_paginated` modified
-- Impact: Newer posts now weighted 2.3x more heavily
-
 ### UI Improvements
 - Post cards: Removed media type badge and engagement badge
 - Cleaner, less cluttered interface

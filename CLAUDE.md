@@ -67,11 +67,10 @@ DISK    [████████████░░░░░░░░] 60%  | NE
   "progress": "[████░░░░░░░░░░░░░░░░] 20%",
   "next_milestones": [
     {"id": "INST-401", "task": "Creator quality scoring", "effort": "8h"},
-    {"id": "INST-402", "task": "Viral detection algorithm", "effort": "12h"},
     {"id": "INST-403", "task": "Advanced filtering UI", "effort": "6h"},
     {"id": "INST-404", "task": "Creator management dashboard", "effort": "40h"}
   ],
-  "target": "Complete Instagram module with quality scoring & viral detection"
+  "target": "Complete Instagram module with quality scoring & niche categorization"
 }
 ```
 
@@ -107,14 +106,14 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 
 ```json
 {
-  "critical": [
-    {"id": "CRON-001", "task": "Render cron jobs for log cleanup", "deadline": "2025-10-15", "risk": "DISK_OVERFLOW"}
+  "critical": [],
+  "completed": [
+    {"id": "CRON-001", "task": "Render cron jobs for log cleanup", "completed": "2025-10-09", "status": "DEPLOYED", "ref": "backend/docs/CRON_SETUP.md"}
   ],
   "active": [
     {"id": "INST-401", "task": "Design quality scoring algorithm", "phase": "v4.0.0"}
   ],
   "next": [
-    {"id": "INST-402", "task": "Instagram viral detection", "eta": "12h", "phase": "v4.0.0"},
     {"id": "INST-403", "task": "Creator management UI", "eta": "40h", "phase": "v4.0.0"}
   ]
 }
@@ -150,6 +149,12 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ## Recent Activity Log
 
 ```diff
++ 2025-10-09: Instagram Viral Content Removal - Dashboard Simplified ✅
++ Removed viral content page to focus Phase 4 on creator quality & niche categorization
++ Deleted 8 files (viral-content page, ViralFilters, ViralReelCard, ViralReelsGrid, hooks, utilities)
++ Updated 6 files (navigation, components, query keys, hooks)
++ Instagram dashboard simplified: Analytics, Niching, Creator Review (3 core pages)
++ Viral detection deferred to future phases per MVP strategy
 + 2025-10-05: Strategic Roadmap Extended v4.0.0 - 8 Phases Through 2026 ✅
 + Extended roadmap from 5 to 8 phases based on user's long-term vision
 + Phase 4: Instagram Dashboard Completion (2025-Q4)

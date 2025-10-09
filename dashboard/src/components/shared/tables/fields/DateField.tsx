@@ -39,7 +39,7 @@ export const DateField = memo(function DateField({
   }
 
   // Determine color based on thresholds
-  let colorClass = designSystem.typography.color.secondary
+  let colorClass: string = designSystem.typography.color.secondary
   if (colorThresholds) {
     // Sort thresholds by maxDays ascending
     const sorted = [...colorThresholds].sort((a, b) => a.maxDays - b.maxDays)

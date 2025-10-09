@@ -46,7 +46,7 @@
   "queries": {
     "file": "database/SUPABASE_QUERIES.md",
     "lines": 385,
-    "topics": ["viral algorithm", "performance", "optimization"]
+    "topics": ["query patterns", "performance", "optimization"]
   },
   "jobs": {
     "file": "database/BACKGROUND_JOBS.md",
@@ -212,7 +212,7 @@
 ### By Priority
 1. **🔴 CRITICAL**: `TODO_CRON_SETUP.md` - Log cleanup (30 days)
 2. **🟠 HIGH**: API timeout handling, scraper memory leak
-3. **🟡 MEDIUM**: Instagram viral detection, query optimization
+3. **🟡 MEDIUM**: Query optimization, niche categorization
 4. **🟢 LOW**: Documentation updates, test coverage
 
 ## 📁 Complete File Tree

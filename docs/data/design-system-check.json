@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-09T20:53:59.090548",
+  "timestamp": "2025-10-09T22:50:38.269085",
   "violations": [
     {
       "file": "src/app/api/reddit/categories/route.ts",
@@ -249,7 +249,7 @@
   ],
   "summary": {
     "total_violations": 35,
-    "files_checked": 197,
+    "files_checked": 194,
     "files_with_violations": 8,
     "passed": false
   }
