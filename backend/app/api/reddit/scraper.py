@@ -490,10 +490,10 @@ async def get_reddit_success_rate():
             level = log.get("level", "")
 
             # User post fetch results (format: "[X/Y] username: ✅ N posts")
-            # Only count if it has the [X/Y] format indicating it's a user fetch line
-            if "[" in message and "]" in message and ":" in message:
+            # Must contain "/" inside brackets to ensure it's [X/Y] format, not just any brackets
+            if "[" in message and "/" in message and "]" in message and ": " in message:
                 # Successful user post fetches: "[1/6] username: ✅ 10 posts"
-                if "✅" in message and "posts" in message:
+                if "✅" in message and " posts" in message:
                     successful_requests += 1
 
                 # Failed user post fetches: "[2/6] username: ⚠️ 0 posts"
