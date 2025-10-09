@@ -81,9 +81,9 @@ services:
       - key: CRON_SECRET
         generateValue: true  # Render auto-generates secure random value
       - key: SUPABASE_URL
-        sync: false  # Sync from main service
+        sync: true  # Sync from main service
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false  # Sync from main service
+        sync: true  # Sync from main service
 
 # NOTE: No additional databases needed - using Supabase for all data storage
 # databases:

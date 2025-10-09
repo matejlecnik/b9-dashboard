@@ -2,8 +2,7 @@
 
 ┌─ SYSTEM STATUS ─────────────────────────────────────────┐
 │ ● OPERATIONAL  │ ███████████████████░ 98% COMPLETE      │
-│ Version: 4.0.0 │ Last Deploy: 2025-10-08 15:01 UTC     │
-│ Backend: Hetzner Cloud (3 servers, €30/mo)             │
+│ Version: 4.0.0 │ Last Deploy: 2025-10-03 16:24 UTC     │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -17,17 +16,13 @@
     {"path": "docs/development/VISION_2026.md", "desc": "Long-term vision", "status": "PENDING"}
   ],
   "modules": [
-    {"path": "backend/", "desc": "Backend API", "status": "PRODUCTION"},
+    {"path": "api-render/", "desc": "Backend API", "status": "PRODUCTION"},
     {"path": "dashboard/", "desc": "Frontend app", "status": "ACTIVE"}
   ],
   "docs": [
     {"path": "docs/INDEX.md", "desc": "Master index", "status": "REFERENCE"},
     {"path": "docs/development/SESSION_LOG.md", "desc": "Activity log", "status": "ACTIVE"},
     {"path": "docs/development/DOCUMENTATION_STANDARDS.md", "desc": "Mandatory rules", "status": "ENFORCED"}
-  ],
-  "deployment": [
-    {"path": "docs/deployment/HETZNER_DEPLOYMENT_INFO.md", "desc": "Hetzner server info", "status": "LIVE"},
-    {"path": "docs/deployment/HETZNER_QUICK_REFERENCE.md", "desc": "Quick commands", "status": "REFERENCE"}
   ]
 }
 ```
@@ -112,8 +107,9 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 
 ```json
 {
-  "critical": [
-    {"id": "CRON-001", "task": "Render cron jobs for log cleanup", "deadline": "2025-10-15", "risk": "DISK_OVERFLOW"}
+  "critical": [],
+  "completed": [
+    {"id": "CRON-001", "task": "Render cron jobs for log cleanup", "completed": "2025-10-09", "status": "DEPLOYED", "ref": "backend/docs/CRON_SETUP.md"}
   ],
   "active": [
     {"id": "INST-401", "task": "Design quality scoring algorithm", "phase": "v4.0.0"}
@@ -147,7 +143,7 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ```json
 {
   "strategic": ["ROADMAP.md", "docs/development/SYSTEM_IMPROVEMENT_PLAN.md"],
-  "modules": ["backend/README.md", "dashboard/README.md"],
+  "modules": ["api-render/README.md", "dashboard/README.md"],
   "docs": ["docs/development/DOCUMENTATION_STANDARDS.md", "docs/development/SESSION_LOG.md"]
 }
 ```
