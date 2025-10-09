@@ -459,59 +459,66 @@ async def get_reddit_success_rate():
             # Fallback to 24 hours ago
             start_time = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
-        # Get logs from current run only (since started_at)
-        all_logs = (
+        # Pre-filter logs at DATABASE level for efficiency (not in Python)
+        # Query 1: Successful user post fetches - "[X/Y] username: ✅ N posts"
+        successful_logs = (
             supabase.table("system_logs")
-            .select("id, level, message")
+            .select("id", count="exact")
             .eq("source", "reddit_scraper")
             .gte("timestamp", start_time)
-            .order("timestamp", desc=True)
-            .limit(5000)  # Increased limit for longer runs
+            .like("message", "%✅%posts%")
+            .like("message", "%[%/%]%")  # Ensure [X/Y] format
             .execute()
         )
 
-        if not all_logs.data or len(all_logs.data) == 0:
-            return {
-                "success": True,
-                "stats": {
-                    "total_requests": 0,
-                    "successful_requests": 0,
-                    "failed_requests": 0,
-                    "success_rate": 100.0,
-                },
-            }
+        # Query 2: Failed user post fetches - "[X/Y] username: ⚠️ 0 posts"
+        failed_user_logs = (
+            supabase.table("system_logs")
+            .select("id", count="exact")
+            .eq("source", "reddit_scraper")
+            .gte("timestamp", start_time)
+            .like("message", "%⚠️%0 posts%")
+            .execute()
+        )
 
-        # Count ONLY actual Reddit API requests, not all logs
-        successful_requests = 0
-        failed_requests = 0
+        # Query 3: API validation failures - "⚠️ subreddit_info is None"
+        validation_failures = (
+            supabase.table("system_logs")
+            .select("id", count="exact")
+            .eq("source", "reddit_scraper")
+            .gte("timestamp", start_time)
+            .like("message", "%⚠️%is None%")
+            .execute()
+        )
 
-        for log in all_logs.data:
-            message = log.get("message", "")
-            level = log.get("level", "")
+        # Query 4: Retry attempts - "🔄 Retrying subreddit_info"
+        retry_logs = (
+            supabase.table("system_logs")
+            .select("id", count="exact")
+            .eq("source", "reddit_scraper")
+            .gte("timestamp", start_time)
+            .like("message", "%🔄 Retrying%")
+            .execute()
+        )
 
-            # User post fetch results (format: "[X/Y] username: ✅ N posts")
-            # Must contain "/" inside brackets to ensure it's [X/Y] format, not just any brackets
-            if "[" in message and "/" in message and "]" in message and ": " in message:
-                # Successful user post fetches: "[1/6] username: ✅ 10 posts"
-                if "✅" in message and " posts" in message:
-                    successful_requests += 1
+        # Query 5: Explicit error logs related to API
+        error_logs = (
+            supabase.table("system_logs")
+            .select("id", count="exact")
+            .eq("source", "reddit_scraper")
+            .eq("level", "error")
+            .gte("timestamp", start_time)
+            .execute()
+        )
 
-                # Failed user post fetches: "[2/6] username: ⚠️ 0 posts"
-                elif "⚠️" in message and "0 posts" in message:
-                    failed_requests += 1
-
-            # API validation failures: "⚠️ subreddit_info is None" etc
-            elif "⚠️" in message and ("is None" in message or "has error" in message):
-                failed_requests += 1
-
-            # Retry attempts for API data (subreddit info, rules, posts)
-            elif "🔄 Retrying" in message and ("subreddit_info" in message or "rules" in message or "top_10_weekly" in message):
-                failed_requests += 1
-
-            # Explicit error level logs related to API calls
-            elif level == "error" and ("API" in message or "fetch" in message or "request" in message or "Error processing" in message):
-                failed_requests += 1
-
+        # Calculate totals from database counts (not Python filtering)
+        successful_requests = successful_logs.count or 0
+        failed_requests = (
+            (failed_user_logs.count or 0)
+            + (validation_failures.count or 0)
+            + (retry_logs.count or 0)
+            + (error_logs.count or 0)
+        )
         total_requests = successful_requests + failed_requests
 
         if total_requests == 0:
