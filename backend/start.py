@@ -15,10 +15,10 @@ from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 async def check_and_start_scrapers():
     """Check database and start both Reddit and Instagram scrapers if enabled"""
@@ -36,14 +36,19 @@ async def check_and_start_scrapers():
 
         # Check and start Reddit scraper
         try:
-            result = supabase.table('system_control').select('*').eq('script_name', 'reddit_scraper').execute()
+            result = (
+                supabase.table("system_control")
+                .select("*")
+                .eq("script_name", "reddit_scraper")
+                .execute()
+            )
 
-            if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
+            if result.data and len(result.data) > 0 and result.data[0].get("enabled"):
                 logger.info("🔄 Reddit scraper is enabled in database, starting subprocess...")
 
                 # Open log file for Reddit scraper output
                 try:
-                    reddit_log = open('/tmp/reddit_scraper.log', 'w')  # noqa: SIM115 - Must stay open for subprocess
+                    reddit_log = open("/tmp/reddit_scraper.log", "w")  # noqa: SIM115 - Must stay open for subprocess
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
@@ -52,7 +57,7 @@ async def check_and_start_scrapers():
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd='/app'  # Ensure correct working directory
+                        cwd="/app",  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -60,29 +65,35 @@ async def check_and_start_scrapers():
 
                     if reddit_process.poll() is None:
                         # Process is still running
-                        logger.info(f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}")
+                        logger.info(
+                            f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}"
+                        )
 
                         # Update heartbeat in database
-                        supabase.table('system_control').update({
-                            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-                            'status': 'running',
-                            'updated_by': 'auto_start'
-                        }).eq('script_name', 'reddit_scraper').execute()
+                        supabase.table("system_control").update(
+                            {
+                                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+                                "status": "running",
+                                "updated_by": "auto_start",
+                            }
+                        ).eq("script_name", "reddit_scraper").execute()
 
                     else:
                         # Process died immediately, read error from log
                         reddit_log.close()
-                        with open('/tmp/reddit_scraper.log') as f:
+                        with open("/tmp/reddit_scraper.log") as f:
                             error_output = f.read()
                         logger.error(f"❌ Reddit scraper died immediately. Error: {error_output}")
 
                         # Mark as stopped in database
-                        supabase.table('system_control').update({
-                            'enabled': False,
-                            'status': 'stopped',
-                            'last_error': f"Failed to start: {error_output[:500]}",
-                            'updated_by': 'auto_start'
-                        }).eq('script_name', 'reddit_scraper').execute()
+                        supabase.table("system_control").update(
+                            {
+                                "enabled": False,
+                                "status": "stopped",
+                                "last_error": f"Failed to start: {error_output[:500]}",
+                                "updated_by": "auto_start",
+                            }
+                        ).eq("script_name", "reddit_scraper").execute()
 
                 finally:
                     pass  # Cleanup if needed
@@ -94,14 +105,19 @@ async def check_and_start_scrapers():
 
         # Check and start Instagram scraper
         try:
-            result = supabase.table('system_control').select('*').eq('script_name', 'instagram_scraper').execute()
+            result = (
+                supabase.table("system_control")
+                .select("*")
+                .eq("script_name", "instagram_scraper")
+                .execute()
+            )
 
-            if result.data and len(result.data) > 0 and result.data[0].get('enabled'):
+            if result.data and len(result.data) > 0 and result.data[0].get("enabled"):
                 logger.info("🔄 Instagram scraper is enabled in database, starting subprocess...")
 
                 # Open log file for Instagram scraper output
                 try:
-                    instagram_log = open('/tmp/instagram_scraper.log', 'w')  # noqa: SIM115 - Must stay open for subprocess
+                    instagram_log = open("/tmp/instagram_scraper.log", "w")  # noqa: SIM115 - Must stay open for subprocess
 
                     # Start with output to log file so we can see errors
                     instagram_process = subprocess.Popen(
@@ -110,7 +126,7 @@ async def check_and_start_scrapers():
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd='/app'  # Ensure correct working directory
+                        cwd="/app",  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -118,29 +134,37 @@ async def check_and_start_scrapers():
 
                     if instagram_process.poll() is None:
                         # Process is still running
-                        logger.info(f"✅ Instagram scraper auto-started with PID: {instagram_process.pid}")
+                        logger.info(
+                            f"✅ Instagram scraper auto-started with PID: {instagram_process.pid}"
+                        )
 
                         # Update heartbeat in database
-                        supabase.table('system_control').update({
-                            'last_heartbeat': datetime.now(timezone.utc).isoformat(),
-                            'status': 'running',
-                            'updated_by': 'auto_start'
-                        }).eq('script_name', 'instagram_scraper').execute()
+                        supabase.table("system_control").update(
+                            {
+                                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+                                "status": "running",
+                                "updated_by": "auto_start",
+                            }
+                        ).eq("script_name", "instagram_scraper").execute()
 
                     else:
                         # Process died immediately, read error from log
                         instagram_log.close()
-                        with open('/tmp/instagram_scraper.log') as f:
+                        with open("/tmp/instagram_scraper.log") as f:
                             error_output = f.read()
-                        logger.error(f"❌ Instagram scraper died immediately. Error: {error_output}")
+                        logger.error(
+                            f"❌ Instagram scraper died immediately. Error: {error_output}"
+                        )
 
                         # Mark as stopped in database
-                        supabase.table('system_control').update({
-                            'enabled': False,
-                            'status': 'stopped',
-                            'last_error': f"Failed to start: {error_output[:500]}",
-                            'updated_by': 'auto_start'
-                        }).eq('script_name', 'instagram_scraper').execute()
+                        supabase.table("system_control").update(
+                            {
+                                "enabled": False,
+                                "status": "stopped",
+                                "last_error": f"Failed to start: {error_output[:500]}",
+                                "updated_by": "auto_start",
+                            }
+                        ).eq("script_name", "instagram_scraper").execute()
 
                 finally:
                     pass  # Cleanup if needed
@@ -153,28 +177,47 @@ async def check_and_start_scrapers():
     except Exception as e:
         logger.error(f"❌ Error checking scraper auto-start: {e}")
 
+
 def run_api():
-    """Run the FastAPI server"""
+    """Run the FastAPI server with production or development configuration"""
     logger.info("🚀 Starting FastAPI server...")
-    port = os.environ.get('PORT', '8000')
+    port = os.environ.get("PORT", "8000")
+    environment = os.environ.get("ENVIRONMENT", "development")
+
     try:
         # Add current directory to Python path
-        sys.path.insert(0, '/app')
-        os.environ['PYTHONPATH'] = '/app'
+        sys.path.insert(0, "/app")
+        os.environ["PYTHONPATH"] = "/app"
 
-        # Import and run the app directly instead of using subprocess
-        import uvicorn
+        if environment == "production":
+            # Use Gunicorn + Uvicorn workers for production (multi-worker)
+            logger.info("🏭 Running in PRODUCTION mode (Gunicorn + Uvicorn workers)")
+            from production_server import run_production_server
 
-        from main import app
+            run_production_server()
+        else:
+            # Use standalone Uvicorn for development (single worker, auto-reload)
+            logger.info("🛠️  Running in DEVELOPMENT mode (Uvicorn single worker)")
+            import uvicorn
 
-        uvicorn.run(app, host="0.0.0.0", port=int(port))
+            from main import app
+
+            uvicorn.run(
+                app,
+                host="0.0.0.0",
+                port=int(port),
+                reload=True,  # Enable auto-reload in development
+                log_level="debug",
+            )
     except Exception as e:
         logger.error(f"❌ API server crashed: {e}")
+
 
 def signal_handler(sig, frame):
     """Handle shutdown signals"""
     logger.info("\n🛑 Shutting down services gracefully...")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     # Handle shutdown signals

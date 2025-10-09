@@ -1,5 +1,5 @@
-# B9 Dashboard - Production Dockerfile for Render
-# Combined API + Scrapers managed by Python startup script
+# B9 Dashboard - Production Dockerfile for Hetzner CPX31
+# Combined API + Scrapers with Gunicorn + Uvicorn workers for multi-core performance
 
 FROM python:3.12-slim-bullseye as builder
 

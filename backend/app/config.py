@@ -78,6 +78,66 @@ class MonitoringConfig:
 
 
 @dataclass
+class HetznerServerConfig:
+    """Hetzner CPX31 optimized server configuration"""
+
+    # Worker Configuration (for Gunicorn)
+    workers: int = 8  # (4 CPUs x 2) + 1 = 9, capped at 8 for stability
+    max_workers: int = 8  # Maximum workers allowed
+    worker_timeout: int = 120  # Worker timeout in seconds (2 minutes)
+    graceful_timeout: int = 30  # Graceful shutdown timeout in seconds
+
+    # Connection Limits
+    max_connections: int = 1000  # Maximum concurrent connections per worker
+    max_keepalive_connections: int = 100  # Keep-alive connection pool size
+    keepalive_timeout: int = 5  # Keep-alive timeout in seconds
+
+    # Request Limits
+    max_request_size: int = 10 * 1024 * 1024  # 10MB max request body
+    max_upload_size: int = 50 * 1024 * 1024  # 50MB max file upload
+    max_requests_per_worker: int = 1000  # Restart worker after N requests
+    max_requests_jitter: int = 100  # Add randomness to prevent thundering herd
+
+    # Database Connection Pool (Supabase)
+    db_pool_size: int = 20  # Connections per worker
+    db_max_overflow: int = 10  # Extra connections if pool is full
+    db_pool_timeout: int = 30  # Timeout for getting connection from pool
+
+    # Timeouts
+    request_timeout: int = 120  # General request timeout
+    connection_timeout: int = 10  # Connection establishment timeout
+
+    # Memory Limits (per worker)
+    worker_memory_limit_mb: int = 800  # 800MB per worker (8 workers = 6.4GB)
+    total_memory_limit_mb: int = 7500  # Total memory limit (leave 500MB for system)
+
+    # Performance
+    preload_app: bool = False  # Preload app before forking workers (can reduce memory)
+    worker_class: str = "uvicorn.workers.UvicornWorker"  # Worker class for async support
+
+    # Security
+    limit_request_line: int = 8190  # Max HTTP request line size
+    limit_request_fields: int = 100  # Max number of HTTP headers
+    limit_request_field_size: int = 8190  # Max HTTP header field size
+
+    @classmethod
+    def from_env(cls) -> "HetznerServerConfig":
+        """Create configuration from environment variables"""
+        import multiprocessing
+
+        cpus = multiprocessing.cpu_count()
+        workers = int(os.getenv("WORKERS", (cpus * 2) + 1))
+        workers = min(workers, int(os.getenv("MAX_WORKERS", 8)))
+
+        return cls(
+            workers=workers,
+            max_workers=int(os.getenv("MAX_WORKERS", 8)),
+            worker_timeout=int(os.getenv("WORKER_TIMEOUT", 120)),
+            graceful_timeout=int(os.getenv("GRACEFUL_TIMEOUT", 30)),
+        )
+
+
+@dataclass
 class InstagramScraperConfig:
     """Instagram scraper configuration"""
 

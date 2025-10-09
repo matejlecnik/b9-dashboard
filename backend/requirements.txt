@@ -1,9 +1,10 @@
-# B9 Dashboard API - Render Optimized Requirements
-# Streamlined dependencies for production deployment on Render
+# B9 Dashboard API - Hetzner Optimized Requirements
+# Streamlined dependencies for production deployment on Hetzner CPX31 (4 vCPUs, 8GB RAM)
 
 # Core Web Framework - Production Ready
 fastapi>=0.104.1,<1.0.0
 uvicorn[standard]>=0.24.0,<1.0.0
+gunicorn>=21.2.0,<22.0.0  # Production WSGI server with worker management
 python-multipart>=0.0.6
 
 # HTTP Client & Networking - Async Optimized
