@@ -7,9 +7,7 @@ import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { AddCreatorModal } from '@/components/instagram/AddCreatorModal'
 import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgressCard'
-import { UniversalInputModal } from '@/components/shared/modals/UniversalInputModal'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatNumber } from '@/lib/formatters'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
@@ -27,10 +25,20 @@ import {
 import { createInstagramNichingColumns, type InstagramCreator } from '@/components/shared/tables/configs/instagramNichingColumns'
 import type { TableConfig } from '@/components/shared/tables/types'
 
-// Dynamic import for table
+// Dynamic imports for heavy components
 const UniversalTableV2 = dynamic(
   () => import('@/components/shared/tables/UniversalTableV2').then(mod => mod.UniversalTableV2),
   { ssr: false, loading: () => <TableSkeleton /> }
+)
+
+const AddCreatorModal = dynamic(
+  () => import('@/components/instagram/AddCreatorModal').then(mod => ({ default: mod.AddCreatorModal })),
+  { ssr: false }
+)
+
+const UniversalInputModal = dynamic(
+  () => import('@/components/shared/modals/UniversalInputModal').then(mod => ({ default: mod.UniversalInputModal })),
+  { ssr: false }
 )
 
 type FilterType = 'unniched' | 'niched' | 'all'
