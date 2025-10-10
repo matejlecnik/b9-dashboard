@@ -637,7 +637,7 @@ async def start_reddit_scraper(request: Request):
             # Start Reddit scraper subprocess with proper logging
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
-            env["PYTHONPATH"] = "/app/b9dashboard/backend"  # Ensure module imports work
+            env["PYTHONPATH"] = "/app"  # Ensure module imports work
 
             reddit_process = subprocess.Popen(
                 [sys.executable, "-u", "app/scrapers/reddit/reddit_controller.py"],
@@ -645,7 +645,7 @@ async def start_reddit_scraper(request: Request):
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd="/app/b9dashboard/backend",  # Absolute path to backend directory
+                cwd="/app",  # Absolute path to backend directory
                 env=env,
             )
 
