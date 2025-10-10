@@ -32,9 +32,11 @@ export interface TextFieldConfig {
   placeholder?: string
   bold?: boolean
   color?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
-  subtitle?: string | LinkSubtitle | ((item: any) => string | LinkSubtitle | undefined) // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subtitle?: string | LinkSubtitle | ((item: any) => string | LinkSubtitle | undefined)
   subtitleColor?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
-  badges?: Badge[] | ((item: any) => Badge[]) // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  badges?: Badge[] | ((item: any) => Badge[])
   dangerouslySetHTML?: boolean
 }
 
@@ -84,12 +86,14 @@ export interface AvatarFieldConfig {
 export interface ActionsFieldConfig {
   type: 'actions'
   size?: 'sm' | 'default'
-  getActions: (item: any) => ActionButton[] // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getActions: (item: any) => ActionButton[]
 }
 
 export interface CustomFieldConfig {
   type: 'custom'
-  render: (item: any) => React.ReactNode // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render: (item: any) => React.ReactNode
 }
 
 export type FieldConfig =
@@ -103,10 +107,10 @@ export type FieldConfig =
   | CustomFieldConfig
 
 // Column definition with generics
-export interface ColumnDefinition<T = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export interface ColumnDefinition<T = Record<string, unknown>> {
   id: string
   header: string
-  accessor: keyof T | ((item: T) => any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  accessor: keyof T | ((item: T) => unknown)
   field: FieldConfig
   width?: ColumnWidth
   align?: ColumnAlign
@@ -117,7 +121,7 @@ export interface ColumnDefinition<T = any> { // eslint-disable-line @typescript-
 }
 
 // Table configuration
-export interface TableConfig<T = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export interface TableConfig<T = Record<string, unknown>> {
   columns: ColumnDefinition<T>[]
   showCheckbox?: boolean
   rowClassName?: string | ((item: T) => string)
@@ -130,7 +134,7 @@ export interface TableConfig<T = any> { // eslint-disable-line @typescript-eslin
 }
 
 // Helper function to get value from accessor
-export function getColumnValue<T>(item: T, accessor: keyof T | ((item: T) => any)): any { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function getColumnValue<T>(item: T, accessor: keyof T | ((item: T) => unknown)): unknown {
   if (typeof accessor === 'function') {
     return accessor(item)
   }

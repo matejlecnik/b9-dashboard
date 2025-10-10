@@ -234,18 +234,16 @@ export async function POST(request: NextRequest) {
     
     // Fetch user data from Reddit
     const userUrl = `https://www.reddit.com/user/${cleanUsername}/about.json`
-    const userResponse = await fetchWithProxy(userUrl)
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(userResponse as any)?.data) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to fetch user data from Reddit' 
+    const userResponse = await fetchWithProxy(userUrl) as { data?: RedditUserData }
+
+    if (!userResponse?.data) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch user data from Reddit'
       }, { status: 404 })
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userData: RedditUserData = (userResponse as any).data
+    const userData: RedditUserData = userResponse.data
     
     // Calculate account age
     const createdDate = new Date(userData.created_utc * 1000)
@@ -263,11 +261,9 @@ export async function POST(request: NextRequest) {
     const postsUrl = `https://www.reddit.com/user/${cleanUsername}/submitted.json?limit=30`
     let userPosts: RedditPostData[] = []
     try {
-      const postsResponse = await fetchWithProxy(postsUrl)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((postsResponse as any)?.data?.children) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        userPosts = (postsResponse as any).data.children.map((child: { data: unknown }) => child.data)
+      const postsResponse = await fetchWithProxy(postsUrl) as { data?: { children?: Array<{ data: RedditPostData }> } }
+      if (postsResponse?.data?.children) {
+        userPosts = postsResponse.data.children.map(child => child.data)
       }
     } catch (_error) {
     }

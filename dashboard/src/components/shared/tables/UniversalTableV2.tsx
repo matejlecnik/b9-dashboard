@@ -112,7 +112,7 @@ function UniversalTableV2Component<T>({
 
         return (
           <TextField
-            value={value}
+            value={value as string | null | undefined}
             truncate={field.truncate}
             maxLength={field.maxLength}
             placeholder={field.placeholder}
@@ -129,7 +129,7 @@ function UniversalTableV2Component<T>({
       case 'number':
         return (
           <NumberField
-            value={value}
+            value={value as number | null | undefined}
             format={field.format}
             decimals={field.decimals}
             placeholder={field.placeholder}
@@ -142,7 +142,7 @@ function UniversalTableV2Component<T>({
       case 'percentage':
         return (
           <PercentageField
-            value={value}
+            value={value as number | null | undefined}
             decimals={field.decimals}
             placeholder={field.placeholder}
             bold={field.bold}
@@ -156,7 +156,7 @@ function UniversalTableV2Component<T>({
       case 'badge':
         return (
           <BadgeField
-            value={value}
+            value={value as string | number | null | undefined}
             variantMap={field.variantMap}
             classNameMap={field.classNameMap}
             defaultVariant={field.defaultVariant}
@@ -168,7 +168,7 @@ function UniversalTableV2Component<T>({
       case 'tags':
         return (
           <TagsField
-            tags={value}
+            tags={value as string[] | null | undefined}
             maxVisible={field.maxVisible}
             showCount={field.showCount}
             extractCategories={field.extractCategories}
@@ -180,12 +180,12 @@ function UniversalTableV2Component<T>({
 
       case 'avatar':
         // Extract alt text from item (prefer username > full_name > name)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const altText = (item as any).username || (item as any).full_name || (item as any).name || ''
+        const itemData = item as Record<string, unknown>
+        const altText = String(itemData.username || itemData.full_name || itemData.name || '')
 
         return (
           <AvatarField
-            src={value}
+            src={value as string | null | undefined}
             alt={altText}
             fallback={field.fallback}
             size={field.size}

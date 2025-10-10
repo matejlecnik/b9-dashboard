@@ -22,12 +22,10 @@ from supabase import Client
 
 # Import scraper and config
 try:
-    from app.core.config.r2_config import r2_config
     from app.scrapers.instagram.services.instagram_config import Config
     from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
 except ImportError:
     # Fallback for different import paths
-    from api_render.app.core.config.r2_config import r2_config  # type: ignore[no-redef]
     from api_render.app.scrapers.instagram.services.instagram_config import (  # type: ignore[no-redef]
         Config,
     )
@@ -85,28 +83,13 @@ def create_scraper_instance() -> InstagramScraperUnified:
 
     This bypasses the system_control table checks that the main scraper uses,
     allowing us to use the same processing logic without running the full scraper.
-
-    IMPORTANT: R2 uploads are disabled for manual additions to prevent timeout.
-    Content is saved with CDN URLs which remain valid. R2 migration can happen
-    via background job later.
     """
     try:
-        # CRITICAL FIX: Disable R2 uploads BEFORE creating scraper (Bug #2)
-        # Processing 70 reels with R2 upload takes 17-23 minutes but worker timeout is 2 minutes
-        # Save content with CDN URLs instead - they remain valid indefinitely
-        original_r2_enabled = r2_config.ENABLED if r2_config else False
-        if r2_config:
-            r2_config.ENABLED = False
-            logger.info("✅ R2 uploads disabled for manual creator addition (prevents timeout)")
-
         scraper = InstagramScraperUnified()
 
         # Override should_continue() to always return True for manual additions
         # This prevents the scraper from checking system_control table
         scraper.should_continue = lambda: True  # type: ignore[method-assign]
-
-        # Store original R2 state to potentially restore later
-        scraper._original_r2_enabled = original_r2_enabled  # type: ignore[attr-defined]
 
         logger.info("Created standalone scraper instance for manual creator addition")
         return scraper
@@ -412,12 +395,7 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             f"{api_calls_used} API calls, {processing_time}s processing time"
         )
 
-        # 9. Restore R2 configuration (important for other operations)
-        if hasattr(scraper, "_original_r2_enabled") and r2_config:
-            r2_config.ENABLED = scraper._original_r2_enabled
-            logger.info(f"✅ R2 state restored to: {scraper._original_r2_enabled}")
-
-        # 10. Return success response
+        # 9. Return success response
         return CreatorAddResponse(success=True, creator=final_creator.data, stats=stats)
 
     except Exception as e:
@@ -432,14 +410,6 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             error=error_msg,
             details={"error_type": type(e).__name__},
         )
-
-        # Restore R2 state even on error
-        try:
-            if "scraper" in locals() and hasattr(scraper, "_original_r2_enabled") and r2_config:
-                r2_config.ENABLED = scraper._original_r2_enabled
-                logger.info(f"✅ R2 state restored after error to: {scraper._original_r2_enabled}")
-        except Exception:
-            pass
 
         return CreatorAddResponse(success=False, error=f"An error occurred: {error_msg}")
 

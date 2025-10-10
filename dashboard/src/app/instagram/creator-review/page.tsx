@@ -90,8 +90,7 @@ export default function CreatorReviewPage() {
     () => {
       const allCreators = infiniteData?.pages.flat() || []
       // Filter out items that are currently being removed (fading out)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return allCreators.filter((creator: any) => !removingIds.has(creator.id))
+      return allCreators.filter((creator: Partial<InstagramCreator>) => !removingIds.has(creator.id ?? 0))
     },
     [infiniteData, removingIds]
   )
@@ -100,8 +99,7 @@ export default function CreatorReviewPage() {
   useEffect(() => {
     if (removingIds.size > 0 && infiniteData) {
       const allCreators = infiniteData.pages.flat()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentIds = new Set(allCreators.map((c: any) => c.id))
+      const currentIds = new Set(allCreators.map((c: Partial<InstagramCreator>) => c.id ?? 0))
       setRemovingIds(prev => {
         if (prev.size === 0) return prev
         const next = new Set<number>()
@@ -184,22 +182,21 @@ export default function CreatorReviewPage() {
 
   // Transform creators for table - simplified to only include required fields for review columns
   const transformedCreators = React.useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return creators.map((creator: any): InstagramCreator => ({
-      id: creator.id,
-      ig_user_id: creator.ig_user_id || String(creator.id),
-      username: creator.username,
-      full_name: creator.full_name || null,
-      biography: creator.biography || null,
-      profile_pic_url: creator.profile_pic_url || null,
-      followers: creator.followers || 0,
-      following: creator.following || 0,
-      posts_count: creator.posts_count || 0,
-      review_status: creator.review_status,
-      is_private: creator.is_private || false,
-      is_verified: creator.is_verified || false,
-      is_business_account: creator.is_business_account || false,
-      external_url: creator.external_url || null
+    return creators.map((creator: Partial<InstagramCreator>): InstagramCreator => ({
+      id: creator.id ?? 0,
+      ig_user_id: creator.ig_user_id ?? String(creator.id ?? 0),
+      username: creator.username ?? '',
+      full_name: creator.full_name ?? null,
+      biography: creator.biography ?? null,
+      profile_pic_url: creator.profile_pic_url ?? null,
+      followers: creator.followers ?? 0,
+      following: creator.following ?? 0,
+      posts_count: creator.posts_count ?? 0,
+      review_status: creator.review_status ?? null,
+      is_private: creator.is_private ?? false,
+      is_verified: creator.is_verified ?? false,
+      is_business_account: creator.is_business_account ?? false,
+      external_url: creator.external_url ?? null
     }))
   }, [creators])
 
