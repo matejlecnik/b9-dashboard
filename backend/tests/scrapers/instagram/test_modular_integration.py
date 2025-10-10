@@ -13,12 +13,12 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from app.config import config
-from app.core.database.supabase_client import get_supabase_client
-from app.logging import get_logger
+from app.config import config  # noqa: E402
+from app.core.database.supabase_client import get_supabase_client  # noqa: E402
+from app.logging import get_logger  # noqa: E402
 
 # Import new modules
-from app.scrapers.instagram.services.modules import (
+from app.scrapers.instagram.services.modules import (  # noqa: E402
     InstagramAnalytics,
     InstagramAPI,
     InstagramStorage,

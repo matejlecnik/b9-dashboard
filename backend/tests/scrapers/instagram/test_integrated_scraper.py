@@ -14,7 +14,7 @@ sys.path.insert(0, str(backend_dir))
 
 
 # Import the main scraper
-from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
+from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified  # noqa: E402
 
 
 def test_scraper_initialization():

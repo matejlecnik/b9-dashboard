@@ -14,13 +14,13 @@ from typing import Any, Dict
 import requests
 from dotenv import load_dotenv
 
-from app.logging import get_logger
 from app.core.database.supabase_client import get_supabase_client
+from app.logging import get_logger
+
 
 # Initialize logger
 supabase = get_supabase_client()
 logger = get_logger(__name__, supabase_client=supabase)
-
 
 
 # Load environment
@@ -309,7 +309,7 @@ def main():
 
     # Generate comparison report
     comparison = generate_comparison_report(all_results)
-    logger.info(f"{\1}")
+    logger.info(f"{comparison}")
 
     # Save results to file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
