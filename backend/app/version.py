@@ -4,16 +4,14 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.12.3"
+API_VERSION = "3.12.4"
 
 # Component versions
 REDDIT_SCRAPER_VERSION = "3.11.1"  # Fixed Phase 3 indentation bug (infinite loop in Phase 2)
-INSTAGRAM_SCRAPER_VERSION = (
-    "3.12.2"  # Removed unused save/share metrics (Instagram API doesn't provide this data)
-)
+INSTAGRAM_SCRAPER_VERSION = "3.12.3"  # Fixed missing retry_backoff_multiplier config attribute
 
 # Build info
-BUILD_DATE = "2025-10-09"
+BUILD_DATE = "2025-10-10"
 GIT_COMMIT = None  # Auto-populated by CI/CD
 
 

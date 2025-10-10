@@ -165,6 +165,7 @@ class InstagramScraperConfig:
     retry_wait_min: float = 2.0
     retry_wait_max: float = 10.0
     retry_empty_response: int = 1
+    retry_backoff_multiplier: float = 2.5  # Exponential backoff multiplier
 
     # Features
     enable_viral_detection: bool = True
@@ -320,6 +321,7 @@ class Config:
             retry_wait_min=float(os.getenv("RETRY_WAIT_MIN", "2")),
             retry_wait_max=float(os.getenv("RETRY_WAIT_MAX", "10")),
             retry_empty_response=int(os.getenv("RETRY_EMPTY_RESPONSE", "1")),
+            retry_backoff_multiplier=float(os.getenv("RETRY_BACKOFF_MULTIPLIER", "2.5")),
             enable_viral_detection=os.getenv("ENABLE_VIRAL_DETECTION", "true").lower() == "true",
             viral_min_views=int(os.getenv("VIRAL_MIN_VIEWS", "50000")),
             viral_multiplier=float(os.getenv("VIRAL_MULTIPLIER", "5.0")),
