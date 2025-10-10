@@ -73,7 +73,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm {designSystem.borders.radius.md} border border-default shadow-sm overflow-hidden">
+    <div className="bg-white/95 backdrop-blur-sm ${designSystem.borders.radius.md} border border-default shadow-sm overflow-hidden">
       {/* Main Toolbar */}
       <div className="flex items-center gap-3 p-3">
         {/* Search Section - Enhanced */}
@@ -91,7 +91,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
             onBlur={() => setIsSearchFocused(false)}
             disabled={loading}
             className={`
-              w-full pl-9 pr-9 py-2 text-sm border {designSystem.borders.radius.sm}
+              w-full pl-9 pr-9 py-2 text-sm border ${designSystem.borders.radius.sm}
               bg-white focus:outline-none transition-all duration-200
               ${isSearchFocused
                 ? 'border-primary ring-2 ring-primary/20'
@@ -114,7 +114,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
         {/* Filters Section */}
         <div className="flex items-center gap-2">
           {/* SFW Filter Checkbox - Copied from Posting */}
-          <label className={cn("flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-default {designSystem.borders.radius.sm} transition-colors cursor-pointer", designSystem.background.hover.subtle)}>
+          <label className={cn("flex items-center gap-2 px-3 py-1.5 h-8 bg-white border border-default ${designSystem.borders.radius.sm} transition-colors cursor-pointer", designSystem.background.hover.subtle)}>
             <div className="relative">
               <input
                 type="checkbox"
@@ -155,13 +155,13 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
           />
 
           {/* Age Filter */}
-          <div className="flex items-center gap-1 bg-white border border-default {designSystem.borders.radius.sm} p-1">
+          <div className="flex items-center gap-1 bg-white border border-default ${designSystem.borders.radius.sm} p-1">
             {(['24h', '7d', '30d', 'all'] as AgeFilter[]).map((age) => (
               <button
                 key={age}
                 onClick={() => onAgeFilterChange(age)}
                 className={cn(
-                  "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
+                  "px-3 py-1 text-xs font-medium ${designSystem.borders.radius.sm} transition-colors",
                   ageFilter === age
                     ? 'bg-primary text-white'
                     : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)
@@ -174,11 +174,11 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
           </div>
 
           {/* Sort Options */}
-          <div className="flex items-center gap-1 bg-white border border-default {designSystem.borders.radius.sm} p-1">
+          <div className="flex items-center gap-1 bg-white border border-default ${designSystem.borders.radius.sm} p-1">
             <button
               onClick={() => onSortChange('score')}
               className={cn(
-                "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
+                "px-3 py-1 text-xs font-medium ${designSystem.borders.radius.sm} transition-colors",
                 sortBy === 'score'
                   ? 'bg-primary text-white'
                   : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)
@@ -190,7 +190,7 @@ export const PostAnalysisToolbar = React.memo(function PostAnalysisToolbar({
             <button
               onClick={() => onSortChange('comments')}
               className={cn(
-                "px-3 py-1 text-xs font-medium {designSystem.borders.radius.sm} transition-colors",
+                "px-3 py-1 text-xs font-medium ${designSystem.borders.radius.sm} transition-colors",
                 sortBy === 'comments'
                   ? 'bg-primary text-white'
                   : cn(designSystem.typography.color.tertiary, designSystem.background.hover.light)

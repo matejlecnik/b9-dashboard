@@ -272,7 +272,7 @@ const renderSkeleton = ({
             <ShimmerWrapper key={i} delay={i * 100}>
               <div className={cn("flex items-center p-4 bg-white border border-light", designSystem.borders.radius.lg)}>
                 {showAvatar && (
-                  <div className={cn("w-10 h-10 {designSystem.borders.radius.full} mr-3", designSystem.background.surface.neutral)}></div>
+                  <div className={cn("w-10 h-10 ${designSystem.borders.radius.full} mr-3", designSystem.background.surface.neutral)}></div>
                 )}
                 <div className="flex-1 space-y-2">
                   <div className={cn("w-32 h-4", designSystem.background.surface.neutral, designSystem.borders.radius.sm)}></div>
@@ -341,15 +341,15 @@ const renderProgress = ({
 }: LoadingProgressProps) => (
   <div className={cn("flex flex-col items-center justify-center py-12 space-y-4", className)}>
     <div className="relative">
-      <div className="w-16 h-16 border-4 border-default {designSystem.borders.radius.full} animate-pulse"></div>
-      <div className="absolute inset-0 w-16 h-16 border-4 border-primary {designSystem.borders.radius.full} animate-spin border-t-transparent"></div>
+      <div className="w-16 h-16 border-4 border-default ${designSystem.borders.radius.full} animate-pulse"></div>
+      <div className="absolute inset-0 w-16 h-16 border-4 border-primary ${designSystem.borders.radius.full} animate-spin border-t-transparent"></div>
     </div>
 
     <div className="text-center space-y-2">
       <p className={cn(designSystem.typography.weight.medium, designSystem.typography.color.tertiary)}>{message}</p>
       {showPercentage && progress > 0 && (
         <>
-          <div className={cn("w-48 h-2 {designSystem.borders.radius.full} overflow-hidden", designSystem.background.surface.neutral)}>
+          <div className={cn("w-48 h-2 ${designSystem.borders.radius.full} overflow-hidden", designSystem.background.surface.neutral)}>
             <div
               className={cn('h-full bg-gradient-to-r from-primary to-primary-hover', designSystem.animation.transition.default)}
               style={{ width: `${Math.min(progress, 100)}%` }}

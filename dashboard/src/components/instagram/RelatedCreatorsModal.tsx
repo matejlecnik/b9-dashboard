@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Users, Play } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -28,12 +28,6 @@ interface ProcessingStatus {
 }
 
 export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalProps) {
-  // API URL configuration - memoized to satisfy ESLint exhaustive-deps
-  const API_URL = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000',
-    []
-  )
-
   const [isProcessing, setIsProcessing] = useState(false)
   const [status, setStatus] = useState<ProcessingStatus>({
     is_running: false,
@@ -52,7 +46,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
   const fetchUnprocessedCount = useCallback(async () => {
     setLoadingCount(true)
     try {
-      const response = await fetch(`${API_URL}/api/instagram/related-creators/unprocessed-count`)
+      const response = await fetch('/api/proxy/instagram/related-creators/unprocessed-count')
       if (response.ok) {
         const data = await response.json()
         setUnprocessedCount(data.count)
@@ -64,11 +58,11 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     } finally {
       setLoadingCount(false)
     }
-  }, [API_URL])
+  }, [])
 
   const checkStatus = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/instagram/related-creators/status`)
+      const response = await fetch('/api/proxy/instagram/related-creators/status')
       if (response.ok) {
         const data = await response.json()
         setStatus(data)
@@ -83,7 +77,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
     } catch (error) {
       logger.error('Error checking status:', error)
     }
-  }, [API_URL, fetchUnprocessedCount])
+  }, [fetchUnprocessedCount])
 
   useEffect(() => {
     if (isOpen) {
@@ -115,7 +109,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
   const startProcessing = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/instagram/related-creators/start`, {
+      const response = await fetch('/api/proxy/instagram/related-creators/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_size: batchSize, delay_seconds: 2 })
@@ -138,7 +132,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
   const stopProcessing = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/instagram/related-creators/stop`, {
+      const response = await fetch('/api/proxy/instagram/related-creators/stop', {
         method: 'POST'
       })
 
@@ -191,7 +185,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
               onClick={stopProcessing}
               className="text-xs h-7 px-3 bg-gradient-to-r from-error via-error-hover to-warning text-white shadow-lg hover:shadow-xl transition-all"
             >
-              <div className="animate-spin {designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
+              <div className="animate-spin ${designSystem.borders.radius.full} h-2.5 w-2.5 border-b-2 border-white mr-1.5" />
               Stop Processing
             </Button>
           )}
@@ -233,28 +227,28 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                     <button
                       type="button"
                       onClick={() => setBatchSize(Math.min(10, unprocessedCount))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary ${designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       10
                     </button>
                     <button
                       type="button"
                       onClick={() => setBatchSize(Math.min(25, unprocessedCount))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary ${designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       25
                     </button>
                     <button
                       type="button"
                       onClick={() => setBatchSize(Math.min(50, unprocessedCount))}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary ${designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       50
                     </button>
                     <button
                       type="button"
                       onClick={() => setBatchSize(unprocessedCount)}
-                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary {designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
+                      className={cn("flex-1 px-2 py-1 text-[10px] font-medium hover:bg-primary/10 hover:text-primary ${designSystem.borders.radius.sm} transition-colors", designSystem.background.surface.light, designSystem.typography.color.tertiary)}
                     >
                       All
                     </button>
@@ -282,7 +276,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                         </div>
                       </div>
                       <div className="relative">
-                        <div className={cn("w-full h-2 {designSystem.borders.radius.full} overflow-hidden", designSystem.background.surface.neutral)}>
+                        <div className={cn("w-full h-2 ${designSystem.borders.radius.full} overflow-hidden", designSystem.background.surface.neutral)}>
                           <div
                             className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
                             style={{ width: `${progressPercentage}%` }}
@@ -303,7 +297,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                   )}
 
                   {/* Stats - Only show new creators found */}
-                  <div className="px-3 py-2 bg-gradient-to-br from-primary/10 to-secondary/10 {designSystem.borders.radius.sm} border border-primary/20">
+                  <div className="px-3 py-2 bg-gradient-to-br from-primary/10 to-secondary/10 ${designSystem.borders.radius.sm} border border-primary/20">
                     <div className={cn("text-xs", designSystem.typography.color.tertiary)}>New Creators Found</div>
                     <div className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                       {status.new_creators_found}
@@ -346,7 +340,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
 
               {/* Errors */}
               {status.errors.length > 0 && (
-                <div className="text-[10px] text-red-600 space-y-1 p-2 bg-red-50 {designSystem.borders.radius.sm}">
+                <div className="text-[10px] text-red-600 space-y-1 p-2 bg-red-50 ${designSystem.borders.radius.sm}">
                   <div className="font-medium">Recent Errors:</div>
                   {status.errors.slice(-3).map((error, index) => (
                     <div key={index} className="text-red-500">{error}</div>
