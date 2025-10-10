@@ -4,12 +4,10 @@ Single source of truth for all version numbers
 """
 
 # Main API version (follows SemVer)
-API_VERSION = "3.12.2"
+API_VERSION = "3.12.3"
 
 # Component versions
-REDDIT_SCRAPER_VERSION = (
-    "3.11.0"  # Auto-cycling with configurable cooldown (eliminates manual restarts)
-)
+REDDIT_SCRAPER_VERSION = "3.11.1"  # Fixed Phase 3 indentation bug (infinite loop in Phase 2)
 INSTAGRAM_SCRAPER_VERSION = (
     "3.12.2"  # Removed unused save/share metrics (Instagram API doesn't provide this data)
 )
