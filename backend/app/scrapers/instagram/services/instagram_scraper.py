@@ -318,6 +318,77 @@ class InstagramScraperUnified:
         mentions = re.findall(r"@[A-Za-z0-9_.]+", text)
         return mentions
 
+    def _get_metric_field(
+        self, item: Dict[str, Any], field_variations: List[str], default: Any = 0
+    ) -> Any:
+        """
+        Robustly extract metric fields from Instagram API responses.
+        Checks multiple field name variations and handles nested structures.
+
+        Args:
+            item: The API response item (reel/post)
+            field_variations: List of possible field names to check (in order of preference)
+            default: Default value if no fields found
+
+        Returns:
+            The first non-None value found, or default
+
+        Example:
+            views = self._get_metric_field(reel, ['play_count', 'video_view_count', 'view_count', 'ig_play_count'])
+        """
+        for field_name in field_variations:
+            value = item.get(field_name)
+            if value is not None:  # Found the field (even if it's 0)
+                return value
+
+        # Field not found in any variation
+        return default
+
+    def _merge_nested_media_fields(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Merge parent and nested 'media' fields to preserve all data.
+        Instagram API sometimes nests media info but keeps metrics at parent level.
+
+        Structure 1 (nested media, metrics at parent):
+        {
+            "media": {"video_url": "...", "thumbnail": "..."},
+            "play_count": 1000,  <- PARENT LEVEL
+            "like_count": 50
+        }
+
+        Structure 2 (flat):
+        {
+            "video_url": "...",
+            "play_count": 1000,
+            "like_count": 50
+        }
+
+        Args:
+            item: The API response item
+
+        Returns:
+            Merged dictionary with all fields preserved
+        """
+        if not isinstance(item, dict):
+            return item
+
+        # If no nested 'media' object, return as-is
+        if "media" not in item or not isinstance(item.get("media"), dict):
+            return item
+
+        # Extract nested media object
+        media_obj = item["media"]
+
+        # Create merged dict: Start with nested media fields
+        merged = dict(media_obj)
+
+        # Add parent-level fields (parent fields take precedence for duplicates)
+        for key, value in item.items():
+            if key != "media":  # Don't include the nested 'media' key itself
+                merged[key] = value
+
+        return merged
+
     def _calculate_engagement_rate(self, likes: int, comments: int, followers: int) -> float:
         """Calculate engagement rate"""
         if followers == 0:
@@ -504,13 +575,17 @@ class InstagramScraperUnified:
                     )
                     break
 
-                # Extract media objects from reels response (API nests data in .media)
+                # Merge nested media fields to preserve parent-level metrics
+                # Instagram API may nest media info but keep play_count/like_count at parent level
                 extracted_reels = []
                 for item in items:
-                    if isinstance(item, dict) and "media" in item:
-                        extracted_reels.append(item["media"])
-                    else:
-                        extracted_reels.append(item)
+                    merged_item = self._merge_nested_media_fields(item)
+                    extracted_reels.append(merged_item)
+
+                logger.debug(
+                    f"Extracted {len(extracted_reels)} reels from API response "
+                    f"(sample fields: {list(extracted_reels[0].keys())[:10] if extracted_reels else 'none'})"
+                )
 
                 reels.extend(extracted_reels)
                 empty_retries = 0  # Reset retry counter on successful response
@@ -578,7 +653,18 @@ class InstagramScraperUnified:
                 if not items:
                     break
 
-                posts.extend(items)
+                # Merge nested media fields to preserve parent-level metrics (same as reels)
+                extracted_posts = []
+                for item in items:
+                    merged_item = self._merge_nested_media_fields(item)
+                    extracted_posts.append(merged_item)
+
+                logger.debug(
+                    f"Extracted {len(extracted_posts)} posts from API response "
+                    f"(sample fields: {list(extracted_posts[0].keys())[:10] if extracted_posts else 'none'})"
+                )
+
+                posts.extend(extracted_posts)
                 empty_retries = 0  # Reset retry counter on successful response
 
                 paging = data.get("paging_info", {})
@@ -711,7 +797,7 @@ class InstagramScraperUnified:
             if profile_data:
                 followers_count = profile_data.get("follower_count", 0)
 
-            # Calculate reel metrics
+            # Calculate reel metrics with robust field extraction
             if reels:
                 reel_views = []
                 reel_likes = []
@@ -720,11 +806,18 @@ class InstagramScraperUnified:
                 reel_shares = []
 
                 for reel in reels:
-                    views = reel.get("play_count", 0)
-                    likes = reel.get("like_count", 0)
-                    comments = reel.get("comment_count", 0)
-                    saves = reel.get("save_count", 0) or 0
-                    shares = reel.get("share_count", 0) or 0
+                    # Check multiple field name variations for views
+                    views = self._get_metric_field(
+                        reel, ["play_count", "ig_play_count", "video_view_count", "view_count"], 0
+                    )
+                    # Check multiple variations for likes
+                    likes = self._get_metric_field(reel, ["like_count", "likes"], 0)
+                    # Check multiple variations for comments
+                    comments = self._get_metric_field(reel, ["comment_count", "comments"], 0)
+                    # Check for saves
+                    saves = self._get_metric_field(reel, ["save_count", "saves"], 0)
+                    # Check for shares
+                    shares = self._get_metric_field(reel, ["share_count", "shares"], 0)
 
                     if views:
                         reel_views.append(views)
@@ -795,7 +888,7 @@ class InstagramScraperUnified:
                     analytics["viral_content_count"] = viral_count
                     analytics["viral_content_rate"] = (viral_count / len(reel_views)) * 100
 
-            # Calculate post metrics
+            # Calculate post metrics with robust field extraction
             if posts:
                 post_likes = []
                 post_comments = []
@@ -806,10 +899,14 @@ class InstagramScraperUnified:
                 hashtag_counts = []
 
                 for post in posts:
-                    likes = post.get("like_count", 0)
-                    comments = post.get("comment_count", 0)
-                    saves = post.get("save_count", 0) or 0
-                    shares = post.get("share_count", 0) or 0
+                    # Check multiple field name variations for likes
+                    likes = self._get_metric_field(post, ["like_count", "likes"], 0)
+                    # Check multiple variations for comments
+                    comments = self._get_metric_field(post, ["comment_count", "comments"], 0)
+                    # Check for saves
+                    saves = self._get_metric_field(post, ["save_count", "saves"], 0)
+                    # Check for shares
+                    shares = self._get_metric_field(post, ["share_count", "shares"], 0)
                     engagement = likes + comments
 
                     if likes:
@@ -1057,8 +1154,10 @@ class InstagramScraperUnified:
                 hashtags = self._extract_hashtags(caption_text) if caption_text else []
                 mentions = self._extract_mentions(caption_text) if caption_text else []
 
-                # Extract engagement metrics
-                engagement = (reel.get("like_count", 0) or 0) + (reel.get("comment_count", 0) or 0)
+                # Extract engagement metrics with robust field extraction
+                likes = self._get_metric_field(reel, ["like_count", "likes"], 0)
+                comments = self._get_metric_field(reel, ["comment_count", "comments"], 0)
+                engagement = likes + comments
 
                 # Calculate engagement rate if we have follower count
                 engagement_rate = 0
@@ -1152,12 +1251,17 @@ class InstagramScraperUnified:
                     "hashtags": hashtags,
                     "hashtag_count": len(hashtags),
                     "mention_count": len(mentions),
-                    "play_count": reel.get("play_count", 0),
-                    "ig_play_count": reel.get("ig_play_count"),
-                    "like_count": reel.get("like_count", 0),
-                    "comment_count": reel.get("comment_count", 0),
-                    "share_count": reel.get("share_count"),
-                    "save_count": reel.get("save_count"),
+                    # Robust metric extraction with multiple field name variations
+                    "play_count": self._get_metric_field(
+                        reel, ["play_count", "ig_play_count", "video_view_count", "view_count"], 0
+                    ),
+                    "ig_play_count": self._get_metric_field(
+                        reel, ["ig_play_count", "play_count"], None
+                    ),
+                    "like_count": self._get_metric_field(reel, ["like_count", "likes"], 0),
+                    "comment_count": self._get_metric_field(reel, ["comment_count", "comments"], 0),
+                    "share_count": self._get_metric_field(reel, ["share_count", "shares"], None),
+                    "save_count": self._get_metric_field(reel, ["save_count", "saves"], None),
                     "engagement_count": engagement,
                     "engagement_rate": round(engagement_rate, 2),
                     "has_audio": reel.get("has_audio"),
@@ -1256,8 +1360,10 @@ class InstagramScraperUnified:
                 hashtags = self._extract_hashtags(caption_text) if caption_text else []
                 mentions = self._extract_mentions(caption_text) if caption_text else []
 
-                # Extract engagement metrics
-                engagement = (post.get("like_count", 0) or 0) + (post.get("comment_count", 0) or 0)
+                # Extract engagement metrics with robust field extraction
+                likes = self._get_metric_field(post, ["like_count", "likes"], 0)
+                comments = self._get_metric_field(post, ["comment_count", "comments"], 0)
+                engagement = likes + comments
 
                 # Calculate engagement rate if we have follower count
                 engagement_rate = 0
@@ -1360,10 +1466,11 @@ class InstagramScraperUnified:
                     "hashtags": hashtags,
                     "hashtag_count": len(hashtags),
                     "mention_count": len(mentions),
-                    "like_count": post.get("like_count", 0),
-                    "comment_count": post.get("comment_count", 0),
-                    "save_count": post.get("save_count"),
-                    "share_count": post.get("share_count"),
+                    # Robust metric extraction with multiple field name variations
+                    "like_count": self._get_metric_field(post, ["like_count", "likes"], 0),
+                    "comment_count": self._get_metric_field(post, ["comment_count", "comments"], 0),
+                    "save_count": self._get_metric_field(post, ["save_count", "saves"], None),
+                    "share_count": self._get_metric_field(post, ["share_count", "shares"], None),
                     "engagement_count": engagement,
                     "engagement_rate": round(engagement_rate, 2),
                     "is_paid_partnership": post.get("is_paid_partnership", False),
@@ -1380,7 +1487,10 @@ class InstagramScraperUnified:
                     else None,
                     "image_urls": image_urls,
                     "video_duration": post.get("video_duration") if post_type == "video" else None,
-                    "view_count": post.get("view_count") or post.get("play_count"),
+                    # Check multiple field variations for view count
+                    "view_count": self._get_metric_field(
+                        post, ["view_count", "play_count", "video_view_count"], None
+                    ),
                     "raw_media_json": post,
                     "scraped_at": datetime.now(timezone.utc).isoformat(),
                 }
