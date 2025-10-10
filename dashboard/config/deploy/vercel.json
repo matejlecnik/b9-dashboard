@@ -67,6 +67,6 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://b9-dashboard.onrender.com"
+    "NEXT_PUBLIC_API_URL": "http://91.98.91.129:10000"
   }
 }
