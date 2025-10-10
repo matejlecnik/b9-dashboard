@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
-import { UniversalMetricCard } from '@/components/shared/cards'
+import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCard'
 import type { User } from '@/lib/supabase/index'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

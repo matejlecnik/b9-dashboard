@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
         hostname: '**.fbcdn.net',
         pathname: '/**',
       },
+      // Cloudflare R2 Storage (Instagram profile pictures)
+      {
+        protocol: 'https',
+        hostname: '**.r2.cloudflarestorage.com',
+        pathname: '/**',
+      },
       // Reddit CDN patterns
       {
         protocol: 'https',

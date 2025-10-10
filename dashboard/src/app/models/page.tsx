@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Plus, UserCircle2 } from 'lucide-react'
-import { DashboardLayout } from '@/components/shared'
+import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { useToast } from '@/components/ui/toast'

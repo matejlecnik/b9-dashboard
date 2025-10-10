@@ -1,46 +1,20 @@
-# Hooks Directory
+# Custom Hooks
 
-┌─ MODULE STATUS ─────────────────────────────────────────┐
-│ ● PLANNED   │ █████░░░░░░░░░░░░░░░ 25% COMPLETE       │
-└─────────────────────────────────────────────────────────┘
+React hooks for state management and data fetching.
 
-## Navigation
+## Available Hooks
+- `useCategories` - Category filtering and selection
+- `useDebounce` - Debounced input handling
+- `useColors` - Theme and color utilities
+- `useUserAnalytics` - User activity tracking
 
-```json
-{
-  "current": "dashboard/src/hooks/README.md",
-  "parent": "dashboard/src/hooks/README.md"
-}
-```
+## React Query Hooks
+- `useInstagramCreators` - Instagram creator data
+- `useCreatorStats` - Analytics and metrics
+- `useRelatedCreators` - Similar creator discovery
 
-## Overview
-
-Custom React hooks for state management, UI interactions, and data fetching across the B9 Dashboard application.
-
-## Current Hooks
-
-### Data & State Management
-- **`useCategories.ts`** - Manages subreddit category filtering and selection state
-- **`useUserAnalytics.ts`** - Handles user activity tracking and analytics data
-
-### UI & Interactions  
-- **`useColors.tsx`** - Dynamic color theming and style utilities
-- **`useDebounce.ts`** - Debounced input handling for search and filters
-
-## TODO List
-- [x] Remove deprecated keyboard navigation hooks (per CLAUDE.md) - COMPLETED
-- [ ] Add hook for API error boundary state management
-- [ ] Create useSubredditFilters hook to consolidate filter logic
-- [ ] Add usePagination hook for table components
-
-## Current Errors
-- None currently identified
-
-## Potential Improvements
-- Consolidate similar hooks (useCategories + filter hooks)
-- Add React Query hooks for better API state management
-- Create useLocalStorage hook for persisting user preferences
+📚 **Detailed Documentation**: See individual hook files for JSDoc
 
 ---
 
-_Version: 1.0.0 | Updated: 2025-10-01_
+_Version: 4.0.0 | All hooks use TypeScript_

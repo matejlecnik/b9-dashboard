@@ -4,15 +4,13 @@ import { memo, useCallback, useEffect, useRef } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { designSystem } from '@/lib/design-system'
-import {
-  TextField,
-  NumberField,
-  PercentageField,
-  BadgeField,
-  TagsField,
-  AvatarField,
-  ActionsField
-} from './fields'
+import { TextField } from './fields/TextField'
+import { NumberField } from './fields/NumberField'
+import { PercentageField } from './fields/PercentageField'
+import { BadgeField } from './fields/BadgeField'
+import { TagsField } from './fields/TagsField'
+import { AvatarField } from './fields/AvatarField'
+import { ActionsField } from './fields/ActionsField'
 import {
   type TableConfig,
   type ColumnDefinition,
@@ -181,9 +179,14 @@ function UniversalTableV2Component<T>({
         )
 
       case 'avatar':
+        // Extract alt text from item (prefer username > full_name > name)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const altText = (item as any).username || (item as any).full_name || (item as any).name || ''
+
         return (
           <AvatarField
             src={value}
+            alt={altText}
             fallback={field.fallback}
             size={field.size}
             showBorder={field.showBorder}
