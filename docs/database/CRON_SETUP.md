@@ -167,7 +167,7 @@ In Render Dashboard (dashboard.render.com):
 {
   "name": "cleanup-logs",
   "schedule": "0 3 * * *",
-  "command": "curl -X POST https://b9-dashboard.onrender.com/api/maintenance/cleanup-logs -H 'X-Maintenance-Key: YOUR_KEY'",
+  "command": "curl -X POST http://91.98.91.129:10000/api/maintenance/cleanup-logs -H 'X-Maintenance-Key: YOUR_KEY'",
   "timezone": "UTC"
 }
 ```
@@ -177,7 +177,7 @@ In Render Dashboard (dashboard.render.com):
 {
   "name": "reset-rate-limits",
   "schedule": "0 0 * * *",
-  "command": "curl -X POST https://b9-dashboard.onrender.com/api/maintenance/reset-rate-limits -H 'X-Maintenance-Key: YOUR_KEY'",
+  "command": "curl -X POST http://91.98.91.129:10000/api/maintenance/reset-rate-limits -H 'X-Maintenance-Key: YOUR_KEY'",
   "timezone": "UTC"
 }
 ```
@@ -187,7 +187,7 @@ In Render Dashboard (dashboard.render.com):
 {
   "name": "update-instagram-stats",
   "schedule": "0 * * * *",
-  "command": "curl -X POST https://b9-dashboard.onrender.com/api/maintenance/update-instagram-stats -H 'X-Maintenance-Key: YOUR_KEY'",
+  "command": "curl -X POST http://91.98.91.129:10000/api/maintenance/update-instagram-stats -H 'X-Maintenance-Key: YOUR_KEY'",
   "timezone": "UTC"
 }
 ```
@@ -315,19 +315,19 @@ async def job_status():
 ### Manual Test Commands
 ```bash
 ## Test log cleanup
-curl -X POST https://b9-dashboard.onrender.com/api/maintenance/cleanup-logs \
+curl -X POST http://91.98.91.129:10000/api/maintenance/cleanup-logs \
   -H "X-Maintenance-Key: YOUR_KEY"
 
 ## Test rate limit reset
-curl -X POST https://b9-dashboard.onrender.com/api/maintenance/reset-rate-limits \
+curl -X POST http://91.98.91.129:10000/api/maintenance/reset-rate-limits \
   -H "X-Maintenance-Key: YOUR_KEY"
 
 ## Test Instagram stats
-curl -X POST https://b9-dashboard.onrender.com/api/maintenance/update-instagram-stats \
+curl -X POST http://91.98.91.129:10000/api/maintenance/update-instagram-stats \
   -H "X-Maintenance-Key: YOUR_KEY"
 
 ## Check status
-curl https://b9-dashboard.onrender.com/api/maintenance/status \
+curl http://91.98.91.129:10000/api/maintenance/status \
   -H "X-Maintenance-Key: YOUR_KEY"
 ```
 
@@ -361,19 +361,19 @@ jobs:
       - name: Cleanup Logs
         if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -X POST https://b9-dashboard.onrender.com/api/maintenance/cleanup-logs \
+          curl -X POST http://91.98.91.129:10000/api/maintenance/cleanup-logs \
             -H "X-Maintenance-Key: ${{ secrets.MAINTENANCE_API_KEY }}"
 
       - name: Reset Rate Limits
         if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -X POST https://b9-dashboard.onrender.com/api/maintenance/reset-rate-limits \
+          curl -X POST http://91.98.91.129:10000/api/maintenance/reset-rate-limits \
             -H "X-Maintenance-Key: ${{ secrets.MAINTENANCE_API_KEY }}"
 
       - name: Update Instagram Stats
         if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -X POST https://b9-dashboard.onrender.com/api/maintenance/update-instagram-stats \
+          curl -X POST http://91.98.91.129:10000/api/maintenance/update-instagram-stats \
             -H "X-Maintenance-Key: ${{ secrets.MAINTENANCE_API_KEY }}"
 ```
 

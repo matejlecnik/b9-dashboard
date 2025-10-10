@@ -1,7 +1,8 @@
 # API Deployment Guide (Render)
 
 ┌─ DEPLOYMENT STATUS ─────────────────────────────────────┐
-│ ● LIVE        │ ████████████████████ 100% DEPLOYED     │
+│ ● ARCHIVED    │ ████████████████████ DEPRECATED        │
+│ Migrated: 2025-10-08 │ See: HETZNER_DEPLOYMENT_INFO.md │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -144,5 +145,5 @@ render logs --service b9-dashboard-api --tail
 ```
 
 ---
-_Version: 2.0.0 | Updated: 2025-10-05 | API-Specific Only_
+_Version: 2.0.0 | Updated: 2025-10-10 | DEPRECATED - Archived for Historical Reference_
 _Navigate: [→ Main Deployment Guide](../../docs/deployment/DEPLOYMENT.md) | [← README](../README.md)_

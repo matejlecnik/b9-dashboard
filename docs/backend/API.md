@@ -24,10 +24,10 @@
 ```json
 {
   "production_hetzner": "http://91.98.91.129:10000",
-  "production_render": "https://b9-dashboard.onrender.com",
+  "production_render": "https://b9-dashboard.onrender.com (DEPRECATED - migrated 2025-10-08)",
   "development": "http://localhost:8000",
-  "version": "3.4.5",
-  "note": "Primary deployment on Hetzner Cloud (€30/mo, 3 servers)",
+  "version": "3.12.4",
+  "note": "Primary deployment on Hetzner Cloud (€30/mo, 3 servers) - Render.com DEPRECATED",
   "authentication": {
     "type": "Bearer Token / API Key",
     "header": "Authorization",
@@ -54,7 +54,7 @@
     "response": {
       "status": "healthy",
       "timestamp": "ISO-8601",
-      "version": "3.4.5",
+      "version": "3.12.4",
       "uptime": 123456
     }
   },
@@ -496,7 +496,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   http://91.98.91.129:10000/api/scraper/start
 
-## Legacy Render endpoint (if still active)
+## ⚠️ DEPRECATED: Legacy Render endpoint (migrated to Hetzner 2025-10-08)
 curl -H "X-API-Key: your-api-key" https://b9-dashboard.onrender.com/api/endpoint
 ```
 
@@ -595,6 +595,7 @@ import requests
 
 class B9Dashboard:
     def __init__(self, api_key, use_hetzner=True):
+        # NOTE: Render endpoint deprecated 2025-10-08, use Hetzner (default)
         self.base_url = "http://91.98.91.129:10000" if use_hetzner else "https://b9-dashboard.onrender.com"
         self.headers = {"X-API-Key": api_key}
 
@@ -620,6 +621,7 @@ status = client.get_scraper_status()
 ```javascript
 class B9Dashboard {
   constructor(apiKey, useHetzner = true) {
+    // NOTE: Render endpoint deprecated 2025-10-08, use Hetzner (default)
     this.baseUrl = useHetzner
       ? 'http://91.98.91.129:10000'
       : 'https://b9-dashboard.onrender.com';
@@ -650,7 +652,7 @@ const status = await client.getScraperStatus();
 
 ---
 
-_API Version: 3.4.5 | Reddit Scraper: v3.4.5 | Status: Production | Updated: 2025-10-01_
+_API Version: 3.12.4 | Reddit Scraper: v3.11.1 | Instagram Scraper: v3.12.3 | Status: Production | Updated: 2025-10-10_
 _Navigate: [← docs/](README.md) | [→ ARCHITECTURE.md](ARCHITECTURE.md) | [→ DEPLOYMENT.md](DEPLOYMENT.md)_
 
 **Note:** This document consolidates all API endpoint documentation. Previous API_ENDPOINTS.md has been merged here.

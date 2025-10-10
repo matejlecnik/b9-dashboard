@@ -115,11 +115,13 @@ python3 -c "from app.core.config.r2_config import r2_config; print(r2_config.val
 # Expected: (True, None)
 ```
 
-### Configure on Render (Production)
+### Configure on Hetzner (Production)
 
-**Add environment variables in Render dashboard:**
-1. Go to https://dashboard.render.com/
-2. Select your service → Environment
+**⚠️ UPDATE (2025-10-08)**: Backend migrated from Render to Hetzner Cloud.
+
+**Add environment variables on Hetzner server:**
+1. SSH to API server: `ssh -i ~/.ssh/hetzner_b9 root@91.98.91.129`
+2. Edit environment file: `nano /root/b9_agency/api/.env`
 3. Add the following variables:
 
 ```bash
@@ -131,15 +133,16 @@ R2_PUBLIC_URL=https://42fed19201b741d13bb514ab3e2cbb48.r2.cloudflarestorage.com
 ENABLE_R2_STORAGE=true
 ```
 
-4. Click "Save Changes" → automatic redeploy
+4. Save file and restart API service: `docker restart api`
 
 **Verify Deployment:**
 ```bash
 # Check R2 module loaded
-curl https://your-app.onrender.com/health
+curl http://91.98.91.129:10000/health
 
 # Check scraper logs
-# Logs → should see "✅ R2 media storage loaded successfully"
+# docker logs api --tail 100 | grep "R2"
+# Should see "✅ R2 media storage loaded successfully"
 ```
 
 ---
@@ -339,20 +342,20 @@ ENABLE_R2_STORAGE=false
 
 ```bash
 # Migrate all media types (10 items per batch)
-curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
+curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
   -H "Authorization: Bearer your-cron-secret"
 
 # Migrate specific types:
 # Profile pictures only:
-curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=profile&batch_size=10" \
+curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=profile&batch_size=10" \
   -H "Authorization: Bearer your-cron-secret"
 
 # Carousel posts only:
-curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=posts&batch_size=10" \
+curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=posts&batch_size=10" \
   -H "Authorization: Bearer your-cron-secret"
 
 # Reels only:
-curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=reels&batch_size=10" \
+curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=reels&batch_size=10" \
   -H "Authorization: Bearer your-cron-secret"
 ```
 
@@ -406,7 +409,7 @@ curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_typ
 **Full Migration Strategy:**
 ```bash
 # 1. Start with small batch to test
-curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=5" \
+curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=5" \
   -H "Authorization: Bearer your-cron-secret"
 
 # 2. Check results, verify R2 URLs in database
@@ -414,7 +417,7 @@ curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_typ
 # 3. Run larger batches until complete
 # Repeat until all CDN URLs migrated:
 for i in {1..100}; do
-  curl -X POST "https://your-app.onrender.com/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
+  curl -X POST "http://91.98.91.129:10000/api/cron/migrate-cdn-to-r2?media_type=all&batch_size=10" \
     -H "Authorization: Bearer your-cron-secret"
   sleep 60  # Wait 1 minute between batches
 done
