@@ -41,6 +41,12 @@ const nextConfig: NextConfig = {
         hostname: '**.r2.cloudflarestorage.com',
         pathname: '/**',
       },
+      // B9 Dashboard Media (Instagram profile pictures)
+      {
+        protocol: 'https',
+        hostname: 'media.b9-dashboard.com',
+        pathname: '/**',
+      },
       // Reddit CDN patterns
       {
         protocol: 'https',
