@@ -702,7 +702,7 @@ async def start_instagram_scraper(request: Request):
             # Start Instagram scraper subprocess with proper logging
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
-            env["PYTHONPATH"] = "/app/backend"  # Ensure module imports work
+            env["PYTHONPATH"] = "/app/b9dashboard/backend"  # Ensure module imports work
 
             instagram_process = subprocess.Popen(
                 [sys.executable, "-u", "app/scrapers/instagram/instagram_controller.py"],
@@ -710,7 +710,7 @@ async def start_instagram_scraper(request: Request):
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd="/app/backend",  # Absolute path to backend directory
+                cwd="/app/b9dashboard/backend",  # Absolute path to backend directory
                 env=env,
             )
 

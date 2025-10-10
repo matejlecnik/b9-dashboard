@@ -453,7 +453,11 @@ async def get_reddit_success_rate():
         )
 
         # Default to last 24 hours if no started_at found
-        if control_result.data and len(control_result.data) > 0 and control_result.data[0].get("started_at"):
+        if (
+            control_result.data
+            and len(control_result.data) > 0
+            and control_result.data[0].get("started_at")
+        ):
             start_time = control_result.data[0]["started_at"]
         else:
             # Fallback to 24 hours ago
@@ -633,7 +637,7 @@ async def start_reddit_scraper(request: Request):
             # Start Reddit scraper subprocess with proper logging
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
-            env["PYTHONPATH"] = "/app/backend"  # Ensure module imports work
+            env["PYTHONPATH"] = "/app/b9dashboard/backend"  # Ensure module imports work
 
             reddit_process = subprocess.Popen(
                 [sys.executable, "-u", "app/scrapers/reddit/reddit_controller.py"],
@@ -641,7 +645,7 @@ async def start_reddit_scraper(request: Request):
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd="/app/backend",  # Absolute path to backend directory
+                cwd="/app/b9dashboard/backend",  # Absolute path to backend directory
                 env=env,
             )
 

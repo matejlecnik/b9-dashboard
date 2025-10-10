@@ -48,7 +48,9 @@ async def check_and_start_scrapers():
 
                 # Open log file for Reddit scraper output
                 try:
-                    reddit_log = open("/tmp/reddit_scraper.log", "w")  # noqa: SIM115 - Must stay open for subprocess
+                    reddit_log = open(  # noqa: SIM115 - Must stay open for subprocess
+                        "/tmp/reddit_scraper.log", "w"
+                    )
 
                     # Start with output to log file so we can see errors
                     reddit_process = subprocess.Popen(
@@ -57,7 +59,7 @@ async def check_and_start_scrapers():
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd="/app",  # Ensure correct working directory
+                        cwd="/app/b9dashboard/backend",  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -65,9 +67,7 @@ async def check_and_start_scrapers():
 
                     if reddit_process.poll() is None:
                         # Process is still running
-                        logger.info(
-                            f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}"
-                        )
+                        logger.info(f"✅ Reddit scraper auto-started with PID: {reddit_process.pid}")
 
                         # Update heartbeat in database
                         supabase.table("system_control").update(
@@ -117,7 +117,9 @@ async def check_and_start_scrapers():
 
                 # Open log file for Instagram scraper output
                 try:
-                    instagram_log = open("/tmp/instagram_scraper.log", "w")  # noqa: SIM115 - Must stay open for subprocess
+                    instagram_log = open(  # noqa: SIM115 - Must stay open for subprocess
+                        "/tmp/instagram_scraper.log", "w"
+                    )
 
                     # Start with output to log file so we can see errors
                     instagram_process = subprocess.Popen(
@@ -126,7 +128,7 @@ async def check_and_start_scrapers():
                         stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL,
                         start_new_session=True,  # Detach from parent
-                        cwd="/app",  # Ensure correct working directory
+                        cwd="/app/b9dashboard/backend",  # Ensure correct working directory
                     )
 
                     # Check if process is still running after a brief moment
@@ -152,9 +154,7 @@ async def check_and_start_scrapers():
                         instagram_log.close()
                         with open("/tmp/instagram_scraper.log") as f:
                             error_output = f.read()
-                        logger.error(
-                            f"❌ Instagram scraper died immediately. Error: {error_output}"
-                        )
+                        logger.error(f"❌ Instagram scraper died immediately. Error: {error_output}")
 
                         # Mark as stopped in database
                         supabase.table("system_control").update(
