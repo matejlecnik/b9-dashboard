@@ -110,6 +110,11 @@ function UniversalTableV2Component<T>({
           ? field.badges(item)
           : field.badges
 
+        // Resolve href if it's a function
+        const textHref = typeof field.href === 'function'
+          ? field.href(item)
+          : field.href
+
         return (
           <TextField
             value={value as string | null | undefined}
@@ -122,6 +127,7 @@ function UniversalTableV2Component<T>({
             subtitleColor={field.subtitleColor}
             badges={badges}
             dangerouslySetHTML={field.dangerouslySetHTML}
+            href={textHref}
             className={column.className}
           />
         )
@@ -183,6 +189,11 @@ function UniversalTableV2Component<T>({
         const itemData = item as Record<string, unknown>
         const altText = String(itemData.username || itemData.full_name || itemData.name || '')
 
+        // Resolve href if it's a function
+        const avatarHref = typeof field.href === 'function'
+          ? field.href(item)
+          : field.href
+
         return (
           <AvatarField
             src={value as string | null | undefined}
@@ -190,6 +201,7 @@ function UniversalTableV2Component<T>({
             fallback={field.fallback}
             size={field.size}
             showBorder={field.showBorder}
+            href={avatarHref}
             className={column.className}
           />
         )

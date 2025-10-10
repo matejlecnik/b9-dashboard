@@ -8,8 +8,8 @@
 
 ```json
 {
-  "current": "api-render/app/scrapers/reddit/README.md",
-  "parent": "api-render/app/scrapers/reddit/README.md"
+  "current": "backend/app/scrapers/reddit/README.md",
+  "parent": "backend/app/scrapers/reddit/README.md"
 }
 ```
 

@@ -48,7 +48,8 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
       field: {
         type: 'avatar',
         size: 'lg',
-        fallback: '@'
+        fallback: '@',
+        href: (creator) => `https://instagram.com/${creator.username}`
       }
     },
 
@@ -62,6 +63,7 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
         type: 'text',
         bold: true,
         color: 'primary',
+        href: (creator) => `https://instagram.com/${creator.username}`,
         subtitle: (creator) => creator.username,
         subtitleColor: 'subtle',
         badges: (creator) => [

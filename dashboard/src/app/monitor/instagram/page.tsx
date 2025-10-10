@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Play,
   Square
@@ -14,12 +14,6 @@ import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
 
 export default function InstagramMonitor() {
-  // API URL configuration - memoized to satisfy ESLint exhaustive-deps
-  const API_URL = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000',
-    []
-  )
-
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
@@ -35,8 +29,7 @@ export default function InstagramMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       try {
-        const response = await fetch(`${API_URL}/api/instagram/scraper/success-rate`, {
-          mode: 'cors',
+        const response = await fetch('/api/proxy/instagram/scraper/success-rate', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -63,7 +56,7 @@ export default function InstagramMonitor() {
     } catch (error) {
       logger.error('Error calculating success rate:', error)
     }
-  }, [API_URL])
+  }, [])
 
   // Fetch cost data from API
   const fetchCostData = useCallback(async () => {
@@ -72,8 +65,7 @@ export default function InstagramMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       try {
-        const response = await fetch(`${API_URL}/api/instagram/scraper/cost-metrics`, {
-          mode: 'cors',
+        const response = await fetch('/api/proxy/instagram/scraper/cost-metrics', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -98,7 +90,7 @@ export default function InstagramMonitor() {
     } catch (error) {
       logger.error('Error fetching cost data:', error)
     }
-  }, [API_URL])
+  }, [])
 
   // Fetch cycle data from API
   const fetchCycleData = useCallback(async () => {
@@ -107,8 +99,7 @@ export default function InstagramMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/instagram/scraper/cycle-status`, {
-          mode: 'cors',
+        const response = await fetch('/api/proxy/instagram/scraper/cycle-status', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -151,7 +142,7 @@ export default function InstagramMonitor() {
       logger.error('Error fetching cycle data:', error)
       setCycleData(null)
     }
-  }, [API_URL])
+  }, [])
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -180,8 +171,7 @@ export default function InstagramMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for Render cold start
 
       try {
-        const statusRes = await fetch(`${API_URL}/api/instagram/scraper/status`, {
-          mode: 'cors',
+        const statusRes = await fetch('/api/proxy/instagram/scraper/status', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -215,7 +205,7 @@ export default function InstagramMonitor() {
     } finally {
       setLoading(false)
     }
-  }, [API_URL, manualOverride])
+  }, [manualOverride])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -226,13 +216,12 @@ export default function InstagramMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the external API (production scraper)
-      const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
+      // Call the proxy API
+      const endpoint = action === 'start' ? '/api/proxy/instagram/scraper/start' : '/api/proxy/instagram/scraper/stop'
 
-      const res = await fetch(`${API_URL}${endpoint}`, {
+      const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors'
+        headers: { 'Content-Type': 'application/json' }
       })
 
       if (res.ok) {
@@ -322,8 +311,7 @@ export default function InstagramMonitor() {
         const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
 
         try {
-          const statusRes = await fetch(`${API_URL}/api/instagram/scraper/status`, {
-            mode: 'cors',
+          const statusRes = await fetch('/api/proxy/instagram/scraper/status', {
             signal: controller.signal
           })
           clearTimeout(timeoutId)
@@ -365,7 +353,7 @@ export default function InstagramMonitor() {
     return () => {
       clearInterval(metricsInterval)
     }
-  }, [API_URL, fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData]) // Include all called functions
+  }, [fetchMetrics, calculateSuccessRate, fetchCostData, fetchCycleData]) // Include all called functions
 
   return (
     <DashboardLayout>

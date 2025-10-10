@@ -150,7 +150,7 @@ This guide covers the setup and deployment of Render cron jobs for the B9 Dashbo
   plan: starter
   region: oregon
   branch: main
-  rootDir: api-render
+  rootDir: backend
   autoDeploy: true
   envVars:
     - key: RENDER_SERVICE_URL
@@ -320,7 +320,7 @@ cat backend/render.yaml | grep -E "schedule:|retention_days"
    Build Command: pip install -r requirements.txt
    Schedule: 0 2 * * *
    Start Command: curl -X POST "${RENDER_SERVICE_URL}/api/cron/cleanup-logs?retention_days=30" -H "Authorization: Bearer ${CRON_SECRET}"
-   Root Directory: api-render
+   Root Directory: backend
    Plan: Starter ($0/month)
    ```
 

@@ -18,6 +18,7 @@ interface TextFieldProps {
   subtitleColor?: 'primary' | 'secondary' | 'tertiary' | 'subtle'
   badges?: Badge[]
   dangerouslySetHTML?: boolean
+  href?: string
 }
 
 export const TextField = memo(function TextField({
@@ -31,7 +32,8 @@ export const TextField = memo(function TextField({
   subtitle,
   subtitleColor = 'tertiary',
   badges,
-  dangerouslySetHTML = false
+  dangerouslySetHTML = false,
+  href
 }: TextFieldProps) {
   const displayValue = value || placeholder
   const truncatedValue = maxLength && displayValue.length > maxLength
@@ -56,8 +58,27 @@ export const TextField = memo(function TextField({
     'text-sm',
     bold && 'font-semibold',
     truncate && 'truncate',
-    colorClass
+    colorClass,
+    href && 'hover:underline transition-all duration-200 cursor-pointer'
   )
+
+  // Render main text content (wraps in link if href provided)
+  const renderTextContent = (content: React.ReactNode) => {
+    if (href) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(baseClassName, 'min-w-0')}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {content}
+        </a>
+      )
+    }
+    return <div className={cn(baseClassName, 'min-w-0')}>{content}</div>
+  }
 
   // Render subtitle - handle both string and link types
   const renderSubtitle = () => {
@@ -100,14 +121,13 @@ export const TextField = memo(function TextField({
     return (
       <div className={cn('flex flex-col gap-0.5 min-w-0', className)}>
         <div className="flex items-center gap-2 min-w-0">
-          {dangerouslySetHTML && value ? (
-            <div
-              className={cn(baseClassName, 'min-w-0')}
-              dangerouslySetInnerHTML={{ __html: truncatedValue }}
-            />
-          ) : (
-            <div className={cn(baseClassName, 'min-w-0')}>{truncatedValue}</div>
-          )}
+          {dangerouslySetHTML && value ?
+            renderTextContent(
+              <span dangerouslySetInnerHTML={{ __html: truncatedValue }} />
+            )
+           :
+            renderTextContent(truncatedValue)
+          }
           {badges && badges.length > 0 && <BadgesField badges={badges} size="sm" />}
         </div>
         {renderSubtitle()}
@@ -118,16 +138,17 @@ export const TextField = memo(function TextField({
   // Simple single-value rendering
   if (dangerouslySetHTML && value) {
     return (
-      <div
-        className={cn(baseClassName, 'min-w-0', className)}
-        dangerouslySetInnerHTML={{ __html: truncatedValue }}
-      />
+      <div className={className}>
+        {renderTextContent(
+          <span dangerouslySetInnerHTML={{ __html: truncatedValue }} />
+        )}
+      </div>
     )
   }
 
   return (
-    <div className={cn(baseClassName, 'min-w-0', className)}>
-      {truncatedValue}
+    <div className={className}>
+      {renderTextContent(truncatedValue)}
     </div>
   )
 })

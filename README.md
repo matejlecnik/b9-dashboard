@@ -12,6 +12,7 @@
   "parent": null,
   "children": [
     {"path": "CLAUDE.md", "desc": "Mission control dashboard", "status": "ACTIVE"},
+    {"path": "INFRASTRUCTURE.md", "desc": "Infrastructure overview", "status": "LIVE"},
     {"path": "dashboard/README.md", "desc": "Frontend application", "status": "ACTIVE"},
     {"path": "backend/README.md", "desc": "Backend API", "status": "LIVE"},
     {"path": "ROADMAP.md", "desc": "Strategic roadmap", "status": "ACTIVE"}
@@ -40,10 +41,11 @@
     "error_rate": "0.02%"
   },
   "infrastructure": {
-    "frontend": "Vercel",
-    "backend": "Hetzner Cloud (€30/mo, 3 servers)",
-    "database": "Supabase",
-    "monitoring": "Internal"
+    "frontend": "Vercel (https://b9-dashboard.com)",
+    "backend": "Hetzner + Nginx (https://api.b9-dashboard.com)",
+    "media": "Cloudflare R2 CDN (https://media.b9-dashboard.com)",
+    "database": "Supabase PostgreSQL + Redis",
+    "ssl": "Cloudflare (Flexible mode, full HTTPS)"
   }
 }
 ```
@@ -61,11 +63,12 @@ $ npm install --legacy-peer-deps
 $ cp .env.example .env.local
 $ npm run dev                    # → http://localhost:3000
 
-## Backend Setup (if needed)
+## Backend Setup (local development)
 $ cd ../backend
 $ pip3 install -r requirements.txt
 $ cp .env.example .env
-$ python3 main.py               # → http://localhost:8000
+$ python3 main.py               # → http://localhost:10000
+# Production: https://api.b9-dashboard.com
 ```
 
 ## Environment Requirements
@@ -92,11 +95,22 @@ $ python3 main.py               # → http://localhost:8000
 ## Architecture
 
 ```
+┌─ PRODUCTION INFRASTRUCTURE ──────────────────────────────┐
+│ Users → Cloudflare DNS → [Vercel | Nginx → API | R2 CDN] │
+│         (HTTPS)          (HTTPS) (HTTPS)      (HTTPS)    │
+└──────────────────────────────────────────────────────────┘
+
+Production URLs:
+  Frontend:  https://b9-dashboard.com (Vercel + Cloudflare DNS)
+  API:       https://api.b9-dashboard.com (Hetzner + Nginx + Cloudflare)
+  Media CDN: https://media.b9-dashboard.com (R2 Custom Domain)
+
+Repository Structure:
 b9_dashboard/
 ├── dashboard/        [FRONTEND]  Next.js 15 app
-├── backend/          [BACKEND]   FastAPI service
+├── backend/          [BACKEND]   FastAPI service (Docker)
 ├── docs/            [DOCS]      Documentation
-└── CLAUDE.md        [HUB]       Control center
+└── CLAUDE.md        [HUB]       Mission control
 
 Status Legend:
 [LOCKED]     - Do not modify
@@ -147,8 +161,10 @@ $ cd backend && python3 main.py    # Start API
 $ cd backend && pytest              # Run tests
 
 ## Documentation
-$ open docs/development/DOCUMENTATION_MAP.md  # Find any doc
-$ open docs/development/SESSION_LOG.md        # See history
+$ open INFRASTRUCTURE.md                           # Infrastructure overview
+$ open docs/deployment/PRODUCTION_SETUP.md         # Production setup guide
+$ open docs/development/DOCUMENTATION_MAP.md       # Find any doc
+$ open docs/development/SESSION_LOG.md             # See history
 ```
 
 ## Security & Access
@@ -172,12 +188,13 @@ BUNDLE SIZE  [██████████░░░░░░░░░░] 1.8M
 ## Recent Updates
 
 ```diff
-+ Hetzner Cloud deployment (€30/mo, 94.7% cost savings vs Render)
-+ Redis job queue architecture (1 API + 2 Workers)
-+ Terminal documentation style implemented
-+ backend 100% documented and cleaned
-+ All print statements removed
-+ Production logging configured
++ 2025-10-10: Professional infrastructure v2.0 (Cloudflare DNS + custom domains)
++ Full HTTPS architecture (frontend, API, media CDN all on HTTPS)
++ Cloudflare R2 custom domain: media.b9-dashboard.com
++ Nginx reverse proxy for API endpoint: api.b9-dashboard.com
++ Zero Mixed Content errors (browser security compliant)
++ Comprehensive documentation update (INFRASTRUCTURE.md, PRODUCTION_SETUP.md)
++ Database cleanup: 13,189 media URLs migrated to new domain structure
 ```
 
 ## Execution Plan
@@ -218,5 +235,5 @@ BUNDLE SIZE  [██████████░░░░░░░░░░] 1.8M
 
 ---
 
-_Version: 3.2.0 | Environment: Production | Updated: 2024-01-28_
-_Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ Dashboard](dashboard/README.md) | [→ API](backend/README.md)_
+_Version: 4.0.0 | Environment: Production | Updated: 2025-10-10_
+_Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ Infrastructure](INFRASTRUCTURE.md) | [→ Dashboard](dashboard/README.md) | [→ API](backend/README.md)_

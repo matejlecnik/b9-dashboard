@@ -11,6 +11,8 @@
   "parent": "../../CLAUDE.md",
   "current": "DEPLOYMENT.md",
   "siblings": [
+    {"path": "PRODUCTION_SETUP.md", "desc": "Complete setup guide", "status": "NEW"},
+    {"path": "TROUBLESHOOTING.md", "desc": "Issue resolution", "status": "PENDING"},
     {"path": "DEPLOYMENT_SECRETS.md", "desc": "Secret management", "status": "SECURE"}
   ],
   "related": [
@@ -27,19 +29,27 @@
     "frontend": {
       "provider": "Vercel",
       "framework": "Next.js 15",
-      "url": "b9-dashboard.com",
+      "url": "https://b9-dashboard.com",
+      "ssl": "Cloudflare DNS (Automatic)",
       "status": "PRODUCTION"
     },
     "backend": {
-      "provider": "Hetzner Cloud",
-      "framework": "FastAPI",
-      "url": "http://91.98.91.129:10000",
-      "architecture": "3 servers (1 API + 2 Workers)",
+      "provider": "Hetzner Cloud + Nginx",
+      "framework": "FastAPI (Docker)",
+      "url": "https://api.b9-dashboard.com",
+      "ssl": "Cloudflare Flexible SSL",
+      "architecture": "Nginx reverse proxy → FastAPI :10000",
+      "status": "PRODUCTION"
+    },
+    "media": {
+      "provider": "Cloudflare R2",
+      "url": "https://media.b9-dashboard.com",
+      "cdn": "Global Cloudflare network",
       "status": "PRODUCTION"
     },
     "database": {
       "provider": "Supabase",
-      "type": "PostgreSQL 15",
+      "type": "PostgreSQL 15 + Redis",
       "region": "us-east-1",
       "status": "OPERATIONAL"
     }
@@ -140,15 +150,15 @@ $ git push origin main
       "health": "https://b9-dashboard.com/api/health",
       "status": "https://b9-dashboard.com/api/status"
     },
-    "backend_hetzner": {
-      "health": "http://91.98.91.129:10000/health",
-      "ready": "http://91.98.91.129:10000/ready",
-      "metrics": "http://91.98.91.129:10000/metrics"
+    "backend": {
+      "health": "https://api.b9-dashboard.com/health",
+      "ready": "https://api.b9-dashboard.com/ready",
+      "metrics": "https://api.b9-dashboard.com/metrics",
+      "docs": "https://api.b9-dashboard.com/docs"
     },
-    "backend_render_legacy": {
-      "health": "https://backend.onrender.com/health",
-      "ready": "https://backend.onrender.com/ready",
-      "metrics": "https://backend.onrender.com/metrics"
+    "media": {
+      "test": "https://media.b9-dashboard.com/",
+      "cdn_status": "Global Cloudflare R2"
     }
   },
   "monitoring": {
@@ -223,7 +233,7 @@ Database     [████████████████████] 100.
 $ vercel rollback <deployment-id>
 
 ## Backend Rollback
-$ render deploy --service backend --commit <commit-sha>
+$ ssh hetzner "docker stop b9-api && docker run ... <previous-image>"
 
 ## Database Rollback
 $ supabase db reset --version <migration-version>
@@ -290,10 +300,11 @@ $ supabase db reset --version <migration-version>
 {
   "monthly_costs": {
     "vercel": {"plan": "Pro", "cost": 20, "usage": "5GB bandwidth"},
-    "hetzner": {"plan": "3 servers", "cost": 33, "usage": "1 API + 2 Workers"},
+    "hetzner": {"plan": "1 VPS", "cost": 11, "usage": "FastAPI + Nginx + Redis"},
+    "cloudflare": {"plan": "Free", "cost": 0, "usage": "DNS + R2 (10GB free)"},
     "supabase": {"plan": "Pro", "cost": 25, "usage": "8GB database"},
-    "total": 78,
-    "savings_vs_render": "$592/month (from $625 Render)"
+    "total": 56,
+    "savings_vs_render": "$569/month (91% cost reduction)"
   },
   "projections": {
     "3_months": 156,
@@ -311,20 +322,22 @@ $ npm run deploy:preview    # Deploy to staging
 $ npm run deploy:prod       # Deploy to production
 
 ## Monitoring
-$ vercel logs              # Frontend logs
-$ render logs              # Backend logs
-$ supabase logs            # Database logs
+$ vercel logs                          # Frontend logs
+$ ssh hetzner "docker logs b9-api"     # Backend logs
+$ supabase logs                        # Database logs
 
 ## Rollback
-$ vercel rollback          # Rollback frontend
-$ render rollback          # Rollback backend
+$ vercel rollback                              # Rollback frontend
+$ ssh hetzner "docker restart b9-api"          # Restart backend
+$ ssh hetzner "docker pull image && restart"   # Update backend
 
 ## Health Check
 $ curl https://b9-dashboard.com/api/health
-$ curl https://backend.onrender.com/health
+$ curl https://api.b9-dashboard.com/health
+$ curl -I https://media.b9-dashboard.com/
 ```
 
 ---
 
-_Deployment Version: 2.0.0 | Providers: Vercel + Render + Supabase | Updated: 2024-01-28_
-_Navigate: [← CLAUDE.md](../../CLAUDE.md) | [→ DEPLOYMENT_SECRETS.md](DEPLOYMENT_SECRETS.md)_
+_Deployment Version: 3.0.0 | Infrastructure: Vercel + Hetzner + Cloudflare + Supabase | Updated: 2025-10-10_
+_Navigate: [← CLAUDE.md](../../CLAUDE.md) | [→ PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) | [→ DEPLOYMENT_SECRETS.md](DEPLOYMENT_SECRETS.md)_

@@ -37,7 +37,8 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
       field: {
         type: 'avatar',
         size: 'lg',
-        fallback: '@'
+        fallback: '@',
+        href: (creator) => `https://instagram.com/${creator.username}`
       }
     },
 
@@ -51,6 +52,7 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
         type: 'text',
         bold: true,
         color: 'primary',
+        href: (creator) => `https://instagram.com/${creator.username}`,
         subtitle: (creator) => creator.username,
         subtitleColor: 'subtle',
         badges: (creator) => [

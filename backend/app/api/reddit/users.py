@@ -13,12 +13,8 @@ from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 from supabase import Client
 
-
-# Flexible import that works both locally and in production
-try:
-    from api_render.core.clients.api_pool import PublicRedditAPI
-except ImportError:
-    from app.core.clients.api_pool import PublicRedditAPI
+# Import PublicRedditAPI from unified location
+from app.core.clients.api_pool import PublicRedditAPI
 
 # Import database singleton and unified logger
 from app.core.database import get_db

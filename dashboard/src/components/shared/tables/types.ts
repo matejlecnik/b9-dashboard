@@ -38,6 +38,8 @@ export interface TextFieldConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   badges?: Badge[] | ((item: any) => Badge[])
   dangerouslySetHTML?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  href?: string | ((item: any) => string | undefined)
 }
 
 export interface NumberFieldConfig {
@@ -81,6 +83,8 @@ export interface AvatarFieldConfig {
   fallback?: React.ReactNode
   size?: 'sm' | 'md' | 'lg'
   showBorder?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  href?: string | ((item: any) => string | undefined)
 }
 
 export interface ActionsFieldConfig {

@@ -77,7 +77,7 @@ export function useRedditMonitorStatus() {
   return useQuery({
     queryKey: ['monitor', 'reddit', 'status'],
     queryFn: async (): Promise<RedditMonitorStatus> => {
-      const response = await fetch('/api/reddit/scraper/status')
+      const response = await fetch('/api/proxy/reddit/scraper/status')
 
       if (!response.ok) {
         throw new Error('Failed to fetch Reddit monitor status')
@@ -103,7 +103,7 @@ export function useRedditAccounts() {
   return useQuery({
     queryKey: ['monitor', 'reddit', 'accounts'],
     queryFn: async (): Promise<RedditAccount[]> => {
-      const response = await fetch('/api/reddit/scraper/accounts')
+      const response = await fetch('/api/proxy/reddit/scraper/accounts')
 
       if (!response.ok) {
         throw new Error('Failed to fetch Reddit accounts')
@@ -129,7 +129,7 @@ export function useRedditQueueStatus() {
   return useQuery({
     queryKey: ['monitor', 'reddit', 'queue'],
     queryFn: async () => {
-      const response = await fetch('/api/reddit/scraper/queue')
+      const response = await fetch('/api/proxy/reddit/scraper/queue')
 
       if (!response.ok) {
         throw new Error('Failed to fetch queue status')
@@ -163,7 +163,7 @@ export function useStartRedditScraper() {
 
   return useMutation({
     mutationFn: async (params?: { subreddit_limit?: number; post_limit?: number }) => {
-      const response = await fetch('/api/reddit/scraper/start', {
+      const response = await fetch('/api/proxy/reddit/scraper/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params || {})
@@ -205,7 +205,7 @@ export function useStopRedditScraper() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/reddit/scraper/stop', {
+      const response = await fetch('/api/proxy/reddit/scraper/stop', {
         method: 'POST'
       })
 
@@ -245,7 +245,7 @@ export function useInstagramScraperStatus() {
   return useQuery({
     queryKey: ['monitor', 'instagram', 'status'],
     queryFn: async (): Promise<InstagramScraperStatus> => {
-      const response = await fetch('/api/instagram/scraper/status')
+      const response = await fetch('/api/proxy/instagram/scraper/status')
 
       if (!response.ok) {
         throw new Error('Failed to fetch Instagram scraper status')
@@ -271,7 +271,7 @@ export function useInstagramScraperMetrics() {
   return useQuery({
     queryKey: ['monitor', 'instagram', 'metrics'],
     queryFn: async (): Promise<ScraperMetrics> => {
-      const response = await fetch('/api/instagram/scraper/metrics')
+      const response = await fetch('/api/proxy/instagram/scraper/metrics')
 
       if (!response.ok) {
         throw new Error('Failed to fetch metrics')
@@ -297,7 +297,7 @@ export function useInstagramScraperErrors() {
   return useQuery({
     queryKey: ['monitor', 'instagram', 'errors'],
     queryFn: async () => {
-      const response = await fetch('/api/instagram/scraper/errors')
+      const response = await fetch('/api/proxy/instagram/scraper/errors')
 
       if (!response.ok) {
         throw new Error('Failed to fetch errors')
@@ -324,7 +324,7 @@ export function useStartInstagramScraper() {
 
   return useMutation({
     mutationFn: async (params?: { limit?: number; batch_size?: number }) => {
-      const response = await fetch('/api/instagram/scraper/start', {
+      const response = await fetch('/api/proxy/instagram/scraper/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params || {})
@@ -366,7 +366,7 @@ export function useStopInstagramScraper() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/instagram/scraper/stop', {
+      const response = await fetch('/api/proxy/instagram/scraper/stop', {
         method: 'POST'
       })
 
@@ -405,8 +405,8 @@ export function useScraperLogs(type: 'reddit' | 'instagram', limit = 100) {
     queryKey: ['scraper-logs', type, limit],
     queryFn: async () => {
       const endpoint = type === 'reddit'
-        ? '/api/reddit/scraper/logs'
-        : '/api/instagram/scraper/logs'
+        ? '/api/proxy/reddit/scraper/logs'
+        : '/api/proxy/instagram/scraper/logs'
 
       const response = await fetch(`${endpoint}?limit=${limit}`)
 

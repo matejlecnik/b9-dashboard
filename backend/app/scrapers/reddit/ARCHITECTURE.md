@@ -1069,7 +1069,7 @@ grep "\[Errno 35\]" logs | wc -l
 ## Appendix: File Structure
 
 ```
-api-render/app/scrapers/reddit/
+backend/app/scrapers/reddit/
 ├── reddit_scraper.py         # Main scraper class
 ├── proxy_manager.py           # Proxy rotation and testing
 ├── public_reddit_api.py       # Reddit API client

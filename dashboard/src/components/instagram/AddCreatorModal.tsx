@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useToast } from '@/components/ui/toast'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { UserPlus, AlertCircle, Loader2 } from 'lucide-react'
+import { UserPlus, AlertCircle, Loader2, ChevronDown, X } from 'lucide-react'
 import { StandardModal } from '@/components/shared/modals/StandardModal'
 import { designSystem } from '@/lib/design-system'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
+import { useNichingStats } from '@/hooks/queries/useInstagramReview'
 
 interface AddCreatorModalProps {
   isOpen: boolean
@@ -23,6 +25,66 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
   const [niche, setNiche] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showNicheDropdown, setShowNicheDropdown] = useState(false)
+  const [nicheSearchTerm, setNicheSearchTerm] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Fetch available niches
+  const { data: nichingStats } = useNichingStats()
+  const availableNiches = nichingStats?.availableNiches || []
+
+  // Filter niches based on search term
+  const filteredNiches = availableNiches.filter(n =>
+    n.toLowerCase().includes(nicheSearchTerm.toLowerCase())
+  )
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowNicheDropdown(false)
+        setNicheSearchTerm('')
+      }
+    }
+
+    if (showNicheDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNicheDropdown])
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (showNicheDropdown && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [showNicheDropdown])
+
+  const handleSelectNiche = (selectedNiche: string) => {
+    setNiche(selectedNiche)
+    setShowNicheDropdown(false)
+    setNicheSearchTerm('')
+  }
+
+  const handleCreateNiche = () => {
+    const trimmedTerm = nicheSearchTerm.trim()
+    if (trimmedTerm) {
+      setNiche(trimmedTerm)
+      setShowNicheDropdown(false)
+      setNicheSearchTerm('')
+    }
+  }
+
+  const handleRemoveNiche = () => {
+    setNiche('')
+  }
 
   const validateUsername = (name: string): string | null => {
     // Remove @ prefix if present
@@ -66,8 +128,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
 
     try {
       // Call API endpoint to add creator
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000'
-      const response = await fetch(`${apiUrl}/api/instagram/creator/add`, {
+      const response = await fetch('/api/proxy/instagram/creator/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,32 +292,138 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
           </p>
         </div>
 
-        {/* Niche Input */}
+        {/* Niche Dropdown */}
         <div className="space-y-1.5 p-3 rounded-lg bg-white/20 border border-gray-200/30">
           <Label htmlFor="creator-niche" className={cn("text-xs font-mac-text font-medium", designSystem.typography.color.secondary)}>
             Niche <span className={cn("text-xs", designSystem.typography.color.disabled)}>(optional)</span>
           </Label>
-          <Input
-            id="creator-niche"
-            type="text"
-            placeholder="e.g., Fitness, Beauty, Fashion..."
-            value={niche}
-            onChange={(e) => setNiche(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={loading}
-            className={cn(
-              "w-full h-9 text-sm font-mac-text",
-              "border border-gray-200/60 bg-white/40 backdrop-blur-sm",
-              "focus:border-gray-400/50 focus:ring-4 focus:ring-gray-400/20",
-              "shadow-[inset_0_1px_2px_var(--black-alpha-05)]",
-              "hover:border-gray-300/60",
-              "transition-all duration-200",
-              "outline-none focus:outline-none focus-visible:outline-none active:outline-none"
-            )}
-          />
+
+          {/* Selected niche or "Select/Create" button */}
+          {!niche ? (
+            <button
+              ref={buttonRef}
+              type="button"
+              onClick={() => setShowNicheDropdown(!showNicheDropdown)}
+              disabled={loading}
+              className={cn(
+                "w-full h-9 px-3 text-sm font-mac-text flex items-center justify-between",
+                "border border-gray-200/60 bg-white/40 backdrop-blur-sm rounded-lg",
+                "hover:border-gray-300/60 transition-all duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                designSystem.typography.color.tertiary
+              )}
+            >
+              <span>Select or create niche...</span>
+              <ChevronDown className={cn(
+                "h-3.5 w-3.5 transition-transform duration-200",
+                showNicheDropdown && "transform rotate-180"
+              )} />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "flex-1 h-9 px-3 flex items-center",
+                "border border-gray-200/60 bg-white/40 backdrop-blur-sm rounded-lg",
+                "text-sm font-mac-text font-medium",
+                designSystem.typography.color.primary
+              )}>
+                {niche}
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveNiche}
+                disabled={loading}
+                className={cn(
+                  "h-9 w-9 flex items-center justify-center",
+                  "border border-gray-200/60 bg-white/40 backdrop-blur-sm rounded-lg",
+                  "hover:border-red-300 hover:bg-red-50/50 transition-all duration-200",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <X className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            </div>
+          )}
+
           <p className={cn("text-[10px] font-mac-text", designSystem.typography.color.subtle)}>
-            Assign a niche category for this creator
+            Select an existing niche or type to create a new one
           </p>
+
+          {/* Dropdown portal */}
+          {showNicheDropdown && typeof window !== 'undefined' && createPortal(
+            <div
+              ref={dropdownRef}
+              className={cn(
+                "fixed z-[9999] bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden",
+                "w-[var(--button-width)]"
+              )}
+              style={{
+                top: `${buttonRef.current?.getBoundingClientRect().bottom ?? 0 + 4}px`,
+                left: `${buttonRef.current?.getBoundingClientRect().left ?? 0}px`,
+                width: `${buttonRef.current?.getBoundingClientRect().width ?? 0}px`,
+              }}
+            >
+              {/* Search input */}
+              <div className="p-2 border-b border-gray-200">
+                <Input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search or type new niche..."
+                  value={nicheSearchTerm}
+                  onChange={(e) => setNicheSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleCreateNiche()
+                    } else if (e.key === 'Escape') {
+                      setShowNicheDropdown(false)
+                      setNicheSearchTerm('')
+                    }
+                  }}
+                  className={cn(
+                    "w-full h-8 text-xs font-mac-text",
+                    "border border-gray-200 bg-white",
+                    "focus:border-gray-400 focus:ring-2 focus:ring-gray-400/20",
+                    "outline-none"
+                  )}
+                />
+                {nicheSearchTerm.trim() && !filteredNiches.includes(nicheSearchTerm.trim()) && (
+                  <p className={cn("text-[10px] mt-1", designSystem.typography.color.subtle)}>
+                    Press <kbd className="px-1 py-0.5 text-[9px] font-semibold border border-gray-300 rounded">Enter</kbd> to create &quot;{nicheSearchTerm.trim()}&quot;
+                  </p>
+                )}
+              </div>
+
+              {/* Niche list */}
+              <div className="max-h-[200px] overflow-y-auto">
+                {filteredNiches.length > 0 ? (
+                  filteredNiches.map((nicheOption) => (
+                    <button
+                      key={nicheOption}
+                      type="button"
+                      onClick={() => handleSelectNiche(nicheOption)}
+                      className={cn(
+                        "w-full px-3 py-2 text-left text-xs font-mac-text",
+                        "hover:bg-gray-50 transition-colors",
+                        designSystem.typography.color.secondary
+                      )}
+                    >
+                      {nicheOption}
+                    </button>
+                  ))
+                ) : nicheSearchTerm.trim() ? (
+                  <div className={cn("px-3 py-6 text-center text-xs", designSystem.typography.color.subtle)}>
+                    Press Enter to create &quot;{nicheSearchTerm.trim()}&quot;
+                  </div>
+                ) : (
+                  <div className={cn("px-3 py-6 text-center text-xs", designSystem.typography.color.subtle)}>
+                    No niches available yet
+                  </div>
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
 
         {/* Error Message */}

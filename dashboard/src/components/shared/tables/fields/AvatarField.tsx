@@ -11,6 +11,7 @@ interface AvatarFieldProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   showBorder?: boolean
+  href?: string
 }
 
 // Gradient palette for fallback avatars
@@ -51,7 +52,8 @@ export const AvatarField = memo(function AvatarField({
   fallback,
   size = 'md',
   className,
-  showBorder = true
+  showBorder = true,
+  href
 }: AvatarFieldProps) {
   const [imageError, setImageError] = useState(false)
 
@@ -67,6 +69,7 @@ export const AvatarField = memo(function AvatarField({
     designSystem.borders.radius.full,
     'overflow-hidden',
     showBorder && 'border-2 border-gray-200/60',
+    href && 'cursor-pointer transition-transform hover:scale-105',
     className
   )
 
@@ -74,36 +77,56 @@ export const AvatarField = memo(function AvatarField({
   const gradient = getGradientForName(alt)
   const initial = getInitial(alt, typeof fallback === 'string' ? fallback : 'R')
 
-  if (src && !imageError) {
-    // Decode HTML entities in URL (e.g., &amp; to &)
-    const decodedSrc = src.replace(/&amp;/g, '&')
+  // Render avatar content
+  const renderAvatarContent = () => {
+    if (src && !imageError) {
+      // Decode HTML entities in URL (e.g., &amp; to &)
+      const decodedSrc = src.replace(/&amp;/g, '&')
 
+      return (
+        <div className={baseClassName} style={{ background: gradient }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={decodedSrc}
+            alt={alt}
+            className="object-cover w-full h-full"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      )
+    }
+
+    // Fallback: Show gradient with initial
     return (
-      <div className={baseClassName} style={{ background: gradient }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={decodedSrc}
-          alt={alt}
-          className="object-cover w-full h-full"
-          onError={() => setImageError(true)}
-        />
+      <div
+        className={baseClassName}
+        style={{ background: gradient }}
+      >
+        {typeof fallback === 'string' || !fallback ? (
+          <span className="font-semibold text-white">
+            {initial}
+          </span>
+        ) : (
+          fallback
+        )}
       </div>
     )
   }
 
-  // Fallback: Show gradient with initial
-  return (
-    <div
-      className={baseClassName}
-      style={{ background: gradient }}
-    >
-      {typeof fallback === 'string' || !fallback ? (
-        <span className="font-semibold text-white">
-          {initial}
-        </span>
-      ) : (
-        fallback
-      )}
-    </div>
-  )
+  // Wrap in link if href is provided
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="inline-block"
+      >
+        {renderAvatarContent()}
+      </a>
+    )
+  }
+
+  return renderAvatarContent()
 })

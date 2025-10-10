@@ -28,6 +28,7 @@ export function createRedditReviewColumns(config: RedditReviewColumnConfig): Col
         render: (subreddit) => {
           const src = subreddit.community_icon || subreddit.icon_img || null
           const alt = subreddit.display_name_prefixed || subreddit.name
+          const name = subreddit.name
 
           return (
             <div className="flex justify-center">
@@ -36,6 +37,7 @@ export function createRedditReviewColumns(config: RedditReviewColumnConfig): Col
                 alt={alt}
                 size="md"
                 fallback="R"
+                href={`https://reddit.com/r/${name}`}
               />
             </div>
           )
@@ -53,6 +55,7 @@ export function createRedditReviewColumns(config: RedditReviewColumnConfig): Col
         type: 'text',
         bold: true,
         color: 'primary',
+        href: (subreddit) => `https://reddit.com/r/${subreddit.name}`,
         subtitle: (subreddit) => subreddit.title || undefined,
         subtitleColor: 'tertiary',
         badges: (subreddit) => [

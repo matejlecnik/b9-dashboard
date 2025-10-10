@@ -1,4 +1,4 @@
-# B9 Dashboard - Mission Control
+x# B9 Dashboard - Mission Control
 
 ┌─ SYSTEM STATUS ─────────────────────────────────────────┐
 │ ● OPERATIONAL  │ ███████████████████░ 98% COMPLETE      │
@@ -16,7 +16,7 @@
     {"path": "docs/development/VISION_2026.md", "desc": "Long-term vision", "status": "PENDING"}
   ],
   "modules": [
-    {"path": "api-render/", "desc": "Backend API", "status": "PRODUCTION"},
+    {"path": "backend/", "desc": "Backend API", "status": "PRODUCTION"},
     {"path": "dashboard/", "desc": "Frontend app", "status": "ACTIVE"}
   ],
   "docs": [
@@ -96,10 +96,10 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 
 ```json
 {
-  "reddit": {"status": "LOCKED", "complete": 100, "next": "API migration to render (post-refactor)"},
+  "reddit": {"status": "LOCKED", "complete": 100, "next": "Maintenance mode"},
   "instagram": {"status": "ACTIVE", "complete": 20, "next": "Quality scoring (Phase 4)"},
   "documentation": {"status": "COMPLETE", "complete": 100, "next": "Maintenance mode"},
-  "api_render": {"status": "PRODUCTION", "complete": 100, "next": "Cron jobs setup"}
+  "backend": {"status": "PRODUCTION", "complete": 100, "next": "Cron jobs setup"}
 }
 ```
 
@@ -108,7 +108,7 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 ```json
 {
   "critical": [
-    {"id": "CRON-001", "task": "Render cron jobs for log cleanup", "deadline": "2025-10-15", "risk": "DISK_OVERFLOW"}
+    {"id": "CRON-001", "task": "Cron jobs for log cleanup", "deadline": "2025-10-15", "risk": "DISK_OVERFLOW"}
   ],
   "active": [
     {"id": "INST-401", "task": "Design quality scoring algorithm", "phase": "v4.0.0"}
@@ -142,7 +142,7 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ```json
 {
   "strategic": ["ROADMAP.md", "docs/development/SYSTEM_IMPROVEMENT_PLAN.md"],
-  "modules": ["api-render/README.md", "dashboard/README.md"],
+  "modules": ["backend/README.md", "dashboard/README.md"],
   "docs": ["docs/development/DOCUMENTATION_STANDARDS.md", "docs/development/SESSION_LOG.md"]
 }
 ```

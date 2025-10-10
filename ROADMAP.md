@@ -66,8 +66,7 @@
     "highlights": [
       "Reddit Dashboard COMPLETE - All 5 pages locked ✅",
       "Fixed posting account removal bug (status='suspended')",
-      "Categorization, posting, post-analysis, subreddit-review, user-analysis all working flawlessly",
-      "API migration to render marked as future work"
+      "Categorization, posting, post-analysis, subreddit-review, user-analysis all working flawlessly"
     ]
   },
   "v3.7.0": {
@@ -425,7 +424,7 @@
   "status": "✅ NO ACTIVE BLOCKERS",
   "completed": {
     "CRON-001": {
-      "task": "Render cron jobs for log cleanup",
+      "task": "Cron jobs for log cleanup",
       "completed_date": "2025-10-09",
       "status": "DEPLOYED",
       "ref": "backend/docs/CRON_SETUP.md"
@@ -463,8 +462,7 @@
       "post-analysis - COMPLETE ✅",
       "subreddit-review - COMPLETE ✅",
       "user-analysis - COMPLETE ✅"
-    ],
-    "future_work": "API migration to render (post-refactor)"
+    ]
   },
   "instagram": {
     "current": {"creators": 1247, "completion": "65%"},

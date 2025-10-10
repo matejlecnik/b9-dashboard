@@ -39,7 +39,7 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
   })
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
   const [showLogs, setShowLogs] = useState(false)
-  const [batchSize, setBatchSize] = useState(10)
+  const [batchSize, setBatchSize] = useState(0)
   const [unprocessedCount, setUnprocessedCount] = useState(0)
   const [loadingCount, setLoadingCount] = useState(false)
 
@@ -50,8 +50,8 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
       if (response.ok) {
         const data = await response.json()
         setUnprocessedCount(data.count)
-        // Set batch size to minimum of 10 or available count
-        setBatchSize(Math.min(10, data.count))
+        // Set batch size to available count (or 0 if none available)
+        setBatchSize(data.count === 0 ? 0 : Math.min(10, data.count))
       }
     } catch (error) {
       logger.error('Error fetching unprocessed count:', error)
@@ -315,11 +315,6 @@ export function RelatedCreatorsModal({ isOpen, onClose }: RelatedCreatorsModalPr
                   <div className={cn("text-xs", designSystem.typography.color.subtle)}>
                     Processing takes 2-5 seconds per creator to avoid rate limits
                   </div>
-                  {unprocessedCount === 0 && !loadingCount && (
-                    <div className="text-xs text-orange-600 font-medium">
-                      No unprocessed approved creators available
-                    </div>
-                  )}
                 </div>
               )}
 

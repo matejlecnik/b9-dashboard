@@ -11,7 +11,7 @@
   "parent": "../README.md",
   "current": "dashboard/README.md",
   "siblings": [
-    {"path": "../api-render/", "desc": "Backend API", "status": "LIVE"},
+    {"path": "../backend/", "desc": "Backend API", "status": "LIVE"},
     {"path": "../docs/", "desc": "Documentation", "status": "COMPLETE"}
   ],
   "children": [

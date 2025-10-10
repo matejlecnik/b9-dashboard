@@ -56,11 +56,11 @@ Permanent storage for Instagram photos and videos with automatic compression:
 ```json
 {
   "parent": "../CLAUDE.md",
-  "current": "api-render/README.md",
+  "current": "backend/README.md",
   "documentation": {
     "../docs/backend/ARCHITECTURE.md": {"desc": "System design", "status": "STABLE"},
     "../docs/backend/API.md": {"desc": "Endpoint reference", "status": "COMPLETE"},
-    "../docs/backend/RENDER_API_DEPLOYMENT.md": {"desc": "Deploy guide", "status": "ACTIVE"},
+    "../docs/backend/API_DEPLOYMENT.md": {"desc": "Deploy guide", "status": "ACTIVE"},
     "../docs/backend/MONITORING.md": {"desc": "Health monitoring", "status": "OPERATIONAL"},
     "../docs/backend/logging.md": {"desc": "Logging system", "status": "ENFORCED"},
     "docs/R2_STORAGE_SETUP.md": {"desc": "Cloudflare R2 media storage", "status": "ACTIVE"}
@@ -261,7 +261,7 @@ make analyze-profile                   # Analyze results
 ## Directory Structure
 
 ```
-api-render/
+backend/
 ├── /app/                 # Application code
 │   ├── /core/           # Infrastructure
 │   ├── /middleware/     # Request handling
@@ -289,7 +289,7 @@ api-render/
     "api_server": {
       "type": "CPX11",
       "specs": "2 vCPU AMD, 2 GB RAM, 40 GB SSD",
-      "ip": "91.98.91.129",
+      "domain": "api.b9-dashboard.com",
       "services": ["FastAPI", "Redis Server"],
       "cost": "€3.85/month"
     },
@@ -379,4 +379,4 @@ pytest --cov=app --cov-report=html
 ---
 
 _API Version: 3.7.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-07_
-_Navigate: [→ ARCHITECTURE.md](../docs/backend/ARCHITECTURE.md) | [→ API.md](../docs/backend/API.md) | [→ DEPLOYMENT.md](../docs/backend/RENDER_API_DEPLOYMENT.md)_
+_Navigate: [→ ARCHITECTURE.md](../docs/backend/ARCHITECTURE.md) | [→ API.md](../docs/backend/API.md) | [→ DEPLOYMENT.md](../docs/backend/API_DEPLOYMENT.md)_

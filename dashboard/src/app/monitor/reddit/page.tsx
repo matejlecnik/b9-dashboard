@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Play,
   Square
@@ -14,12 +14,6 @@ import { logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
 
 export default function RedditMonitor() {
-  // API URL configuration - memoized to satisfy ESLint exhaustive-deps
-  const API_URL = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000',
-    []
-  )
-
   const [loading, setLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [manualOverride, setManualOverride] = useState(false)
@@ -35,8 +29,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/reddit/scraper/cycle-status`, {
-          mode: 'cors',
+        const response = await fetch('/api/proxy/reddit/scraper/cycle-status', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -79,7 +72,7 @@ export default function RedditMonitor() {
       logger.error('Error fetching cycle data:', error)
       setCycleData(null)
     }
-  }, [API_URL])
+  }, [])
 
   // Calculate success rate from API
   const calculateSuccessRate = useCallback(async () => {
@@ -89,8 +82,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout for Render cold starts
 
       try {
-        const response = await fetch(`${API_URL}/api/reddit/scraper/success-rate`, {
-          mode: 'cors',
+        const response = await fetch('/api/proxy/reddit/scraper/success-rate', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -131,7 +123,7 @@ export default function RedditMonitor() {
       logger.error('Error calculating success rate:', error)
       setSuccessRate(null)
     }
-  }, [API_URL])
+  }, [])
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -159,8 +151,7 @@ export default function RedditMonitor() {
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for Render cold start
 
       try {
-        const statusRes = await fetch(`${API_URL}/api/reddit/scraper/status-detailed`, {
-          mode: 'cors',
+        const statusRes = await fetch('/api/proxy/reddit/scraper/status-detailed', {
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
@@ -199,7 +190,7 @@ export default function RedditMonitor() {
     } finally {
       setLoading(false)
     }
-  }, [API_URL, manualOverride])
+  }, [manualOverride])
 
   const handleScraperControl = async (action: 'start' | 'stop') => {
     try {
@@ -210,13 +201,12 @@ export default function RedditMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the external API (production scraper)
-      const endpoint = action === 'start' ? '/api/reddit/scraper/start' : '/api/reddit/scraper/stop'
+      // Call the proxy API
+      const endpoint = action === 'start' ? '/api/proxy/reddit/scraper/start' : '/api/proxy/reddit/scraper/stop'
 
-      const res = await fetch(`${API_URL}${endpoint}`, {
+      const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors'
+        headers: { 'Content-Type': 'application/json' }
       })
 
       if (res.ok) {
@@ -309,8 +299,7 @@ export default function RedditMonitor() {
         const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout for initial check
 
         try {
-          const statusRes = await fetch(`${API_URL}/api/reddit/scraper/status`, {
-            mode: 'cors',
+          const statusRes = await fetch('/api/proxy/reddit/scraper/status', {
             signal: controller.signal
           })
           clearTimeout(timeoutId)
@@ -354,7 +343,7 @@ export default function RedditMonitor() {
         clearTimeout(manualOverrideTimeoutRef.current)
       }
     }
-  }, [API_URL, fetchMetrics, calculateSuccessRate, fetchCycleData]) // Include all called functions
+  }, [fetchMetrics, calculateSuccessRate, fetchCycleData]) // Include all called functions
 
   return (
     <DashboardLayout>

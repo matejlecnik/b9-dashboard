@@ -73,7 +73,7 @@
 ### Python Usage
 
 ```python
-from api_render.services.tags.tag_definitions import (
+from app.services.tags.tag_definitions import (
     get_all_tags,
     validate_tags,
     match_subreddit_to_model
@@ -183,10 +183,10 @@ model_tags = ["ethnicity:latina", "body:curvy"]
 
 ```bash
 ## Test Python implementation
-python -m pytest api-render/services/tags/test_tags.py
+python -m pytest backend/app/services/tags/test_tags.py
 
 ## Verify sync
-python api-render/services/tags/verify_sync.py
+python backend/app/services/tags/verify_sync.py
 
 ## Count tags
 python -c "from tag_definitions import TOTAL_TAGS; print(f'Total tags: {TOTAL_TAGS}')"

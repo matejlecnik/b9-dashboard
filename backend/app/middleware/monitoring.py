@@ -31,7 +31,18 @@ def configure_middleware(app: FastAPI):
     allowed_hosts = (
         ["*"]
         if os.getenv("ENVIRONMENT") != "production"
-        else ["*.onrender.com", "localhost", "127.0.0.1", "91.98.91.129", os.getenv("CUSTOM_DOMAIN", "")]
+        else [
+            "*.b9-dashboard.com",
+            "api.b9-dashboard.com",
+            "api.b9-dashboard.com:10000",
+            "api.b9-dashboard.com:8000",
+            "localhost",
+            "127.0.0.1",
+            "91.98.91.129",  # Temporary fallback during migration
+            "91.98.91.129:10000",
+            "91.98.91.129:8000",
+            os.getenv("CUSTOM_DOMAIN", ""),
+        ]
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     logger.info(f"✅ TrustedHostMiddleware configured (hosts: {allowed_hosts})")
