@@ -39,7 +39,7 @@ export async function setScraperState(enabled: boolean) {
     // This would normally call Render's API to update the environment variable
     // For MVP, we'll simulate the action
 
-    logger.log(`Setting SCRAPER_ENABLED to ${enabled} on Render...`)
+    logger.log(`Setting SCRAPER_ENABLED to ${enabled}...`)
 
     // In production, you would:
     // 1. Call Render API to update SCRAPER_ENABLED

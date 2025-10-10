@@ -43,8 +43,8 @@ export const POST = scraperApi(async () => {
         details: { triggered_by: 'dashboard' }
       }])
 
-    // Note: Actual stopping of the running process would be handled by
-    // checking the status in the scraper script itself or via Render API
+    // Note: Actual stopping of the running process is handled by
+    // checking the status in the scraper script itself
 
     return NextResponse.json({
       success: true,

@@ -17,12 +17,10 @@ interface CategorizationStats {
 }
 
 // Resolve the API URL at request time to avoid build-time inlining
-function getRenderApiUrl(): string | undefined {
+function getApiUrl(): string | undefined {
   // Use bracket notation to prevent Next/webpack from inlining at build time
   return (
     process.env['NEXT_PUBLIC_API_URL'] ||
-    process.env['RENDER_API_URL'] ||
-    process.env['NEXT_PUBLIC_RENDER_API_URL'] ||
     undefined
   )
 }
@@ -32,8 +30,8 @@ export async function POST(request: Request) {
   const startTime = Date.now()
 
   try {
-    const RENDER_API_URL = getRenderApiUrl()
-    if (!RENDER_API_URL) {
+    const API_URL = getApiUrl()
+    if (!API_URL) {
       // Log configuration error
       await loggingService.logAICategorization(
         'service-not-configured',
@@ -93,7 +91,7 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Forward ONLY the expected parameters to the Render API
+    // Forward ONLY the expected parameters to the API
     const requestPayload = {
       batchSize: batchSize || 50,
       limit: limit || undefined,
@@ -105,9 +103,9 @@ export async function POST(request: Request) {
       Object.entries(requestPayload).filter(([, v]) => v !== undefined)
     )
     
-    
-    // Forward the request to the Render API
-    const renderResponse = await fetch(`${RENDER_API_URL}/api/ai/categorization/start`, {
+
+    // Forward the request to the external API
+    const apiResponse = await fetch(`${API_URL}/api/ai/categorization/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,20 +114,20 @@ export async function POST(request: Request) {
       body: JSON.stringify(cleanPayload)
     })
 
-    const renderData = await renderResponse.json()
-    
+    const apiData = await apiResponse.json()
+
     // Comprehensive logging
-    if (renderData.results) {
+    if (apiData.results) {
     }
 
-    if (!renderResponse.ok) {
+    if (!apiResponse.ok) {
 
-      // Log Render API error
+      // Log API error
       await loggingService.logAICategorization(
-        'render-api-error',
+        'api-error',
         {
-          status: renderResponse.status,
-          error: renderData.detail || 'Unknown error',
+          status: apiResponse.status,
+          error: apiData.detail || 'Unknown error',
           batch_size: batchSize,
           limit
         },
@@ -139,20 +137,20 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: false,
-        error: renderData.detail || 'AI categorization service error',
-        render_error: true
-      }, { status: renderResponse.status })
+        error: apiData.detail || 'AI categorization service error',
+        api_error: true
+      }, { status: apiResponse.status })
     }
 
-    // Forward the complete response from Render
+    // Forward the complete response from API
     const response = {
       success: true,
       message: 'AI categorization completed',
       batch_size: batchSize,
-      estimated_subreddits: renderData.results?.stats?.total_processed || limit || batchSize,
-      estimated_cost: renderData.results?.stats?.total_cost || 0,
-      job_id: renderData.job_id,
-      render_response: renderData  // This contains the full response including results
+      estimated_subreddits: apiData.results?.stats?.total_processed || limit || batchSize,
+      estimated_cost: apiData.results?.stats?.total_cost || 0,
+      job_id: apiData.job_id,
+      api_response: apiData  // This contains the full response including results
     }
     
 
@@ -162,9 +160,9 @@ export async function POST(request: Request) {
       {
         batch_size: batchSize,
         limit: limit || batchSize,
-        estimated_subreddits: renderData.results?.stats?.total_processed || limit || batchSize,
-        estimated_cost: renderData.results?.stats?.total_cost || 0,
-        job_id: renderData.job_id,
+        estimated_subreddits: apiData.results?.stats?.total_processed || limit || batchSize,
+        estimated_cost: apiData.results?.stats?.total_cost || 0,
+        job_id: apiData.job_id,
         subreddit_ids: subredditIds?.length || 0
       },
       true,
@@ -177,12 +175,12 @@ export async function POST(request: Request) {
 
     if (error instanceof TypeError && error.message.includes('fetch')) {
       // Log connection error
-      const renderUrl = getRenderApiUrl()
+      const apiUrl = getApiUrl()
       await loggingService.logAICategorization(
         'connection-error',
         {
           error: error.message,
-          render_api_url: renderUrl
+          api_url: apiUrl
         },
         false,
         Date.now() - startTime
@@ -217,8 +215,8 @@ export async function GET() {
   const startTime = Date.now()
 
   try {
-    const RENDER_API_URL = getRenderApiUrl()
-    if (!RENDER_API_URL) {
+    const API_URL = getApiUrl()
+    if (!API_URL) {
       return NextResponse.json({
         success: false,
         error: 'AI categorization service not configured',
@@ -226,8 +224,8 @@ export async function GET() {
       }, { status: 503 })
     }
 
-    // Get stats from the Render API (with development fallback)
-    type RenderStatsResponse = {
+    // Get stats from the API service (with development fallback)
+    type ApiStatsResponse = {
       uncategorized_count?: number
       categorized_count?: number
       total_subreddits?: number
@@ -236,13 +234,13 @@ export async function GET() {
       detail?: string
       [key: string]: unknown
     }
-    let renderData: RenderStatsResponse
-    let renderResponse: Response
-    
+    let apiData: ApiStatsResponse
+    let apiResponse: Response
+
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
-      renderResponse = await fetch(`${RENDER_API_URL}/api/ai/categorization/stats`, {
+      apiResponse = await fetch(`${API_URL}/api/ai/categorization/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -251,7 +249,7 @@ export async function GET() {
         signal: controller.signal
       })
       clearTimeout(timeoutId)
-      renderData = await renderResponse.json()
+      apiData = await apiResponse.json()
     } catch (_error) {
       
       // Development fallback - return mock service status
@@ -272,14 +270,14 @@ export async function GET() {
       })
     }
 
-    if (!renderResponse.ok) {
+    if (!apiResponse.ok) {
 
       // Log stats fetch error
       await loggingService.logAICategorization(
         'stats-fetch-error',
         {
-          status: renderResponse.status,
-          error: renderData.detail || 'Unknown error'
+          status: apiResponse.status,
+          error: apiData.detail || 'Unknown error'
         },
         false,
         Date.now() - startTime
@@ -287,17 +285,17 @@ export async function GET() {
 
       return NextResponse.json({
         success: false,
-        error: renderData.detail || 'Failed to get categorization statistics',
-        render_error: true
-      }, { status: renderResponse.status })
+        error: apiData.detail || 'Failed to get categorization statistics',
+        api_error: true
+      }, { status: apiResponse.status })
     }
 
     const stats: CategorizationStats = {
-      uncategorized_count: renderData.uncategorized_count || 0,
-      categorized_count: renderData.categorized_count || 0,
-      total_subreddits: renderData.total_subreddits || 0,
-      categories_available: renderData.categories || [],
-      last_categorization: renderData.last_categorization
+      uncategorized_count: apiData.uncategorized_count || 0,
+      categorized_count: apiData.categorized_count || 0,
+      total_subreddits: apiData.total_subreddits || 0,
+      categories_available: apiData.categories || [],
+      last_categorization: apiData.last_categorization
     }
 
     // Log successful stats fetch
@@ -316,7 +314,7 @@ export async function GET() {
       success: true,
       stats,
       service_status: 'connected',
-      render_api_url: RENDER_API_URL.replace(/\/+$/, '') // Remove trailing slashes for display
+      api_url: API_URL.replace(/\/+$/, '') // Remove trailing slashes for display
     })
 
   } catch (error) {

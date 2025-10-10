@@ -65,7 +65,7 @@ export function AddCreatorModal({ isOpen, onClose, onCreatorAdded }: AddCreatorM
     setLoading(true)
 
     try {
-      // Call backend endpoint to add creator
+      // Call API endpoint to add creator
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000'
       const response = await fetch(`${apiUrl}/api/instagram/creator/add`, {
         method: 'POST',

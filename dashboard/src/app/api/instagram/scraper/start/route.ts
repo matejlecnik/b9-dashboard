@@ -6,7 +6,6 @@ import { scraperApi } from '@/lib/api-wrapper'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const renderApiKey = process.env.RENDER_API_KEY
 
 export const POST = scraperApi(async () => {
   try {
@@ -35,31 +34,7 @@ export const POST = scraperApi(async () => {
         .insert([updateData])
     }
 
-    // If we have Render API key, trigger the job
-    if (renderApiKey) {
-      try {
-        const renderServiceId = process.env.RENDER_INSTAGRAM_SERVICE_ID
-        if (renderServiceId) {
-          const response = await fetch(`https://api.render.com/v1/services/${renderServiceId}/jobs`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${renderApiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              startCommand: 'python unified_scraper.py'
-            })
-          })
-
-          if (!response.ok) {
-            logger.error('Failed to trigger Render job:', await response.text())
-          }
-        }
-      } catch (renderError) {
-        logger.error('Render API error:', renderError)
-        // Continue even if Render trigger fails
-      }
-    }
+    // Note: Scraper job triggering is handled by external infrastructure
 
     // Log the start action
     await supabase

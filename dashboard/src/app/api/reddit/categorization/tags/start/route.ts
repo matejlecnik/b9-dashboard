@@ -12,11 +12,9 @@ interface TagCategorizationRequest {
 }
 
 // Resolve the API URL at request time to avoid build-time inlining
-function getRenderApiUrl(): string | undefined {
+function getApiUrl(): string | undefined {
   return (
     process.env['NEXT_PUBLIC_API_URL'] ||
-    process.env['RENDER_API_URL'] ||
-    process.env['NEXT_PUBLIC_RENDER_API_URL'] ||
     undefined
   )
 }
@@ -28,15 +26,15 @@ export async function POST(request: NextRequest) {
   console.log('🎯 [API Route] POST /api/reddit/categorization/tags/start - Request received')
 
   try {
-    const RENDER_API_URL = getRenderApiUrl()
+    const API_URL = getApiUrl()
 
     console.log('🔧 [API Route] Environment check', {
-      RENDER_API_URL: RENDER_API_URL ? `${RENDER_API_URL.substring(0, 30)}...` : 'NOT SET',
-      configured: !!RENDER_API_URL
+      API_URL: API_URL ? `${API_URL.substring(0, 30)}...` : 'NOT SET',
+      configured: !!API_URL
     })
 
-    if (!RENDER_API_URL) {
-      console.error('❌ [API Route] RENDER_API_URL not configured')
+    if (!API_URL) {
+      console.error('❌ [API Route] API_URL not configured')
       return NextResponse.json({
         success: false,
         error: 'AI categorization service not configured. Please set NEXT_PUBLIC_API_URL environment variable.',
@@ -68,10 +66,10 @@ export async function POST(request: NextRequest) {
       subreddit_ids_count: subreddit_ids?.length || 'all uncategorized'
     })
 
-    // Call the Python backend API for tag categorization
-    const apiUrl = `${RENDER_API_URL}/api/ai/categorization/tag-subreddits`
+    // Call the external API for tag categorization
+    const apiUrl = `${API_URL}/api/ai/categorization/tag-subreddits`
 
-    console.log('📡 [API Route] Calling Render backend API', {
+    console.log('📡 [API Route] Calling external API', {
       apiUrl,
       method: 'POST',
       body: {
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    logger.log('📡 Calling Render API:', apiUrl)
+    logger.log('📡 Calling external API:', apiUrl)
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -96,7 +94,7 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(300000), // 5 minute timeout for batch processing
     })
 
-    console.log('✅ [API Route] Render API response received', {
+    console.log('✅ [API Route] API response received', {
       status: response.status,
       ok: response.ok,
       statusText: response.statusText
@@ -105,12 +103,12 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text()
 
-      console.error('❌ [API Route] Render API returned error', {
+      console.error('❌ [API Route] API returned error', {
         status: response.status,
         errorText: errorText.substring(0, 500)
       })
 
-      logger.error('❌ Render API error:', { status: response.status, error: errorText })
+      logger.error('❌ API error:', { status: response.status, error: errorText })
 
       // Try to parse as JSON for structured error
       try {
@@ -123,7 +121,7 @@ export async function POST(request: NextRequest) {
       } catch {
         return NextResponse.json({
           success: false,
-          error: `Backend service error: ${response.status} ${response.statusText}`,
+          error: `API service error: ${response.status} ${response.statusText}`,
           details: errorText
         }, { status: response.status })
       }
@@ -131,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json()
 
-    console.log('📊 [API Route] Backend result received', {
+    console.log('📊 [API Route] API result received', {
       success: result.success,
       message: result.message,
       stats: result.stats
@@ -143,8 +141,8 @@ export async function POST(request: NextRequest) {
       stats: result.stats
     })
 
-    // Transform backend response to match frontend expectations
-    // Backend returns: { success, message, stats }
+    // Transform API response to match frontend expectations
+    // API returns: { success, message, stats }
     // Frontend expects: results array with categorized items
     const transformedResults = []
 
@@ -157,11 +155,11 @@ export async function POST(request: NextRequest) {
     })
 
     // Create mock results array for frontend compatibility
-    // (The actual categorization is already saved in the backend)
+    // (The actual categorization is already saved in the database)
     for (let i = 0; i < successfulCount; i++) {
       transformedResults.push({
         id: i,
-        tags: [],  // Tags are already saved in DB by backend
+        tags: [],  // Tags are already saved in DB by API
         success: true
       })
     }
@@ -171,7 +169,7 @@ export async function POST(request: NextRequest) {
       message: result.message,
       stats: result.stats,
       results: transformedResults,
-      render_response: result,
+      api_response: result,
       job_id: `tag_batch_${Date.now()}`,
       estimated_subreddits: result.stats?.total_processed || limit,
       duration_ms: Date.now() - startTime

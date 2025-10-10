@@ -565,7 +565,7 @@ export function useAICategorization() {
             }
 
             if (errorData.configuration_needed) {
-              throw new Error('AI service not configured. Please set up the backend service or configure NEXT_PUBLIC_API_URL.')
+              throw new Error('AI service not configured. Please configure NEXT_PUBLIC_API_URL.')
             }
             throw new Error(errorData.error || 'AI categorization failed')
           }
@@ -603,7 +603,7 @@ export function useAICategorization() {
             const errorData = await response.json()
             // Check if it's a configuration error
             if (errorData.configuration_needed) {
-              throw new Error('AI service not configured. Please set up the backend service or configure NEXT_PUBLIC_API_URL.')
+              throw new Error('AI service not configured. Please configure NEXT_PUBLIC_API_URL.')
             }
             throw new Error(errorData.error || 'AI categorization failed')
           }

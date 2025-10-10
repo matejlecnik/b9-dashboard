@@ -94,13 +94,13 @@ export const POST = protectedApi(async (request: NextRequest) => {
       tags: null
     }
 
-    // If fetchFromReddit is true, call the Python backend to get subreddit details
+    // If fetchFromReddit is true, call the external API to get subreddit details
     if (fetchFromReddit) {
       try {
         logger.log(`🔄 [API:${requestId}] Fetching details from Reddit for: ${cleanName}`)
 
-        // Call Python backend to fetch subreddit details
-        const backendUrl = process.env.PYTHON_BACKEND_URL || 'http://91.98.91.129:10000'
+        // Call external API to fetch subreddit details
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://91.98.91.129:10000'
         const response = await fetch(`${backendUrl}/api/subreddits/fetch-single`, {
           method: 'POST',
           headers: {

@@ -1,7 +1,6 @@
 import {
   Instagram,
   Target,
-  TrendingUp,
   Layers,
   UserPlus,
   Search,
@@ -89,12 +88,6 @@ export const instagramSidebarConfig: SidebarConfig = {
       title: 'Niching',
       href: '/instagram/niching',
       icon: Target
-    },
-    {
-      id: 'viral-content',
-      title: 'Viral Content',
-      href: '/instagram/viral-content',
-      icon: TrendingUp
     }
   ]
 }

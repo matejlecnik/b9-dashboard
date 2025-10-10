@@ -226,7 +226,7 @@ export default function InstagramMonitor() {
       setIsRunning(newRunningState)
       setManualOverride(true) // Enable manual override to prevent fetchMetrics from changing the state
 
-      // Call the backend API on Render (production scraper)
+      // Call the external API (production scraper)
       const endpoint = action === 'start' ? '/api/instagram/scraper/start' : '/api/instagram/scraper/stop'
 
       const res = await fetch(`${API_URL}${endpoint}`, {
