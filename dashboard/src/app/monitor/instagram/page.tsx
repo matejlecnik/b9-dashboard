@@ -401,21 +401,35 @@ export default function InstagramMonitor() {
 
         {/* Logs Section - Full Width */}
         <div className="flex flex-col gap-4">
-          {/* Main Logs */}
-          <div>
-            <LogViewerSupabase
-              title="Instagram Scraper Activity"
-              height="calc((100vh - 400px) / 2)"
-              autoScroll={true}
-              refreshInterval={5000}
-              maxLogs={30}
-              minLogsToShow={30}
-              useSystemLogs={true}
-              sourceFilter="instagram_scraper"
-            />
+          {/* Main Scraper & Related Creators - Side-by-side */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <LogViewerSupabase
+                title="Instagram Scraper Activity"
+                height="calc((100vh - 400px) / 2)"
+                autoScroll={true}
+                refreshInterval={5000}
+                maxLogs={30}
+                minLogsToShow={30}
+                useSystemLogs={true}
+                sourceFilter="instagram_scraper"
+              />
+            </div>
+            <div className="flex-1">
+              <LogViewerSupabase
+                title="Related Creators"
+                height="calc((100vh - 400px) / 2)"
+                autoScroll={true}
+                refreshInterval={5000}
+                maxLogs={30}
+                minLogsToShow={30}
+                useSystemLogs={true}
+                sourceFilter="instagram_related_creators"
+              />
+            </div>
           </div>
 
-          {/* Activity Logs - Side-by-side layout */}
+          {/* Creator Updates & AI Tagging - Side-by-side */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <LogViewerSupabase
@@ -431,14 +445,14 @@ export default function InstagramMonitor() {
             </div>
             <div className="flex-1">
               <LogViewerSupabase
-                title="Related Creators"
+                title="AI Tagging"
                 height="calc((100vh - 400px) / 2)"
                 autoScroll={true}
                 refreshInterval={5000}
                 maxLogs={30}
                 minLogsToShow={30}
                 useSystemLogs={true}
-                sourceFilter="instagram_related_creators"
+                sourceFilter="instagram_ai_tagging"
               />
             </div>
           </div>
