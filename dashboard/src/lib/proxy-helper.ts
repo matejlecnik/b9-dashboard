@@ -108,9 +108,11 @@ export function createProxyGetHandler(
 /**
  * Create a proxy route handler for POST requests
  * @param extractPath - Function to extract the API path from the request
+ * @param timeout - Optional custom timeout in milliseconds (default: 30000)
  */
 export function createProxyPostHandler(
-  extractPath: (request: NextRequest) => string
+  extractPath: (request: NextRequest) => string,
+  timeout?: number
 ) {
   return async function POST(request: NextRequest) {
     try {
@@ -119,7 +121,8 @@ export function createProxyPostHandler(
 
       const response = await proxyToExternalApi(path, {
         method: 'POST',
-        body
+        body,
+        timeout
       })
 
       // Try JSON first, fall back to plain text for error messages
