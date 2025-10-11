@@ -11,11 +11,14 @@ Mimics the automated scraper's process_creator() workflow:
 - Updates database with complete creator profile
 """
 
+import subprocess
+import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel
 from supabase import Client
 
@@ -67,24 +70,206 @@ class CreatorAddResponse(BaseModel):
 # =============================================================================
 
 
+async def process_creator_background(
+    username: str, ig_user_id: str, niche: Optional[str], start_time: float
+):
+    """
+    Process creator in background task - runs independently of HTTP request
+
+    This function runs the same process_creator() workflow as the Instagram scraper,
+    logging everything to system_logs for real-time monitoring.
+    """
+    try:
+        logger.info(f"🔄 Background processing started for @{username}")
+
+        # Create scraper instance
+        scraper = create_scraper_instance()
+
+        # Create creator object
+        creator_obj = {"ig_user_id": ig_user_id, "username": username, "niche": niche}
+
+        # Track API calls before processing
+        api_calls_before = scraper.api_calls_made
+
+        # Log start of processing
+        await log_creator_addition(
+            username,
+            "background_process_started",
+            True,
+            {"api_calls_before": api_calls_before},
+        )
+
+        # Run the SAME processing workflow the scraper uses
+        logger.info(f"Calling process_creator() for @{username}")
+        processing_success = await scraper.process_creator(creator_obj)
+        logger.info(f"process_creator() returned: {processing_success} for @{username}")
+
+        # Calculate API calls used
+        api_calls_used = scraper.api_calls_made - api_calls_before
+
+        # Log completion of processing
+        await log_creator_addition(
+            username,
+            "background_process_returned",
+            processing_success,
+            {
+                "success": processing_success,
+                "api_calls_used": api_calls_used,
+                "api_calls_after": scraper.api_calls_made,
+            },
+        )
+
+        if not processing_success:
+            await log_creator_addition(
+                username,
+                "processing_failed",
+                False,
+                error="Full processing workflow failed",
+                details={"api_calls_used": api_calls_used},
+            )
+            return
+
+        # Fetch complete creator data from database
+        await log_creator_addition(
+            username, "fetching_final_data", True, {"ig_user_id": ig_user_id}
+        )
+
+        final_creator = (
+            _get_db()
+            .table("instagram_creators")
+            .select("*")
+            .eq("ig_user_id", ig_user_id)
+            .single()
+            .execute()
+        )
+
+        # Log what we got from database
+        if final_creator and hasattr(final_creator, "data") and final_creator.data:
+            data_summary = {
+                "followers_count": final_creator.data.get("followers_count"),
+                "avg_views_per_reel_cached": final_creator.data.get("avg_views_per_reel_cached"),
+                "avg_engagement_cached": final_creator.data.get("avg_engagement_cached"),
+                "has_analytics": final_creator.data.get("avg_views_per_reel_cached") is not None,
+            }
+            await log_creator_addition(
+                username,
+                "final_data_fetched",
+                True,
+                data_summary,
+            )
+
+        if not final_creator or not hasattr(final_creator, "data") or not final_creator.data:
+            await log_creator_addition(
+                username,
+                "final_fetch_failed",
+                False,
+                error="Creator processed but not found in database",
+            )
+            return
+
+        # Calculate processing time
+        processing_time = int(time.time() - start_time)
+
+        # Log final completion
+        await log_creator_addition(
+            username,
+            "addition_completed",
+            True,
+            details={
+                "ig_user_id": ig_user_id,
+                "api_calls": api_calls_used,
+                "processing_time": processing_time,
+                "followers": final_creator.data.get("followers_count", 0),
+                "engagement_rate": final_creator.data.get("avg_engagement_rate", 0),
+            },
+        )
+
+        logger.info(
+            f"✅ Successfully added creator @{username}: "
+            f"{api_calls_used} API calls, {processing_time}s processing time"
+        )
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"❌ Background processing failed for @{username}: {error_msg}", exc_info=True)
+
+        await log_creator_addition(
+            username,
+            "addition_error",
+            False,
+            error=error_msg,
+            details={"error_type": type(e).__name__},
+        )
+
+
 def create_scraper_instance() -> InstagramScraperUnified:
     """
     Create standalone scraper instance for manual creator addition
 
     This bypasses the system_control table checks that the main scraper uses,
     allowing us to use the same processing logic without running the full scraper.
+
+    CRITICAL: Overrides _log_to_system() to use source='creator_addition' so ALL logs
+    from the background process appear under the same source for easy monitoring.
     """
     try:
         scraper = InstagramScraperUnified()
+
+        # DIAGNOSTIC: Log initialization status
+        logger.info(f"Scraper initialized - use_modules: {scraper.use_modules}")
+        if scraper.use_modules:
+            logger.info(
+                "✅ Modular architecture active (using storage_module, analytics_module, api_module)"
+            )
+        else:
+            logger.warning("⚠️ Modular architecture NOT active - using monolithic methods")
+
+        # Verify critical components
+        if not hasattr(scraper, "supabase") or not scraper.supabase:
+            logger.error("❌ CRITICAL: Scraper missing supabase client!")
+            raise Exception("Scraper initialization failed: missing supabase client")
 
         # Override should_continue() to always return True for manual additions
         # This prevents the scraper from checking system_control table
         scraper.should_continue = lambda: True  # type: ignore[method-assign]
 
-        logger.info("Created standalone scraper instance for manual creator addition")
+        # Override _log_to_system() to use source='creator_addition' instead of 'instagram_scraper'
+        # This ensures ALL logs from background processing appear under creator_addition
+
+        def override_log(level: str, message: str, context: Optional[Dict] = None):
+            """Override scraper logging to use creator_addition source"""
+            # Console log (same as original)
+            if level == "error":
+                logger.error(message)
+            elif level == "warning":
+                logger.warning(message)
+            elif level == "success":
+                logger.info(f"✅ {message}")
+            else:
+                logger.info(message)
+
+            # Supabase log with creator_addition source
+            try:
+                if hasattr(scraper, "supabase") and scraper.supabase:
+                    scraper.supabase.table("system_logs").insert(
+                        {
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "source": "creator_addition",  # Override to creator_addition
+                            "script_name": "creators_api",
+                            "level": level,
+                            "message": message,
+                            "context": context or {},
+                        }
+                    ).execute()
+            except Exception as e:
+                logger.error(f"Failed to log to system_logs: {e}")
+
+        scraper._log_to_system = override_log  # type: ignore[method-assign]
+
+        logger.info("✅ Created standalone scraper instance for manual creator addition")
         return scraper
     except Exception as e:
-        logger.error(f"Failed to create scraper instance: {e}")
+        logger.error(f"❌ Failed to create scraper instance: {e}", exc_info=True)
         raise
 
 
@@ -140,19 +325,22 @@ async def log_creator_addition(
 # =============================================================================
 
 
-@router.post("/add", response_model=CreatorAddResponse)
-async def add_instagram_creator(request: CreatorAddRequest, background_tasks: BackgroundTasks):
+@router.post("/add", response_model=CreatorAddResponse, status_code=202)
+async def add_instagram_creator(request: CreatorAddRequest):
     """
-    Manually add Instagram creator with full "Ok" processing workflow
+    Manually add Instagram creator with full "Ok" processing workflow (ASYNC)
 
-    This endpoint mimics the automated scraper's behavior:
-    1. Fetches profile to get ig_user_id
+    This endpoint immediately returns 202 Accepted and processes in background:
+    1. Fetches profile to get ig_user_id (< 1 second)
     2. Creates/updates minimal database record
-    3. Runs full processing (90 reels + 30 posts)
-    4. Calculates comprehensive analytics
-    5. Returns complete creator profile
+    3. Queues background processing (90 reels + 30 posts)
+    4. Returns immediately with status
 
-    Response time: ~15-20 seconds (with rate limiting)
+    Background processing takes 2-5 minutes and logs everything to system_logs.
+    Poll system_logs with source='creator_addition' to monitor progress.
+
+    Response time: ~1-2 seconds (immediate return)
+    Background time: ~2-5 minutes (depends on media size)
     API calls: ~12 (1 profile + 8 reels + 3 posts)
     Cost: ~$0.00036 per creator
     """
@@ -294,99 +482,74 @@ async def add_instagram_creator(request: CreatorAddRequest, background_tasks: Ba
             )
             logger.info(f"Updated existing creator record for @{username}")
 
-        # 6. Run FULL processing workflow (like the scraper does for "Ok" creators)
-        logger.info(f"Starting full processing for @{username} (90 reels + 30 posts)...")
+        # 6. Spawn subprocess for background processing (truly independent)
+        logger.info(f"Spawning subprocess for @{username} (90 reels + 30 posts)...")
         await log_creator_addition(
             username,
-            "full_processing_started",
+            "spawning_subprocess",
             True,
             {
                 "reels_to_fetch": Config.NEW_CREATOR_REELS_COUNT,
                 "posts_to_fetch": Config.NEW_CREATOR_POSTS_COUNT,
+                "estimated_time_minutes": "2-5",
             },
         )
 
-        # Create creator object in the format process_creator() expects
-        creator_obj = {"ig_user_id": ig_user_id, "username": username, "niche": request.niche}
+        # Get path to subprocess script
+        script_path = Path(__file__).parent / "process_creator_job.py"
 
-        # Track API calls before processing
-        api_calls_before = scraper.api_calls_made
+        # Spawn subprocess (detached from parent process)
+        subprocess_args = [sys.executable, str(script_path), username, ig_user_id]
+        if request.niche:
+            subprocess_args.append(request.niche)
 
-        # Run the SAME processing workflow the scraper uses
-        processing_success = await scraper.process_creator(creator_obj)
-
-        # Calculate API calls used
-        api_calls_used = scraper.api_calls_made - api_calls_before
-
-        if not processing_success:
+        try:
+            process = subprocess.Popen(
+                subprocess_args,
+                start_new_session=True,  # CRITICAL: Detaches from parent process
+                stdout=subprocess.PIPE,  # Capture output for debugging
+                stderr=subprocess.PIPE,
+                cwd=Path(__file__).parent.parent.parent,  # Set working directory to backend/
+            )
+            logger.info(f"Subprocess PID: {process.pid}, args: {subprocess_args}")
+        except Exception as subprocess_error:
+            logger.error(f"Failed to spawn subprocess: {subprocess_error}", exc_info=True)
             await log_creator_addition(
                 username,
-                "processing_failed",
+                "subprocess_spawn_failed",
                 False,
-                error="Full processing workflow failed",
-                details={"api_calls_used": api_calls_used},
+                error=str(subprocess_error),
             )
             return CreatorAddResponse(
                 success=False,
-                error="Processing failed - could not fetch creator content or calculate analytics",
+                error=f"Failed to spawn background process: {subprocess_error}",
             )
 
-        await log_creator_addition(
-            username, "processing_completed", True, {"api_calls_used": api_calls_used}
-        )
+        logger.info(f"✅ Subprocess spawned for @{username} (detached, will run independently)")
 
-        # 7. Fetch complete creator data from database
-        final_creator = (
-            _get_db()
-            .table("instagram_creators")
-            .select("*")
-            .eq("ig_user_id", ig_user_id)
-            .single()
-            .execute()
-        )
-
-        if not final_creator or not hasattr(final_creator, "data") or not final_creator.data:
-            await log_creator_addition(
-                username,
-                "final_fetch_failed",
-                False,
-                error="Creator processed but not found in database",
-            )
-            return CreatorAddResponse(
-                success=False,
-                error="Creator processing succeeded but failed to retrieve final data",
-            )
-
-        # 8. Calculate processing statistics
-        processing_time = int(time.time() - start_time)
-
-        stats = {
-            "api_calls_used": api_calls_used,
-            "reels_fetched": Config.NEW_CREATOR_REELS_COUNT,
-            "posts_fetched": Config.NEW_CREATOR_POSTS_COUNT,
-            "processing_time_seconds": processing_time,
-        }
-
-        await log_creator_addition(
-            username,
-            "addition_completed",
-            True,
-            details={
-                "ig_user_id": ig_user_id,
-                "api_calls": api_calls_used,
-                "processing_time": processing_time,
-                "followers": final_creator.data.get("followers_count", 0),
-                "engagement_rate": final_creator.data.get("avg_engagement_rate", 0),
-            },
-        )
+        # 7. Return 202 Accepted immediately
+        response_time = int(time.time() - start_time)
 
         logger.info(
-            f"✅ Successfully added creator @{username}: "
-            f"{api_calls_used} API calls, {processing_time}s processing time"
+            f"✅ Creator @{username} processing in independent subprocess "
+            f"(response time: {response_time}s, estimated completion: 2-5 minutes)"
         )
 
-        # 9. Return success response
-        return CreatorAddResponse(success=True, creator=final_creator.data, stats=stats)
+        return CreatorAddResponse(
+            success=True,
+            creator={
+                "username": username,
+                "ig_user_id": ig_user_id,
+                "status": "processing",
+                "niche": request.niche,
+            },
+            stats={
+                "response_time_seconds": response_time,
+                "status": "subprocess_spawned",
+                "estimated_completion_minutes": "2-5",
+                "monitor_progress": "Poll system_logs with source='creator_addition'",
+            },
+        )
 
     except Exception as e:
         error_msg = str(e)
