@@ -7,27 +7,21 @@ This script is spawned by the manual creator addition endpoint and runs independ
 allowing the API worker to return immediately while processing continues in background.
 
 Usage:
-    python3 process_creator_job.py <username> <ig_user_id> [niche]
+    python3 -m app.api.instagram.process_creator_job <username> <ig_user_id> [niche]
 
 Example:
-    python3 process_creator_job.py wendycutiiie 57362461637 "Beauty"
+    python3 -m app.api.instagram.process_creator_job wendycutiiie 57362461637 "Beauty"
 """
 
 import asyncio
 import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 
-
-# Add backend to Python path
-backend_path = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(backend_path))
-
-from app.core.database import get_db  # noqa: E402
-from app.logging import get_logger  # noqa: E402
-from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified  # noqa: E402
+from app.core.database import get_db
+from app.logging import get_logger
+from app.scrapers.instagram.services.instagram_scraper import InstagramScraperUnified
 
 
 # Initialize logger

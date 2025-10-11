@@ -495,11 +495,18 @@ async def add_instagram_creator(request: CreatorAddRequest):
             },
         )
 
-        # Get path to subprocess script
-        script_path = Path(__file__).parent / "process_creator_job.py"
+        # Get working directory for subprocess
+        backend_dir = Path(__file__).parent.parent.parent  # /app/backend
 
         # Spawn subprocess (detached from parent process)
-        subprocess_args = [sys.executable, str(script_path), username, ig_user_id]
+        # Run with: python3 -m app.api.instagram.process_creator_job <args>
+        subprocess_args = [
+            sys.executable,
+            "-m",
+            "app.api.instagram.process_creator_job",
+            username,
+            ig_user_id,
+        ]
         if request.niche:
             subprocess_args.append(request.niche)
 
@@ -509,9 +516,11 @@ async def add_instagram_creator(request: CreatorAddRequest):
                 start_new_session=True,  # CRITICAL: Detaches from parent process
                 stdout=subprocess.PIPE,  # Capture output for debugging
                 stderr=subprocess.PIPE,
-                cwd=Path(__file__).parent.parent.parent,  # Set working directory to backend/
+                cwd=str(backend_dir),  # Set working directory to /app/backend
             )
-            logger.info(f"Subprocess PID: {process.pid}, args: {subprocess_args}")
+            logger.info(
+                f"Subprocess PID: {process.pid}, cwd: {backend_dir}, args: {subprocess_args}"
+            )
         except Exception as subprocess_error:
             logger.error(f"Failed to spawn subprocess: {subprocess_error}", exc_info=True)
             await log_creator_addition(
