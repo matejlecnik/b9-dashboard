@@ -22,55 +22,20 @@ Real-time Instagram monitoring dashboard for tracking scraper status, data colle
 ## Features
 
 ### Current Implementation ✅
-- **Basic Status Page**: Simple monitoring view
-- **Error Logging**: Basic error tracking
+- **Real-time Dashboard**: Live scraper metrics (success rate, cost, cycle time)
+- **Start/Stop Controls**: Manual scraper control with optimistic UI updates
+- **4 Log Viewers**: Organized 2x2 grid layout
+  - Instagram Scraper Activity (main operations)
+  - Related Creators (discovery logs)
+  - Creator Updates (addition/modification logs)
+  - AI Tagging (visual attribute processing logs)
+- **Metrics Cards**: Success rate, cycle length, cost tracking
+- **Auto-refresh**: 20-second polling for real-time updates
+- **Supabase Integration**: System logs with source filtering
 
 ### Planned Features 🟡
-- **Real-time Dashboard**: Live scraper status
 - **Queue Monitoring**: Job queue visualization
-- **API Health Checks**: Instagram API status
 - **Alert System**: Automated notifications
-
-## TODO List
-
-### Priority 1: Core Monitoring
-- [ ] Create scraper status dashboard
-- [ ] Implement job queue viewer
-- [ ] Add error log display
-- [ ] Build metrics overview
-
-### Priority 2: Health Checks
-- [ ] Monitor API rate limits
-- [ ] Track scraper account health
-- [ ] Check database connectivity
-- [ ] Verify data freshness
-
-### Priority 3: Alerting
-- [ ] Set up email alerts
-- [ ] Create Slack notifications
-- [ ] Implement threshold alerts
-- [ ] Add anomaly detection
-
-### Priority 4: Analytics
-- [ ] Create scraping performance metrics
-- [ ] Build data quality reports
-- [ ] Add cost tracking
-- [ ] Implement trend analysis
-
-## Current Errors
-
-### Known Issues 🐛
-1. **Data Lag**: Monitoring data delayed
-   - **Status**: Implementing real-time updates
-   - **Fix**: WebSocket connection for live data
-
-2. **False Alerts**: Too many non-critical alerts
-   - **Status**: Tuning alert thresholds
-   - **Fix**: Implementing smart alerting
-
-3. **Missing Metrics**: Some key metrics not tracked
-   - **Status**: Adding comprehensive logging
-   - **Fix**: Expanding metric collection
 
 ## Potential Improvements
 
@@ -150,31 +115,43 @@ interface DataQuality {
 - New version deployed
 - Threshold adjusted
 
-## Dashboard Layout
+## Current Dashboard Layout
 
-### Overview Section
-- System status indicator
-- Active scrapers count
-- Queue size graph
-- Error rate chart
+### Metrics Row (4 cards)
+1. **Start/Stop Button** - Scraper control with loading states
+2. **Success Rate** - Percentage + successful/total ratio
+3. **Current Cycle** - Elapsed time since cycle start
+4. **Today's Cost** - Daily spend + monthly projection
 
-### Scraper Grid
-- Individual scraper cards
-- Status, metrics, last run
-- Start/stop controls
-- Error logs link
+### Logs Section (2x2 Grid)
 
-### Performance Charts
-- Scraping rate over time
-- Success/failure ratio
-- API usage graph
-- Response time histogram
+**Row 1: Core Operations**
+- **Instagram Scraper Activity** (left)
+  - Source filter: `instagram_scraper`
+  - Shows: Scraping progress, API calls, errors
+  - Height: calc((100vh - 400px) / 2)
 
-### Alert Panel
-- Recent alerts list
-- Alert history
-- Acknowledgment status
-- Resolution notes
+- **Related Creators** (right)
+  - Source filter: `instagram_related_creators`
+  - Shows: Discovery operations, API responses
+  - Height: calc((100vh - 400px) / 2)
+
+**Row 2: Content Processing**
+- **Creator Updates** (left)
+  - Source filter: `creator_addition`
+  - Shows: New creators, profile updates
+  - Height: calc((100vh - 400px) / 2)
+
+- **AI Tagging** (right)
+  - Source filter: `instagram_ai_tagging`
+  - Shows: Visual analysis, tag assignments, costs
+  - Height: calc((100vh - 400px) / 2)
+
+**Layout Features**:
+- Responsive: Side-by-side on desktop, stacked on mobile
+- Equal width distribution (flex-1)
+- Consistent styling and refresh rates (5s)
+- Auto-scroll enabled for all viewers
 
 ## API Endpoints
 
@@ -263,4 +240,4 @@ interface DataQuality {
 
 ---
 
-_Version: 1.0.0 | Updated: 2025-10-01_
+_Version: 2.0.0 | Updated: 2025-10-11 | Layout: 2x2 Grid_

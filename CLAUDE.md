@@ -2,7 +2,7 @@ x# B9 Dashboard - Mission Control
 
 ┌─ SYSTEM STATUS ─────────────────────────────────────────┐
 │ ● OPERATIONAL  │ ███████████████████░ 98% COMPLETE      │
-│ Version: 4.0.0 │ Last Deploy: 2025-10-11 (AI Tagging)  │
+│ Version: 4.0.0 │ Last Deploy: 2025-10-11 (UX v3.12.5) │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -38,7 +38,7 @@ x# B9 Dashboard - Mission Control
     "All .md files must follow DOCUMENTATION_STANDARDS.md"
   ],
   "session_log": "/docs/development/SESSION_LOG.md",
-  "last_update": "2025-10-11 (Instagram AI Tagging v1.0)"
+  "last_update": "2025-10-11 (Dashboard UX v3.12.5)"
 }
 ```
 
@@ -101,7 +101,7 @@ DISK    [████████████░░░░░░░░] 60%  | NE
 ```json
 {
   "reddit": {"status": "LOCKED", "complete": 100, "next": "Maintenance mode"},
-  "instagram": {"status": "ACTIVE", "complete": 40, "next": "Quality scoring & niche categorization (Phase 4)"},
+  "instagram": {"status": "ACTIVE", "complete": 68, "next": "Quality scoring & niche categorization (Phase 4)"},
   "instagram_ai_tagging": {"status": "PRODUCTION", "complete": 100, "next": "Production run on 89 creators"},
   "documentation": {"status": "COMPLETE", "complete": 100, "next": "Maintenance mode"},
   "backend": {"status": "PRODUCTION", "complete": 100, "next": "Ongoing maintenance"}
@@ -158,6 +158,14 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 ## Recent Activity Log
 
 ```diff
++ 2025-10-11: Instagram Dashboard UX v3.12.5 - Button Improvements + Reddit Fix ✅
++ Fixed glassmorphic button text readability (white text with drop-shadow)
++ Eliminated hover animation bleed with overflow clipping
++ AI tagging confirmation modal with transparent cost estimates ($0.0013/creator)
++ Accurate creator statistics (useAITaggingStats hook)
++ Instagram dashboard standardization (ErrorBoundary + brand colors)
++ Reddit post count fix: get_viral_posts_count() function bypasses 1k row limit
++ Monitor page 2x2 layout: Scraper+Related | Updates+AI Tagging
 + 2025-10-11: Instagram AI Tagging v1.0 - Production Deployment Complete ✅
 + Integrated unified logging system (Console + File + Supabase monitoring)
 + Deployed to Hetzner with Gemini 2.5 Flash vision model
@@ -193,5 +201,5 @@ $ cat docs/development/SYSTEM_IMPROVEMENT_PLAN.md  # Technical details
 
 ---
 
-_Mission Control v4.0.1 | Updated: 2025-10-11 | Instagram AI Tagging v1.0 Live_
+_Mission Control v4.0.2 | Updated: 2025-10-11 | Dashboard UX v3.12.5 Complete_
 _Navigate: [→ ROADMAP.md](ROADMAP.md) | [→ SYSTEM_IMPROVEMENT_PLAN.md](docs/development/SYSTEM_IMPROVEMENT_PLAN.md) | [→ SESSION_LOG.md](docs/development/SESSION_LOG.md)_

@@ -140,6 +140,60 @@
     "task_completed": "INST-410 (AI auto-tagging for Instagram creator body attributes)",
     "next": "Production run on all 89 untagged creators (~$0.12 total cost) + integrate tags into Creator Review dashboard UI"
   },
+  "2025-10-11-instagram-dashboard-ux-improvements": {
+    "duration": "4h",
+    "status": "✅ COMPLETE",
+    "impact": "Instagram Dashboard UX v3.12.5 - Glassmorphic button improvements + Reddit post count fix + Monitor page reorganization",
+    "changes": [
+      "Button UX: Changed glassmorphic button text from black → white with drop-shadow for better contrast",
+      "Fixed hover animation bleed between adjacent buttons (added overflow-hidden to wrappers)",
+      "AI Tagging Modal: Added confirmation dialog with cost estimates ($0.0013/creator) and processing time",
+      "Created useAITaggingStats() hook: Accurate count of untagged creators (body_tags IS NULL)",
+      "Instagram Dashboard Standardization: Added ComponentErrorBoundary wrappers + Instagram accent colors to toolbars",
+      "Reddit Post Count Fix: Created get_viral_posts_count() function to bypass 1k Supabase row limit",
+      "Updated useViralPosts hook: Parallel count fetching with Promise.all",
+      "Monitor Page Layout: Reorganized to 2x2 grid (Scraper+Related | Updates+AI Tagging)",
+      "Query keys: Added instagram.aiTaggingStats() for cache management"
+    ],
+    "files": [
+      "dashboard/src/components/shared/buttons/StandardActionButton.tsx (lines 55-56, 182: white text)",
+      "dashboard/src/app/instagram/niching/page.tsx (lines 18-27, 74, 129-136, 263, 274, 380-425: modal + stats)",
+      "dashboard/src/app/instagram/creator-review/page.tsx (lines 11, 221-266, 255, 269-302, 305-318: standardization)",
+      "dashboard/src/hooks/queries/useInstagramReview.ts (lines 592-632: useAITaggingStats)",
+      "dashboard/src/lib/react-query.ts (line 85: aiTaggingStats query key)",
+      "backend/migrations/20251011_add_viral_posts_count_function.sql (new database function)",
+      "dashboard/src/hooks/queries/useViralPosts.ts (lines 18-21, 31-66: parallel fetching)",
+      "dashboard/src/hooks/usePostAnalysis.ts (lines 149-181, 328-331: use totalCount)",
+      "dashboard/src/app/monitor/instagram/page.tsx (lines 404-459: 2x2 layout)"
+    ],
+    "technical": {
+      "button_improvements": "text-white + drop-shadow-sm for glassmorphic primary buttons",
+      "overflow_fix": "overflow-hidden rounded-2xl on button wrappers prevents 40px shadow spread bleed",
+      "modal_estimates": "Displays: Available Creators, Estimated Cost (~$0.0013/creator), Processing Time (20s/creator)",
+      "stats_hook": "Parallel count queries: total (review_status='ok'), tagged (body_tags NOT NULL), untagged (body_tags IS NULL)",
+      "database_function": "get_viral_posts_count() returns bigint count without 1k row limit using CTEs",
+      "monitor_layout": "2 rows × 2 columns: [Scraper, Related] + [Updates, AI Tagging]"
+    },
+    "issues_resolved": [
+      "Button text hard to read on pink glassmorphic background (black → white)",
+      "Hover glow bleeding between adjacent buttons (missing overflow clipping)",
+      "No confirmation for expensive AI tagging operations",
+      "Inaccurate creator counts (niche vs body_tags field mismatch)",
+      "Reddit showing 1,000 posts instead of actual total (5,247+)",
+      "Monitor page not showing AI tagging logs"
+    ],
+    "user_experience": [
+      "Better button text readability on glassmorphic backgrounds",
+      "Cleaner hover animations without visual bleed",
+      "Cost transparency before starting AI operations",
+      "Accurate statistics for decision-making",
+      "True post counts for Reddit analytics",
+      "Comprehensive monitoring with AI tagging visibility"
+    ],
+    "version": "v3.12.5",
+    "commit": "fa7627f + monitor layout",
+    "next": "Continue Phase 4 - Creator quality scoring & niche categorization"
+  },
   "2025-10-10-instagram-scraper-fixes": {
     "duration": "3h",
     "status": "✅ COMPLETE",
@@ -643,17 +697,17 @@ _Historical sessions before v3.4.0 archived. See git history for details._
 
 ```json
 {
-  "total_sessions": 26,
-  "total_hours": 81,
-  "commits": 16,
-  "files_created": 54,
-  "files_modified": 186,
+  "total_sessions": 27,
+  "total_hours": 85,
+  "commits": 17,
+  "files_created": 55,
+  "files_modified": 195,
   "files_deleted": 20,
-  "lines_added": 21600,
-  "lines_removed": 11100,
+  "lines_added": 21820,
+  "lines_removed": 11180,
   "documentation_compliance": "100%",
   "reddit_dashboard_status": "LOCKED - 100% Complete",
-  "instagram_dashboard_status": "40% Complete (Phase 4)",
+  "instagram_dashboard_status": "68% Complete (Phase 4)",
   "instagram_scraper_status": "v3.5.1 - Stable (94.7% success rate)",
   "instagram_ai_tagger_status": "v1.0 - Production Ready (Gemini 2.5 Flash)",
   "current_phase": "Phase 4 - Instagram Dashboard (v4.0.0)",
@@ -674,5 +728,5 @@ _Historical sessions before v3.4.0 archived. See git history for details._
 
 ---
 
-_Session Log v2.1.2 | Updated: 2025-10-11 | Entries: 22 | Instagram AI Tagging v1.0 Complete_
+_Session Log v2.1.3 | Updated: 2025-10-11 | Entries: 23 | Dashboard UX v3.12.5 Complete_
 _Navigate: [→ CLAUDE.md](../../CLAUDE.md) | [→ INFRASTRUCTURE.md](../../INFRASTRUCTURE.md) | [→ ROADMAP.md](../../ROADMAP.md) | [→ INDEX.md](../INDEX.md)_

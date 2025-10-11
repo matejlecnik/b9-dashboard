@@ -33,7 +33,7 @@
       "PATCH": "Bug fixes, documentation updates, refactoring"
     }
   },
-  "current_version": "3.12.4",
+  "current_version": "3.12.5",
   "version_tracking": {
     "ROADMAP.md": "Strategic vision version",
     "CLAUDE.md": "System control version",
@@ -47,6 +47,18 @@
 
 ```json
 {
+  "v3.12.5": {
+    "date": "2025-10-11",
+    "type": "PATCH",
+    "highlights": [
+      "Instagram Dashboard UX Improvements - Button styling + AI tagging confirmation",
+      "Fixed glassmorphic button text readability (black → white with drop-shadow)",
+      "Added AI tagging confirmation modal with cost/time estimates",
+      "Reddit Post Count Fix - Accurate totals beyond 1k limit (get_viral_posts_count function)",
+      "Instagram Monitor Layout - 2x2 grid with AI Tagging logs visible",
+      "Dashboard Standardization - ErrorBoundary + Instagram brand colors throughout"
+    ]
+  },
   "v3.9.2": {
     "date": "2025-10-09",
     "type": "PATCH",
@@ -466,7 +478,7 @@
     ]
   },
   "instagram": {
-    "current": {"creators": 1247, "completion": "65%"},
+    "current": {"creators": 1247, "completion": "68%"},
     "target": {"creators": "5000+", "completion": "100%"},
     "timeline": "Phase 4 complete"
   }
@@ -533,5 +545,5 @@ $ npm run roadmap:next       # What's next to work on
 
 ---
 
-_Roadmap Version: 1.0.1 | Updated: 2025-10-11 | Next Review: 2025-10-18_
+_Roadmap Version: 1.0.2 | Updated: 2025-10-11 | Next Review: 2025-10-18_
 _Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ SESSION_LOG.md](docs/development/SESSION_LOG.md) | [→ SYSTEM_IMPROVEMENT_PLAN.md](docs/development/SYSTEM_IMPROVEMENT_PLAN.md)_
