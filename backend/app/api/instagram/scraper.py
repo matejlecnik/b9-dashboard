@@ -705,12 +705,15 @@ async def start_instagram_scraper(request: Request):
             env["PYTHONPATH"] = "/app/backend"  # Ensure module imports work
 
             instagram_process = subprocess.Popen(
-                [sys.executable, "-u", "app/scrapers/instagram/instagram_controller.py"],
+                [
+                    sys.executable,
+                    "-u",
+                    "/app/backend/app/scrapers/instagram/instagram_controller.py",
+                ],
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,  # Detach from parent
-                cwd="/app/backend",  # Absolute path to backend directory
                 env=env,
             )
 
