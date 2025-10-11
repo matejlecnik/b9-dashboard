@@ -16,10 +16,11 @@ requests>=2.31.0,<3.0.0
 asyncpraw>=7.7.1,<8.0.0
 asyncprawcore>=2.3.0,<3.0.0
 
-# AI/ML - OpenAI Integration
+# AI/ML - OpenAI & Google Gemini Integration
 openai>=1.3.0,<2.0.0
+google-generativeai>=0.3.0,<1.0.0  # Google Gemini vision models for Instagram tagging
 
-# Database - Pin to known-good versions to avoid resolver conflicts on Render
+# Database - Pin to known-good versions to avoid dependency conflicts
 # Supabase Python SDK 2.3.4 pairs with gotrue 2.5.4 and postgrest 0.13.x
 postgrest==0.13.2
 gotrue==2.5.4
@@ -78,7 +79,7 @@ sqlalchemy[asyncio]>=2.0.0,<3.0.0  # ORM support
 # File Processing & Storage
 aiofiles>=23.2.1,<24.0.0  # Async file operations
 boto3>=1.34.0,<2.0.0  # AWS S3 / Cloudflare R2 client
-# Pillow REMOVED (v3.11.0) - No longer compressing images
+Pillow>=10.0.0,<11.0.0  # Required for AI vision tagging (Instagram creators)
 # ffmpeg-python REMOVED (v3.11.0) - No longer compressing videos
 
 # Type Checking & Validation (Production)
