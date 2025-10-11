@@ -14,6 +14,7 @@ Example:
 """
 
 import asyncio
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -72,8 +73,8 @@ async def process_creator_subprocess(username: str, ig_user_id: str, niche: Opti
     start_time = time.time()
 
     try:
-        logger.info(f"🔄 Subprocess started for @{username} (PID: {sys.getpid()})")
-        await log_to_system(username, "subprocess_started", True, {"pid": sys.getpid()})
+        logger.info(f"🔄 Subprocess started for @{username} (PID: {os.getpid()})")
+        await log_to_system(username, "subprocess_started", True, {"pid": os.getpid()})
 
         # Create scraper instance
         scraper = InstagramScraperUnified()
@@ -215,7 +216,7 @@ def main():
     ig_user_id = sys.argv[2]
     niche = sys.argv[3] if len(sys.argv) > 3 else None
 
-    logger.info(f"🚀 Starting background job for @{username} (PID: {sys.getpid()})")
+    logger.info(f"🚀 Starting background job for @{username} (PID: {os.getpid()})")
 
     try:
         exit_code = asyncio.run(process_creator_subprocess(username, ig_user_id, niche))
