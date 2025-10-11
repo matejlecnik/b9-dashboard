@@ -44,7 +44,7 @@ async def cleanup_old_logs(retention_days: int = 30, batch_size: int = 1000) -> 
 
         # Count logs to be deleted (for reporting)
         count_result = (
-            db.table("logs")
+            db.table("system_logs")
             .select("id", count="exact")  # type: ignore[arg-type]
             .lt("timestamp", cutoff_iso)
             .execute()
@@ -67,7 +67,11 @@ async def cleanup_old_logs(retention_days: int = 30, batch_size: int = 1000) -> 
         total_deleted = 0
         while total_deleted < total_to_delete:
             delete_result = (
-                db.table("logs").delete().lt("timestamp", cutoff_iso).limit(batch_size).execute()
+                db.table("system_logs")
+                .delete()
+                .lt("timestamp", cutoff_iso)
+                .limit(batch_size)
+                .execute()
             )
 
             batch_deleted = len(delete_result.data) if delete_result.data else 0
