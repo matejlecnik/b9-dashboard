@@ -417,8 +417,8 @@ export default function NichingPage() {
 
           <div className="bg-pink-50/50 border border-pink-200/50 rounded-lg p-3">
             <p className="text-xs text-gray-700">
-              <span className="font-semibold">Estimated Cost:</span> ~${((aiTaggingStats?.untagged || 0) * 0.0013).toFixed(2)} (${(0.0013).toFixed(4)} per creator)<br/>
-              <span className="font-semibold">Processing Time:</span> ~{Math.round((aiTaggingStats?.untagged || 0) * 20 / 60)} minutes ({(aiTaggingStats?.untagged || 0) * 20} seconds total)
+              <span className="font-semibold">Estimated Cost:</span> ~${((aiTaggingStats?.untagged || 0) * 0.0013).toFixed(2)}<br/>
+              <span className="font-semibold">Processing Time:</span> ~{Math.round((aiTaggingStats?.untagged || 0) * 20 / 60)} minutes
             </p>
           </div>
         </div>

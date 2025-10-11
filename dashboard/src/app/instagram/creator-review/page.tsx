@@ -8,6 +8,7 @@ import { StandardActionButton } from '@/components/shared/buttons/StandardAction
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgressCard'
 import { UniversalMetricCard } from '@/components/shared/cards/UniversalMetricCard'
+import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { useDebounce } from '@/hooks/useDebounce'
 
 // Import data hooks directly
@@ -214,10 +215,10 @@ export default function CreatorReviewPage() {
 
   // Render using DashboardLayout directly (like Reddit does)
   return (
-    <>
-      <DashboardLayout>
-        <div className="flex flex-col gap-6">
-          {/* Stats with Action Button */}
+    <DashboardLayout>
+      <div className="flex flex-col gap-6">
+        {/* Stats with Action Button */}
+        <ComponentErrorBoundary>
           <div className="flex gap-3">
             {/* Universal Metrics Cards */}
             <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -251,7 +252,7 @@ export default function CreatorReviewPage() {
 
             {/* Get Related Creators Button */}
             {!isLoading && (
-              <div className="flex-1 max-w-[200px]">
+              <div className="flex-1 max-w-[200px] overflow-hidden rounded-2xl">
                 <StandardActionButton
                   onClick={() => setShowRelatedModal(true)}
                   label="Get Related Creators"
@@ -262,8 +263,10 @@ export default function CreatorReviewPage() {
               </div>
             )}
           </div>
+        </ComponentErrorBoundary>
 
-          {/* Toolbar with filters, search and actions */}
+        {/* Toolbar with filters, search and actions */}
+        <ComponentErrorBoundary>
           <StandardToolbar
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
@@ -294,9 +297,12 @@ export default function CreatorReviewPage() {
                 }
               ] : []
             }
+            accentColor="linear-gradient(135deg, #E1306C, #F77737)"
           />
+        </ComponentErrorBoundary>
 
-          {/* Table */}
+        {/* Table */}
+        <ComponentErrorBoundary>
           <UniversalTableV2
             data={transformedCreators}
             config={tableConfig as any} // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -309,14 +315,14 @@ export default function CreatorReviewPage() {
             hasMore={hasNextPage}
             loadingMore={isFetchingNextPage}
           />
-        </div>
-      </DashboardLayout>
+        </ComponentErrorBoundary>
+      </div>
 
       {/* Related Creators Modal */}
       <RelatedCreatorsModal
         isOpen={showRelatedModal}
         onClose={() => setShowRelatedModal(false)}
       />
-    </>
+    </DashboardLayout>
   )
 }

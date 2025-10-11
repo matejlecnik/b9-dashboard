@@ -148,14 +148,12 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
   // Process viral posts when data changes
   useEffect(() => {
     if (!viralPostsLoading && viralPostsData) {
-      // Ensure we have an array
-      const postsArray = Array.isArray(viralPostsData)
-        ? (viralPostsData as Array<Post & { viral_score?: number }>)
-        : []
+      // Extract posts array from the result object
+      const postsArray = viralPostsData.posts || []
 
       if (postsArray.length > 0) {
         // Add viralScore property for display if it doesn't exist
-        const processedPosts = postsArray.map((post) => ({
+        const processedPosts = postsArray.map((post: Post & { viral_score?: number }) => ({
           ...post,
           viralScore: (post.viral_score ?? 0) * 100 // Convert to percentage for display
         }))
@@ -171,6 +169,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
         setError(null)
 
         logger.log('[PostAnalysis] Processed', processedPosts.length, 'viral posts from React Query, displaying', initialPosts.length)
+        logger.log('[PostAnalysis] Total count from database:', viralPostsData.totalCount)
       } else {
         setAllPosts([])
         setPosts([])
@@ -229,7 +228,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
   // Calculate metrics from viral posts data
   const fetchMetrics = useCallback(async () => {
-    if (!viralPostsData || viralPostsData.length === 0) {
+    if (!viralPostsData || !viralPostsData.posts || viralPostsData.posts.length === 0) {
       setMetrics({
         total_posts_count: 0,
         total_subreddits_count: 0,
@@ -250,9 +249,7 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
       setMetricsLoading(true)
 
       // Calculate metrics directly from viral posts data
-      const sourcePosts = (Array.isArray(viralPostsData)
-        ? (viralPostsData as Array<Post & { sub_over18?: boolean }>)
-        : [])
+      const sourcePosts = viralPostsData.posts as Array<Post & { sub_over18?: boolean }>
 
       const subredditStats = new Map<string, { totalScore: number; totalComments: number; count: number }>()
       const hourStats = new Map<number, { totalScore: number; count: number }>()
@@ -328,10 +325,10 @@ export function usePostAnalysis({ initialPostsPerPage = PAGE_SIZE }: UsePostAnal
 
       setSfwCount(sfwPostCount)
       setNsfwCount(nsfwPostCount)
-      setTotalPostCount(sourcePosts.length)
+      setTotalPostCount(viralPostsData.totalCount)
 
       setMetrics({
-        total_posts_count: sourcePosts.length,
+        total_posts_count: viralPostsData.totalCount,
         total_subreddits_count: uniqueSubreddits,
         avg_score_value: Math.round(avgScore),
         avg_comments_value: Math.round(avgComments),
