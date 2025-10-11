@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 # Create router
 router = APIRouter(prefix="/api/instagram/related-creators", tags=["instagram-related-creators"])
 
-# Progress tracking is done in-memory since scripts run on Render
+# Progress tracking is done in-memory since scripts run on Hetzner
 
 # RapidAPI Configuration
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")

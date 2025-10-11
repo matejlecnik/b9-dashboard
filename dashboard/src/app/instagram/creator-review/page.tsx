@@ -74,7 +74,7 @@ export default function CreatorReviewPage() {
   } = useInstagramCreators({
     search: debouncedSearchQuery,
     status: getStatusFromFilter(currentFilter),
-    orderBy: currentFilter === 'pending' ? 'followers' : 'discovery_date',
+    orderBy: currentFilter === 'pending' ? 'followers_count' : 'discovery_date',
     order: 'desc'
   })
 
@@ -189,9 +189,9 @@ export default function CreatorReviewPage() {
       full_name: creator.full_name ?? null,
       biography: creator.biography ?? null,
       profile_pic_url: creator.profile_pic_url ?? null,
-      followers: creator.followers ?? 0,
-      following: creator.following ?? 0,
-      posts_count: creator.posts_count ?? 0,
+      followers_count: creator.followers_count ?? 0,
+      following_count: creator.following_count ?? 0,
+      media_count: creator.media_count ?? 0,
       review_status: creator.review_status ?? null,
       is_private: creator.is_private ?? false,
       is_verified: creator.is_verified ?? false,

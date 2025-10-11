@@ -1,0 +1,49 @@
+{
+  "agent": "GPT5MiniAgent",
+  "model": "gpt-5-mini-2025-08-07",
+  "username": "urcherryx",
+  "timestamp": "2025-10-11 11:46:40",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:curvy",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:moderate",
+    "piercings:minimal",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.88,
+    "breasts": 0.9,
+    "butt": 0.8,
+    "hair_color": 0.98,
+    "hair_length": 0.95,
+    "style": 0.82,
+    "age_appearance": 0.75,
+    "tattoos": 0.9,
+    "piercings": 0.8,
+    "ethnicity": 0.6
+  },
+  "reasoning": "Across five images the subject consistently shows a fuller, curvy figure with prominent breasts and a rounded bubble-style butt; long blonde hair appears in every photo. Visible multiple medium-sized tattoos on arms/torso indicate a moderate tattoo level; ear and nose piercings are present but limited. Overall styling blends natural makeup with glam poses; facial features suggest a young-adult appearance. Ethnicity is set to uncertain due to visual ambiguity.",
+  "response_time": 16.82287621498108,
+  "cost": 0.001354,
+  "tokens": {
+    "input": 4212,
+    "output": 301
+  },
+  "raw_response": {
+    "response": "{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:moderate\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.90,\n    \"butt\": 0.80,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.95,\n    \"style\": 0.82,\n    \"age_appearance\": 0.75,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.60\n  },\n  \"reasoning\": \"Across five images the subject consistently shows a fuller, curvy figure with prominent breasts and a rounded bubble-style butt; long blonde hair appears in every photo. Visible multiple medium-sized tattoos on arms/torso indicate a moderate tattoo level; ear and nose piercings are present but limited. Overall styling blends natural makeup with glam poses; facial features suggest a young-adult appearance. Ethnicity is set to uncertain due to visual ambiguity.\"\n}",
+    "input_tokens": 4212,
+    "output_tokens": 301,
+    "metadata": {
+      "model": "gpt-5-mini-2025-08-07",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

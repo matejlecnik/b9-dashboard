@@ -124,11 +124,11 @@ class InstagramStorage:
                 )
                 for row in result.data or []:
                     existing_pks.add(row["media_pk"])
-                    # Check if video already has R2 URL (supports both old and new R2 domains)
-                    if row.get("video_url") and "b9-instagram-media" in row["video_url"]:
+                    # Check if video already has custom domain R2 URL
+                    if row.get("video_url") and "media.b9dashboard.com" in row["video_url"]:
                         existing_r2_urls[row["media_pk"]] = row["video_url"]
                         self.logger.info(
-                            f"🔄 Skipping R2 upload for reel {row['media_pk']} (already in R2)"
+                            f"🔄 Skipping R2 upload for reel {row['media_pk']} (already using custom domain)"
                         )
             except Exception as e:
                 self.logger.debug(f"Failed to check existing reels: {e}")
@@ -334,15 +334,15 @@ class InstagramStorage:
                 )
                 for row in result.data or []:
                     existing_pks.add(row["media_pk"])
-                    # Check if post already has R2 URLs (supports both old and new R2 domains)
+                    # Check if post already has custom domain R2 URLs
                     if (
                         row.get("image_urls")
                         and len(row["image_urls"]) > 0
-                        and "b9-instagram-media" in row["image_urls"][0]
+                        and "media.b9dashboard.com" in row["image_urls"][0]
                     ):
                         existing_r2_images[row["media_pk"]] = row["image_urls"]
                         self.logger.info(
-                            f"🔄 Skipping R2 upload for post {row['media_pk']} (already in R2)"
+                            f"🔄 Skipping R2 upload for post {row['media_pk']} (already using custom domain)"
                         )
             except Exception as e:
                 self.logger.debug(f"Failed to check existing posts: {e}")

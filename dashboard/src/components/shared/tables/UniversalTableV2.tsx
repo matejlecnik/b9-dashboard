@@ -374,7 +374,10 @@ function UniversalTableV2Component<T>({
                   <div
                     key={column.id}
                     className={cn(
-                      "flex",
+                      "flex min-w-0",
+                      // Apply overflow-hidden to text-based fields for proper truncation
+                      // Exclude custom fields so button shadows/borders show properly
+                      ['text', 'number', 'percentage', 'badge', 'tags', 'avatar'].includes(column.field.type) && 'overflow-hidden',
                       column.width || "flex-1",
                       column.align ? getAlignClass(column.align) : "px-3"
                     )}

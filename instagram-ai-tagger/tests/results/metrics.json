@@ -1,0 +1,718 @@
+{
+  "test_metadata": {
+    "timestamp": "2025-10-11T11:37:02.658092",
+    "creators_tested": 5,
+    "agents_tested": 5,
+    "total_requests": 15
+  },
+  "results": [
+    {
+      "agent": "GeminiFlashLiteAgent",
+      "model": "gemini-2.5-flash-lite",
+      "username": "urcherryx",
+      "timestamp": "2025-10-11 11:35:10",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "body_type:slim_thick",
+        "breasts:large",
+        "butt:big",
+        "hair_color:blonde",
+        "hair_length:long",
+        "style:natural",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:moderate",
+        "piercings:moderate",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.95,
+        "butt": 0.82,
+        "hair_color": 0.99,
+        "hair_length": 0.98,
+        "style": 0.8,
+        "age_appearance": 0.85,
+        "tattoos": 0.85,
+        "piercings": 0.78,
+        "ethnicity": 0.9
+      },
+      "reasoning": "Consistent visual cues across images suggest a young adult with blonde hair, a curvy and slim-thick build, large breasts, and moderate tattoos and piercings. Her style leans natural and glamorous, and she appears to be white.",
+      "response_time": 2.7249701023101807,
+      "cost": 0.0002975,
+      "tokens": {
+        "input": 1763,
+        "output": 303
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:moderate\",\n    \"piercings:moderate\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.95,\n    \"butt\": 0.82,\n    \"hair_color\": 0.99,\n    \"hair_length\": 0.98,\n    \"style\": 0.80,\n    \"age_appearance\": 0.85,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.78,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"Consistent visual cues across images suggest a young adult with blonde hair, a curvy and slim-thick build, large breasts, and moderate tattoos and piercings. Her style leans natural and glamorous, and she appears to be white.\"\n}\n```",
+        "input_tokens": 1763,
+        "output_tokens": 303,
+        "metadata": {
+          "model": "gemini-2.5-flash-lite",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5MiniAgent",
+      "model": "gpt-5-mini-2025-08-07",
+      "username": "urcherryx",
+      "timestamp": "2025-10-11 11:35:14",
+      "images_analyzed": 2,
+      "tags": [],
+      "confidence": {},
+      "reasoning": "",
+      "response_time": 7.067413806915283,
+      "cost": 0.0,
+      "tokens": {
+        "input": 0,
+        "output": 0
+      },
+      "raw_response": null,
+      "error": "Failed to parse JSON: Expecting ',' delimiter: line 20 column 21 (char 405)\nResponse: {\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adul"
+    },
+    {
+      "agent": "GeminiFlashAgent",
+      "model": "gemini-2.0-flash-exp",
+      "username": "urcherryx",
+      "timestamp": "2025-10-11 11:35:22",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:big",
+        "hair_color:blonde",
+        "hair_length:medium",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:heavy",
+        "piercings:moderate",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.9,
+        "breasts": 0.95,
+        "butt": 0.8,
+        "hair_color": 0.95,
+        "hair_length": 0.85,
+        "style": 0.8,
+        "age_appearance": 0.85,
+        "tattoos": 0.95,
+        "piercings": 0.8,
+        "ethnicity": 0.95
+      },
+      "reasoning": "The images show a curvy woman with large breasts and big butt. She has blonde medium length hair, many tattoos, and a few piercings. Her style appears natural, and she looks to be in her young adult years. She is white.",
+      "response_time": 3.5059831142425537,
+      "cost": 0.0012372,
+      "tokens": {
+        "input": 1749,
+        "output": 285
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:medium\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:heavy\",\n    \"piercings:moderate\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.90,\n    \"breasts\": 0.95,\n    \"butt\": 0.80,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.85,\n    \"style\": 0.80,\n    \"age_appearance\": 0.85,\n    \"tattoos\": 0.95,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.95\n  },\n  \"reasoning\": \"The images show a curvy woman with large breasts and big butt. She has blonde medium length hair, many tattoos, and a few piercings. Her style appears natural, and she looks to be in her young adult years. She is white.\"\n}\n```",
+        "input_tokens": 1749,
+        "output_tokens": 285,
+        "metadata": {
+          "model": "gemini-2.0-flash-exp",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5Agent",
+      "model": "gpt-5-2025-08-07",
+      "username": "urcherryx",
+      "timestamp": "2025-10-11 11:35:26",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:big",
+        "hair_color:blonde",
+        "hair_length:long",
+        "style:natural",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:moderate",
+        "piercings:moderate",
+        "ethnicity:uncertain"
+      ],
+      "confidence": {
+        "body_type": 0.82,
+        "breasts": 0.92,
+        "butt": 0.72,
+        "hair_color": 0.95,
+        "hair_length": 0.9,
+        "style": 0.78,
+        "age_appearance": 0.75,
+        "tattoos": 0.88,
+        "piercings": 0.8,
+        "ethnicity": 0.7
+      },
+      "reasoning": "Across the images she appears curvy with prominent chest, long blonde hair, and visible arm tattoos plus ear and nose piercings. Styling is mostly natural makeup with some glam elements; age reads mid-to-late 20s. Limited angles reduce certainty on butt and ethnicity.",
+      "response_time": 9.432414293289185,
+      "cost": 0.00385625,
+      "tokens": {
+        "input": 2001,
+        "output": 271
+      },
+      "raw_response": {
+        "response": "{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:moderate\",\n    \"piercings:moderate\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.82,\n    \"breasts\": 0.92,\n    \"butt\": 0.72,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.90,\n    \"style\": 0.78,\n    \"age_appearance\": 0.75,\n    \"tattoos\": 0.88,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.70\n  },\n  \"reasoning\": \"Across the images she appears curvy with prominent chest, long blonde hair, and visible arm tattoos plus ear and nose piercings. Styling is mostly natural makeup with some glam elements; age reads mid-to-late 20s. Limited angles reduce certainty on butt and ethnicity.\"\n}",
+        "input_tokens": 2001,
+        "output_tokens": 271,
+        "metadata": {
+          "model": "gpt-5-2025-08-07",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "ClaudeSonnet45Agent",
+      "model": "claude-sonnet-4-20250514",
+      "username": "urcherryx",
+      "timestamp": "2025-10-11 11:35:37",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:big",
+        "hair_color:blonde",
+        "hair_length:long",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:moderate",
+        "piercings:moderate",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.92,
+        "breasts": 0.95,
+        "butt": 0.78,
+        "hair_color": 0.98,
+        "hair_length": 0.95,
+        "style": 0.88,
+        "age_appearance": 0.82,
+        "tattoos": 0.9,
+        "piercings": 0.85,
+        "ethnicity": 0.9
+      },
+      "reasoning": "Consistent curvy body type with prominent bust across both images, long blonde hair, multiple visible tattoos on arms, ear piercings visible, glamorous styling with form-fitting clothing.",
+      "response_time": 6.221463918685913,
+      "cost": 0.011169,
+      "tokens": {
+        "input": 2348,
+        "output": 275
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:moderate\",\n    \"piercings:moderate\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.92,\n    \"breasts\": 0.95,\n    \"butt\": 0.78,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.95,\n    \"style\": 0.88,\n    \"age_appearance\": 0.82,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.85,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"Consistent curvy body type with prominent bust across both images, long blonde hair, multiple visible tattoos on arms, ear piercings visible, glamorous styling with form-fitting clothing.\"\n}\n```",
+        "input_tokens": 2348,
+        "output_tokens": 275,
+        "metadata": {
+          "model": "claude-sonnet-4-20250514",
+          "stop_reason": "end_turn"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GeminiFlashLiteAgent",
+      "model": "gemini-2.5-flash-lite",
+      "username": "ana.whiterose",
+      "timestamp": "2025-10-11 11:35:44",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:slim_thick",
+        "breasts:large",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:none",
+        "piercings:none",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.9,
+        "breasts": 0.92,
+        "butt": 0.88,
+        "hair_color": 0.98,
+        "hair_length": 0.99,
+        "style": 0.85,
+        "age_appearance": 0.8,
+        "tattoos": 0.95,
+        "piercings": 0.9,
+        "ethnicity": 0.9
+      },
+      "reasoning": "The individual presents a consistent slim-thick body type, large breasts, and a bubble butt across the images. Hair color is consistently brunette and long. Style leans towards glamorous and natural, with an apparent young adult age. No visible tattoos or piercings were observed, and ethnicity appears white.",
+      "response_time": 2.3698089122772217,
+      "cost": 0.0002991,
+      "tokens": {
+        "input": 1763,
+        "output": 307
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:none\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.90,\n    \"breasts\": 0.92,\n    \"butt\": 0.88,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.99,\n    \"style\": 0.85,\n    \"age_appearance\": 0.80,\n    \"tattoos\": 0.95,\n    \"piercings\": 0.90,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The individual presents a consistent slim-thick body type, large breasts, and a bubble butt across the images. Hair color is consistently brunette and long. Style leans towards glamorous and natural, with an apparent young adult age. No visible tattoos or piercings were observed, and ethnicity appears white.\"\n}\n```",
+        "input_tokens": 1763,
+        "output_tokens": 307,
+        "metadata": {
+          "model": "gemini-2.5-flash-lite",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5MiniAgent",
+      "model": "gpt-5-mini-2025-08-07",
+      "username": "ana.whiterose",
+      "timestamp": "2025-10-11 11:35:48",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "style:bimbo",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:none",
+        "piercings:minimal",
+        "ethnicity:uncertain"
+      ],
+      "confidence": {
+        "body_type": 0.8,
+        "breasts": 0.82,
+        "butt": 0.78,
+        "hair_color": 0.92,
+        "hair_length": 0.9,
+        "style": 0.78,
+        "age_appearance": 0.72,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.6
+      },
+      "reasoning": "Across the images the subject shows a fuller, hourglass silhouette with pronounced cleavage and rounded hips (curvy, large breasts, bubble butt). Hair appears consistently brunette and long. Styling mixes glossy makeup, lingerie and posed selfies suggesting glamorous/bimbo with some natural elements. No visible tattoos and only standard ear/face jewelry visible; ethnicity is not clear from photos.",
+      "response_time": 5.664978742599487,
+      "cost": 0.00081875,
+      "tokens": {
+        "input": 2111,
+        "output": 291
+      },
+      "raw_response": {
+        "response": "{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:bimbo\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.80,\n    \"breasts\": 0.82,\n    \"butt\": 0.78,\n    \"hair_color\": 0.92,\n    \"hair_length\": 0.90,\n    \"style\": 0.78,\n    \"age_appearance\": 0.72,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.60\n  },\n  \"reasoning\": \"Across the images the subject shows a fuller, hourglass silhouette with pronounced cleavage and rounded hips (curvy, large breasts, bubble butt). Hair appears consistently brunette and long. Styling mixes glossy makeup, lingerie and posed selfies suggesting glamorous/bimbo with some natural elements. No visible tattoos and only standard ear/face jewelry visible; ethnicity is not clear from photos.\"\n}",
+        "input_tokens": 2111,
+        "output_tokens": 291,
+        "metadata": {
+          "model": "gpt-5-mini-2025-08-07",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GeminiFlashAgent",
+      "model": "gemini-2.0-flash-exp",
+      "username": "ana.whiterose",
+      "timestamp": "2025-10-11 11:35:54",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:slim",
+        "breasts:medium",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:medium",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:none",
+        "piercings:none",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.9,
+        "breasts": 0.8,
+        "butt": 0.85,
+        "hair_color": 0.95,
+        "hair_length": 0.95,
+        "style": 0.85,
+        "age_appearance": 0.8,
+        "tattoos": 0.9,
+        "piercings": 0.9,
+        "ethnicity": 0.9
+      },
+      "reasoning": "The images show a young woman with a slim body type, medium breasts, and a bubble butt. She has brunette hair of medium length and seems to favour a glamorous style. She appears to be in her young adult years. She has no tattoos or piercings and her ethnicity appears to be White.",
+      "response_time": 3.2345900535583496,
+      "cost": 0.0012672,
+      "tokens": {
+        "input": 1749,
+        "output": 297
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim\",\n    \"breasts:medium\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:medium\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:none\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.90,\n    \"breasts\": 0.80,\n    \"butt\": 0.85,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.95,\n    \"style\": 0.85,\n    \"age_appearance\": 0.80,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.90,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The images show a young woman with a slim body type, medium breasts, and a bubble butt. She has brunette hair of medium length and seems to favour a glamorous style. She appears to be in her young adult years. She has no tattoos or piercings and her ethnicity appears to be White.\"\n}\n```",
+        "input_tokens": 1749,
+        "output_tokens": 297,
+        "metadata": {
+          "model": "gemini-2.0-flash-exp",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5Agent",
+      "model": "gpt-5-2025-08-07",
+      "username": "ana.whiterose",
+      "timestamp": "2025-10-11 11:35:59",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:uncertain",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:none",
+        "piercings:minimal",
+        "ethnicity:uncertain"
+      ],
+      "confidence": {
+        "body_type": 0.78,
+        "breasts": 0.9,
+        "butt": 0.4,
+        "hair_color": 0.9,
+        "hair_length": 0.9,
+        "style": 0.8,
+        "age_appearance": 0.7,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.6
+      },
+      "reasoning": "Across the available images, she appears curvy with prominent bust, long brunette hair, and a glam/natural makeup look. No clear view of butt or tattoos; only standard ear piercings visible; age reads mid-20s; ethnicity not certain from images.",
+      "response_time": 9.950003862380981,
+      "cost": 0.00384125,
+      "tokens": {
+        "input": 2001,
+        "output": 268
+      },
+      "raw_response": {
+        "response": "{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:uncertain\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.78,\n    \"breasts\": 0.9,\n    \"butt\": 0.4,\n    \"hair_color\": 0.9,\n    \"hair_length\": 0.9,\n    \"style\": 0.8,\n    \"age_appearance\": 0.7,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.8,\n    \"ethnicity\": 0.6\n  },\n  \"reasoning\": \"Across the available images, she appears curvy with prominent bust, long brunette hair, and a glam/natural makeup look. No clear view of butt or tattoos; only standard ear piercings visible; age reads mid-20s; ethnicity not certain from images.\"\n}",
+        "input_tokens": 2001,
+        "output_tokens": 268,
+        "metadata": {
+          "model": "gpt-5-2025-08-07",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "ClaudeSonnet45Agent",
+      "model": "claude-sonnet-4-20250514",
+      "username": "ana.whiterose",
+      "timestamp": "2025-10-11 11:36:09",
+      "images_analyzed": 2,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:big",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:none",
+        "piercings:minimal",
+        "ethnicity:latina"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.92,
+        "butt": 0.85,
+        "hair_color": 0.95,
+        "hair_length": 0.9,
+        "style": 0.87,
+        "age_appearance": 0.82,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.78
+      },
+      "reasoning": "Consistent curvy figure with prominent bust visible across both images, long brunette hair, glamorous styling with makeup and lingerie/intimate wear presentation.",
+      "response_time": 5.829613924026489,
+      "cost": 0.011064000000000001,
+      "tokens": {
+        "input": 2348,
+        "output": 268
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:minimal\",\n    \"ethnicity:latina\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.92,\n    \"butt\": 0.85,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.90,\n    \"style\": 0.87,\n    \"age_appearance\": 0.82,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.78\n  },\n  \"reasoning\": \"Consistent curvy figure with prominent bust visible across both images, long brunette hair, glamorous styling with makeup and lingerie/intimate wear presentation.\"\n}\n```",
+        "input_tokens": 2348,
+        "output_tokens": 268,
+        "metadata": {
+          "model": "claude-sonnet-4-20250514",
+          "stop_reason": "end_turn"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GeminiFlashLiteAgent",
+      "model": "gemini-2.5-flash-lite",
+      "username": "lanahcherry",
+      "timestamp": "2025-10-11 11:36:17",
+      "images_analyzed": 4,
+      "tags": [
+        "body_type:slim_thick",
+        "breasts:medium",
+        "butt:big",
+        "hair_color:brunette",
+        "hair_color:highlights",
+        "hair_length:long",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:minimal",
+        "piercings:minimal",
+        "ethnicity:latina"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.9,
+        "butt": 0.92,
+        "hair_color": 0.95,
+        "hair_length": 0.98,
+        "style": 0.85,
+        "age_appearance": 0.82,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.88
+      },
+      "reasoning": "The subject exhibits a consistent slim-thick body type with medium breasts and a large butt across multiple images. Her hair is long and predominantly brunette with visible highlights. She generally displays a natural style and appears to be a young adult, with minimal tattoos and piercings. Ethnicity is inferred as Latina based on facial features.",
+      "response_time": 5.195875883102417,
+      "cost": 0.00035310000000000007,
+      "tokens": {
+        "input": 2279,
+        "output": 313
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:medium\",\n    \"butt:big\",\n    \"hair_color:brunette\",\n    \"hair_color:highlights\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:latina\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.90,\n    \"butt\": 0.92,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.98,\n    \"style\": 0.85,\n    \"age_appearance\": 0.82,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.88\n  },\n  \"reasoning\": \"The subject exhibits a consistent slim-thick body type with medium breasts and a large butt across multiple images. Her hair is long and predominantly brunette with visible highlights. She generally displays a natural style and appears to be a young adult, with minimal tattoos and piercings. Ethnicity is inferred as Latina based on facial features.\"\n}\n```",
+        "input_tokens": 2279,
+        "output_tokens": 313,
+        "metadata": {
+          "model": "gemini-2.5-flash-lite",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5MiniAgent",
+      "model": "gpt-5-mini-2025-08-07",
+      "username": "lanahcherry",
+      "timestamp": "2025-10-11 11:36:23",
+      "images_analyzed": 4,
+      "tags": [
+        "body_type:slim_thick",
+        "breasts:large",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:minimal",
+        "piercings:minimal",
+        "ethnicity:uncertain"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.86,
+        "butt": 0.83,
+        "hair_color": 0.95,
+        "hair_length": 0.98,
+        "style": 0.82,
+        "age_appearance": 0.78,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.6
+      },
+      "reasoning": "Across multiple images the subject shows a curvy lower body with a slim waist (slim_thick) and a pronounced rounded butt; chest appears larger in fitted tops. Hair is consistently long brunette. Clothing and makeup lean glamorous with natural elements. Small visible tattoos and standard ear/face jewelry are minimal. Ethnicity not assumed due to visual uncertainty.",
+      "response_time": 10.88399600982666,
+      "cost": 0.0019435,
+      "tokens": {
+        "input": 6630,
+        "output": 286
+      },
+      "raw_response": {
+        "response": "{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.86,\n    \"butt\": 0.83,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.98,\n    \"style\": 0.82,\n    \"age_appearance\": 0.78,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.60\n  },\n  \"reasoning\": \"Across multiple images the subject shows a curvy lower body with a slim waist (slim_thick) and a pronounced rounded butt; chest appears larger in fitted tops. Hair is consistently long brunette. Clothing and makeup lean glamorous with natural elements. Small visible tattoos and standard ear/face jewelry are minimal. Ethnicity not assumed due to visual uncertainty.\"\n}",
+        "input_tokens": 6630,
+        "output_tokens": 286,
+        "metadata": {
+          "model": "gpt-5-mini-2025-08-07",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GeminiFlashAgent",
+      "model": "gemini-2.0-flash-exp",
+      "username": "lanahcherry",
+      "timestamp": "2025-10-11 11:36:35",
+      "images_analyzed": 4,
+      "tags": [
+        "body_type:slim",
+        "breasts:medium",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:natural",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:minimal",
+        "piercings:minimal",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.85,
+        "butt": 0.86,
+        "hair_color": 0.98,
+        "hair_length": 0.98,
+        "style": 0.85,
+        "age_appearance": 0.8,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.9
+      },
+      "reasoning": "The individual appears slim with a bubble butt and medium breasts. Her hair is long and brunette. Her style is natural and glamorous. The person looks like a young adult. She has minimal tattoos and piercings and appears white.",
+      "response_time": 6.527378082275391,
+      "cost": 0.001402,
+      "tokens": {
+        "input": 2265,
+        "output": 289
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim\",\n    \"breasts:medium\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.85,\n    \"butt\": 0.86,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.98,\n    \"style\": 0.85,\n    \"age_appearance\": 0.80,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The individual appears slim with a bubble butt and medium breasts. Her hair is long and brunette. Her style is natural and glamorous. The person looks like a young adult. She has minimal tattoos and piercings and appears white.\"\n}\n```",
+        "input_tokens": 2265,
+        "output_tokens": 289,
+        "metadata": {
+          "model": "gemini-2.0-flash-exp",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "GPT5Agent",
+      "model": "gpt-5-2025-08-07",
+      "username": "lanahcherry",
+      "timestamp": "2025-10-11 11:36:42",
+      "images_analyzed": 4,
+      "tags": [
+        "body_type:slim_thick",
+        "breasts:medium",
+        "butt:bubble",
+        "hair_color:brunette",
+        "hair_length:long",
+        "style:glamorous",
+        "style:natural",
+        "age_appearance:young_adult",
+        "tattoos:minimal",
+        "piercings:minimal",
+        "ethnicity:uncertain"
+      ],
+      "confidence": {
+        "body_type": 0.86,
+        "breasts": 0.88,
+        "butt": 0.86,
+        "hair_color": 0.93,
+        "hair_length": 0.95,
+        "style": 0.82,
+        "age_appearance": 0.8,
+        "tattoos": 0.82,
+        "piercings": 0.88,
+        "ethnicity": 0.6
+      },
+      "reasoning": "Across images she appears curvy with a defined waist/hips and fuller glutes, medium bust, long brunette hair. Outfits range from glam going-out to natural swimwear; minimal visible tattoos and standard ear/navel piercings. Looks like a young adult; ethnicity not definitive.",
+      "response_time": 9.73915696144104,
+      "cost": 0.00544625,
+      "tokens": {
+        "input": 3261,
+        "output": 274
+      },
+      "raw_response": {
+        "response": "{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:medium\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.86,\n    \"breasts\": 0.88,\n    \"butt\": 0.86,\n    \"hair_color\": 0.93,\n    \"hair_length\": 0.95,\n    \"style\": 0.82,\n    \"age_appearance\": 0.8,\n    \"tattoos\": 0.82,\n    \"piercings\": 0.88,\n    \"ethnicity\": 0.6\n  },\n  \"reasoning\": \"Across images she appears curvy with a defined waist/hips and fuller glutes, medium bust, long brunette hair. Outfits range from glam going-out to natural swimwear; minimal visible tattoos and standard ear/navel piercings. Looks like a young adult; ethnicity not definitive.\"\n}",
+        "input_tokens": 3261,
+        "output_tokens": 274,
+        "metadata": {
+          "model": "gpt-5-2025-08-07",
+          "finish_reason": "stop"
+        }
+      },
+      "error": null
+    },
+    {
+      "agent": "ClaudeSonnet45Agent",
+      "model": "claude-sonnet-4-20250514",
+      "username": "lanahcherry",
+      "timestamp": "2025-10-11 11:36:53",
+      "images_analyzed": 4,
+      "tags": [
+        "body_type:curvy",
+        "breasts:large",
+        "butt:big",
+        "hair_color:brunette",
+        "hair_color:highlights",
+        "hair_length:long",
+        "style:glamorous",
+        "age_appearance:young_adult",
+        "tattoos:minimal",
+        "piercings:minimal",
+        "ethnicity:white"
+      ],
+      "confidence": {
+        "body_type": 0.88,
+        "breasts": 0.85,
+        "butt": 0.82,
+        "hair_color": 0.9,
+        "hair_length": 0.95,
+        "style": 0.87,
+        "age_appearance": 0.8,
+        "tattoos": 0.85,
+        "piercings": 0.8,
+        "ethnicity": 0.88
+      },
+      "reasoning": "Consistent curvy figure with enhanced features visible across multiple images in various outfits. Long brunette hair with blonde highlights, glamorous styling with makeup and form-fitting clothing.",
+      "response_time": 8.210925102233887,
+      "cost": 0.022604999999999997,
+      "tokens": {
+        "input": 6120,
+        "output": 283
+      },
+      "raw_response": {
+        "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:big\",\n    \"hair_color:brunette\",\n    \"hair_color:highlights\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.85,\n    \"butt\": 0.82,\n    \"hair_color\": 0.90,\n    \"hair_length\": 0.95,\n    \"style\": 0.87,\n    \"age_appearance\": 0.80,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.88\n  },\n  \"reasoning\": \"Consistent curvy figure with enhanced features visible across multiple images in various outfits. Long brunette hair with blonde highlights, glamorous styling with makeup and form-fitting clothing.\"\n}\n```",
+        "input_tokens": 6120,
+        "output_tokens": 283,
+        "metadata": {
+          "model": "claude-sonnet-4-20250514",
+          "stop_reason": "end_turn"
+        }
+      },
+      "error": null
+    }
+  ],
+  "summary": {
+    "total_cost": 0.0656001,
+    "successful_requests": 14,
+    "failed_requests": 1,
+    "success_rate": 0.9333333333333333
+  }
+}

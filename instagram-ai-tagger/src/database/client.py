@@ -11,7 +11,7 @@ load_dotenv()
 class SupabaseConnection:
     """Manages Supabase database connection"""
 
-    _instance: Optional['SupabaseConnection'] = None
+    _instance: Optional["SupabaseConnection"] = None
     _client: Optional[Client] = None
 
     def __new__(cls):
@@ -31,12 +31,14 @@ class SupabaseConnection:
             ValueError: If credentials are not configured
         """
         if self._client is None:
-            url = os.getenv('SUPABASE_URL')
-            key = os.getenv('SUPABASE_SERVICE_KEY')
+            url = os.getenv("SUPABASE_URL")
+            key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv(
+                "SUPABASE_SERVICE_KEY"
+            )
 
             if not url or not key:
                 raise ValueError(
-                    "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in .env file.\n"
+                    "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env file.\n"
                     "Copy .env.example to .env and fill in your credentials."
                 )
 

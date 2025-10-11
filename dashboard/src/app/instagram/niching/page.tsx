@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Tag, UserPlus } from 'lucide-react'
+import { Tag, UserPlus, Sparkles } from 'lucide-react'
 import { StandardToolbar } from '@/components/shared/toolbars/StandardToolbar'
 import { StandardActionButton } from '@/components/shared/buttons/StandardActionButton'
 import { ErrorBoundary as ComponentErrorBoundary } from '@/components/shared/ErrorBoundary'
@@ -11,6 +11,8 @@ import { UniversalProgressCard } from '@/components/shared/cards/UniversalProgre
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatNumber } from '@/lib/formatters'
 import { TableSkeleton } from '@/components/shared/SkeletonLoaders'
+import { useToast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
 
 // Import React Query hooks
 import {
@@ -18,7 +20,10 @@ import {
   useNichingCreators,
   useBulkUpdateCreatorNiche,
   useUpdateCreatorNiche,
-  type NichingFilters
+  useUpdateCreatorStatus,
+  useAITaggingStats,
+  type NichingFilters,
+  type CreatorStatus
 } from '@/hooks/queries/useInstagramReview'
 
 // Import table configuration
@@ -41,21 +46,32 @@ const UniversalInputModal = dynamic(
   { ssr: false }
 )
 
+const StandardModal = dynamic(
+  () => import('@/components/shared/modals/StandardModal').then(mod => ({ default: mod.StandardModal })),
+  { ssr: false }
+)
+
 type FilterType = 'unniched' | 'niched' | 'all'
 
 export default function NichingPage() {
-  // Simplified state - only 5 useState hooks
+  // Simplified state
   const [searchQuery, setSearchQuery] = useState('')
   const [currentFilter, setCurrentFilter] = useState<FilterType>('unniched')
   const [selectedCreators, setSelectedCreators] = useState<Set<number>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
   const [showNicheModal, setShowNicheModal] = useState(false)
+  const [showConfirmTagging, setShowConfirmTagging] = useState(false)
+  const [isTagging, setIsTagging] = useState(false)
+
+  // Toast notifications
+  const { addToast } = useToast()
 
   // Debounced search
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
   // Fetch stats using React Query hook
   const { data: stats } = useNichingStats()
+  const { data: aiTaggingStats } = useAITaggingStats()
 
   // Convert filter to niches array for the hook
   const getNichesFilter = useCallback((): string[] | null => {
@@ -69,7 +85,7 @@ export default function NichingPage() {
   const filters: NichingFilters = useMemo(() => ({
     search: debouncedSearchQuery,
     niches: getNichesFilter(),
-    orderBy: 'followers',
+    orderBy: 'followers_count',
     order: 'desc'
   }), [debouncedSearchQuery, getNichesFilter])
 
@@ -90,6 +106,7 @@ export default function NichingPage() {
   // Mutations
   const bulkUpdateMutation = useBulkUpdateCreatorNiche()
   const updateNicheMutation = useUpdateCreatorNiche()
+  const updateStatusMutation = useUpdateCreatorStatus()
 
   // Bulk update handler
   const bulkUpdateNiche = useCallback(async (niche: string | null) => {
@@ -111,10 +128,12 @@ export default function NichingPage() {
   }, [updateNicheMutation])
 
   // Handler for single creator review update
-  const handleUpdateReview = useCallback((_id: number, _review: string) => {
-    // This is a placeholder - the niching page focuses on niche assignment, not review status
-    // Review updates are handled on the creator-review page
-  }, [])
+  const handleUpdateReview = useCallback((id: number, review: string) => {
+    updateStatusMutation.mutate({
+      creatorId: id,
+      status: review === 'pending' ? null : review as CreatorStatus
+    })
+  }, [updateStatusMutation])
 
   // Handle reaching end of list for infinite scroll
   const handleReachEnd = useCallback(() => {
@@ -122,6 +141,54 @@ export default function NichingPage() {
       fetchNextPage()
     }
   }, [isFetchingNextPage, hasNextPage, fetchNextPage])
+
+  // Handler for AI tagging
+  const handleStartTagging = useCallback(async () => {
+    setIsTagging(true)
+
+    addToast({
+      type: 'info',
+      title: 'AI tagging started',
+      description: 'Processing creators in background with visual analysis...',
+      duration: 4000
+    })
+
+    try {
+      const response = await fetch('/api/instagram/tagging/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workers: 5
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to start tagging')
+      }
+
+      // Show success with stats
+      addToast({
+        type: 'success',
+        title: 'AI tagging completed!',
+        description: `Tagged ${data.stats?.successful || 0} creators ($${data.stats?.cost?.toFixed(4) || '0.00'} cost, ${data.stats?.processing_time || 0}s)`,
+        duration: 5000
+      })
+
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'AI tagging failed',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        duration: 5000
+      })
+    } finally {
+      setIsTagging(false)
+    }
+  }, [addToast])
 
   // Transform creators for table - match InstagramCreator interface from niching columns
   const transformedCreators = useMemo(() => {
@@ -132,8 +199,8 @@ export default function NichingPage() {
       full_name: creator.full_name ?? null,
       biography: creator.biography ?? null,
       profile_pic_url: creator.profile_pic_url ?? null,
-      followers: creator.followers ?? 0,
-      posts_count: creator.posts_count ?? 0,
+      followers_count: creator.followers_count ?? 0,
+      media_count: creator.media_count ?? 0,
       review_status: creator.review_status ?? null,
       is_private: creator.is_private ?? false,
       is_verified: creator.is_verified ?? false,
@@ -146,7 +213,7 @@ export default function NichingPage() {
       save_to_like_ratio: creator.save_to_like_ratio ?? null,
       last_post_days_ago: creator.last_post_days_ago ?? null,
       engagement_rate_cached: creator.engagement_rate_cached ?? null,
-      avg_likes_per_post: creator.avg_likes_per_post ?? null
+      avg_likes_per_post: creator.avg_likes_per_post_cached ?? null
     }))
   }, [creators])
 
@@ -174,7 +241,7 @@ export default function NichingPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-6">
-        {/* Progress Card with Add Creator Button */}
+        {/* Progress Card with Action Buttons */}
         <ComponentErrorBoundary>
           <div className="flex gap-3">
             {/* Progress Bar Card using UniversalProgressCard */}
@@ -190,15 +257,30 @@ export default function NichingPage() {
               className="flex-1"
             />
 
-            {/* Add Creator Button with proper wrapper */}
-            <div className="flex-1 max-w-[200px]">
-              <StandardActionButton
-                onClick={() => setShowAddModal(true)}
-                label="Add Creator"
-                icon={UserPlus}
-                variant="primary"
-                size="normal"
-              />
+            {/* Action Buttons Container */}
+            <div className="flex gap-3">
+              {/* Add Creator Button */}
+              <div className="flex-1 max-w-[200px] overflow-hidden rounded-2xl">
+                <StandardActionButton
+                  onClick={() => setShowAddModal(true)}
+                  label="Add Creator"
+                  icon={UserPlus}
+                  variant="primary"
+                  size="normal"
+                />
+              </div>
+
+              {/* AI Tag Creators Button */}
+              <div className="flex-1 max-w-[200px] overflow-hidden rounded-2xl">
+                <StandardActionButton
+                  onClick={() => setShowConfirmTagging(true)}
+                  label="AI Tag Creators"
+                  icon={Sparkles}
+                  variant="primary"
+                  size="normal"
+                  loading={isTagging}
+                />
+              </div>
             </div>
           </div>
         </ComponentErrorBoundary>
@@ -293,6 +375,54 @@ export default function NichingPage() {
         icon={Tag}
         platform="instagram"
       />
+
+      {/* AI Tagging Confirmation Modal */}
+      <StandardModal
+        isOpen={showConfirmTagging}
+        onClose={() => setShowConfirmTagging(false)}
+        title="Start AI Tagging?"
+        subtitle="This will analyze untagged creators using AI vision"
+        icon={<Sparkles className="h-4 w-4 text-white" />}
+        maxWidth="md"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmTagging(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                setShowConfirmTagging(false)
+                handleStartTagging()
+              }}
+            >
+              Start Tagging
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {/* Available Creators Count */}
+          <div className="bg-gradient-to-br from-pink-50 to-pink-100/50 border border-pink-300/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-800">Available Creators:</span>
+              <span className="text-2xl font-bold text-pink-600">
+                {aiTaggingStats?.untagged ? formatNumber(aiTaggingStats.untagged) : '0'}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-pink-50/50 border border-pink-200/50 rounded-lg p-3">
+            <p className="text-xs text-gray-700">
+              <span className="font-semibold">Estimated Cost:</span> ~${((aiTaggingStats?.untagged || 0) * 0.0013).toFixed(2)} (${(0.0013).toFixed(4)} per creator)<br/>
+              <span className="font-semibold">Processing Time:</span> ~{Math.round((aiTaggingStats?.untagged || 0) * 20 / 60)} minutes ({(aiTaggingStats?.untagged || 0) * 20} seconds total)
+            </p>
+          </div>
+        </div>
+      </StandardModal>
     </DashboardLayout>
   )
 }

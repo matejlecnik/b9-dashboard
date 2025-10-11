@@ -82,6 +82,7 @@ export const queryKeys = {
     niche: (id: string) => [...queryKeys.instagram.all(), 'niche', id] as const,
     nichingStats: () => [...queryKeys.instagram.all(), 'niching-stats'] as const,
     nichingCreators: (filters?: unknown) => [...queryKeys.instagram.all(), 'niching-creators', filters] as const,
+    aiTaggingStats: () => [...queryKeys.instagram.all(), 'ai-tagging-stats'] as const,
     topCreators: (filters?: unknown, limit?: number) => [...queryKeys.instagram.all(), 'top-creators', filters, limit] as const,
     relatedCreators: (creatorId: number) => [...queryKeys.instagram.all(), 'related', creatorId] as const,
     scraperStatus: () => [...queryKeys.instagram.all(), 'scraper-status'] as const,

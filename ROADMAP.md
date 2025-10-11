@@ -1,7 +1,7 @@
 # B9 Dashboard Roadmap
 
 ┌─ STRATEGIC VISION ──────────────────────────────────────┐
-│ ● ACTIVE DEV │ ████████░░░░░░░░░░░░ 40% COMPLETE       │
+│ ● ACTIVE DEV │ ████████░░░░░░░░░░░░ 43% COMPLETE       │
 └─────────────────────────────────────────────────────────┘
 
 ## Navigation
@@ -231,7 +231,7 @@
 }
 ```
 
-### Phase 4: Instagram Dashboard Completion (v4.0.0) [█████░░░░░░░░░░░░░░░] 25%
+### Phase 4: Instagram Dashboard Completion (v4.0.0) [████████░░░░░░░░░░░░] 40%
 
 ```json
 {
@@ -245,10 +245,12 @@
     "creator_scoring": "Comprehensive creator quality metrics",
     "niche_analysis": "Advanced niche categorization",
     "automation": "Automated posting pipeline",
+    "ai_tagging": "AI-powered visual attribute tagging (Gemini 2.5 Flash)",
     "completion": "Finish all Instagram dashboard features"
   },
   "tasks": [
     {"id": "INST-411", "task": "Manual Instagram creator addition endpoint (POST /api/instagram/creator/add)", "progress": 100, "status": "COMPLETE", "completed": "2025-10-06"},
+    {"id": "INST-410", "task": "Build AI auto-tagging system for Instagram creator body attributes (Gemini 2.5 Flash)", "progress": 100, "status": "COMPLETE", "completed": "2025-10-11"},
     {"id": "INST-402", "task": "Creator quality scoring system", "progress": 20},
     {"id": "INST-403", "task": "Niche categorization engine", "progress": 15},
     {"id": "INST-404", "task": "Automated posting workflow", "progress": 0},
@@ -344,8 +346,7 @@
     {"id": "ADULT-705", "task": "Enhance security measures", "progress": 0},
     {"id": "ADULT-706", "task": "OnlyFans API research and integration", "progress": 0},
     {"id": "ADULT-707", "task": "OnlyFans scraper development", "progress": 0},
-    {"id": "ADULT-708", "task": "OnlyFans content aggregation dashboard", "progress": 0},
-    {"id": "INST-410", "task": "Build AI auto-tagging system for Instagram creator body attributes (self-hosted, 50K scale)", "progress": 0}
+    {"id": "ADULT-708", "task": "OnlyFans content aggregation dashboard", "progress": 0}
   ],
   "considerations": [
     "Legal compliance requirements",
@@ -532,5 +533,5 @@ $ npm run roadmap:next       # What's next to work on
 
 ---
 
-_Roadmap Version: 1.0.0 | Updated: 2025-10-10 | Next Review: 2025-10-17_
+_Roadmap Version: 1.0.1 | Updated: 2025-10-11 | Next Review: 2025-10-18_
 _Navigate: [→ CLAUDE.md](CLAUDE.md) | [→ SESSION_LOG.md](docs/development/SESSION_LOG.md) | [→ SYSTEM_IMPROVEMENT_PLAN.md](docs/development/SYSTEM_IMPROVEMENT_PLAN.md)_

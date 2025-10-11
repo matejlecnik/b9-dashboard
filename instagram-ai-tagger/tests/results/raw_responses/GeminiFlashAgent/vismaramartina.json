@@ -1,0 +1,48 @@
+{
+  "agent": "GeminiFlashAgent",
+  "model": "gemini-2.5-flash",
+  "username": "vismaramartina",
+  "timestamp": "2025-10-11 12:16:30",
+  "images_analyzed": 2,
+  "tags": [
+    "body_type:curvy",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:black",
+    "hair_length:long",
+    "style:glamorous",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:middle_eastern"
+  ],
+  "confidence": {
+    "body_type": 0.9,
+    "breasts": 0.95,
+    "butt": 0.88,
+    "hair_color": 0.98,
+    "hair_length": 0.95,
+    "style": 0.85,
+    "age_appearance": 0.8,
+    "tattoos": 0.9,
+    "piercings": 0.9,
+    "ethnicity": 0.8
+  },
+  "reasoning": "The creator consistently displays a curvy body type with large breasts and a bubble butt in the full-body image. Hair is consistently long and black. Her overall presentation, including makeup and posing, leans glamorous, and her features suggest a young adult age appearance. Minimal tattoos and ear piercings are visible, and facial features strongly suggest Middle Eastern ethnicity.",
+  "response_time": 15.009360074996948,
+  "cost": 0.0013844,
+  "tokens": {
+    "input": 2023,
+    "output": 311
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:black\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:middle_eastern\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.90,\n    \"breasts\": 0.95,\n    \"butt\": 0.88,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.95,\n    \"style\": 0.85,\n    \"age_appearance\": 0.80,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.90,\n    \"ethnicity\": 0.80\n  },\n  \"reasoning\": \"The creator consistently displays a curvy body type with large breasts and a bubble butt in the full-body image. Hair is consistently long and black. Her overall presentation, including makeup and posing, leans glamorous, and her features suggest a young adult age appearance. Minimal tattoos and ear piercings are visible, and facial features strongly suggest Middle Eastern ethnicity.\"\n}\n```",
+    "input_tokens": 2023,
+    "output_tokens": 311,
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

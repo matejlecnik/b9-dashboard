@@ -1,0 +1,49 @@
+{
+  "agent": "GPT5Agent",
+  "model": "gpt-5-2025-08-07",
+  "username": "urcherryx",
+  "timestamp": "2025-10-11 11:47:05",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:curvy",
+    "breasts:huge",
+    "butt:big",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:moderate",
+    "piercings:moderate",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.9,
+    "breasts": 0.97,
+    "butt": 0.78,
+    "hair_color": 0.95,
+    "hair_length": 0.9,
+    "style": 0.8,
+    "age_appearance": 0.8,
+    "tattoos": 0.9,
+    "piercings": 0.8,
+    "ethnicity": 0.6
+  },
+  "reasoning": "Across images she appears curvy with very large bust, long blonde hair, and shows multiple visible tattoos and several ear/nose piercings. Outfits vary between bikini/lingerie and casual glam; age looks mid-20s. Butt size inferred from curvy build but less directly shown.",
+  "response_time": 14.099918127059937,
+  "cost": 0.00624375,
+  "tokens": {
+    "input": 3891,
+    "output": 276
+  },
+  "raw_response": {
+    "response": "{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:huge\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:moderate\",\n    \"piercings:moderate\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.9,\n    \"breasts\": 0.97,\n    \"butt\": 0.78,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.9,\n    \"style\": 0.8,\n    \"age_appearance\": 0.8,\n    \"tattoos\": 0.9,\n    \"piercings\": 0.8,\n    \"ethnicity\": 0.6\n  },\n  \"reasoning\": \"Across images she appears curvy with very large bust, long blonde hair, and shows multiple visible tattoos and several ear/nose piercings. Outfits vary between bikini/lingerie and casual glam; age looks mid-20s. Butt size inferred from curvy build but less directly shown.\"\n}",
+    "input_tokens": 3891,
+    "output_tokens": 276,
+    "metadata": {
+      "model": "gpt-5-2025-08-07",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

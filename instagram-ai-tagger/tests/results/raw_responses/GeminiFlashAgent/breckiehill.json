@@ -1,0 +1,48 @@
+{
+  "agent": "GeminiFlashAgent",
+  "model": "gemini-2.5-flash",
+  "username": "breckiehill",
+  "timestamp": "2025-10-11 12:15:33",
+  "images_analyzed": 1,
+  "tags": [
+    "body_type:curvy",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:glamorous",
+    "age_appearance:young_adult",
+    "tattoos:none",
+    "piercings:none",
+    "ethnicity:white"
+  ],
+  "confidence": {
+    "body_type": 0.8,
+    "breasts": 0.95,
+    "butt": 0.8,
+    "hair_color": 0.98,
+    "hair_length": 0.9,
+    "style": 0.78,
+    "age_appearance": 0.85,
+    "tattoos": 0.9,
+    "piercings": 0.9,
+    "ethnicity": 0.85
+  },
+  "reasoning": "Based solely on the single provided image, the creator exhibits clear curvy proportions, large breasts, and blonde hair. Her styled appearance and youthful features suggest a glamorous style and young adult age, with no visible tattoos or piercings.",
+  "response_time": 20.955665111541748,
+  "cost": 0.001242,
+  "tokens": {
+    "input": 1765,
+    "output": 285
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:none\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.80,\n    \"breasts\": 0.95,\n    \"butt\": 0.80,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.90,\n    \"style\": 0.78,\n    \"age_appearance\": 0.85,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.90,\n    \"ethnicity\": 0.85\n  },\n  \"reasoning\": \"Based solely on the single provided image, the creator exhibits clear curvy proportions, large breasts, and blonde hair. Her styled appearance and youthful features suggest a glamorous style and young adult age, with no visible tattoos or piercings.\"\n}\n```",
+    "input_tokens": 1765,
+    "output_tokens": 285,
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

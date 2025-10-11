@@ -1,0 +1,48 @@
+{
+  "agent": "GeminiFlashAgent",
+  "model": "gemini-2.5-flash",
+  "username": "urcherryx",
+  "timestamp": "2025-10-11 12:16:15",
+  "images_analyzed": 1,
+  "tags": [
+    "body_type:curvy",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:heavy",
+    "piercings:minimal",
+    "ethnicity:white"
+  ],
+  "confidence": {
+    "body_type": 0.8,
+    "breasts": 0.95,
+    "butt": 0.75,
+    "hair_color": 0.98,
+    "hair_length": 0.95,
+    "style": 0.8,
+    "age_appearance": 0.85,
+    "tattoos": 0.98,
+    "piercings": 0.8,
+    "ethnicity": 0.9
+  },
+  "reasoning": "Based on the single image provided, the creator displays a curvy body type with large breasts, long blonde hair, and heavy tattoos on her arms. Her overall appearance suggests a natural style and a young adult age, and ethnicity appears white. Butt size is an inference based on body type as no rear view is available.",
+  "response_time": 13.283246994018555,
+  "cost": 0.0012845,
+  "tokens": {
+    "input": 1765,
+    "output": 302
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:heavy\",\n    \"piercings:minimal\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.80,\n    \"breasts\": 0.95,\n    \"butt\": 0.75,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.95,\n    \"style\": 0.80,\n    \"age_appearance\": 0.85,\n    \"tattoos\": 0.98,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"Based on the single image provided, the creator displays a curvy body type with large breasts, long blonde hair, and heavy tattoos on her arms. Her overall appearance suggests a natural style and a young adult age, and ethnicity appears white. Butt size is an inference based on body type as no rear view is available.\"\n}\n```",
+    "input_tokens": 1765,
+    "output_tokens": 302,
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

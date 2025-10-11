@@ -1,0 +1,49 @@
+{
+  "agent": "GeminiFlashAgent",
+  "model": "gemini-2.5-flash",
+  "username": "bonnieparkerss",
+  "timestamp": "2025-10-11 12:15:02",
+  "images_analyzed": 4,
+  "tags": [
+    "body_type:slim_thick",
+    "breasts:huge",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:glamorous",
+    "style:bimbo",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:white"
+  ],
+  "confidence": {
+    "body_type": 0.95,
+    "breasts": 1.0,
+    "butt": 0.9,
+    "hair_color": 1.0,
+    "hair_length": 1.0,
+    "style": 0.95,
+    "age_appearance": 0.9,
+    "tattoos": 0.9,
+    "piercings": 0.85,
+    "ethnicity": 0.9
+  },
+  "reasoning": "The creator consistently displays a slim_thick body type with huge breasts and a bubble butt across multiple full-body images in tight clothing. Her style is predominantly glamorous and overtly sexualized, typical of a bimbo aesthetic. She has long blonde hair, a youthful appearance, and minimal tattoos and piercings.",
+  "response_time": 30.310418128967285,
+  "cost": 0.0015367,
+  "tokens": {
+    "input": 2539,
+    "output": 310
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:huge\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:bimbo\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.95,\n    \"breasts\": 1.00,\n    \"butt\": 0.90,\n    \"hair_color\": 1.00,\n    \"hair_length\": 1.00,\n    \"style\": 0.95,\n    \"age_appearance\": 0.90,\n    \"tattoos\": 0.90,\n    \"piercings\": 0.85,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The creator consistently displays a slim_thick body type with huge breasts and a bubble butt across multiple full-body images in tight clothing. Her style is predominantly glamorous and overtly sexualized, typical of a bimbo aesthetic. She has long blonde hair, a youthful appearance, and minimal tattoos and piercings.\"\n}\n```",
+    "input_tokens": 2539,
+    "output_tokens": 310,
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

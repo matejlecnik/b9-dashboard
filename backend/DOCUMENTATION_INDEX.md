@@ -1,4 +1,4 @@
-# API-Render Documentation Index
+# Backend API Documentation Index
 
 ┌─ NAVIGATION REDIRECT ───────────────────────────────────┐
 │ ↗ REDIRECTED │ See main index: docs/INDEX.md           │
@@ -21,7 +21,7 @@ This navigation index has been consolidated into the main documentation index fo
 **Please refer to: [`../docs/INDEX.md`](../docs/INDEX.md)**
 
 The main index contains:
-- Complete API-Render documentation structure
+- Complete Backend API documentation structure
 - All module documentation links
 - File size distribution
 - Quick navigation by use case

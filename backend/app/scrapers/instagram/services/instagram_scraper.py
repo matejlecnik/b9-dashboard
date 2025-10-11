@@ -1129,11 +1129,11 @@ class InstagramScraperUnified:
                 )
                 for row in result.data or []:
                     existing_pks.add(row["media_pk"])
-                    # Check if video already has R2 URL (supports both old and new R2 domains)
-                    if row.get("video_url") and "b9-instagram-media" in row["video_url"]:
+                    # Check if video already has custom domain R2 URL
+                    if row.get("video_url") and "media.b9dashboard.com" in row["video_url"]:
                         existing_r2_urls[row["media_pk"]] = row["video_url"]
                         logger.info(
-                            f"🔄 Skipping R2 upload for reel {row['media_pk']} (already in R2)"
+                            f"🔄 Skipping R2 upload for reel {row['media_pk']} (already using custom domain)"
                         )
             except Exception as e:
                 logger.debug(f"Failed to check existing reels: {e}")
@@ -1331,15 +1331,15 @@ class InstagramScraperUnified:
                 )
                 for row in result.data or []:
                     existing_pks.add(row["media_pk"])
-                    # Check if post already has R2 URLs
+                    # Check if post already has custom domain R2 URLs
                     if (
                         row.get("image_urls")
                         and len(row["image_urls"]) > 0
-                        and "r2.cloudflarestorage.com" in row["image_urls"][0]
+                        and "media.b9dashboard.com" in row["image_urls"][0]
                     ):
                         existing_r2_images[row["media_pk"]] = row["image_urls"]
                         logger.info(
-                            f"🔄 Skipping R2 upload for post {row['media_pk']} (already in R2)"
+                            f"🔄 Skipping R2 upload for post {row['media_pk']} (already using custom domain)"
                         )
             except Exception as e:
                 logger.debug(f"Failed to check existing posts: {e}")
@@ -1736,9 +1736,29 @@ class InstagramScraperUnified:
                 # Extract bio links
                 bio_links = self._extract_bio_links(profile_data)
 
-                # Upload profile picture to R2 (if enabled)
+                # Check if profile picture already uses custom domain (skip upload if so)
+                existing_profile_pic = None
+                try:
+                    result = (
+                        self.supabase.table("instagram_creators")
+                        .select("profile_pic_url")
+                        .eq("ig_user_id", creator_id)
+                        .execute()
+                    )
+                    if result.data and len(result.data) > 0:
+                        existing_profile_pic = result.data[0].get("profile_pic_url")
+                except Exception as e:
+                    logger.debug(f"Failed to fetch existing profile picture URL: {e}")
+
+                # Upload profile picture to R2 (if enabled and not already using custom domain)
                 profile_pic_url = profile_data.get("profile_pic_url")
-                if (
+                if existing_profile_pic and "media.b9dashboard.com" in existing_profile_pic:
+                    # Already using custom domain, skip upload
+                    profile_pic_url = existing_profile_pic
+                    logger.info(
+                        f"✅ Using existing custom domain URL for {username} profile picture"
+                    )
+                elif (
                     profile_pic_url
                     and r2_config
                     and r2_config.ENABLED

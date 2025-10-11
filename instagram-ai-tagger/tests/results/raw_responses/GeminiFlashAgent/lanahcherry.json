@@ -1,0 +1,50 @@
+{
+  "agent": "GeminiFlashAgent",
+  "model": "gemini-2.5-flash",
+  "username": "lanahcherry",
+  "timestamp": "2025-10-11 12:15:55",
+  "images_analyzed": 2,
+  "tags": [
+    "body_type:slim_thick",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:brunette",
+    "hair_color:highlights",
+    "hair_length:long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:white"
+  ],
+  "confidence": {
+    "body_type": 0.95,
+    "breasts": 0.95,
+    "butt": 0.9,
+    "hair_color": 0.95,
+    "hair_length": 0.98,
+    "style": 0.88,
+    "age_appearance": 0.9,
+    "tattoos": 0.8,
+    "piercings": 0.85,
+    "ethnicity": 0.9
+  },
+  "reasoning": "The creator consistently displays a slim_thick body type with large breasts and a bubble butt in swimwear. Her long brunette hair with highlights, glamorous yet natural style, and young_adult appearance are consistent across all images, with minimal tattoos and piercings.",
+  "response_time": 18.76084804534912,
+  "cost": 0.0013769,
+  "tokens": {
+    "input": 2023,
+    "output": 308
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_color:highlights\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.95,\n    \"breasts\": 0.95,\n    \"butt\": 0.90,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.98,\n    \"style\": 0.88,\n    \"age_appearance\": 0.90,\n    \"tattoos\": 0.80,\n    \"piercings\": 0.85,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The creator consistently displays a slim_thick body type with large breasts and a bubble butt in swimwear. Her long brunette hair with highlights, glamorous yet natural style, and young_adult appearance are consistent across all images, with minimal tattoos and piercings.\"\n}\n```",
+    "input_tokens": 2023,
+    "output_tokens": 308,
+    "metadata": {
+      "model": "gemini-2.5-flash",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

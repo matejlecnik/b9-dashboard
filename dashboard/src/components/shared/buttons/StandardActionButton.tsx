@@ -52,8 +52,8 @@ const StandardActionButton = memo(function StandardActionButton({
         background: 'linear-gradient(135deg, rgba(255, 131, 149, 0.7) 0%, var(--pink-alpha-50) 100%)',
         boxShadow: '0 12px 40px var(--pink-alpha-50)'
       },
-      icon: 'text-primary',
-      text: 'text-primary'
+      icon: 'text-white',
+      text: 'text-white'
     },
     reddit: {
       background: 'bg-gradient-to-br from-[var(--reddit-primary)] via-[var(--reddit-primary)]/90 to-[var(--reddit-secondary)]',
@@ -178,7 +178,8 @@ const StandardActionButton = memo(function StandardActionButton({
       <span className={cn(
         'text-xs font-semibold tracking-wide',
         'transition-all duration-200',
-        styles.text
+        styles.text,
+        variant === 'primary' && 'drop-shadow-sm'
       )}>
         {label}
       </span>

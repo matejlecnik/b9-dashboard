@@ -6,13 +6,12 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.database.queries import (
+from src.database.queries import (  # noqa: E402
     get_creators_for_processing,
-    get_creator_by_id,
     get_creator_images,
-    get_tagging_stats
+    get_tagging_stats,
 )
-from config.settings import validate_config
+from config.settings import validate_config  # noqa: E402
 
 
 def main():
@@ -55,7 +54,7 @@ def main():
     try:
         if creators:
             creator = creators[0]
-            ig_user_id = creator.get('ig_user_id')
+            ig_user_id = creator.get("ig_user_id")
 
             if ig_user_id:
                 images = get_creator_images(ig_user_id, limit=5)
@@ -80,7 +79,7 @@ def main():
 
     try:
         stats = get_tagging_stats()
-        print(f"✅ Statistics retrieved")
+        print("✅ Statistics retrieved")
         print(f"\n   Total creators: {stats['total_creators']}")
         print(f"   Tagged: {stats['tagged_creators']}")
         print(f"   Untagged: {stats['untagged_creators']}")
@@ -95,5 +94,5 @@ def main():
     print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

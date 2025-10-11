@@ -28,7 +28,7 @@
     "name": "Instagram Continuous Scraper",
     "version": "2.0.0",
     "status": "PRODUCTION",
-    "deployment": "Render",
+    "deployment": "Hetzner Cloud",
     "schedule": "Every 4 hours",
     "batch_size": 50
   },

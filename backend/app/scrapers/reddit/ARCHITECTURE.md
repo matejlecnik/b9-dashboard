@@ -102,7 +102,7 @@ The Reddit Scraper is a high-performance data collection system that:
 
 ┌──────────────┐
 │  Controller  │  ← Start/Stop/Monitor
-│ (Render API) │
+│ (Hetzner API)│
 └──────┬───────┘
        │
        v

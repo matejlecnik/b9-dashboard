@@ -1,0 +1,50 @@
+{
+  "agent": "GeminiFlashLiteAgent",
+  "model": "gemini-2.5-flash-lite",
+  "username": "bonnieparkerss",
+  "timestamp": "2025-10-11 11:45:26",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:curvy",
+    "body_type:slim_thick",
+    "breasts:huge",
+    "butt:big",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:none",
+    "piercings:none",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.92,
+    "breasts": 0.98,
+    "butt": 0.9,
+    "hair_color": 1.0,
+    "hair_length": 1.0,
+    "style": 0.9,
+    "age_appearance": 0.95,
+    "tattoos": 1.0,
+    "piercings": 1.0,
+    "ethnicity": 0.9
+  },
+  "reasoning": "The subject consistently displays a curvy, slim-thick body type with large breasts and a prominent butt. Her blonde, long hair and youthful appearance are evident across all images. No visible tattoos or piercings are present. Style leans towards glamorous and natural. Ethnicity is uncertain due to lighting and image quality.",
+  "response_time": 11.729560852050781,
+  "cost": 0.00038090000000000004,
+  "tokens": {
+    "input": 2537,
+    "output": 318
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"body_type:slim_thick\",\n    \"breasts:huge\",\n    \"butt:big\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:none\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.92,\n    \"breasts\": 0.98,\n    \"butt\": 0.90,\n    \"hair_color\": 1.00,\n    \"hair_length\": 1.00,\n    \"style\": 0.90,\n    \"age_appearance\": 0.95,\n    \"tattoos\": 1.00,\n    \"piercings\": 1.00,\n    \"ethnicity\": 0.90\n  },\n  \"reasoning\": \"The subject consistently displays a curvy, slim-thick body type with large breasts and a prominent butt. Her blonde, long hair and youthful appearance are evident across all images. No visible tattoos or piercings are present. Style leans towards glamorous and natural. Ethnicity is uncertain due to lighting and image quality.\"\n}\n```",
+    "input_tokens": 2537,
+    "output_tokens": 318,
+    "metadata": {
+      "model": "gemini-2.5-flash-lite",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

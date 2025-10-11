@@ -10,9 +10,9 @@ export interface InstagramCreator {
   full_name: string | null
   biography: string | null
   profile_pic_url: string | null
-  followers: number
-  following: number
-  posts_count: number
+  followers_count: number
+  following_count: number
+  media_count: number
   review_status: 'ok' | 'non_related' | null
   is_private: boolean
   is_verified: boolean
@@ -68,10 +68,11 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
       id: 'bio',
       header: 'Bio + Link',
       accessor: 'biography',
-      width: 'w-64 flex-shrink-0',
+      width: 'w-[333px] flex-shrink-0',
       field: {
         type: 'text',
         color: 'secondary',
+        truncate: true,
         maxLength: 100,
         placeholder: 'No bio',
         subtitle: (creator) => creator.external_url ? {
@@ -86,7 +87,7 @@ export function createInstagramReviewColumns(config: InstagramReviewColumnConfig
     {
       id: 'followers',
       header: 'Followers',
-      accessor: 'followers',
+      accessor: 'followers_count',
       width: 'w-28 flex-shrink-0',
       align: 'center',
       field: {

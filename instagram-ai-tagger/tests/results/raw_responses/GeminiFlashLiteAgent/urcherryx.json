@@ -1,0 +1,49 @@
+{
+  "agent": "GeminiFlashLiteAgent",
+  "model": "gemini-2.5-flash-lite",
+  "username": "urcherryx",
+  "timestamp": "2025-10-11 11:46:33",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:curvy",
+    "body_type:slim_thick",
+    "breasts:huge",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:long",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:heavy",
+    "piercings:moderate",
+    "ethnicity:white"
+  ],
+  "confidence": {
+    "body_type": 0.88,
+    "breasts": 0.98,
+    "butt": 0.78,
+    "hair_color": 0.99,
+    "hair_length": 0.99,
+    "style": 0.85,
+    "age_appearance": 0.92,
+    "tattoos": 0.95,
+    "piercings": 0.8,
+    "ethnicity": 0.87
+  },
+  "reasoning": "Consistent blonde hair and long length across all images. Extensive tattoos and moderate piercings are visible. Appears to be a young adult with a curvy, slim-thick build and large breasts and bubble butt. Ethnicity appears predominantly white.",
+  "response_time": 5.681455850601196,
+  "cost": 0.00037170000000000004,
+  "tokens": {
+    "input": 2537,
+    "output": 295
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"body_type:slim_thick\",\n    \"breasts:huge\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:heavy\",\n    \"piercings:moderate\",\n    \"ethnicity:white\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.98,\n    \"butt\": 0.78,\n    \"hair_color\": 0.99,\n    \"hair_length\": 0.99,\n    \"style\": 0.85,\n    \"age_appearance\": 0.92,\n    \"tattoos\": 0.95,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.87\n  },\n  \"reasoning\": \"Consistent blonde hair and long length across all images. Extensive tattoos and moderate piercings are visible. Appears to be a young adult with a curvy, slim-thick build and large breasts and bubble butt. Ethnicity appears predominantly white.\"\n}\n```",
+    "input_tokens": 2537,
+    "output_tokens": 295,
+    "metadata": {
+      "model": "gemini-2.5-flash-lite",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

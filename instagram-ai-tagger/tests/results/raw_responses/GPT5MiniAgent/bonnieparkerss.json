@@ -1,0 +1,50 @@
+{
+  "agent": "GPT5MiniAgent",
+  "model": "gpt-5-mini-2025-08-07",
+  "username": "bonnieparkerss",
+  "timestamp": "2025-10-11 11:45:38",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:slim_thick",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:blonde",
+    "hair_length:very_long",
+    "style:glamorous",
+    "style:bimbo",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.88,
+    "breasts": 0.9,
+    "butt": 0.86,
+    "hair_color": 0.96,
+    "hair_length": 0.95,
+    "style": 0.82,
+    "age_appearance": 0.78,
+    "tattoos": 0.85,
+    "piercings": 0.8,
+    "ethnicity": 0.6
+  },
+  "reasoning": "Across multiple images the subject shows a curvy lower body with a slim waist (slim_thick) and prominent breasts; long, consistently blonde hair; glamorous/bimbo-styled outfits and makeup with some natural looks; only small visible tattoos and standard minimal jewelry; appearance suggests a young adult. Ethnicity is uncertain from photos alone.",
+  "response_time": 15.074589967727661,
+  "cost": 0.0022500000000000003,
+  "tokens": {
+    "input": 7844,
+    "output": 289
+  },
+  "raw_response": {
+    "response": "{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:blonde\",\n    \"hair_length:very_long\",\n    \"style:glamorous\",\n    \"style:bimbo\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.90,\n    \"butt\": 0.86,\n    \"hair_color\": 0.96,\n    \"hair_length\": 0.95,\n    \"style\": 0.82,\n    \"age_appearance\": 0.78,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.60\n  },\n  \"reasoning\": \"Across multiple images the subject shows a curvy lower body with a slim waist (slim_thick) and prominent breasts; long, consistently blonde hair; glamorous/bimbo-styled outfits and makeup with some natural looks; only small visible tattoos and standard minimal jewelry; appearance suggests a young adult. Ethnicity is uncertain from photos alone.\"\n}",
+    "input_tokens": 7844,
+    "output_tokens": 289,
+    "metadata": {
+      "model": "gpt-5-mini-2025-08-07",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

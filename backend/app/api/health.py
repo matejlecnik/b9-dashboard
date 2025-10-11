@@ -40,13 +40,13 @@ async def comprehensive_health_check():
 
 @router.get("/ready")
 async def readiness_check():
-    """Kubernetes/Render readiness check"""
+    """Kubernetes readiness check"""
     return await health_monitor.readiness_check()
 
 
 @router.get("/alive")
 async def liveness_check():
-    """Kubernetes/Render liveness check"""
+    """Kubernetes liveness check"""
     return await health_monitor.liveness_check()
 
 

@@ -22,10 +22,9 @@ export interface Creator {
   username: string
   full_name?: string
   biography?: string  // DB column name
-  followers: number
-  following: number
-  posts_count: number  // DB column name
-  media_count?: number
+  followers_count: number  // Updated to new column name
+  following_count: number  // Updated to new column name
+  media_count: number
   engagement_rate_cached?: number  // DB column name
   avg_engagement_rate?: number
   review_status: CreatorStatus
@@ -55,7 +54,6 @@ export interface Creator {
   external_url_type?: string
   best_content_type?: string
   posting_consistency_score?: number
-  reels_count?: number
   niche?: string
 }
 
@@ -67,7 +65,7 @@ interface CreatorFilters {
   minEngagement?: number
   categories?: string[]
   isVerified?: boolean
-  orderBy?: 'followers' | 'engagement_rate_cached' | 'discovery_date'
+  orderBy?: 'followers_count' | 'engagement_rate_cached' | 'discovery_date'  // Updated column name
   order?: 'asc' | 'desc'
 }
 
@@ -99,9 +97,8 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
           full_name,
           biography,
           profile_pic_url,
-          followers,
-          following,
-          posts_count,
+          followers_count,
+          following_count,
           media_count,
           is_verified,
           is_private,
@@ -130,7 +127,6 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
           external_url_type,
           best_content_type,
           posting_consistency_score,
-          reels_count,
           niche
         `)
         .range(pageParam, pageParam + PAGE_SIZE - 1)
@@ -152,11 +148,11 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
       }
 
       if (filters.minFollowers !== undefined) {
-        query = query.gte('followers', filters.minFollowers)
+        query = query.gte('followers_count', filters.minFollowers)
       }
 
       if (filters.maxFollowers !== undefined) {
-        query = query.lte('followers', filters.maxFollowers)
+        query = query.lte('followers_count', filters.maxFollowers)
       }
 
       if (filters.minEngagement !== undefined) {
@@ -172,9 +168,10 @@ export function useInstagramCreators(filters: CreatorFilters = {}) {
       }
 
       // Apply sorting
-      const orderBy = filters.orderBy || 'followers'
+      const orderBy = filters.orderBy || 'followers_count'
       const order = filters.order || 'desc'
       query = query.order(orderBy, { ascending: order === 'asc' })
+        .order('id', { ascending: true }) // Secondary sort for stable pagination
 
       const { data, error } = await query
 
@@ -246,7 +243,7 @@ export function useRelatedCreators(creatorId: number) {
       // First get the creator's data
       const { data: creator } = await supabase
         .from('instagram_creators')
-        .select('categories, followers')
+        .select('categories, followers_count')
         .eq('id', creatorId)
         .single()
 
@@ -258,8 +255,8 @@ export function useRelatedCreators(creatorId: number) {
         .select('*')
         .neq('id', creatorId)
         .overlaps('categories', creator.categories || [])
-        .gte('followers', creator.followers * 0.5)
-        .lte('followers', creator.followers * 2)
+        .gte('followers_count', creator.followers_count * 0.5)
+        .lte('followers_count', creator.followers_count * 2)
         .limit(20)
 
       if (error) {
@@ -499,7 +496,7 @@ export function usePrefetchCreatorOnHover() {
 
         const { data: creator } = await supabase
           .from('instagram_creators')
-          .select('categories, followers')
+          .select('categories, followers_count')
           .eq('id', creatorId)
           .single()
 
@@ -510,8 +507,8 @@ export function usePrefetchCreatorOnHover() {
           .select('*')
           .neq('id', creatorId)
           .overlaps('categories', creator.categories || [])
-          .gte('followers', creator.followers * 0.5)
-          .lte('followers', creator.followers * 2)
+          .gte('followers_count', creator.followers_count * 0.5)
+          .lte('followers_count', creator.followers_count * 2)
           .limit(10)
 
         return data || []
@@ -536,7 +533,7 @@ export interface NichingStats {
 export interface NichingFilters {
   search?: string
   niches?: string[] | null // null = unniched, [] = all, ['niche1'] = specific niches
-  orderBy?: 'followers' | 'username' | 'discovery_date'
+  orderBy?: 'followers_count' | 'username' | 'discovery_date'
   order?: 'asc' | 'desc'
 }
 
@@ -593,6 +590,48 @@ export function useNichingStats() {
 }
 
 /**
+ * Hook for fetching AI tagging statistics
+ */
+export interface AITaggingStats {
+  total: number
+  tagged: number
+  untagged: number
+}
+
+export function useAITaggingStats() {
+  return useSupabaseQuery<AITaggingStats>(
+    queryKeys.instagram.aiTaggingStats(),
+    async () => {
+      if (!supabase) {
+        logger.error('Supabase client not available')
+        throw new Error('Supabase client not available')
+      }
+
+      // Run all counts in parallel
+      const [totalResult, taggedResult, untaggedResult] = await Promise.all([
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok'),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok').not('body_tags', 'is', null),
+        supabase.from('instagram_creators').select('id', { count: 'exact', head: true }).eq('review_status', 'ok').is('body_tags', null)
+      ])
+
+      const total = totalResult.count || 0
+      const tagged = taggedResult.count || 0
+      const untagged = untaggedResult.count || 0
+
+      return {
+        total,
+        tagged,
+        untagged
+      }
+    },
+    {
+      staleTime: 30 * 1000, // 30 seconds
+      refetchInterval: 60 * 1000, // Refetch every minute
+    }
+  )
+}
+
+/**
  * Hook for fetching creators for niching page with infinite scroll
  */
 export function useNichingCreators(filters: NichingFilters = {}) {
@@ -626,9 +665,10 @@ export function useNichingCreators(filters: NichingFilters = {}) {
       }
 
       // Apply sorting
-      const orderBy = filters.orderBy || 'followers'
+      const orderBy = filters.orderBy || 'followers_count'
       const order = filters.order || 'desc'
       query = query.order(orderBy, { ascending: order === 'asc' })
+        .order('id', { ascending: true }) // Secondary sort for stable pagination
 
       const { data, error } = await query
 

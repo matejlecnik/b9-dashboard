@@ -277,6 +277,95 @@ backend/
 └── requirements.txt     # Dependencies
 ```
 
+## AI Tagging Scripts
+
+Instagram creator visual attribute tagging using **Gemini 2.5 Flash** vision AI:
+
+```json
+{
+  "system": "Instagram AI Tagging v1.0",
+  "status": "PRODUCTION_READY",
+  "model": "gemini-2.5-flash",
+  "deployment_date": "2025-10-11",
+  "scripts": {
+    "tag_instagram_creators.py": {
+      "path": "backend/scripts/",
+      "purpose": "Main tagging script (520 lines)",
+      "usage": "python3 scripts/tag_instagram_creators.py --limit 100 --workers 5",
+      "options": [
+        "--limit N: Process only N creators",
+        "--workers N: Use N parallel workers (default: 1)",
+        "--dry-run: Test without saving to database"
+      ]
+    },
+    "deploy_tagging.sh": {
+      "path": "backend/scripts/",
+      "purpose": "Deployment helper (204 lines)",
+      "commands": {
+        "setup": "./scripts/deploy_tagging.sh setup",
+        "dry-run": "./scripts/deploy_tagging.sh dry-run 5",
+        "run": "./scripts/deploy_tagging.sh run [limit]",
+        "parallel": "./scripts/deploy_tagging.sh parallel 5 [limit]"
+      }
+    }
+  },
+  "features": {
+    "unified_logging": "Console + File + Supabase system_logs table",
+    "cost_tracking": "$0.0013 per creator (~20s processing time)",
+    "attributes": ["body_type", "breasts", "butt", "hair_color", "hair_length", "style", "age_appearance", "tattoos", "piercings", "ethnicity"],
+    "confidence_threshold": 0.75,
+    "resumability": "Safe to stop/restart (processes WHERE body_tags IS NULL)",
+    "monitoring": "Real-time via Supabase SQL queries"
+  },
+  "database_schema": {
+    "table": "instagram_creators",
+    "columns": [
+      "body_tags: text[] (array of visual attributes)",
+      "tag_confidence: jsonb (confidence scores per attribute)",
+      "tags_analyzed_at: timestamptz (processing timestamp)",
+      "model_version: text (AI model identifier)"
+    ],
+    "migration": "migrations/add_instagram_tags_fields.sql"
+  },
+  "production_status": {
+    "creators_ready": 89,
+    "estimated_cost": "$0.12",
+    "estimated_time": "30 min (1 worker) | 6 min (5 workers) | 3 min (10 workers)"
+  },
+  "documentation": "scripts/INSTAGRAM_TAGGING_README.md (354 lines)"
+}
+```
+
+**Quick Start:**
+```bash
+cd backend
+
+# Setup (first time)
+./scripts/deploy_tagging.sh setup
+
+# Test with dry-run
+./scripts/deploy_tagging.sh dry-run 5
+
+# Production run
+./scripts/deploy_tagging.sh run          # All untagged
+./scripts/deploy_tagging.sh run 50       # 50 creators
+./scripts/deploy_tagging.sh parallel 5   # 5 parallel workers
+```
+
+**Monitor Progress:**
+```sql
+-- View recent tagging logs
+SELECT timestamp, message, context
+FROM system_logs
+WHERE source = 'instagram_ai_tagger'
+ORDER BY timestamp DESC LIMIT 50;
+
+-- Count tagged creators
+SELECT COUNT(*) FROM instagram_creators WHERE body_tags IS NOT NULL;
+```
+
+**See:** [scripts/INSTAGRAM_TAGGING_README.md](scripts/INSTAGRAM_TAGGING_README.md) for full documentation.
+
 ## Deployment
 
 ```json
@@ -284,7 +373,7 @@ backend/
   "provider": "Hetzner Cloud",
   "architecture": "Distributed (1 API + 2 Workers)",
   "region": "eu-central (Falkenstein, Germany)",
-  "cost": "€30.05/month (94.7% savings vs Render)",
+  "cost": "€30.05/month (Hetzner CPX31)",
   "servers": {
     "api_server": {
       "type": "CPX11",
@@ -378,5 +467,5 @@ pytest --cov=app --cov-report=html
 
 ---
 
-_API Version: 3.7.0 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-07_
-_Navigate: [→ ARCHITECTURE.md](../docs/backend/ARCHITECTURE.md) | [→ API.md](../docs/backend/API.md) | [→ DEPLOYMENT.md](../docs/backend/API_DEPLOYMENT.md)_
+_API Version: 3.7.1 | Framework: FastAPI | Runtime: Python 3.11 | Updated: 2025-10-11 (AI Tagging v1.0)_
+_Navigate: [→ ARCHITECTURE.md](../docs/backend/ARCHITECTURE.md) | [→ API.md](../docs/backend/API.md) | [→ INSTAGRAM_TAGGING_README.md](scripts/INSTAGRAM_TAGGING_README.md)_

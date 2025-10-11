@@ -12,8 +12,8 @@ export interface InstagramCreator {
   full_name: string | null
   biography: string | null
   profile_pic_url: string | null
-  followers: number
-  posts_count: number
+  followers_count: number
+  media_count: number
   review_status: 'ok' | 'non_related' | null
   is_private: boolean
   is_verified: boolean
@@ -78,7 +78,7 @@ export function createInstagramNichingColumns(config: InstagramNichingColumnConf
     {
       id: 'subscribers',
       header: 'Followers',
-      accessor: 'followers',
+      accessor: 'followers_count',
       width: 'w-24 flex-shrink-0',
       align: 'center',
       field: {

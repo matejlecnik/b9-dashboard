@@ -42,7 +42,7 @@ def create_lifespan_manager(
     async def lifespan(app: FastAPI):
         """Application lifespan manager with enhanced initialization"""
 
-        logger.info("🚀 Starting B9 Dashboard API (Render Optimized)")
+        logger.info("🚀 Starting B9 Dashboard API (Hetzner Optimized)")
         logger.info(
             "Starting B9 Dashboard API",
             context={"environment": os.getenv("ENVIRONMENT", "development")},

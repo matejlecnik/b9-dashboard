@@ -1,0 +1,49 @@
+{
+  "agent": "GPT5Agent",
+  "model": "gpt-5-2025-08-07",
+  "username": "vismaramartina",
+  "timestamp": "2025-10-11 11:49:21",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:slim_thick",
+    "breasts:huge",
+    "butt:uncertain",
+    "hair_color:black",
+    "hair_length:very_long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:none",
+    "piercings:minimal",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.82,
+    "breasts": 0.96,
+    "butt": 0.4,
+    "hair_color": 0.92,
+    "hair_length": 0.95,
+    "style": 0.8,
+    "age_appearance": 0.75,
+    "tattoos": 0.88,
+    "piercings": 0.85,
+    "ethnicity": 0.55
+  },
+  "reasoning": "Across multiple images she has a slim waist with pronounced chest and curves, very long black hair, and leans toward fitted, glamorous outfits with natural makeup. No visible tattoos; standard ear piercings noted. Butt not clearly visible; ethnicity not certain.",
+  "response_time": 15.183987140655518,
+  "cost": 0.00619375,
+  "tokens": {
+    "input": 3891,
+    "output": 266
+  },
+  "raw_response": {
+    "response": "{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:huge\",\n    \"butt:uncertain\",\n    \"hair_color:black\",\n    \"hair_length:very_long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:none\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.82,\n    \"breasts\": 0.96,\n    \"butt\": 0.40,\n    \"hair_color\": 0.92,\n    \"hair_length\": 0.95,\n    \"style\": 0.80,\n    \"age_appearance\": 0.75,\n    \"tattoos\": 0.88,\n    \"piercings\": 0.85,\n    \"ethnicity\": 0.55\n  },\n  \"reasoning\": \"Across multiple images she has a slim waist with pronounced chest and curves, very long black hair, and leans toward fitted, glamorous outfits with natural makeup. No visible tattoos; standard ear piercings noted. Butt not clearly visible; ethnicity not certain.\"\n}",
+    "input_tokens": 3891,
+    "output_tokens": 266,
+    "metadata": {
+      "model": "gpt-5-2025-08-07",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

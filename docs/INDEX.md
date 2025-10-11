@@ -94,6 +94,7 @@
   "scrapers": {
     "reddit": "backend/app/scrapers/reddit/README.md (248 lines) - v3.6.3",
     "instagram": "backend/app/scrapers/instagram/README.md (221 lines)",
+    "instagram_ai_tagging": "backend/scripts/INSTAGRAM_TAGGING_README.md (354 lines) - v1.0 PRODUCTION",
     "architecture": "backend/app/scrapers/reddit/ARCHITECTURE.md"
   },
   "logging": {
@@ -216,6 +217,7 @@
 ### By Task
 - **Setup Project**: `README.md` → `INFRASTRUCTURE.md` → `docs/deployment/PRODUCTION_SETUP.md`
 - **Setup Production**: `INFRASTRUCTURE.md` → `PRODUCTION_SETUP.md` → Configure DNS & Nginx
+- **AI Tag Creators**: `backend/scripts/INSTAGRAM_TAGGING_README.md` → `deploy_tagging.sh` → Monitor via Supabase
 - **Add API Endpoint**: `backend/main.py` → `routes/` → `docs/backend/API.md`
 - **Database Query**: `docs/database/SUPABASE_QUERIES.md` → `SUPABASE_FUNCTIONS.md`
 - **Deploy Changes**: `docs/deployment/DEPLOYMENT.md` → `CHECKLIST.md` → GitHub Actions
@@ -312,4 +314,4 @@ $ open dashboard/src/components/          # Component library
 
 ---
 
-_Index Version: 2.1.0 | Files: 93+ | Lines: 20,000+ | Updated: 2025-10-10 | Infrastructure v2.0 Complete_
+_Index Version: 2.1.1 | Files: 93+ | Lines: 20,000+ | Updated: 2025-10-11 | Instagram AI Tagging v1.0 Added_

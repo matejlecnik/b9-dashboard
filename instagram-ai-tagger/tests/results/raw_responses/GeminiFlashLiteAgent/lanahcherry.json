@@ -1,0 +1,50 @@
+{
+  "agent": "GeminiFlashLiteAgent",
+  "model": "gemini-2.5-flash-lite",
+  "username": "lanahcherry",
+  "timestamp": "2025-10-11 11:47:28",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:curvy",
+    "body_type:slim_thick",
+    "breasts:medium",
+    "butt:bubble",
+    "hair_color:brunette",
+    "hair_length:long",
+    "style:natural",
+    "style:glamorous",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:latina"
+  ],
+  "confidence": {
+    "body_type": 0.92,
+    "breasts": 0.88,
+    "butt": 0.95,
+    "hair_color": 0.98,
+    "hair_length": 0.99,
+    "style": 0.85,
+    "age_appearance": 0.82,
+    "tattoos": 0.85,
+    "piercings": 0.8,
+    "ethnicity": 0.88
+  },
+  "reasoning": "Consistent appearance across multiple images shows a curvy, slim-thick body type with long brunette hair. The style leans towards natural and glamorous, with a young adult appearance. Minimal tattoos and piercings are visible. Ethnicity appears Latina.",
+  "response_time": 7.470683813095093,
+  "cost": 0.0003757,
+  "tokens": {
+    "input": 2537,
+    "output": 305
+  },
+  "raw_response": {
+    "response": "```json\n{\n  \"tags\": [\n    \"body_type:curvy\",\n    \"body_type:slim_thick\",\n    \"breasts:medium\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:natural\",\n    \"style:glamorous\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:latina\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.92,\n    \"breasts\": 0.88,\n    \"butt\": 0.95,\n    \"hair_color\": 0.98,\n    \"hair_length\": 0.99,\n    \"style\": 0.85,\n    \"age_appearance\": 0.82,\n    \"tattoos\": 0.85,\n    \"piercings\": 0.80,\n    \"ethnicity\": 0.88\n  },\n  \"reasoning\": \"Consistent appearance across multiple images shows a curvy, slim-thick body type with long brunette hair. The style leans towards natural and glamorous, with a young adult appearance. Minimal tattoos and piercings are visible. Ethnicity appears Latina.\"\n}\n```",
+    "input_tokens": 2537,
+    "output_tokens": 305,
+    "metadata": {
+      "model": "gemini-2.5-flash-lite",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}

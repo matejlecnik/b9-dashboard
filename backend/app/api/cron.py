@@ -1,6 +1,6 @@
 """
 Cron Job API Endpoints
-Protected endpoints for scheduled tasks triggered by Render cron jobs
+Protected endpoints for scheduled tasks triggered by Hetzner cron jobs
 
 CRITICAL: CRON-001 - Log cleanup to prevent disk overflow
 """
@@ -35,7 +35,7 @@ async def trigger_log_cleanup(
 
     **Authentication:** Requires `Authorization: Bearer {CRON_SECRET}` header
 
-    **Schedule:** Runs daily at 2 AM UTC (configured in render.yaml)
+    **Schedule:** Runs daily at 2 AM UTC (configured via Hetzner cron)
 
     **Args:**
     - retention_days: Number of days to keep logs (default: 30)

@@ -1,0 +1,53 @@
+{
+  "pairwise_agreements": [
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GeminiFlashLiteAgent",
+      "agent_2": "GPT4oMiniAgent",
+      "agreement": 0.375,
+      "common_tags": 6,
+      "total_unique_tags": 16
+    },
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GeminiFlashLiteAgent",
+      "agent_2": "GeminiFlashAgent",
+      "agreement": 0.5,
+      "common_tags": 7,
+      "total_unique_tags": 14
+    },
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GeminiFlashLiteAgent",
+      "agent_2": "ClaudeSonnet45Agent",
+      "agreement": 0.23529411764705882,
+      "common_tags": 4,
+      "total_unique_tags": 17
+    },
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GPT4oMiniAgent",
+      "agent_2": "GeminiFlashAgent",
+      "agreement": 0.3125,
+      "common_tags": 5,
+      "total_unique_tags": 16
+    },
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GPT4oMiniAgent",
+      "agent_2": "ClaudeSonnet45Agent",
+      "agreement": 0.6153846153846154,
+      "common_tags": 8,
+      "total_unique_tags": 13
+    },
+    {
+      "creator": "noelle_emily",
+      "agent_1": "GeminiFlashAgent",
+      "agent_2": "ClaudeSonnet45Agent",
+      "agreement": 0.42857142857142855,
+      "common_tags": 6,
+      "total_unique_tags": 14
+    }
+  ],
+  "average_agreement": 0.41112502693385045
+}

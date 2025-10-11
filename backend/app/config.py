@@ -230,7 +230,6 @@ class ExternalServicesConfig:
     openai_api_key: str
     supabase_url: str
     supabase_service_key: str
-    render_api_key: Optional[str] = None
 
     # R2 Storage (Cloudflare)
     r2_account_id: str = ""
@@ -294,7 +293,6 @@ class Config:
             openai_api_key=os.getenv("OPENAI_API_KEY", ""),
             supabase_url=os.getenv("SUPABASE_URL", ""),
             supabase_service_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
-            render_api_key=os.getenv("RENDER_API_KEY"),
             r2_account_id=os.getenv("R2_ACCOUNT_ID", ""),
             r2_access_key_id=os.getenv("R2_ACCESS_KEY_ID", ""),
             r2_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY", ""),

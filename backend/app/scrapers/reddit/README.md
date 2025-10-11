@@ -247,7 +247,7 @@ ps aux | grep reddit_controller
 
 ```bash
 ## Test single subreddit
-curl -X POST "https://b9-dashboard.onrender.com/api/subreddits/fetch-single" \
+curl -X POST "http://91.98.91.129:10000/api/subreddits/fetch-single" \
   -H "Content-Type: application/json" \
   -d '{"subreddit_name": "test"}'
 

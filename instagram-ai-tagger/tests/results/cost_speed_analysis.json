@@ -1,0 +1,62 @@
+{
+  "GeminiFlashLiteAgent": {
+    "total_cost": 0.0003165,
+    "total_time": 8.410676002502441,
+    "requests": 1,
+    "successful": 1,
+    "failed": 0,
+    "total_tags": 11,
+    "avg_cost": 0.0003165,
+    "avg_time": 8.410676002502441,
+    "avg_tags": 11.0,
+    "cost_580_creators": 0.18357
+  },
+  "GPT4oMiniAgent": {
+    "total_cost": 0.0092526,
+    "total_time": 14.672238826751709,
+    "requests": 1,
+    "successful": 1,
+    "failed": 0,
+    "total_tags": 11,
+    "avg_cost": 0.0092526,
+    "avg_time": 14.672238826751709,
+    "avg_tags": 11.0,
+    "cost_580_creators": 5.366508
+  },
+  "GeminiFlashAgent": {
+    "total_cost": 0.0013571,
+    "total_time": 9.1285560131073,
+    "requests": 1,
+    "successful": 1,
+    "failed": 0,
+    "total_tags": 10,
+    "avg_cost": 0.0013571,
+    "avg_time": 9.1285560131073,
+    "avg_tags": 10.0,
+    "cost_580_creators": 0.787118
+  },
+  "GPT4oAgent": {
+    "total_cost": 0.0,
+    "total_time": 6.177558183670044,
+    "requests": 1,
+    "successful": 0,
+    "failed": 1,
+    "total_tags": 0,
+    "avg_cost": 0.0,
+    "avg_time": 0.0,
+    "avg_tags": 0.0,
+    "cost_580_creators": 0.0
+  },
+  "ClaudeSonnet45Agent": {
+    "total_cost": 0.01767,
+    "total_time": 9.714287757873535,
+    "requests": 1,
+    "successful": 1,
+    "failed": 0,
+    "total_tags": 10,
+    "avg_cost": 0.01767,
+    "avg_time": 9.714287757873535,
+    "avg_tags": 10.0,
+    "cost_580_creators": 10.248600000000001
+  }
+}

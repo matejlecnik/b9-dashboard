@@ -1,0 +1,49 @@
+{
+  "agent": "GPT5Agent",
+  "model": "gpt-5-2025-08-07",
+  "username": "lanahcherry",
+  "timestamp": "2025-10-11 11:47:59",
+  "images_analyzed": 5,
+  "tags": [
+    "body_type:slim_thick",
+    "breasts:large",
+    "butt:bubble",
+    "hair_color:brunette",
+    "hair_length:long",
+    "style:glamorous",
+    "style:natural",
+    "age_appearance:young_adult",
+    "tattoos:minimal",
+    "piercings:minimal",
+    "ethnicity:uncertain"
+  ],
+  "confidence": {
+    "body_type": 0.88,
+    "breasts": 0.86,
+    "butt": 0.86,
+    "hair_color": 0.95,
+    "hair_length": 0.97,
+    "style": 0.82,
+    "age_appearance": 0.8,
+    "tattoos": 0.8,
+    "piercings": 0.85,
+    "ethnicity": 0.68
+  },
+  "reasoning": "Across multiple bikini and outfit photos, she appears curvy with a small waist and fuller hips/bust, long brunette hair, and a mix of natural/glam styling. Minimal visible tattoos and only standard ear/navel piercings; age reads mid-20s. Ethnicity not clear.",
+  "response_time": 14.901220083236694,
+  "cost": 0.00623875,
+  "tokens": {
+    "input": 3891,
+    "output": 275
+  },
+  "raw_response": {
+    "response": "{\n  \"tags\": [\n    \"body_type:slim_thick\",\n    \"breasts:large\",\n    \"butt:bubble\",\n    \"hair_color:brunette\",\n    \"hair_length:long\",\n    \"style:glamorous\",\n    \"style:natural\",\n    \"age_appearance:young_adult\",\n    \"tattoos:minimal\",\n    \"piercings:minimal\",\n    \"ethnicity:uncertain\"\n  ],\n  \"confidence\": {\n    \"body_type\": 0.88,\n    \"breasts\": 0.86,\n    \"butt\": 0.86,\n    \"hair_color\": 0.95,\n    \"hair_length\": 0.97,\n    \"style\": 0.82,\n    \"age_appearance\": 0.8,\n    \"tattoos\": 0.8,\n    \"piercings\": 0.85,\n    \"ethnicity\": 0.68\n  },\n  \"reasoning\": \"Across multiple bikini and outfit photos, she appears curvy with a small waist and fuller hips/bust, long brunette hair, and a mix of natural/glam styling. Minimal visible tattoos and only standard ear/navel piercings; age reads mid-20s. Ethnicity not clear.\"\n}",
+    "input_tokens": 3891,
+    "output_tokens": 275,
+    "metadata": {
+      "model": "gpt-5-2025-08-07",
+      "finish_reason": "stop"
+    }
+  },
+  "error": null
+}
